@@ -10,6 +10,7 @@
     "bake": "tsx tools/bake-manifest.ts"
   },
   "devDependencies": {
+    "@types/wicg-file-system-access": "^2023.10.7",
     "tsx": "^4.21.0",
     "typescript": "~5.9.3",
     "vite": "^8.0.0"

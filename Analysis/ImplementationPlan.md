@@ -365,8 +365,8 @@ The font images (`LargeFont`, `MainFont`) ARE in UISheet0.png as sprite regions,
 
 **Work order within Phase 6:**
 1. Text rendering (in-world fret numbers, chord names) — ✅ done
-2. App.ts upgrade — widen `activeScene` type, coordinate scene creation from selection
-3. Song library screen (folder picker, song cards)
+2. App.ts upgrade — widen `activeScene` type, coordinate scene creation from selection — ✅ done
+3. Song library screen (folder picker, song cards) — ✅ done
 4. Pre-scene screen (instrument selector, key settings)
 5. Tuner / input-check scene
 6. Active scene overlay (playback controls, settings panel, back)
@@ -506,41 +506,7 @@ Canvas texture size: 256×64 px canvas for most labels. World size (sprite scale
 
 ---
 
-## Phase 6.2a - Internet Cutout
-
-Internet cut out while beginning Phase 6. Last messages before we were going to get started:
-
-<b>Claude:</b>\
-Good news: index.json exists and is well-structured. Bad news: the planned SongIndexEntry interface in the plan doesn't quite match the real format. Specific mismatches:
-
-1. Tuning — one field planned, three fields actual
-
-The plan has tuning?: string (lead only). The real JSON has:
-
-
-"leadGuitarTuning": "E A D G B E",
-"rhythmGuitarTuning": "E A D G B E",
-"bassGuitarTuning": "E A D G B E"
-The filter dropdown needs to show tunings per instrument — so all three matter. The interface needs updating.
-
-2. Difficulty — Record<string, number> planned, float[] actual
-
-The real format is a numeric array indexed by ESongInstrumentType enum ordinal, e.g. [5.0, 4.5, 5.0, 0, 0, 0]. To use it in the browser we need to know the enum's order. I'll need to check ESongInstrumentType in the C# source before building 6.3.
-
-3. lengthSeconds — missing from planned interface
-
-The real JSON includes it; useful for song cards and sorting. Easy addition, but it's not in the plan.
-
-4. No albumArt path in the index — consistent with the plan (look for album.png sibling in the folder at runtime).
-
-So concern 2 is real but containable — the SongIndexEntry TypeScript interface just needs to be corrected before writing the song library screen. The only unknown remaining is the ESongInstrumentType enum order. Want me to look that up now so we can nail down the interface fully before starting 6.3?
-
-<b>User:</b>\
-sure add song length. You're right about the tuning, we should also have a category for instrument and tuning is a subcategory of that
-
----
-
-### Phase 6.2 — App.ts restructure (application router)
+### Phase 6.2 — App.ts restructure (application router) ✅
 
 Phase 6 turns `App` from a thin renderer shell into the application router. This is the most structural change in the whole port.
 
@@ -558,7 +524,7 @@ Phase 6 turns `App` from a thin renderer shell into the application router. This
 **Screen interface — each screen is a class with a mount/unmount lifecycle:**
 ```ts
 interface IScreen {
-    mount(container: HTMLElement): void;
+    mount(container: HTMLElement): void | Promise<void>;  // async screens fire-and-forget
     unmount(): void;
 }
 ```
@@ -579,63 +545,88 @@ class App {
 }
 ```
 
-**`activeScene: Scene3D | null`** — set by `ActiveSceneScreen` when it mounts, cleared when it unmounts. The RAF loop calls `activeScene?.draw(dt)` — no scene, no render work. `onResize` already uses the `Scene3D` base class `camera` field, so the type widening from `ChartScene3D` is the only change needed there.
+**`App` hooks set by `ActiveSceneScreen`** (cleared on unmount):
+- `onPreDraw: (() => void) | null` — called each RAF tick; injects `currentSecond` from `SongPlayer`
+- `onSongPause: (() => number | null) | null` — pauses song if playing, returns position; null if already paused
+- `onSongResume: ((seconds: number) => void) | null` — seeks + resumes after settings countdown
 
-**Scene teardown on navigation:** `ActiveSceneScreen.unmount()` calls `scene.destroy()` (disposes Three.js geometries + textures) and `songPlayer.pause()` before clearing `app.activeScene`. This prevents VRAM leaks when switching songs.
+**Scene teardown on navigation:** `ActiveSceneScreen.unmount()` calls `scene.destroy()` and `songPlayer.pause()` before clearing `app.activeScene`. Prevents VRAM leaks when switching songs.
+
+**Canvas clear on navigate:** `App.navigate()` calls `renderer.clear()` after unmounting the outgoing screen. Ensures the last rendered frame doesn't linger behind the next screen (e.g. fret notes visible behind the song library).
+
+**Auto-play:** `ActiveSceneScreen` calls `songPlayer.play()` immediately after mounting the scene — no click required to start. Click-to-pause/resume on the overlay still works as before.
+
+**`erasableSyntaxOnly` constraint:** TypeScript parameter properties (`constructor(private foo)`) are forbidden. All fields must be declared and assigned manually.
 
 ---
 
-### Phase 6.3 — Song library screen
+### Phase 6.3 — Song library screen ✅
 
-**File system access: File System Access API (`showDirectoryPicker()`)**
-- User picks the song library root folder once; handle stored in **IndexedDB** (not localStorage — `FileSystemDirectoryHandle` is a structured object, not JSON-serializable). Use `idb-keyval` (~1 kb) for a simple wrapper.
-- Chrome/Edge only — acceptable for this desktop-class tool
-- On return visits: retrieve handle from IndexedDB → `handle.queryPermission()` → if not `'granted'`, show a single "Re-allow access" button that calls `handle.requestPermission()` on click (requires user gesture, no re-picking needed)
-- First-time: full-screen welcome prompt with "Choose folder" button
+**File system access — two backends behind `ISongLibrary`:**
 
-**Song index approach: read `index.json` if present, fall back to folder scan**
-- `index.json` (built by the C# desktop app) already has title, artist, difficulty, arrangements, tuning
-- If absent: scan subdirectories for `song.json` and build a minimal in-memory index
-- No writing to disk from the browser
+Firefox does not support `showDirectoryPicker`. Rather than Chrome/Edge-only, we built a common abstraction:
 
-**Song cards** — each song displayed as a card:
-- Album art (look for `album.png` / `album.jpg` sibling in the song folder)
-- Song title, artist name, album name
-- Available arrangement badges (L / R / B / K / D)
-- Difficulty indicator for the currently active instrument filter
-
-**Search + sort + filter bar (above the card grid):**
+```ts
+interface ISongLibrary {
+    scan(): Promise<SongIndexEntry[]>;
+    getSongFile(entry: SongIndexEntry, filename: string): Promise<File>;
+    getAlbumArtUrl(entry: SongIndexEntry): Promise<string | null>;
+    readonly canPersist: boolean;
+}
 ```
-[🔍 Search title, artist, album...]   [Sort: Title ▼]
 
-[All] [Lead] [Rhythm] [Bass] [Keys] [Drums]   [Tuning: All ▼]
-```
-- **Search** — matches title, artist, album; case-insensitive substring
-- **Sort options:** Title A–Z/Z–A · Artist A–Z/Z–A · Difficulty (uses the active instrument filter; disabled / hidden when "All" is selected) · Tuning A–Z
-- **Instrument chips** — only render chips for instruments present in the library; "All" always shown
-- **Tuning dropdown** — lists all distinct tuning strings in the library; "All" is default. Guitar-specific in practice but not hard-coded as such — any instrument with tuning data gets included
-- All filter/sort state persisted to `localStorage` and restored on next load; reset button clears to defaults
+- **`HandleLibrary`** — Chrome/Edge. `showDirectoryPicker()` → `FileSystemDirectoryHandle`. Handle persisted in IndexedDB (inline wrapper, ~20 lines). On return: `queryPermission()` → if not granted, show "Re-allow access" button. `canPersist = true`.
+- **`FileListLibrary`** — Firefox/all browsers. `<input type="file" webkitdirectory>` → `FileList`. Strips root folder segment from `webkitRelativePath` to build relative paths. No persistence — user re-picks each session. `canPersist = false`.
+  - **Bug fix:** `getSongFile` constructs path as `` `${folderPath}/${filename}` `` — when `folderPath` is `''` (song at root of picked folder) this produces `'/filename'` which fails the `Map` lookup. Fixed to `` folderPath ? `${folderPath}/${filename}` : filename ``.
 
-**`SongIndex.ts`** — in-memory type:
+`SongLibraryScreen` detects `'showDirectoryPicker' in window` at module load and routes the button to the appropriate backend. Firefox welcome screen shows a note about re-picking.
+
+`ActiveSceneScreen` takes `ISongLibrary` — no knowledge of which backend is active.
+
+**`@types/wicg-file-system-access`** added to devDependencies. Must also be added to `tsconfig.json` `types` array (not just installed) since `types` is explicitly set to `["vite/client"]`.
+
+**Folder structure (observed):** any depth — scanner recurses until it finds `song.json`.
+- Album art: `albumart.png` (not `album.png`)
+- Audio: `song.ogg`
+- Instrument files: `{InstrumentName}.json` (e.g. `lead.json`, `bass.json`)
+
+**Scan algorithm:** recursive. Any directory containing `song.json` is a song folder — do not recurse further. Directories without `song.json` are descended into at any depth.
+
+**`SongIndexEntry` / `SongIndexPart` — final types:**
 ```ts
 interface SongIndexEntry {
-    folderPath: string;
+    folderPath: string;     // relative to library root, e.g. "boypablo/tkm"
     songName: string;
     artistName: string;
     albumName?: string;
-    arrangements: string;           // e.g. "LRB"
-    tuning?: string;                // lead guitar tuning display string
-    difficulty: Record<string, number>;
+    lengthSeconds: number;
+    parts: SongIndexPart[];
+}
+interface SongIndexPart {
+    type: string;       // "LeadGuitar" | "RhythmGuitar" | "BassGuitar" | "Keys" | "Drums" | "Vocals"
+    name: string;       // "lead" | "bass" | etc. — used as instrument .json filename
+    difficulty: number;
+    tuning?: string;    // "E A D G B E" — only set for stringed instruments
 }
 ```
+Tuning display string derived from `StringSemitoneOffsets` using standard base MIDI notes per string count (4/5/6/7 string).
+
+**Song library UI:**
+- Search bar (title + artist + album), sort dropdown, instrument filter chips, per-instrument tuning dropdown
+- Tuning dropdown only shown when a stringed instrument chip is selected
+- Sort options for difficulty/tuning only shown when a relevant filter is active
+- `SongLibraryState` persisted to `localStorage`
+- Album art loaded async; object URLs tracked and revoked on unmount
+- Card click → `ActiveSceneScreen` with first non-Vocals part (Phase 6.4 inserts instrument selection here)
+- `SongLibraryScreen` accepts an optional `existingLibrary` constructor parameter — if provided, skips the welcome screen and goes straight to the song list. Used by the back button in `ActiveSceneScreen` so Firefox users aren't forced to re-import on every return navigation.
 
 **`SongLibraryState`** — persisted to `localStorage`:
 ```ts
 interface SongLibraryState {
     sortField: "title" | "artist" | "difficulty" | "tuning";
     sortAsc: boolean;
-    instrumentFilter: string;       // "All" | "Lead" | "Bass" | etc.
-    tuningFilter: string;           // "All" | specific tuning string
+    instrumentFilter: "All" | "Lead" | "Rhythm" | "Bass" | "Keys" | "Drums";
+    tuningFilter: string;           // "All" | specific tuning string; ignored when instrument has no tunings
     searchQuery: string;
 }
 ```

@@ -1,17 +1,47 @@
 import * as THREE from "three";
-import type { ChartScene3D } from "./ChartScene3D";
-import type { SongPlayer } from "./SongPlayer";
+import type { Scene3D } from "./Scene3D";
+
+export interface IScreen {
+    mount(container: HTMLElement): void | Promise<void>;
+    unmount(): void;
+}
 
 export class App {
     readonly renderer: THREE.WebGLRenderer;
-    activeScene: ChartScene3D | null = null;
-    songPlayer: SongPlayer | null = null;
+
+    // Set by ActiveSceneScreen when a song is active; cleared on unmount.
+    activeScene: Scene3D | null = null;
+
+    // Called each frame before draw — ActiveSceneScreen uses this to inject currentSecond.
+    onPreDraw: (() => void) | null = null;
+
+    // Set by ActiveSceneScreen so App can pause/resume during settings.
+    // onSongPause: pause the song and return current position, or null if not playing.
+    onSongPause: (() => number | null) | null = null;
+    onSongResume: ((seconds: number) => void) | null = null;
 
     private lastTime = 0;
+    private currentScreen: IScreen | null = null;
+    private screenContainer: HTMLElement;
+    private settingsOverlay: HTMLElement;
+    private countdownOverlay: HTMLElement;
+    private songPausedBySettings = false;
+    private pausedAtSeconds = 0;
 
     constructor(canvas: HTMLCanvasElement) {
         this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
         this.renderer.setPixelRatio(devicePixelRatio);
+
+        this.screenContainer  = document.getElementById("screen-container")!;
+        this.settingsOverlay  = document.getElementById("settings-overlay")!;
+        this.countdownOverlay = document.getElementById("countdown-overlay")!;
+
+        document.getElementById("settings-btn")!
+            .addEventListener("click", () => this.openSettings());
+        document.getElementById("settings-close")!
+            .addEventListener("click", () => this.closeSettings());
+        document.getElementById("settings-scrim")!
+            .addEventListener("click", () => this.closeSettings());
 
         new ResizeObserver(() => this.onResize()).observe(canvas);
         this.onResize();
@@ -19,14 +49,55 @@ export class App {
         requestAnimationFrame(t => this.loop(t));
     }
 
+    navigate(screen: IScreen): void {
+        this.currentScreen?.unmount();
+        this.renderer.clear();
+        this.currentScreen = screen;
+        screen.mount(this.screenContainer);
+    }
+
+    openSettings(): void {
+        this.songPausedBySettings = false;
+        if (this.onSongPause) {
+            const pos = this.onSongPause();
+            if (pos !== null) {
+                this.pausedAtSeconds = pos;
+                this.songPausedBySettings = true;
+            }
+        }
+        this.settingsOverlay.classList.remove("hidden");
+    }
+
+    closeSettings(): void {
+        this.settingsOverlay.classList.add("hidden");
+        if (this.songPausedBySettings && this.onSongResume) {
+            const resumeAt = Math.max(0, this.pausedAtSeconds - 3);
+            this.startCountdown(() => this.onSongResume!(resumeAt));
+        }
+        this.songPausedBySettings = false;
+    }
+
+    private startCountdown(onComplete: () => void): void {
+        let count = 3;
+        this.countdownOverlay.textContent = String(count);
+        this.countdownOverlay.classList.remove("hidden");
+        const tick = () => {
+            count--;
+            if (count <= 0) {
+                this.countdownOverlay.classList.add("hidden");
+                onComplete();
+            } else {
+                this.countdownOverlay.textContent = String(count);
+                setTimeout(tick, 1000);
+            }
+        };
+        setTimeout(tick, 1000);
+    }
+
     private loop(time: number): void {
         const dt = Math.min((time - this.lastTime) / 1000, 0.1);
         this.lastTime = time;
-
-        if (this.activeScene && this.songPlayer) {
-            this.activeScene.currentSecond = this.songPlayer.currentSecond;
-        }
-
+        this.onPreDraw?.();
         this.activeScene?.draw(dt);
         requestAnimationFrame(t => this.loop(t));
     }
