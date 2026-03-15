@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import type { Scene3D } from "./Scene3D";
+import { loadSettings, saveSettings, type Settings } from "./Settings";
 
 export interface IScreen {
     mount(container: HTMLElement): void | Promise<void>;
@@ -19,6 +20,9 @@ export class App {
     // onSongPause: pause the song and return current position, or null if not playing.
     onSongPause: (() => number | null) | null = null;
     onSongResume: ((seconds: number) => void) | null = null;
+
+    // Called when a settings toggle changes — ActiveSceneScreen uses this to live-update the scene.
+    onSettingsChange: ((settings: Settings) => void) | null = null;
 
     private lastTime = 0;
     private currentScreen: IScreen | null = null;
@@ -43,6 +47,17 @@ export class App {
         document.getElementById("settings-scrim")!
             .addEventListener("click", () => this.closeSettings());
 
+        // Settings panel toggles — save and live-update the active scene whenever changed.
+        const onToggle = () => {
+            const s = loadSettings();
+            s.invertStrings = (document.getElementById("s-invert-strings") as HTMLInputElement).checked;
+            s.boldText      = (document.getElementById("s-bold-text")      as HTMLInputElement).checked;
+            saveSettings(s);
+            this.onSettingsChange?.(s);
+        };
+        document.getElementById("s-invert-strings")!.addEventListener("change", onToggle);
+        document.getElementById("s-bold-text")!      .addEventListener("change", onToggle);
+
         new ResizeObserver(() => this.onResize()).observe(canvas);
         this.onResize();
 
@@ -65,6 +80,10 @@ export class App {
                 this.songPausedBySettings = true;
             }
         }
+        // Sync checkboxes to current persisted values each time the panel opens.
+        const s = loadSettings();
+        (document.getElementById("s-invert-strings") as HTMLInputElement).checked = s.invertStrings;
+        (document.getElementById("s-bold-text")      as HTMLInputElement).checked = s.boldText;
         this.settingsOverlay.classList.remove("hidden");
     }
 

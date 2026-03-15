@@ -5,7 +5,7 @@ import {
     HandleLibrary, FileListLibrary,
     saveLibraryHandle, loadLibraryHandle,
 } from "./SongIndex";
-import { ActiveSceneScreen } from "./ActiveSceneScreen";
+import { PreSceneScreen } from "./PreSceneScreen";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -387,10 +387,8 @@ export class SongLibraryScreen implements IScreen {
     // ── Navigation ────────────────────────────────────────────────────────────
 
     private onSongClick(entry: SongIndexEntry): void {
-        // Pick first non-vocals part. Phase 6.4 (PreSceneScreen) will add instrument selection.
-        const part = entry.parts.find(p => p.type !== 'Vocals') ?? entry.parts[0];
-        if (!part || !this.library) return;
-        this.app.navigate(new ActiveSceneScreen(this.app, this.texture, this.library, entry, part));
+        if (!this.library) return;
+        this.app.navigate(new PreSceneScreen(this.app, this.texture, this.library, entry));
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

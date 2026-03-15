@@ -367,7 +367,7 @@ The font images (`LargeFont`, `MainFont`) ARE in UISheet0.png as sprite regions,
 1. Text rendering (in-world fret numbers, chord names) — ✅ done
 2. App.ts upgrade — widen `activeScene` type, coordinate scene creation from selection — ✅ done
 3. Song library screen (folder picker, song cards) — ✅ done
-4. Pre-scene screen (instrument selector, key settings)
+4. Pre-scene screen (instrument selector, key settings) — ✅ done
 5. Tuner / input-check scene
 6. Active scene overlay (playback controls, settings panel, back)
 7. Shared settings panel
@@ -638,15 +638,22 @@ interface SongLibraryState {
 
 ---
 
-### Phase 6.4 — Pre-scene screen
+### Phase 6.4 — Pre-scene screen ✅
 
 Shown after picking a song, before entering the tuner/scene.
 
 - Song title + artist (large)
 - Album art
-- Instrument selector — buttons for each available arrangement only
+- Instrument selector — buttons for each available arrangement only (hidden when only one playable part)
 - Key toggles inline: skip intro, bold text
-- [Play] button — advances to tuner scene
+- [Play] button — advances to active scene (Phase 6.5 tuner will be inserted here)
+
+**Key decisions:**
+- `PreSceneScreen` accepts `ISongLibrary` + `SongIndexEntry`; selected part tracked as local state, defaulting to first non-Vocals part.
+- Back button lazy-imports `SongLibraryScreen` (same circular-dep avoidance pattern as `ActiveSceneScreen`), passing the existing library so the song list is restored without a re-scan.
+- Instrument selector hidden entirely when only one playable part exists — no point showing a single button.
+- `Settings.ts` introduced here: thin `loadSettings()` / `saveSettings()` over a single `localStorage` JSON key. Fields: `skipIntro` (default `false`), `boldText` (default `true`), `invertStrings` (default `false`), `leftyMode` (default `false`). `ActiveSceneScreen` reads settings on mount — `boldText` applied to scene field, `skipIntro` seeks `scene.currentSecond` to `Notes[0].TimeOffset` before playback starts (audio seek omitted — song auto-plays from 0, scene displays from first note). Settings panel (Phase 6.7) will write to the same store.
+- Play button goes directly to `ActiveSceneScreen` for now; Phase 6.5 tuner will be inserted between them.
 
 ---
 

@@ -4,6 +4,7 @@ import { FretPlayerScene3D } from "./FretPlayerScene3D";
 import { SongPlayer } from "./SongPlayer";
 import type { SongStructure, SongInstrumentNotes, SongInfo } from "./SongFormat";
 import type { SongIndexEntry, SongIndexPart, ISongLibrary } from "./SongIndex";
+import { loadSettings } from "./Settings";
 
 export class ActiveSceneScreen implements IScreen {
     private scene: FretPlayerScene3D | null = null;
@@ -49,9 +50,13 @@ export class ActiveSceneScreen implements IScreen {
             songInfo.InstrumentParts.find(p => p.InstrumentName === this.part.name) ??
             songInfo.InstrumentParts[0];
 
+        const settings = loadSettings();
+
         this.scene = new FretPlayerScene3D(
             this.app.renderer, this.texture, songStructure, instrumentNotes, instrumentPart,
         );
+        this.scene.boldText      = settings.boldText;
+        this.scene.invertStrings = settings.invertStrings;
 
         // Load audio via object URL, then revoke — AudioContext holds the decoded buffer.
         const audioFile = await this.library.getSongFile(this.entry, 'song.ogg');
@@ -60,6 +65,11 @@ export class ActiveSceneScreen implements IScreen {
         await this.songPlayer.loadSong(this.audioUrl);
         URL.revokeObjectURL(this.audioUrl);
         this.audioUrl = null;
+
+        if (settings.skipIntro) {
+            const skipTarget = instrumentNotes.Notes[0]?.TimeOffset ?? 0;
+            if (skipTarget > 0) this.scene.currentSecond = skipTarget;
+        }
 
         this.app.activeScene = this.scene;
         this.songPlayer.play();
@@ -78,6 +88,12 @@ export class ActiveSceneScreen implements IScreen {
             if (this.scene) this.scene.currentSecond = seconds;
             this.songPlayer?.seekTo(seconds);
             this.songPlayer?.play();
+        };
+        this.app.onSettingsChange = (s) => {
+            if (this.scene) {
+                this.scene.boldText      = s.boldText;
+                this.scene.invertStrings = s.invertStrings;
+            }
         };
 
         // Minimal overlay: click to play/pause, back button to return to library.
@@ -107,8 +123,9 @@ export class ActiveSceneScreen implements IScreen {
         if (this.audioUrl) { URL.revokeObjectURL(this.audioUrl); this.audioUrl = null; }
         this.app.activeScene  = null;
         this.app.onPreDraw    = null;
-        this.app.onSongPause  = null;
-        this.app.onSongResume = null;
+        this.app.onSongPause      = null;
+        this.app.onSongResume     = null;
+        this.app.onSettingsChange = null;
         if (this.container) this.container.innerHTML = '';
         this.scene      = null;
         this.songPlayer = null;

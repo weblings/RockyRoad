@@ -74,6 +74,9 @@ export class FretPlayerScene3D extends ChartScene3D {
     // When false: C#-faithful dim/bright logic applies (bright in hand range, 25% alpha outside).
     boldText = true;
 
+    // When true: string order is flipped vertically (low strings on top, high strings on bottom).
+    invertStrings = false;
+
     // Frame state — reset each DrawQuads call
     private minFret = 0;
     private maxFret = 4;
@@ -556,7 +559,7 @@ export class FretPlayerScene3D extends ChartScene3D {
     }
 
     private getStringOffset(str: number): number {
-        return str; // invertStrings = false for Phase 5
+        return this.invertStrings ? this.numStrings - str - 1 : str;
     }
 
     private getStringHeight(str: number): number {
@@ -592,7 +595,8 @@ export class FretPlayerScene3D extends ChartScene3D {
     private getNoteHeadHeight(note: SongNote): number {
         let h = this.getStringHeight(this.getStringOffset(note.String));
         if (note.CentsOffsets && note.CentsOffsets.length > 0) {
-            h += this.getCentsOffset(note.String, this.getBendCents(note.TimeOffset, note.String, note.CentsOffsets));
+            const bendDir = this.invertStrings ? -1 : 1;
+            h += bendDir * this.getCentsOffset(note.String, this.getBendCents(note.TimeOffset, note.String, note.CentsOffsets));
         }
         return h;
     }

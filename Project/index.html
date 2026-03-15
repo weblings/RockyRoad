@@ -202,6 +202,75 @@
     .diff-bar { width: 3px; height: 12px; border-radius: 1px; background: #333; }
     .diff-bar.filled { background: #2a6eff; }
 
+    /* ── Pre-scene screen ──────────────────────────────────────────────────── */
+    .pre-screen {
+      position: absolute; inset: 0;
+      background: #0a0a0a; color: #fff;
+      font-family: system-ui, sans-serif;
+      display: flex; align-items: center; justify-content: center;
+      overflow-y: auto;
+    }
+    .pre-back {
+      position: absolute; top: 16px; left: 16px;
+      padding: 8px 16px; background: rgba(255,255,255,0.1);
+      border: none; border-radius: 6px; color: #fff; font-size: 14px; cursor: pointer;
+    }
+    .pre-back:hover { background: rgba(255,255,255,0.2); }
+    .pre-content {
+      display: flex; flex-direction: column; align-items: center;
+      gap: 12px; width: 100%; max-width: 360px; padding: 60px 24px 32px;
+    }
+    .pre-art {
+      width: 180px; height: 180px; border-radius: 10px; overflow: hidden;
+      background: #1e1e2e; margin-bottom: 4px; flex-shrink: 0;
+    }
+    .pre-art img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .pre-art-placeholder { width: 100%; height: 100%; background: linear-gradient(135deg, #1e1e2e 0%, #2a1a3e 100%); }
+    .pre-song-name { font-size: 22px; font-weight: 700; text-align: center; line-height: 1.2; }
+    .pre-artist-name { font-size: 15px; color: #888; text-align: center; margin-bottom: 4px; }
+    .pre-section-label {
+      font-size: 11px; font-weight: 600; color: #555;
+      text-transform: uppercase; letter-spacing: 0.08em;
+      align-self: flex-start; margin-top: 4px;
+    }
+    .pre-parts { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; width: 100%; }
+    .pre-part-btn {
+      display: flex; flex-direction: column; align-items: center; gap: 2px;
+      padding: 8px 18px; background: #1a1a1a; border: 1px solid #333;
+      border-radius: 8px; color: #aaa; font-size: 13px; cursor: pointer;
+    }
+    .pre-part-btn:hover { border-color: #555; color: #fff; }
+    .pre-part-btn.active { background: #1a2e5a; border-color: #2a6eff; color: #fff; }
+    .pre-part-type { font-weight: 600; }
+    .pre-part-tuning { font-size: 11px; color: #888; }
+    .pre-part-btn.active .pre-part-tuning { color: #7aacff; }
+    .pre-toggles { display: flex; flex-direction: column; width: 100%; }
+    .pre-toggle-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 0; border-bottom: 1px solid #1e1e1e; cursor: pointer;
+    }
+    .pre-toggle-row:last-child { border-bottom: none; }
+    .pre-toggle-label { font-size: 14px; color: #ccc; }
+    .pre-toggle-switch { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .pre-toggle-switch input { opacity: 0; width: 0; height: 0; position: absolute; }
+    .pre-toggle-knob {
+      position: absolute; inset: 0; border-radius: 12px;
+      background: #333; transition: background 0.2s; cursor: pointer;
+    }
+    .pre-toggle-knob::after {
+      content: ''; position: absolute;
+      top: 3px; left: 3px; width: 18px; height: 18px;
+      border-radius: 50%; background: #fff; transition: transform 0.2s;
+    }
+    .pre-toggle-switch input:checked + .pre-toggle-knob { background: #2a6eff; }
+    .pre-toggle-switch input:checked + .pre-toggle-knob::after { transform: translateX(18px); }
+    .pre-play-btn {
+      width: 100%; padding: 14px; margin-top: 8px;
+      background: #2a6eff; border: none; border-radius: 10px;
+      color: #fff; font-size: 17px; font-weight: 600; cursor: pointer;
+    }
+    .pre-play-btn:hover { background: #1a5ee0; }
+
     /* ── Active scene overlay ──────────────────────────────────────────────── */
     #active-overlay {
       position: absolute; inset: 0;
@@ -226,7 +295,17 @@
       <div id="settings-scrim"></div>
       <div id="settings-panel">
         <h2>Settings</h2>
-        <p class="placeholder">Settings panel coming in Phase 6.7.</p>
+        <div class="pre-toggles" style="margin-bottom: 20px;">
+          <label class="pre-toggle-row">
+            <span class="pre-toggle-label">Invert strings</span>
+            <span class="pre-toggle-switch">
+              <input type="checkbox" id="s-invert-strings" />
+              <span class="pre-toggle-knob"></span>
+            </span>
+          </label>
+          <!-- Bold text toggle hidden — fret text is always bold; option deferred -->
+          <input type="checkbox" id="s-bold-text" style="display:none" />
+        </div>
         <button id="settings-close">Continue</button>
       </div>
     </div>
