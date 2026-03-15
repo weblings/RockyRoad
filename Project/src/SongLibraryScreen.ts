@@ -54,7 +54,7 @@ export class SongLibraryScreen implements IScreen {
     private library: ISongLibrary | null = null;
     private songs: SongIndexEntry[] = [];
     private state: LibraryState;
-    private artUrls: string[] = [];
+    private artUrls: Map<number, string> = new Map(); // songIndex → object URL
 
     constructor(app: App, texture: THREE.Texture, existingLibrary?: ISongLibrary) {
         this.app = app;
@@ -90,8 +90,8 @@ export class SongLibraryScreen implements IScreen {
     }
 
     unmount(): void {
-        for (const url of this.artUrls) URL.revokeObjectURL(url);
-        this.artUrls = [];
+        for (const url of this.artUrls.values()) URL.revokeObjectURL(url);
+        this.artUrls.clear();
         if (this.container) this.container.innerHTML = '';
         this.container = null;
     }
@@ -314,6 +314,8 @@ export class SongLibraryScreen implements IScreen {
                     </div>
                 </div>`;
         }).join('');
+
+        this.injectAlbumArts();
     }
 
     private filteredSongs(): { entry: SongIndexEntry; origIdx: number }[] {
@@ -361,15 +363,22 @@ export class SongLibraryScreen implements IScreen {
 
     // ── Album art ─────────────────────────────────────────────────────────────
 
+    private injectAlbumArts(): void {
+        for (const [i, url] of this.artUrls) {
+            const el = this.container?.querySelector(`#art-${i}`);
+            if (el) el.innerHTML = `<img src="${url}" alt="" />`;
+        }
+    }
+
     private async loadAlbumArts(): Promise<void> {
         if (!this.library) return;
-        for (const url of this.artUrls) URL.revokeObjectURL(url);
-        this.artUrls = [];
+        for (const url of this.artUrls.values()) URL.revokeObjectURL(url);
+        this.artUrls.clear();
 
         for (let i = 0; i < this.songs.length; i++) {
             const url = await this.library.getAlbumArtUrl(this.songs[i]);
             if (!url) continue;
-            this.artUrls.push(url);
+            this.artUrls.set(i, url);
             const el = this.container?.querySelector(`#art-${i}`);
             if (el) el.innerHTML = `<img src="${url}" alt="" />`;
         }

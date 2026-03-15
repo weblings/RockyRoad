@@ -609,7 +609,7 @@ interface SongIndexPart {
     tuning?: string;    // "E A D G B E" — only set for stringed instruments
 }
 ```
-Tuning display string derived from `StringSemitoneOffsets` using standard base MIDI notes per string count (4/5/6/7 string).
+Tuning display string derived from `StringSemitoneOffsets` using standard base MIDI notes per string count (4/5/6/7 string). A lookup table of common offset patterns maps to friendly names (e.g. "E Standard", "Drop D", "Eb Standard", "DADGAD", "Open G") before falling back to raw note letters for unrecognised tunings.
 
 **Song library UI:**
 - Search bar (title + artist + album), sort dropdown, instrument filter chips, per-instrument tuning dropdown
@@ -618,6 +618,7 @@ Tuning display string derived from `StringSemitoneOffsets` using standard base M
 - `SongLibraryState` persisted to `localStorage`
 - Album art loaded async; object URLs tracked and revoked on unmount
 - Card click → `ActiveSceneScreen` with first non-Vocals part (Phase 6.4 inserts instrument selection here)
+- **Album art bug fix:** `refreshCards()` replaces `#lib-grid` innerHTML, wiping previously-injected `<img>` tags. Art URLs are stored in a `Map<number, string>` (song index → object URL) and `injectAlbumArts()` is called at the end of `refreshCards()` to re-inject after every filter/search/sort change.
 - `SongLibraryScreen` accepts an optional `existingLibrary` constructor parameter — if provided, skips the welcome screen and goes straight to the song list. Used by the back button in `ActiveSceneScreen` so Firefox users aren't forced to re-import on every return navigation.
 
 **`SongLibraryState`** — persisted to `localStorage`:

@@ -47,7 +47,44 @@ const STANDARD_BASE_NOTES: Record<number, number[]> = {
 const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 const STRINGED = new Set(['LeadGuitar', 'RhythmGuitar', 'BassGuitar']);
 
+// Friendly names for common tunings, keyed by offsets joined with commas.
+// Lookup is tried before falling back to raw note letters.
+const TUNING_NAMES: Record<string, string> = {
+    // 6-string guitar
+    '0,0,0,0,0,0':        'E Standard',
+    '-1,-1,-1,-1,-1,-1':  'Eb Standard',
+    '-2,-2,-2,-2,-2,-2':  'D Standard',
+    '-3,-3,-3,-3,-3,-3':  'C# Standard',
+    '-4,-4,-4,-4,-4,-4':  'C Standard',
+    '-2,0,0,0,0,0':       'Drop D',
+    '-3,-1,-1,-1,-1,-1':  'Drop C#',
+    '-4,-2,-2,-2,-2,-2':  'Drop C',
+    '-5,-3,-3,-3,-3,-3':  'Drop B',
+    '-6,-4,-4,-4,-4,-4':  'Drop A#',
+    '-2,-2,0,0,0,-2':     'Open G',
+    '-2,0,0,-1,-2,-2':    'Open D',
+    '0,2,2,1,0,0':        'Open E',
+    '-2,0,0,0,-2,-2':     'DADGAD',
+    // 7-string guitar
+    '0,0,0,0,0,0,0':      'E Standard',
+    '-2,0,0,0,0,0,0':     'Drop A',
+    // 4-string bass
+    '0,0,0,0':            'E Standard',
+    '-1,-1,-1,-1':        'Eb Standard',
+    '-2,-2,-2,-2':        'D Standard',
+    '-3,-3,-3,-3':        'C# Standard',
+    '-4,-4,-4,-4':        'C Standard',
+    '-2,0,0,0':           'Drop D',
+    '-4,-2,-2,-2':        'Drop C',
+    '-5,-3,-3,-3':        'Drop B',
+    // 5-string bass
+    '0,0,0,0,0':          'Standard',
+    '-1,-1,-1,-1,-1':     'Eb Standard',
+};
+
 export function tuningDisplayString(offsets: number[]): string {
+    const key = offsets.join(',');
+    if (TUNING_NAMES[key]) return TUNING_NAMES[key];
     const base = STANDARD_BASE_NOTES[offsets.length];
     if (!base) return '';
     return base.map((midi, i) => NOTE_NAMES[(midi + offsets[i] + 120) % 12]).join(' ');
