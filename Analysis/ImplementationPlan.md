@@ -327,6 +327,22 @@ Sorts notes by `TimeOffset` then by `GetStringOffset(String)` descending. Then b
 - **capoFret** — hardcode `0`; drawn as a thick vertical line if nonzero
 - **Text rendering** (`drawVerticalText`, `drawFlatText`) — **DEFERRED to Phase 6**: skipped for Phase 5. Visually acceptable without it.
 
+#### Toggles added in Phase 5 / deferred to settings UI
+
+**`FretPlayerScene3D.boldText`** (added Phase 6.1, default `true`)
+Public field on `FretPlayerScene3D`. When `true`, all in-world text labels use `LABEL_WHITE` (`#E8E8E8`) with a dark stroke for high contrast. When `false`, reverts to C#-faithful behavior: labels are bright white only within the current hand-position range, and dimmed (25% alpha) outside it. Wired to a settings toggle in Phase 6.5.
+
+**Skip-to-first-note** (deferred — not yet a proper toggle)
+Songs often have a silent intro before the first note. The desired behavior: when enabled, automatically seek the player (and scene `currentSecond`) to `instrumentNotes.Notes[0].TimeOffset` at song load. Currently approximated by a manual `PREVIEW_OFFSET` constant in `main.ts`. Phase 6.3 or the settings UI should expose this as a boolean — `skipIntro` — computed as:
+```ts
+const skipTarget = scene.instrumentNotes.Notes[0]?.TimeOffset ?? 0;
+if (settings.skipIntro && skipTarget > 0) {
+    songPlayer.seekTo(skipTarget);
+    scene.currentSecond = skipTarget;
+}
+```
+Should be opt-in (default off) since some songs have meaningful audio before the first note.
+
 #### Phase 5 text rendering decision (settled)
 The font images (`LargeFont`, `MainFont`) ARE in UISheet0.png as sprite regions, but we don't have the glyph-mapping data (character → pixel offset) that the MonoGame SpriteFont provides at runtime. Without it we can't pick individual characters out of the 506×661 font sprite.
 
@@ -347,21 +363,355 @@ The font images (`LargeFont`, `MainFont`) ARE in UISheet0.png as sprite regions,
 
 **Relevant analysis:** [ChartPlayerGame.md](ChartPlayerGame.md), [SongPlayer.md](SongPlayer.md)
 
-**Files to write:**
-- `ThreeCP/App.ts` — application shell (equivalent of `ChartPlayerGame`):
-  - Creates `THREE.WebGLRenderer`, appends canvas to DOM
-  - Owns the `requestAnimationFrame` loop
-  - `ResizeObserver` for responsive canvas
-  - Coordinates active scene, audio player, and input
-- HTML/CSS for:
-  - Song browser (file picker or directory listing)
-  - Playback controls (play/pause, seek, speed)
-  - Instrument / arrangement selector
-  - Settings (lefty mode, note display length, `SongPlayerSettings`)
+**Work order within Phase 6:**
+1. Text rendering (in-world fret numbers, chord names) — ✅ done
+2. App.ts upgrade — widen `activeScene` type, coordinate scene creation from selection
+3. Song library screen (folder picker, song cards)
+4. Pre-scene screen (instrument selector, key settings)
+5. Tuner / input-check scene
+6. Active scene overlay (playback controls, settings panel, back)
+7. Shared settings panel
 
-**`SongPlayerSettings`** ports as a plain TS interface with `localStorage` for persistence. The reflection-based settings UI from C# (`PropertyInfo.SetValue`) is replaced with standard HTML form elements.
+---
 
-**Deliverable:** A complete, navigable application. Load a song folder, pick an instrument, watch it play.
+### User flow (agreed)
+
+```
+[App loads]
+    │
+    ├─ No library configured ──→ [Welcome screen]
+    │                             "Choose your songs folder" button
+    │                             └──→ [Folder picker dialog]
+    │                                         │
+    └─ Library stored ───────────→ [Song library]  ◄──────────────────────────────┐
+                                    • Cards: album art, title, artist,             │
+                                      tuning, available arrangements               │
+                                    • Search / filter (stretch)                    │
+                                            │                                      │
+                                      [Pick a song]                                │
+                                            │                                      │
+                                   [Pre-scene screen]                              │
+                                    • Song title + artist                          │
+                                    • Instrument selector (Lead/Rhythm/            │
+                                      Bass/Keys/Drums — only show what             │
+                                      the song has)                                │
+                                    • Key toggles: skip intro, bold text           │
+                                    • [Play] button                                │
+                                            │                                      │
+                                   [Tuner / input-check scene]                     │
+                                    • Guitar/bass: chromatic tuner                 │
+                                      (mic input → detected pitch display)         │
+                                    • Keys/drums: MIDI input visualiser            │
+                                      (confirms device is connected + firing)      │
+                                    • All instruments: [Skip] + [Ready] buttons    │
+                                            │                                      │
+                                   [Active scene]                                  │
+                                    • Play/pause, seek bar, time display           │
+                                    • [⚙ Settings] → same settings panel          │
+                                    • [Back to library] ───────────────────────────┘
+```
+
+---
+
+### Global chrome
+
+A **⚙ gear icon** is always present in the top-right corner across every screen (library, pre-scene, tuner, active scene). It opens the shared settings panel. This is a single persistent DOM element at the App level, overlaid above everything else — not duplicated per screen.
+
+---
+
+### Settings panel (shared across screens)
+
+Opened via the persistent top-right gear icon from any screen. Single panel, same content everywhere.
+
+**Presentation:**
+- Rendered as a modal window on top of whatever screen is currently showing
+- A dark scrim (`rgba(0,0,0,0.6)` full-screen div) sits between the current screen and the panel, providing contrast and indicating the screen below is inactive
+- Clicking the scrim closes the panel (same as a cancel/close button)
+- Both the scrim and the panel are removed from the DOM when the panel closes — the underlying screen is fully visible again immediately
+
+**Behaviour when opened during an active song:**
+- Song is paused immediately when the panel opens
+- The Three.js canvas continues rendering the paused frame behind the scrim (scene stays alive, just not advancing)
+
+**Behaviour when dismissed during an active song ("Continue" button):**
+1. Seek back 3 seconds: `songPlayer.seekTo(Math.max(0, pausedAt - 3))`; update `scene.currentSecond` to match
+2. Display a countdown overlay (DOM, centered on canvas): **3 → 2 → 1** with one digit per second
+3. After the countdown reaches 0, call `songPlayer.play()` — playback resumes
+4. Countdown is implemented in `App.ts` as a simple `setTimeout` chain; the countdown digit is a CSS-animated DOM element so it doesn't require Three.js text machinery
+
+**Behaviour when dismissed outside of an active song** (library, pre-scene, tuner):
+- Panel simply closes, no countdown, no seek
+
+**Global settings (Phase 6):**
+- `invertStrings` — boolean
+- `boldText` — boolean (default on; see Phase 5 toggle notes)
+- `skipIntro` — boolean (default off; see Phase 5 toggle notes)
+- `leftyMode` — boolean
+
+**Stretch settings (document now, build later):**
+- `playbackSpeed` — float 0.5–1.0 (requires WASM time-stretcher; see Phase 6.4 deferred)
+- `noteDisplaySeconds` — float, default 4.0
+- `practiceMode` — boolean; enables loop markers and per-section repeat (see stretch goal below)
+
+---
+
+### Phase 6.1 — In-world text rendering
+
+**What's needed in `FretPlayerScene3D`:**
+
+All five call sites use `DrawVerticalText` (XY plane, facing camera). `DrawFlatText` is defined in C# but never called — skip it entirely.
+
+| Call | Content | Scale | Notes |
+|---|---|---|---|
+| On-fretboard number (individual note) | fret digit, e.g. `"7"` | 0.12 | At note's TimeOffset, Y=0 |
+| On-fretboard number (chord per-string) | fret digit | 0.12 | At note's TimeOffset, Y=0 |
+| On-fretboard number (during current chord) | fret digit | 0.08 | At currentTime, Y=0 |
+| Finger overlay on current note head | finger digit `"1"`–`"4"` | 0.05 | At note head height |
+| Chord name | e.g. `"Am"`, `"Cadd9"` | 0.09 | Right-aligned, at top string height |
+
+**Chosen approach: `THREE.Sprite` with pooled `CanvasTexture`**
+
+- `THREE.Sprite` auto-billboards to face the camera — better than the C# XY-plane approach (always readable regardless of camera angle)
+- Canvas 2D `fillText()` renders text into an offscreen canvas → `THREE.CanvasTexture`
+- Textures are **cached by key** (`"${text}:${r},${g},${b}"`) — fret digits 0–24 and common chord names are reused every frame at zero cost
+- Sprites are **pooled** — a fixed array of `THREE.Sprite` instances, reset each frame by hiding all, then shown as `drawText()` is called
+- Right-alignment: `sprite.center.set(1, 0.5)` shifts the sprite anchor to its right edge
+
+**`TextBatch.ts`** — new file, parallel to `QuadBatch`:
+```ts
+class TextBatch {
+    private sprites: THREE.Sprite[] = [];
+    private used = 0;
+    private cache: Map<string, THREE.CanvasTexture> = new Map();
+
+    begin(): void  // hide all sprites, reset used=0
+    drawText(text, position, color, worldSize, rightAlign?): void  // grab/create sprite, position it
+    // called from Scene3D; sprites are already in the THREE.Scene
+}
+```
+
+Canvas texture size: 256×64 px canvas for most labels. World size (sprite scale) derived from `imageScale` parameter × a world-unit constant (TBD via visual tuning).
+
+**Integration into `Scene3D`:**
+- `Scene3D` owns a `TextBatch` alongside the `QuadBatch`
+- `Scene3D.drawQuads()` is currently the override point; the text batch `begin()` / draw calls / (no explicit flush — sprites stay visible until next `begin()`) wrap the same frame
+
+**`FretPlayerScene3D` additions:**
+- `drawVerticalText(text, fretCenter, verticalCenter, timeCenter, color, imageScale, rightAlign?)` — mirrors C# signature, calls `textBatch.drawText()`
+- Replace the five `// Text: ... skipped` comments with real calls
+
+**Rejected alternatives:**
+- *Three.js TextGeometry* — vector fonts are crisp but each geometry build is slow; a new geometry per unique string per frame is not viable for dynamic text. Would only make sense with pre-built geometry for every possible fret label (25 digits), but still can't handle arbitrary chord names.
+- *HTML overlay* — DOM-WebGL sync concern each frame; also CSS positioning requires `vec.project(camera)` per label and breaks if canvas is scaled.
+
+---
+
+## Phase 6.2a - Internet Cutout
+
+Internet cut out while beginning Phase 6. Last messages before we were going to get started:
+
+<b>Claude:</b>\
+Good news: index.json exists and is well-structured. Bad news: the planned SongIndexEntry interface in the plan doesn't quite match the real format. Specific mismatches:
+
+1. Tuning — one field planned, three fields actual
+
+The plan has tuning?: string (lead only). The real JSON has:
+
+
+"leadGuitarTuning": "E A D G B E",
+"rhythmGuitarTuning": "E A D G B E",
+"bassGuitarTuning": "E A D G B E"
+The filter dropdown needs to show tunings per instrument — so all three matter. The interface needs updating.
+
+2. Difficulty — Record<string, number> planned, float[] actual
+
+The real format is a numeric array indexed by ESongInstrumentType enum ordinal, e.g. [5.0, 4.5, 5.0, 0, 0, 0]. To use it in the browser we need to know the enum's order. I'll need to check ESongInstrumentType in the C# source before building 6.3.
+
+3. lengthSeconds — missing from planned interface
+
+The real JSON includes it; useful for song cards and sorting. Easy addition, but it's not in the plan.
+
+4. No albumArt path in the index — consistent with the plan (look for album.png sibling in the folder at runtime).
+
+So concern 2 is real but containable — the SongIndexEntry TypeScript interface just needs to be corrected before writing the song library screen. The only unknown remaining is the ESongInstrumentType enum order. Want me to look that up now so we can nail down the interface fully before starting 6.3?
+
+<b>User:</b>\
+sure add song length. You're right about the tuning, we should also have a category for instrument and tuning is a subcategory of that
+
+---
+
+### Phase 6.2 — App.ts restructure (application router)
+
+Phase 6 turns `App` from a thin renderer shell into the application router. This is the most structural change in the whole port.
+
+**DOM layout (set up once in `App` constructor):**
+```html
+<body>
+  <canvas id="canvas" />          <!-- always present; black when no scene active -->
+  <div id="screen-container" />  <!-- screens mount/unmount here -->
+  <button id="settings-btn">⚙</button>   <!-- persistent top-right -->
+  <div id="settings-overlay" />  <!-- scrim + panel; hidden by default -->
+  <div id="countdown-overlay" /> <!-- 3-2-1 countdown; hidden by default -->
+</body>
+```
+
+**Screen interface — each screen is a class with a mount/unmount lifecycle:**
+```ts
+interface IScreen {
+    mount(container: HTMLElement): void;
+    unmount(): void;
+}
+```
+
+Screens:
+- `SongLibraryScreen` — pure HTML, no Three.js
+- `PreSceneScreen` — pure HTML, no Three.js
+- `TunerScreen` — HTML; no Three.js scene required
+- `ActiveSceneScreen` — creates + owns the Three.js scene and SongPlayer; HTML overlay on top
+
+**`App` public API:**
+```ts
+class App {
+    navigate(screen: IScreen): void   // unmount current → mount new
+    openSettings(): void              // show scrim + panel; pause song if active
+    closeSettings(): void             // hide scrim + panel; start countdown if song was playing
+    private startCountdown(onComplete: () => void): void  // 3-2-1 then callback
+}
+```
+
+**`activeScene: Scene3D | null`** — set by `ActiveSceneScreen` when it mounts, cleared when it unmounts. The RAF loop calls `activeScene?.draw(dt)` — no scene, no render work. `onResize` already uses the `Scene3D` base class `camera` field, so the type widening from `ChartScene3D` is the only change needed there.
+
+**Scene teardown on navigation:** `ActiveSceneScreen.unmount()` calls `scene.destroy()` (disposes Three.js geometries + textures) and `songPlayer.pause()` before clearing `app.activeScene`. This prevents VRAM leaks when switching songs.
+
+---
+
+### Phase 6.3 — Song library screen
+
+**File system access: File System Access API (`showDirectoryPicker()`)**
+- User picks the song library root folder once; handle stored in **IndexedDB** (not localStorage — `FileSystemDirectoryHandle` is a structured object, not JSON-serializable). Use `idb-keyval` (~1 kb) for a simple wrapper.
+- Chrome/Edge only — acceptable for this desktop-class tool
+- On return visits: retrieve handle from IndexedDB → `handle.queryPermission()` → if not `'granted'`, show a single "Re-allow access" button that calls `handle.requestPermission()` on click (requires user gesture, no re-picking needed)
+- First-time: full-screen welcome prompt with "Choose folder" button
+
+**Song index approach: read `index.json` if present, fall back to folder scan**
+- `index.json` (built by the C# desktop app) already has title, artist, difficulty, arrangements, tuning
+- If absent: scan subdirectories for `song.json` and build a minimal in-memory index
+- No writing to disk from the browser
+
+**Song cards** — each song displayed as a card:
+- Album art (look for `album.png` / `album.jpg` sibling in the song folder)
+- Song title, artist name, album name
+- Available arrangement badges (L / R / B / K / D)
+- Difficulty indicator for the currently active instrument filter
+
+**Search + sort + filter bar (above the card grid):**
+```
+[🔍 Search title, artist, album...]   [Sort: Title ▼]
+
+[All] [Lead] [Rhythm] [Bass] [Keys] [Drums]   [Tuning: All ▼]
+```
+- **Search** — matches title, artist, album; case-insensitive substring
+- **Sort options:** Title A–Z/Z–A · Artist A–Z/Z–A · Difficulty (uses the active instrument filter; disabled / hidden when "All" is selected) · Tuning A–Z
+- **Instrument chips** — only render chips for instruments present in the library; "All" always shown
+- **Tuning dropdown** — lists all distinct tuning strings in the library; "All" is default. Guitar-specific in practice but not hard-coded as such — any instrument with tuning data gets included
+- All filter/sort state persisted to `localStorage` and restored on next load; reset button clears to defaults
+
+**`SongIndex.ts`** — in-memory type:
+```ts
+interface SongIndexEntry {
+    folderPath: string;
+    songName: string;
+    artistName: string;
+    albumName?: string;
+    arrangements: string;           // e.g. "LRB"
+    tuning?: string;                // lead guitar tuning display string
+    difficulty: Record<string, number>;
+}
+```
+
+**`SongLibraryState`** — persisted to `localStorage`:
+```ts
+interface SongLibraryState {
+    sortField: "title" | "artist" | "difficulty" | "tuning";
+    sortAsc: boolean;
+    instrumentFilter: string;       // "All" | "Lead" | "Bass" | etc.
+    tuningFilter: string;           // "All" | specific tuning string
+    searchQuery: string;
+}
+```
+
+**`SongPlayerSettings`** — split across two stores:
+- `libraryHandle` — `FileSystemDirectoryHandle`, stored in **IndexedDB** via `idb-keyval`
+- All other settings (`invertStrings`, `leftyMode`, `boldText`, `skipIntro`, `noteDisplaySeconds`) — plain JSON, stored in `localStorage`
+
+---
+
+### Phase 6.4 — Pre-scene screen
+
+Shown after picking a song, before entering the tuner/scene.
+
+- Song title + artist (large)
+- Album art
+- Instrument selector — buttons for each available arrangement only
+- Key toggles inline: skip intro, bold text
+- [Play] button — advances to tuner scene
+
+---
+
+### Phase 6.5 — Tuner / input-check scene
+
+Sits between pre-scene screen and active scene. Gives users a chance to verify their setup before the song starts. All instruments get a [Skip] button so this step is never blocking.
+
+**Guitar / bass:**
+- Microphone input via `getUserMedia({ audio: true })`
+- Pitch detection (simple autocorrelation — no WASM needed for a basic tuner) → display detected note + cents deviation
+- Visual needle or bar showing how far from target pitch
+- Deferred: full chromatic tuner with string-by-string mode
+
+**Keys / drums:**
+- Request Web MIDI access (`navigator.requestMIDIAccess()`)
+- List detected devices
+- Show a simple "hit something" visualiser — each incoming MIDI note lights up a tile
+- Confirms device is connected and firing before the song starts
+
+**All instruments:**
+- [Skip] — go straight to active scene (for users without mic/MIDI, or who don't need to check)
+- [Ready] — proceed to active scene and auto-start playback
+
+**Note:** The tuner scene is a lightweight HTML overlay, not a Three.js scene. The canvas stays black or shows a minimal graphic; no QuadBatch needed.
+
+---
+
+### Phase 6.6 — Active scene overlay
+
+Minimal HTML overlay on top of the Three.js canvas:
+- Play/pause button
+- Seek bar (`<input type="range">`) — plain, no waveform
+- Current time / total time
+- [Back to library] — destroys current scene + returns to song library
+
+**Deferred (document here for future reference):**
+- Waveform on seek bar — compute peak array from `AudioBuffer` after load
+- Playback speed — `AudioBufferSourceNode.playbackRate` changes pitch (chipmunk). True time-stretch needs SoundTouch.js WASM
+- Pitch shift — same WASM dependency
+- Loop markers — set start/end points for section repeat (part of practice mode stretch goal)
+- Vocal display — lyric lines from `SongVocals`
+- Play stats / tags / favorites
+
+---
+
+### Stretch Goal — Practice mode
+
+Accessible via the settings panel when in the active scene. Intended as a long-term addition, not Phase 6.
+
+- Playback speed slider (0.5×–1.0×, requires WASM time-stretcher)
+- Loop markers: drag start/end handles on the seek bar to repeat a section
+- Per-section repeat: jump back automatically when a section ends
+- Note detection feedback (requires Stretch Goal B — NoteDetector)
+
+---
+
+**Deliverable:** A complete, navigable application. Load a song folder, pick an instrument, tune up, watch it play.
 
 ---
 

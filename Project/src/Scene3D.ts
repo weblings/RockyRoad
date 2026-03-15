@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { Camera3D } from "./Camera3D";
 import { QuadBatch, type QuadVert } from "./QuadBatch";
+import { TextBatch } from "./TextBatch";
 import type { UIColor } from "./UIColor";
 import type { UIImage } from "./UIImage";
 
@@ -17,6 +18,7 @@ export class Scene3D {
     protected readonly renderer: THREE.WebGLRenderer;
     protected readonly threeScene: THREE.Scene;
     protected readonly quadBatch: QuadBatch;
+    protected readonly textBatch: TextBatch;
 
     // Fog — maps to THREE.Fog on threeScene
     get fogEnabled(): boolean { return this.threeScene.fog !== null; }
@@ -59,6 +61,7 @@ export class Scene3D {
         this.camera    = camera;
         this.threeScene = new THREE.Scene();
         this.quadBatch  = new QuadBatch(43688, texture, renderer);
+        this.textBatch  = new TextBatch(this.threeScene);
 
         this.threeScene.add(this.quadBatch.mesh);
     }
@@ -66,12 +69,25 @@ export class Scene3D {
     // dt: seconds since last frame — available to subclasses for time-based animation
     draw(dt: number): void {
         this.quadBatch.begin();
+        this.textBatch.begin();
         this.drawQuads(dt);
         this.quadBatch.draw(this.renderer, this.threeScene, this.camera.threeCamera);
     }
 
     // Override in subclasses to submit geometry each frame
     protected drawQuads(_dt: number): void {}
+
+    // Draw a billboarded text label at a world-space position.
+    // imageScale mirrors the C# convention (multiplied by TEXT_WORLD_UNITS_PER_SCALE).
+    protected drawText(
+        text: string,
+        position: THREE.Vector3,
+        color: UIColor,
+        imageScale: number,
+        rightAlign = false,
+    ): void {
+        this.textBatch.drawText(text, position, color, imageScale, rightAlign);
+    }
 
     // --- DrawQuad: full image UVs ---
     // Vertex order: bottomLeft, topLeft, topRight, bottomRight
@@ -192,5 +208,6 @@ export class Scene3D {
 
     destroy(): void {
         this.quadBatch.destroy();
+        this.textBatch.destroy();
     }
 }

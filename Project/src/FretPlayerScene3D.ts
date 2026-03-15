@@ -29,6 +29,9 @@ const STRING_COLOR_NAMES = ["Green", "Red", "Yellow", "Cyan", "Orange", "Green",
 // Shared white-half-alpha constant — used heavily for fret lines and shadows
 const WHITE_HALF = makeColor(1, 1, 1, 0.5);
 
+// Off-white for text labels — slightly softer than pure white (#E8E8E8)
+const LABEL_WHITE: UIColor = { r: 232 / 255, g: 232 / 255, b: 232 / 255, a: 1 };
+
 // ─── Technique helpers ────────────────────────────────────────────────────────
 
 // Build name→value lookup once from the ESongNoteTechnique const object
@@ -66,6 +69,10 @@ export class FretPlayerScene3D extends ChartScene3D {
     // Pre-pass maps: TimeOffset → true when chord/note display should refresh
     private readonly nonRepeatChords: Set<number>;
     private readonly nonRepeatNotes:  Set<number>;
+
+    // When true (default): all fret-number labels are solid white with a dark stroke.
+    // When false: C#-faithful dim/bright logic applies (bright in hand range, 25% alpha outside).
+    boldText = true;
 
     // Frame state — reset each DrawQuads call
     private minFret = 0;
@@ -235,9 +242,19 @@ export class FretPlayerScene3D extends ChartScene3D {
             this.drawFretHorizontalLine(0, NUM_FRETS, this.startTime, this.getStringHeight(this.getStringOffset(str)), strColor, 0.04);
         }
 
-        // ── 8. Fret vertical lines at the "now" face ──────────────────────────
+        // ── 8. Fret vertical lines + fret number labels at the "now" face ────
         for (let fret = 1; fret < NUM_FRETS; fret++) {
             this.drawFretVerticalLine(fret - 1, this.startTime, this.getStringHeight(0), this.getStringHeight(this.numStrings - 1), WHITE_HALF, 0.03);
+        }
+        // Cast breaks CFA narrowing: TSC narrows firstNote to null after the
+        // explicit reset at step 2, unaware that drawSingleNote reassigns it.
+        const handBase = (this.firstNote as SongNote | null)?.HandFret ?? -1;
+        for (let fret = 1; fret <= NUM_FRETS; fret++) {
+            const inHandRange = handBase >= 0 && fret >= handBase && fret < handBase + 4;
+            const labelColor: UIColor = this.boldText || inHandRange
+                ? LABEL_WHITE
+                : { r: 1, g: 1, b: 1, a: 64 / 255 };
+            this.drawVerticalText(fret.toString(), fret - 0.5, 0, this.currentTime, labelColor, 0.08);
         }
 
         // ── 9. Current chord / finger overlays ────────────────────────────────
@@ -255,7 +272,7 @@ export class FretPlayerScene3D extends ChartScene3D {
         }
 
         if (this.firstNote !== null) {
-            this.targetFocusFret = this.firstNote.HandFret + 1;
+            this.targetFocusFret = this.firstNote!.HandFret + 1;
         }
     }
 
@@ -271,6 +288,9 @@ export class FretPlayerScene3D extends ChartScene3D {
                 this.drawChordOutline(note, false);
             }
         } else {
+            if (note.TimeOffset > this.currentTime && note.Fret > 0 && this.nonRepeatNotes.has(note.TimeOffset)) {
+                this.drawVerticalText(note.Fret.toString(), note.Fret - 0.5, 0, note.TimeOffset, LABEL_WHITE, 0.12);
+            }
             this.drawSingleNote(note, false, false);
         }
 
@@ -429,13 +449,16 @@ export class FretPlayerScene3D extends ChartScene3D {
 
             if (drawCurrent) {
                 this.drawVerticalImageCentered(getImage("FingerOutline"), drawFret - 0.5, this.currentTime, this.getNoteHeadHeight(chordNote), { r: 1, g: 1, b: 1, a: 1 }, 0.05);
+                if (chord.Fingers[str] > 0) {
+                    this.drawVerticalText(chord.Fingers[str].toString(), drawFret - 0.5, this.getNoteHeadHeight(chordNote), this.currentTime, LABEL_WHITE, 0.05);
+                }
             }
 
             if (!drawCurrent) {
                 this.drawSingleNote(chordNote, false, isGhost);
 
                 if (this.nonRepeatNotes.has(note.TimeOffset) && note.TimeOffset > this.currentTime && chordNote.Fret > 0) {
-                    // Text: chord fret number — skipped (no font glyph data)
+                    this.drawVerticalText(chordNote.Fret.toString(), chordNote.Fret - 0.5, 0, note.TimeOffset, LABEL_WHITE, 0.12);
                 }
             }
         }
@@ -457,6 +480,10 @@ export class FretPlayerScene3D extends ChartScene3D {
         if (showFull) {
             const endH = this.getStringHeight(this.numStrings);
             this.drawVerticalNinePatch(getImage("ChordOutline"), note.HandFret - 1, note.HandFret + 3, timeOffset, 0, endH, color);
+            const chord = this.getChord(chordID);
+            if (chord?.Name) {
+                this.drawVerticalText(chord.Name, note.HandFret - 1.02, this.getStringHeight(this.numStrings - 1), timeOffset, LABEL_WHITE, 0.09, true);
+            }
         } else {
             const shortH = this.getStringHeight(2);
             this.drawVerticalNinePatch(getImage("ChordOutline"), note.HandFret - 1, note.HandFret + 3, timeOffset, 0, shortH, color);
@@ -568,6 +595,25 @@ export class FretPlayerScene3D extends ChartScene3D {
             h += this.getCentsOffset(note.String, this.getBendCents(note.TimeOffset, note.String, note.CentsOffsets));
         }
         return h;
+    }
+
+    // ─── Text ─────────────────────────────────────────────────────────────────
+
+    // Mirrors C# DrawVerticalText: places a billboarded label in fret/time coordinates.
+    // fretCenter → world X via getFretPosition; verticalCenter → world Y; timeCenter → world Z.
+    private drawVerticalText(
+        text: string,
+        fretCenter: number,
+        verticalCenter: number,
+        timeCenter: number,
+        color: UIColor,
+        imageScale: number,
+        rightAlign = false,
+    ): void {
+        const x = getFretPosition(fretCenter);
+        const y = verticalCenter;
+        const z = timeCenter * -this.timeScale;
+        this.drawText(text, new THREE.Vector3(x, y, z), color, imageScale, rightAlign);
     }
 
     // ─── Drawing primitives ───────────────────────────────────────────────────
