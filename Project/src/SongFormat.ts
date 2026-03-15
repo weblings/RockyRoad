@@ -46,6 +46,30 @@ export interface SongInfo {
 
 // Instrument-specific note data (lead.json, bass.json, etc.)
 
+// ESongNoteTechnique bitmask — matches C# [Flags] enum values exactly.
+// Use bitwise AND to test: (note.Techniques & ESongNoteTechnique.Chord) !== 0
+export const ESongNoteTechnique = {
+    HammerOn:      2,
+    PullOff:       4,
+    Accent:        8,
+    PalmMute:      16,
+    FretHandMute:  32,
+    Slide:         64,
+    Bend:          128,
+    Vibrato:       512,
+    Harmonic:      1024,
+    PinchHarmonic: 2048,
+    Chord:         32768,
+    ChordNote:     65536,
+    Continued:     131072,
+} as const;
+
+// Bend data point — time-ordered list stored on SongNote.CentsOffsets
+export interface CentsOffset {
+    TimeOffset: number;
+    Cents: number;
+}
+
 export interface SongNote extends ISongEvent {
     TimeOffset: number;
     TimeLength: number;
@@ -53,9 +77,11 @@ export interface SongNote extends ISongEvent {
     Fret: number;
     String: number;
     HandFret: number;
-    SlideFret?: number;
-    FingerID?: number;
-    Techniques?: string;
+    ChordID?: number;       // index into Chords array; -1 = not a chord
+    FingerID?: number;      // index into Chords array for fingering overlay; -1 = none
+    SlideFret?: number;     // target fret for Slide notes; -1 = no slide
+    Techniques?: number;    // ESongNoteTechnique bitmask
+    CentsOffsets?: CentsOffset[] | null;  // bend curve data points
 }
 
 export interface SongChordDefinition {

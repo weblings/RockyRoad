@@ -214,6 +214,16 @@ The 30 lines cost in Phase 1 buys a clean architecture for all subsequent phases
 
 **Key simplification:** The C# `SongPlayer` decodes the entire song upfront into raw sample arrays and manages its own playback loop. The browser version delegates all of that to `AudioContext` — the only output the rendering pipeline needs is `currentSecond`.
 
+**Architectural decisions:**
+
+- **`currentSecond` injection** — `ChartScene3D.currentSecond` stays a public field set from outside. `App` owns `SongPlayer` and sets it each frame before calling `draw()`. Constructor injection was rejected: it would couple scene construction to a live audio session, making it impossible to create scenes before a song is loaded or swap songs without rebuilding the scene. This is consistent with `App` already owning the renderer and injecting it into scenes. The `+= dt` mock in `ChartScene3D.draw()` can be removed once `App` always manages the field.
+
+- **Seek pattern** — `AudioBufferSourceNode` is fire-and-forget. `pause()` records `pausedAt`, calls `stop()`. `play()` / `seekTo(s)` creates a new source node and calls `start(0, offset)`.
+
+- **Audio format** — Song files are `.ogg` (Ogg Vorbis, 48kHz stereo). `AudioContext.decodeAudioData` handles this natively — no decoder library needed.
+
+- **Clock accuracy** — `currentSecond` derives from `audioContext.currentTime - startTime` (hardware clock), not accumulated `dt`. The `dt` approach drifts over long songs.
+
 Replace the mock time provider from Phase 2 with this. No other rendering code changes.
 
 **Deliverable:** Songs play with synchronized note scrolling. First complete end-to-end experience.
@@ -241,6 +251,91 @@ cameraDistance = lerp(cameraDistance, target, rate);
 ```
 
 No note detection yet — `notesDetected[]` stays null. Notes display but aren't scored.
+
+---
+
+### Phase 5 — Detailed component breakdown (from full C# source analysis)
+
+#### FretCamera
+- `Update(minFret, maxFret, targetFocusFret, focusY)` — called every frame from `updateCamera`
+- `targetCameraDistance = 65 + max(fretDist - 12, 0) * 3` where `fretDist = maxFret - minFret`
+- `positionFret` lerps at 0.02/frame (dt-correct to `1 - pow(0.98, dt*60)`)
+- `cameraDistance` lerps at 0.01/frame (dt-correct to `1 - pow(0.99, dt*60)`)
+- `fretOffset = (10 - positionFret) / 4` — camera leans toward high strings
+- Position: `(GetFretPosition(positionFret + fretOffset), 50, focusY + cameraDistance)`
+- LookAt: `(GetFretPosition(positionFret), 0, position.Z - focusDist * 0.3)` where `focusDist = 600`
+- `targetPositionFret` is clamped: must stay within `[targetFocusFret - 3, targetFocusFret + 5]`
+
+#### GetFretPosition (static, shared)
+```ts
+const scaleLength = 300;
+function getFretPosition(fret: number): number {
+    return scaleLength - scaleLength / Math.pow(2, fret / 12);
+}
+```
+Exported from `FretPlayerScene3D.ts` — used by both the scene and `FretCamera`.
+
+#### Drawing primitives needed (new in this scene)
+- `drawFretTimeLine(fret, height, startTime, endTime, color)` — lane divider, same pattern as keys
+- `drawFretHorizontalLine(startFret, endFret, time, heightOffset, color, imageScale)` — string lines / note shadows
+- `drawFretVerticalLine(fretCenter, time, startHeight, endHeight, color, imageScale)` — beat lines spanning height
+- `drawVerticalImage(image, startFret, endFret, time, heightOffset, color, imageScale)` — note head facing camera (XY plane) — **3 overloads**
+- `drawFlatImage(image, fretCenter, startTime, endTime, heightOffset, color, imageScale)` — note trail — **2 overloads**
+- `drawVerticalNinePatch(image, startFret, endFret, time, startHeight, endHeight, color)` — chord outline box
+- `drawImageTrail(image, color, imageScale, ...points)` — slide trail (2 Vec3 points in practice)
+- `drawVibrato(image, fretCenter, startTime, endTime, heightOffset, color)` — sinusoidal trail, ~50 quads/note
+- `drawBend(image, fretCenter, startTime, sustain, stringIdx, centsOffsets, color)` — vertically displaced trail following CentsOffset array
+
+#### String layout
+```ts
+// 7 colors cycling for 6-string (offset=1) or 4-string bass (offset=0 for B-tuning and below)
+const STRING_COLORS = [green, red, yellow, cyan, orange, green, purple];
+// offset=1 for guitar/standard bass, offset=0 for low-tuned bass
+function getStringHeight(str: number): number { return 3 + str * 4; }
+function getStringOffset(str: number): number { return invertStrings ? numStrings - str - 1 : str; }
+```
+
+#### Note draw loop — critical details
+- Notes are drawn **in reverse** (from `lastNote` back to `startNotePosition`) so earlier notes render on top
+- `minFret`/`maxFret` are reset to `[numFrets, 0]` each frame and accumulated during note drawing (feeds FretCamera)
+- `firstNote` tracks the earliest future note for `targetFocusFret`
+- Hand position areas drawn as `SingleWhitePixel` flat images between hand-position-change events
+
+#### Constructor pre-pass
+Sorts notes by `TimeOffset` then by `GetStringOffset(String)` descending. Then builds:
+- `nonRepeatChords[timeOffset]` — true when hand position changes or chord changes; controls when chord outlines/names re-display
+- `nonRepeatNotes[timeOffset]` — true when fret changes; controls when fret numbers re-display
+
+#### DrawSingleNote branches
+- **Open string (fret == 0):** drawFret = HandFret + 1.5; uses wide note image spanning HandFret-1 to HandFret+3
+- **Fretted:** standard position; if slide, `drawFret = lerp(note.Fret, note.SlideFret, t)` during playback
+- **Sustain trail:** drawFlatImage (straight), drawImageTrail (slide), drawVibrato, or drawBend depending on techniques
+- **Note head:** drawVerticalImage at `drawFret - 0.5`
+- **Modifier image:** HammerOn, PullOff, Mute, PalmMute, Harmonic, PinchHarmonic overlaid on note head
+- **Shadow:** `drawFretHorizontalLine` at `drawFret-1` to `drawFret` on the fretboard (Y=0)
+- **String connector:** `drawFretVerticalLine` from Y=0 up to note head height
+
+#### SongFormat additions required
+- `CentsOffset: { TimeOffset: number, Cents: number }` — bend data point
+- `ESongNoteTechnique` bitmask: `HammerOn=2, PullOff=4, Accent=8, PalmMute=16, FretHandMute=32, Slide=64, Bend=128, Vibrato=512, Harmonic=1024, PinchHarmonic=2048, Chord=32768, ChordNote=65536, Continued=131072`
+- `SongNote.CentsOffsets: CentsOffset[] | null` — missing from current SongFormat.ts
+- `SongChord.Fingers: number[]` and `SongChord.Frets: number[]` — check if already in SongFormat.ts
+
+#### Settled omissions for Phase 5
+- **NoteDetector / scoring** — `isDetected = false` always; "GuitarDetected" image never draws; no `notesDetected[]` array
+- **invertStrings** — hardcode `false`; Phase 6 adds settings UI
+- **capoFret** — hardcode `0`; drawn as a thick vertical line if nonzero
+- **Text rendering** (`drawVerticalText`, `drawFlatText`) — **DEFERRED to Phase 6**: skipped for Phase 5. Visually acceptable without it.
+
+#### Phase 5 text rendering decision (settled)
+The font images (`LargeFont`, `MainFont`) ARE in UISheet0.png as sprite regions, but we don't have the glyph-mapping data (character → pixel offset) that the MonoGame SpriteFont provides at runtime. Without it we can't pick individual characters out of the 506×661 font sprite.
+
+**Phase 6 options for text:**
+- **(A) Three.js TextGeometry** — https://threejs.org/docs/#TextGeometry — renders text as 3D geometry from a loaded font (JSON typeface format). Stays inside the WebGL context; no DOM required. Clean for in-world labels (fret numbers, chord names in 3D space).
+- **(B) HTML overlay** — CSS-positioned `<div>` elements over the canvas, positions projected from 3D world space using `vec.project(camera)`. Simple but creates a DOM-WebGL sync concern each frame.
+- **(C) Canvas 2D texture atlas** — pre-render characters to a canvas, use as a dynamic texture. Most work; only justified if TextGeometry is too heavy.
+
+**Recommendation for Phase 6:** Try Three.js TextGeometry first — it integrates naturally with the existing quad-based renderer.
 
 **Deliverable:** Guitar and bass charts render and scroll. FretCamera smoothly tracks the active fret region.
 

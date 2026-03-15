@@ -41,7 +41,7 @@ export class ChartScene3D extends Scene3D {
     override draw(dt: number): void {
         this.timeScale = this.noteDisplayDistance / this.noteDisplaySeconds;
 
-        this.currentSecond += dt;
+        // currentSecond is set each frame by App from SongPlayer.currentSecond
         this.currentTime = this.currentSecond;
         this.startTime = this.currentTime;
         this.endTime = this.currentTime + this.noteDisplaySeconds;

@@ -1,9 +1,11 @@
 import * as THREE from "three";
-import type { Scene3D } from "./Scene3D";
+import type { ChartScene3D } from "./ChartScene3D";
+import type { SongPlayer } from "./SongPlayer";
 
 export class App {
     readonly renderer: THREE.WebGLRenderer;
-    activeScene: Scene3D | null = null;
+    activeScene: ChartScene3D | null = null;
+    songPlayer: SongPlayer | null = null;
 
     private lastTime = 0;
 
@@ -20,6 +22,11 @@ export class App {
     private loop(time: number): void {
         const dt = Math.min((time - this.lastTime) / 1000, 0.1);
         this.lastTime = time;
+
+        if (this.activeScene && this.songPlayer) {
+            this.activeScene.currentSecond = this.songPlayer.currentSecond;
+        }
+
         this.activeScene?.draw(dt);
         requestAnimationFrame(t => this.loop(t));
     }
