@@ -19,6 +19,9 @@ export class App {
     // Set by ActiveSceneScreen so App can pause/resume during settings.
     // onSongPause: pause the song and return current position, or null if not playing.
     onSongPause: (() => number | null) | null = null;
+    // onSongRollback: called immediately when a resume-with-countdown begins,
+    // so the scene scrolls back to the rolled-back position before the 3-2-1 starts.
+    onSongRollback: ((seconds: number) => void) | null = null;
     onSongResume: ((seconds: number) => void) | null = null;
 
     // Called when a settings toggle changes — ActiveSceneScreen uses this to live-update the scene.
@@ -71,6 +74,17 @@ export class App {
         screen.mount(this.screenContainer);
     }
 
+    // Called by ActiveSceneScreen when the user manually resumes after a pause
+    // (play button click or seek bar release). Mirrors the settings-close countdown.
+    resumeWithCountdown(pausedAt: number): void {
+        if (!this.onSongResume) return;
+        const resumeAt = Math.max(0, pausedAt - 3);
+        // Roll back the scene immediately so the user can see the upcoming notes
+        // during the countdown, not just after it.
+        this.onSongRollback?.(resumeAt);
+        this.startCountdown(() => this.onSongResume!(resumeAt));
+    }
+
     openSettings(): void {
         this.songPausedBySettings = false;
         if (this.onSongPause) {
@@ -91,6 +105,7 @@ export class App {
         this.settingsOverlay.classList.add("hidden");
         if (this.songPausedBySettings && this.onSongResume) {
             const resumeAt = Math.max(0, this.pausedAtSeconds - 3);
+            this.onSongRollback?.(resumeAt);
             this.startCountdown(() => this.onSongResume!(resumeAt));
         }
         this.songPausedBySettings = false;

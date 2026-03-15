@@ -368,8 +368,8 @@ The font images (`LargeFont`, `MainFont`) ARE in UISheet0.png as sprite regions,
 2. App.ts upgrade — widen `activeScene` type, coordinate scene creation from selection — ✅ done
 3. Song library screen (folder picker, song cards) — ✅ done
 4. Pre-scene screen (instrument selector, key settings) — ✅ done
-5. Tuner / input-check scene
-6. Active scene overlay (playback controls, settings panel, back)
+5. Tuner / input-check scene — deferred
+6. Active scene overlay (playback controls, seek bar, speed control) — ✅ done
 7. Shared settings panel
 
 ---
@@ -447,6 +447,8 @@ Opened via the persistent top-right gear icon from any screen. Single panel, sam
 - `boldText` — boolean (default on; see Phase 5 toggle notes)
 - `skipIntro` — boolean (default off; see Phase 5 toggle notes)
 - `leftyMode` — boolean
+- `tunerAutoAdvance` — boolean (default on); when off, tuner completion shows a button instead of auto-proceeding after the ✓ graphic
+- **"Tune" button** — opens the tuner in the appropriate context; added in Phase 6.5
 
 **Stretch settings (document now, build later):**
 - `playbackSpeed` — float 0.5–1.0 (requires WASM time-stretcher; see Phase 6.4 deferred)
@@ -653,46 +655,92 @@ Shown after picking a song, before entering the tuner/scene.
 - Back button lazy-imports `SongLibraryScreen` (same circular-dep avoidance pattern as `ActiveSceneScreen`), passing the existing library so the song list is restored without a re-scan.
 - Instrument selector hidden entirely when only one playable part exists — no point showing a single button.
 - `Settings.ts` introduced here: thin `loadSettings()` / `saveSettings()` over a single `localStorage` JSON key. Fields: `skipIntro` (default `false`), `boldText` (default `true`), `invertStrings` (default `false`), `leftyMode` (default `false`). `ActiveSceneScreen` reads settings on mount — `boldText` applied to scene field, `skipIntro` seeks `scene.currentSecond` to `Notes[0].TimeOffset` before playback starts (audio seek omitted — song auto-plays from 0, scene displays from first note). Settings panel (Phase 6.7) will write to the same store.
-- Play button goes directly to `ActiveSceneScreen` for now; Phase 6.5 tuner will be inserted between them.
+- Play button goes directly to `ActiveSceneScreen` for now; Phase 6.5 tuner will be inserted between them when tuning is required.
+- **Phase 6.5 addition:** add a "Tune" button to `PreSceneScreen` that opens the tuner voluntarily and returns to this screen on completion.
 
 ---
 
 ### Phase 6.5 — Tuner / input-check scene
 
-Sits between pre-scene screen and active scene. Gives users a chance to verify their setup before the song starts. All instruments get a [Skip] button so this step is never blocking.
+Full UX spec in `project_phase6_ux.md` (memory). Summary below.
 
-**Guitar / bass:**
-- Microphone input via `getUserMedia({ audio: true })`
-- Pitch detection (simple autocorrelation — no WASM needed for a basic tuner) → display detected note + cents deviation
-- Visual needle or bar showing how far from target pitch
-- Deferred: full chromatic tuner with string-by-string mode
+Full UX spec in `project_phase6_ux.md` (memory). Summary below.
 
-**Keys / drums:**
-- Request Web MIDI access (`navigator.requestMIDIAccess()`)
-- List detected devices
-- Show a simple "hit something" visualiser — each incoming MIDI note lights up a tile
-- Confirms device is connected and firing before the song starts
+**Session state:** `App.lastTuningKey: string | null` — stringified `StringSemitoneOffsets` of last tuned instrument. Updated on any tuner exit (complete or skip). Auto-tuner fires when `null` or tuning changed; does not re-fire for same tuning even after a skip.
 
-**All instruments:**
-- [Skip] — go straight to active scene (for users without mic/MIDI, or who don't need to check)
-- [Ready] — proceed to active scene and auto-start playback
+**Three entry contexts — different exit destinations:**
+- **song-flow** (pre-scene "Tune" button, or auto from Play) → Active Scene (start song). Pre-scene "Tune" button no longer returns to pre-scene; tuning is the last step before playing.
+- **mid-song** (settings "Tune" during active scene) → 3-2-1 countdown → resume.
+- **menu** (settings "Tune" from Library or Pre-scene) → return to previous screen. Exit button label: "Main Menu".
 
-**Note:** The tuner scene is a lightweight HTML overlay, not a Three.js scene. The canvas stays black or shows a minimal graphic; no QuadBatch needed.
+**Auto-advance** (default on): ✓ "In tune!" fades → 1 second → proceeds automatically. `tunerAutoAdvance` setting (in Settings panel) disables this — shows context-appropriate button ("Play Song" / "Resume Song" / "Main Menu") and waits for press.
+
+**Guitar / bass — two-phase string tuner:**
+- Phase 1 (correction): one string lit at a time; white line above/below the string shows deviation (above = sharp, below = flat), proportional to cents, clamped at ±50 cents; turns green and auto-advances when within ±10 cents
+- Phase 2 (validation pass): fast cycle through all strings; auto-advances on ±15 cents; on fail re-enters Phase 1 for that string only
+- Completion: ✓ "In tune!" → auto-advance per context and `tunerAutoAdvance` toggle
+- Target pitches from `SongTuning.StringSemitoneOffsets` — pre-configured per song; tuning dropdown available to override
+- Pitch detection: autocorrelation (`getUserMedia({ audio: true })`) — no WASM
+- Visual: standalone `<canvas>` element reusing active-scene string geometry; not the full QuadBatch pipeline
+
+**Controls:** audio input dropdown, tuning override dropdown, Restart, **"Skip (I'm in tune)"** — updates `lastTuningKey` and exits to destination.
+
+**Keys / drums:** `navigator.requestMIDIAccess()` → device list → "hit something" tile visualiser → Skip / Ready.
 
 ---
 
-### Phase 6.6 — Active scene overlay
+### Phase 6.6 — Active scene overlay ✅
 
-Minimal HTML overlay on top of the Three.js canvas:
-- Play/pause button
-- Seek bar (`<input type="range">`) — plain, no waveform
-- Current time / total time
-- [Back to library] — destroys current scene + returns to song library
+HTML overlay on top of the Three.js canvas. Auto-hides after 3 seconds of inactivity while playing; always visible while paused or on mouse movement.
+
+**Top bar layout** (left→right):
+```
+[← Library] [▶/⏸] [0:23] [────●──────────────────────] [3:45] [−][0.8×▾][+]   ⚙
+```
+- Back button, play/pause, current time, seek bar, total duration, speed control, gear button (separate fixed element)
+- Bar right-padding leaves 54px gap so content never overlaps the ⚙ button
+- Bottom-of-screen gradient removed — top bar + gradient fading downward from bar
+
+**Seek bar + section tick marks:**
+- `<input type="range">` with section markers overlaid as absolute-positioned divs
+- Uses `instrumentNotes.Sections` first; falls back to `songStructure.Sections`
+- Tick marks carry the section name as `title` for native browser tooltip
+- Scrubbing: `pointerdown` pauses, `input` updates scene in real-time, `pointerup` triggers resume-with-countdown
+
+**Resume-with-countdown (play button + seek release):**
+All manual resumes use the same 3-2-1 path as settings close:
+1. `app.resumeWithCountdown(pausedAt)` — new public method on `App`; computes `resumeAt = max(0, pausedAt - 3)`
+2. `onSongRollback(resumeAt)` fires immediately → starts scroll-back animation + marks grace period
+3. 3-second countdown overlay, then `onSongResume(resumeAt)` → audio play
+
+**Scroll-back animation:**
+- `onSongRollback` captures current scene position, seeks audio player to `resumeAt`, stores from/to/startMs
+- `onPreDraw` drives `scene.currentSecond` with ease-out cubic over 0.8s back to `resumeAt`
+- After animation completes, `onPreDraw` reverts to driving from `songPlayer.currentSecond` as normal
+
+**Grace period (notes in the 3-second lead-in):**
+- `FretPlayerScene3D.gracePeriodEndTime: number | null` — set to the originally-seeked position
+- Notes with `TimeOffset < gracePeriodEndTime` are drawn with `_isGraceDraw = true`: 55% desaturation toward grey, 40% normal alpha, chord outlines at 25% alpha
+- Grace notes are NOT scored (skipped in `evaluateMockDetection`; same guard applies to real detection later)
+- Auto-clears in `drawQuads` when `currentTime >= gracePeriodEndTime`
+
+**Playback speed:**
+- `ISongPlayer` interface extracted from `SongPlayer` — `ActiveSceneScreen` types its field as `ISongPlayer`
+- `SongPlayer` implements `ISongPlayer.playbackRate` via `AudioBufferSourceNode.playbackRate` (Option A — pitch shifts proportionally at non-1× speeds)
+- `playbackRate` setter re-anchors `pausedAt` and `startContextTime` before changing rate, preventing `currentSecond` jumps mid-playback
+- `currentSecond` getter: `pausedAt + (context.currentTime - startContextTime) * playbackRate`
+- A future `TimestretcSongPlayer` implementing `ISongPlayer` (SoundTouch WASM, no pitch shift) can drop in with zero changes to `ActiveSceneScreen`
+
+**Speed compound control — `[−] [select▾] [+]`:**
+- Visually a single bordered unit (border wraps all three elements)
+- Dropdown preset options: multiples of 0.2 (0.2×–2.0×, 10 options)
+- ±0.05 fine-step buttons: range 0.05×–2.00×
+- When ±buttons land on a non-preset value, a dynamic `customOpt` element is inserted at the top of the `<select>` and selected — the collapsed dropdown always shows the exact current speed
+- Custom option is removed and preset option is selected when returning to a 0.2-multiple
 
 **Deferred (document here for future reference):**
 - Waveform on seek bar — compute peak array from `AudioBuffer` after load
-- Playback speed — `AudioBufferSourceNode.playbackRate` changes pitch (chipmunk). True time-stretch needs SoundTouch.js WASM
-- Pitch shift — same WASM dependency
+- Pitch shift — WASM dependency (SoundTouch.js); same work as proper time-stretch
 - Loop markers — set start/end points for section repeat (part of practice mode stretch goal)
 - Vocal display — lyric lines from `SongVocals`
 - Play stats / tags / favorites

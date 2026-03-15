@@ -77,6 +77,14 @@ export class FretPlayerScene3D extends ChartScene3D {
     // When true: string order is flipped vertically (low strings on top, high strings on bottom).
     invertStrings = false;
 
+    // When non-null, notes whose TimeOffset < gracePeriodEndTime are drawn as grace notes
+    // (desaturated, low alpha) and skipped for scoring. Auto-clears when currentTime reaches it.
+    gracePeriodEndTime: number | null = null;
+
+    // Frame-local flag: true while drawing a note in the grace period.
+    // Set in the drawQuads note loop; read by drawSingleNote and drawChordOutline.
+    private _isGraceDraw = false;
+
     // Frame state — reset each DrawQuads call
     private minFret = 0;
     private maxFret = 4;
@@ -181,8 +189,13 @@ export class FretPlayerScene3D extends ChartScene3D {
         const evalTime = this.currentTime - 0.05;
         while (this.mockEvalPos < notes.length && notes[this.mockEvalPos].TimeOffset <= evalTime) {
             if (this.notesDetected[this.mockEvalPos] === 0) {
-                this.notesDetected[this.mockEvalPos] = this.mockCycleCount % 3 === 2 ? -1 : 1;
-                this.mockCycleCount++;
+                // Skip scoring for notes in the grace period
+                const inGrace = this.gracePeriodEndTime !== null
+                    && notes[this.mockEvalPos].TimeOffset < this.gracePeriodEndTime;
+                if (!inGrace) {
+                    this.notesDetected[this.mockEvalPos] = this.mockCycleCount % 3 === 2 ? -1 : 1;
+                    this.mockCycleCount++;
+                }
             }
             this.mockEvalPos++;
         }
@@ -191,6 +204,11 @@ export class FretPlayerScene3D extends ChartScene3D {
     // ─── Main draw ────────────────────────────────────────────────────────────
 
     protected override drawQuads(dt: number): void {
+        // Auto-clear grace period once playback reaches the originally-seeked position.
+        if (this.gracePeriodEndTime !== null && this.currentTime >= this.gracePeriodEndTime) {
+            this.gracePeriodEndTime = null;
+        }
+
         this.evaluateMockDetection();
         super.drawQuads(dt); // → ChartScene3D.drawBeats()
 
@@ -275,8 +293,11 @@ export class FretPlayerScene3D extends ChartScene3D {
         for (let p = lastNoteIdx; p >= this.startNotePosition; p--) {
             const note = notes[p];
             if (note.TimeOffset > this.endTime) continue;
+            this._isGraceDraw = this.gracePeriodEndTime !== null
+                && note.TimeOffset < this.gracePeriodEndTime;
             this.drawNote(note);
         }
+        this._isGraceDraw = false;
 
         // ── 7. String lines at the "now" face ─────────────────────────────────
         for (let str = 0; str < this.numStrings; str++) {
@@ -366,6 +387,13 @@ export class FretPlayerScene3D extends ChartScene3D {
         }
 
         if (isGhost) stringColor = { ...stringColor, a: 32 / 255 };
+
+        // Grace notes: desaturate toward grey and reduce alpha so they read as
+        // "warmup — ignore these" without being completely invisible.
+        if (this._isGraceDraw) {
+            stringColor = lerpColor(stringColor, { r: 0.5, g: 0.5, b: 0.5, a: stringColor.a }, 0.55);
+            stringColor = { ...stringColor, a: stringColor.a * 0.4 };
+        }
 
         if (hasTech(note, ESongNoteTechnique.Accent)) {
             stringColor = lerpColor(stringColor, { r: 1, g: 1, b: 1, a: stringColor.a }, 0.75);
@@ -522,7 +550,8 @@ export class FretPlayerScene3D extends ChartScene3D {
         const isNonRepeat = this.nonRepeatChords.has(note.TimeOffset);
         const showFull    = isNonRepeat || isCurrent;
 
-        const alpha = hasTech(note, ESongNoteTechnique.Accent) ? 1 : 64 / 255;
+        const baseAlpha = hasTech(note, ESongNoteTechnique.Accent) ? 1 : 64 / 255;
+        const alpha = this._isGraceDraw ? baseAlpha * 0.25 : baseAlpha;
         const color = makeColor(1, 1, 1, alpha);
 
         if (showFull) {

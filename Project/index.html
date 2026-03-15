@@ -22,18 +22,19 @@
       z-index: 1;
     }
 
-    /* Persistent gear button — always on top */
+    /* Persistent gear button — same visual style as .active-play-btn.
+       Fixed top-right so it's always reachable from any screen. */
     #settings-btn {
       position: fixed;
-      top: 12px;
+      top: 10px;
       right: 12px;
       z-index: 100;
       background: rgba(255, 255, 255, 0.12);
       border: none;
       color: #fff;
-      font-size: 18px;
-      width: 36px;
-      height: 36px;
+      font-size: 16px;
+      width: 34px;
+      height: 30px;
       border-radius: 6px;
       cursor: pointer;
       line-height: 1;
@@ -274,15 +275,72 @@
     /* ── Active scene overlay ──────────────────────────────────────────────── */
     #active-overlay {
       position: absolute; inset: 0;
-      display: flex; align-items: flex-end; padding: 16px;
-      background: linear-gradient(transparent 70%, rgba(0,0,0,0.5));
-      cursor: pointer;
+      /* gradient fades from bar bg down to transparent so the highway shows through */
+      background: linear-gradient(rgba(0,0,0,0.55) 0%, transparent 88px);
+      pointer-events: none;   /* overlay itself is click-through */
+      transition: opacity 0.4s;
     }
-    .active-back-btn {
-      padding: 8px 16px; background: rgba(255,255,255,0.12);
-      border: none; border-radius: 6px; color: #fff; font-size: 14px; cursor: pointer;
+    #active-overlay.bar-hidden { opacity: 0.12; }
+
+    /* Top bar — the only pointer-interactive region */
+    .active-bar {
+      display: flex; align-items: center; gap: 8px;
+      padding: 10px 54px 10px 12px; /* right pad clears the fixed ⚙ button */
+      pointer-events: auto;
+      font-family: system-ui, sans-serif;
     }
-    .active-back-btn:hover { background: rgba(255,255,255,0.22); }
+
+    /* Back + play buttons */
+    .active-back-btn, .active-play-btn {
+      padding: 5px 12px; background: rgba(255,255,255,0.12);
+      border: none; border-radius: 6px; color: #fff; font-size: 14px;
+      cursor: pointer; flex-shrink: 0; line-height: 1.4;
+    }
+    .active-back-btn:hover, .active-play-btn:hover { background: rgba(255,255,255,0.22); }
+    .active-play-btn { width: 34px; padding: 5px; text-align: center; }
+
+    /* Time labels */
+    .active-time, .active-duration {
+      color: #ccc; font-size: 13px; font-variant-numeric: tabular-nums;
+      flex-shrink: 0; min-width: 34px; text-align: center;
+    }
+
+    /* Seek bar container — fills remaining space */
+    .active-seek-wrap {
+      flex: 1; position: relative; height: 20px;
+      display: flex; align-items: center; min-width: 0;
+    }
+    #active-seek {
+      width: 100%; accent-color: #2a6eff; cursor: pointer;
+    }
+
+    /* Section tick marks overlaid on the seek bar track */
+    #active-sections { position: absolute; inset: 0; pointer-events: none; }
+    .seek-section-tick {
+      position: absolute; top: 50%; transform: translate(-50%, -50%);
+      width: 2px; height: 10px; background: rgba(255,255,255,0.55);
+      border-radius: 1px; pointer-events: auto; cursor: default;
+    }
+
+    /* Speed compound control: [−] [select] [+] as one visual unit */
+    .speed-group {
+      display: flex; align-items: stretch; flex-shrink: 0;
+      border: 1px solid rgba(255,255,255,0.22); border-radius: 6px; overflow: hidden;
+    }
+    .speed-step {
+      padding: 4px 9px; background: rgba(255,255,255,0.1);
+      border: none; color: #ccc; font-size: 15px; font-weight: 600;
+      cursor: pointer; line-height: 1;
+    }
+    .speed-step:hover { background: rgba(255,255,255,0.22); color: #fff; }
+    #active-speed-select {
+      background: rgba(0,0,0,0.35); border: none;
+      border-left: 1px solid rgba(255,255,255,0.15);
+      border-right: 1px solid rgba(255,255,255,0.15);
+      color: #fff; font-size: 13px; padding: 0 4px; cursor: pointer;
+      text-align: center;
+    }
+    #active-speed-select option { background: #1a1a1a; }
   </style>
   </head>
   <body>
