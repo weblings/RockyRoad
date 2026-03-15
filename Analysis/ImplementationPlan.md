@@ -196,6 +196,8 @@ The 30 lines cost in Phase 1 buys a clean architecture for all subsequent phases
 
 **Deliverable:** A piano roll highway scrolling through a real song's keyboard data. First time the output resembles the actual application.
 
+**Note:** The keys camera positioning should be revisited after Phase 5 (Fret). The C# `FretCamera` has dynamic zoom that tracks the live min/max fret range — keys has no equivalent and uses a fixed range. Once the fret camera pattern is understood in practice, consider back-porting a similar dynamic-range approach to `KeysPlayerScene3D`.
+
 ---
 
 ## Phase 4 — Audio

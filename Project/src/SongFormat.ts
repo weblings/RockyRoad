@@ -69,3 +69,15 @@ export interface SongInstrumentNotes {
     Chords: SongChordDefinition[];
     Notes: SongNote[];
 }
+
+export interface SongKeyboardNote extends ISongEvent {
+    TimeOffset: number;
+    TimeLength: number;
+    Note: number;     // MIDI note number (21–108 for 88-key)
+    Velocity: number; // 0–127
+}
+
+export interface SongKeyboardNotes {
+    Sections: SongSection[];
+    Notes: SongKeyboardNote[];
+}
