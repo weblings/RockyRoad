@@ -759,6 +759,12 @@ for (const input of midi.inputs.values()) {
 
 ---
 
+## Known UX issues (deferred)
+
+- **Single-note hit feedback unclear** — The `GuitarDetected` overlay appears on the note head and the note colour brightens on hit, but single (non-sustained) notes pass the now-line too quickly for this to be visually obvious. Long notes with trails are clear; single notes are not. Attempts to add a larger overlay or string-line flash made sustained notes worse without improving single notes. Needs a dedicated approach — likely a brief timed flash or particle effect anchored at the now-face that persists for ~100–200ms after the hit, independent of note length.
+
+---
+
 ## Summary
 
 | Phase | Key files | Deliverable |

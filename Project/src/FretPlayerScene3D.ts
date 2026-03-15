@@ -84,7 +84,16 @@ export class FretPlayerScene3D extends ChartScene3D {
     private firstNote: SongNote | null = null;
     private startNotePosition = 0;
 
-    // "Currently playing" note tracking (no detection — isDetected always false)
+    // Note detection state — one slot per note in the sorted array.
+    // 0 = pending, 1 = hit, -1 = missed.
+    // mockDetection drives a cycling 2-hit/1-miss pattern for testing.
+    private readonly noteIndexMap: Map<SongNote, number>;
+    private readonly notesDetected: Int8Array;
+    mockDetection = false;
+    private mockEvalPos  = 0;
+    private mockCycleCount = 0;
+
+    // "Currently playing" note tracking
     private currentChordNote:  SongNote | null = null;
     private currentFingerNote: SongNote | null = null;
     private readonly currentStringNotes: (SongNote | null)[];
@@ -136,6 +145,17 @@ export class FretPlayerScene3D extends ChartScene3D {
         this.nonRepeatChords = new Set<number>();
         this.nonRepeatNotes  = new Set<number>();
         this.buildNonRepeatMaps();
+
+        // Detection state — allocated after sort so indices are stable
+        this.noteIndexMap  = new Map(instrumentNotes.Notes.map((n, i) => [n, i]));
+        this.notesDetected = new Int8Array(instrumentNotes.Notes.length); // 0-filled
+    }
+
+    // Resets mock detection state — call when seeking or toggling mockDetection.
+    resetMockDetection(): void {
+        this.notesDetected.fill(0);
+        this.mockEvalPos    = 0;
+        this.mockCycleCount = 0;
     }
 
     // ─── Camera update ────────────────────────────────────────────────────────
@@ -150,9 +170,28 @@ export class FretPlayerScene3D extends ChartScene3D {
         );
     }
 
+    // ─── Mock detection ───────────────────────────────────────────────────────
+
+    // Advances the detection scan to mark any notes that have just crossed the
+    // now-line. Cycles 2 hits then 1 miss. Safe to call every frame.
+    private evaluateMockDetection(): void {
+        if (!this.mockDetection) return;
+        const notes = this.instrumentNotes.Notes;
+        // Small tolerance so the mark happens just after the note passes
+        const evalTime = this.currentTime - 0.05;
+        while (this.mockEvalPos < notes.length && notes[this.mockEvalPos].TimeOffset <= evalTime) {
+            if (this.notesDetected[this.mockEvalPos] === 0) {
+                this.notesDetected[this.mockEvalPos] = this.mockCycleCount % 3 === 2 ? -1 : 1;
+                this.mockCycleCount++;
+            }
+            this.mockEvalPos++;
+        }
+    }
+
     // ─── Main draw ────────────────────────────────────────────────────────────
 
     protected override drawQuads(dt: number): void {
+        this.evaluateMockDetection();
         super.drawQuads(dt); // → ChartScene3D.drawBeats()
 
         // Fog — push notes into the distance
@@ -313,12 +352,18 @@ export class FretPlayerScene3D extends ChartScene3D {
     // ─── Single note ──────────────────────────────────────────────────────────
 
     private drawSingleNote(note: SongNote, drawCurrent: boolean, isGhost: boolean): void {
-        const isCurrent = note.TimeOffset <= this.currentTime;
-        const isDetected = false; // Phase 5: no note detection
+        const isCurrent  = note.TimeOffset <= this.currentTime;
+        const noteIdx    = this.noteIndexMap.get(note) ?? -1;
+        const isDetected = noteIdx >= 0 && this.notesDetected[noteIdx] === 1;
 
-        // Dim factor for undetected notes
-        const dimAmount = 0.25;
-        let stringColor = lerpColor(lerpColor({ r: 1, g: 1, b: 1, a: 1 }, this.getStringColor(note.String), dimAmount), { r: 0, g: 0, b: 0, a: 1 }, dimAmount);
+        // Dim undetected notes; leave detected notes at full string color
+        let stringColor: UIColor;
+        if (isDetected) {
+            stringColor = { ...this.getStringColor(note.String), a: 1 };
+        } else {
+            const dimAmount = 0.25;
+            stringColor = lerpColor(lerpColor({ r: 1, g: 1, b: 1, a: 1 }, this.getStringColor(note.String), dimAmount), { r: 0, g: 0, b: 0, a: 1 }, dimAmount);
+        }
 
         if (isGhost) stringColor = { ...stringColor, a: 32 / 255 };
 

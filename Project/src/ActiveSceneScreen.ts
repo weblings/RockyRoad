@@ -17,6 +17,7 @@ export class ActiveSceneScreen implements IScreen {
     private library: ISongLibrary;
     private entry: SongIndexEntry;
     private part: SongIndexPart;
+    private mockKeyHandler: ((e: KeyboardEvent) => void) | null = null;
 
     constructor(
         app: App,
@@ -115,9 +116,19 @@ export class ActiveSceneScreen implements IScreen {
                 this.app.navigate(new SongLibraryScreen(this.app, this.texture, library));
             });
         });
+
+        // Press M to toggle mock detection (2 hits / 1 miss cycle).
+        this.mockKeyHandler = (e: KeyboardEvent) => {
+            if (e.key !== 'm' && e.key !== 'M') return;
+            if (!this.scene) return;
+            this.scene.mockDetection = !this.scene.mockDetection;
+            this.scene.resetMockDetection();
+        };
+        window.addEventListener('keydown', this.mockKeyHandler);
     }
 
     unmount(): void {
+        if (this.mockKeyHandler) { window.removeEventListener('keydown', this.mockKeyHandler); this.mockKeyHandler = null; }
         this.songPlayer?.pause();
         this.scene?.destroy();
         if (this.audioUrl) { URL.revokeObjectURL(this.audioUrl); this.audioUrl = null; }
