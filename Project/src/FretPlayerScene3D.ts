@@ -101,6 +101,14 @@ export class FretPlayerScene3D extends ChartScene3D {
     private mockEvalPos  = 0;
     private mockCycleCount = 0;
 
+    // Flash state — tracked per note. noteScoredTime holds performance.now() at the
+    // moment the note transitioned from 0 to scored; -1 = not yet scored.
+    // noteScoredHit: 1 = hit (white flash), 0 = miss (red flash).
+    private readonly prevNotesDetected: Int8Array;
+    private readonly noteScoredTime: Float64Array;
+    private readonly noteScoredHit: Uint8Array;
+    private static readonly FLASH_DURATION_MS = 500;
+
     // "Currently playing" note tracking
     private currentChordNote:  SongNote | null = null;
     private currentFingerNote: SongNote | null = null;
@@ -155,8 +163,11 @@ export class FretPlayerScene3D extends ChartScene3D {
         this.buildNonRepeatMaps();
 
         // Detection state — allocated after sort so indices are stable
-        this.noteIndexMap  = new Map(instrumentNotes.Notes.map((n, i) => [n, i]));
-        this.notesDetected = new Int8Array(instrumentNotes.Notes.length); // 0-filled
+        this.noteIndexMap      = new Map(instrumentNotes.Notes.map((n, i) => [n, i]));
+        this.notesDetected     = new Int8Array(instrumentNotes.Notes.length);  // 0-filled
+        this.prevNotesDetected = new Int8Array(instrumentNotes.Notes.length);
+        this.noteScoredTime    = new Float64Array(instrumentNotes.Notes.length).fill(-1);
+        this.noteScoredHit     = new Uint8Array(instrumentNotes.Notes.length);
     }
 
     // Exposes detection arrays so NoteDetector can write results the scene reads.
@@ -168,6 +179,9 @@ export class FretPlayerScene3D extends ChartScene3D {
     // Resets mock detection state — call when seeking or toggling mockDetection.
     resetMockDetection(): void {
         this.notesDetected.fill(0);
+        this.prevNotesDetected.fill(0);
+        this.noteScoredTime.fill(-1);
+        this.noteScoredHit.fill(0);
         this.mockEvalPos    = 0;
         this.mockCycleCount = 0;
     }
@@ -218,13 +232,25 @@ export class FretPlayerScene3D extends ChartScene3D {
         this.evaluateMockDetection();
         super.drawQuads(dt); // → ChartScene3D.drawBeats()
 
+        // Detect notesDetected transitions (0 → hit/miss) and record flash timestamps.
+        const nowMs = performance.now();
+        const notes = this.instrumentNotes.Notes;
+        for (let i = Math.max(0, this.startNotePosition - 5); i < notes.length; i++) {
+            if (notes[i].TimeOffset > this.currentTime + 0.2) break;
+            const prev = this.prevNotesDetected[i];
+            const curr = this.notesDetected[i];
+            if (prev === 0 && curr !== 0) {
+                this.noteScoredTime[i] = nowMs;
+                this.noteScoredHit[i]  = curr === 1 ? 1 : 0;
+            }
+            this.prevNotesDetected[i] = curr;
+        }
+
         // Fog — push notes into the distance
         this.fogEnabled = true;
         this.fogStart   = 400;
         this.fogEnd     = this.fretCamera.cameraDistance + this.fretCamera.focusDist;
         this.fogColor   = { r: 0, g: 0, b: 0, a: 1 };
-
-        const notes = this.instrumentNotes.Notes;
 
         // ── 1. Fret timeline background strips (one per fret) ─────────────────
         for (let fret = 0; fret < NUM_FRETS; fret++) {
@@ -324,6 +350,25 @@ export class FretPlayerScene3D extends ChartScene3D {
                 ? LABEL_WHITE
                 : { r: 1, g: 1, b: 1, a: 64 / 255 };
             this.drawVerticalText(fret.toString(), fret - 0.5, 0, this.currentTime, labelColor, 0.08);
+        }
+
+        // ── 8.5. Hit / miss flash — two border lines for the scored note's fret slot ──
+        // Only draws on the row of that string (yMid ± 2 units), not the full column.
+        for (let i = Math.max(0, this.startNotePosition - 5); i < notes.length; i++) {
+            const scored = this.noteScoredTime[i];
+            if (scored < 0) continue;
+            const elapsed = nowMs - scored;
+            if (elapsed > FretPlayerScene3D.FLASH_DURATION_MS) continue;
+            if (notes[i].TimeOffset > this.currentTime + 0.2) break;
+            const alpha = 1 - elapsed / FretPlayerScene3D.FLASH_DURATION_MS;
+            const flashColor: UIColor = this.noteScoredHit[i]
+                ? makeColor(1, 1, 1, alpha)
+                : makeColor(1, 0.15, 0.15, alpha);
+            const strOff = this.getStringOffset(notes[i].String);
+            const yMid = this.getStringHeight(strOff);
+            // Left and right borders of this fret slot, constrained to the string row.
+            this.drawFretVerticalLine(notes[i].Fret - 1, this.startTime, yMid - 2, yMid + 2, flashColor, 0.08);
+            this.drawFretVerticalLine(notes[i].Fret,     this.startTime, yMid - 2, yMid + 2, flashColor, 0.08);
         }
 
         // ── 9. Current chord / finger overlays ────────────────────────────────

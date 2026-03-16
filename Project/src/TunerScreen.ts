@@ -137,7 +137,7 @@ export class TunerScreen implements IScreen {
 
                 <div class="tuner-body">
                     <div class="tuner-canvas-wrap">
-                        <canvas id="tuner-canvas" width="480" height="270"></canvas>
+                        <canvas id="tuner-canvas" width="720" height="405"></canvas>
                         <div class="tuner-complete-overlay hidden" id="tuner-complete">
                             <div class="tuner-check">✓</div>
                             <div class="tuner-in-tune">In tune!</div>
@@ -426,10 +426,10 @@ export class TunerScreen implements IScreen {
 
         if (n === 0) return;
 
-        const marginTop    = 36;
-        const marginBottom = 32;
-        const marginLeft   = 52;
-        const marginRight  = 18;
+        const marginTop    = 54;
+        const marginBottom = 48;
+        const marginLeft   = 78;
+        const marginRight  = 27;
         const stringAreaH  = H - marginTop - marginBottom;
         const spacing      = n > 1 ? stringAreaH / (n - 1) : 0;
 
@@ -467,10 +467,10 @@ export class TunerScreen implements IScreen {
             // Note name label (e.g. "E2")
             const midi = this.targetMidis[i];
             ctx.fillStyle = isActive ? '#fff' : '#666';
-            ctx.font = `${isActive ? '600 ' : ''}11px system-ui, sans-serif`;
+            ctx.font = `${isActive ? '600 ' : ''}16px system-ui, sans-serif`;
             ctx.textAlign = 'right';
             ctx.textBaseline = 'middle';
-            ctx.fillText(midiToNoteName(midi), marginLeft - 6, y);
+            ctx.fillText(midiToNoteName(midi), marginLeft - 9, y);
         }
 
         // Deviation indicator — only when a pitch is detected and we have an active string
@@ -488,28 +488,28 @@ export class TunerScreen implements IScreen {
                 : 0;
 
             ctx.strokeStyle = inTune ? '#44FF88' : '#ffffff';
-            ctx.lineWidth = 2;
+            ctx.lineWidth = 3;
             ctx.globalAlpha = 0.9;
             ctx.beginPath();
-            ctx.moveTo(W / 2 - 30, y + offsetY);
-            ctx.lineTo(W / 2 + 30, y + offsetY);
+            ctx.moveTo(W / 2 - 45, y + offsetY);
+            ctx.lineTo(W / 2 + 45, y + offsetY);
             ctx.stroke();
             ctx.globalAlpha = 1;
 
             // Cents readout
             ctx.fillStyle = inTune ? '#44FF88' : '#ccc';
-            ctx.font = '10px system-ui, sans-serif';
+            ctx.font = '15px system-ui, sans-serif';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             const sign = this.detectedCents > 0 ? '+' : '';
-            ctx.fillText(`${sign}${Math.round(this.detectedCents)}¢`, W / 2, y + offsetY + (offsetY < 0 ? -10 : 10));
+            ctx.fillText(`${sign}${Math.round(this.detectedCents)}¢`, W / 2, y + offsetY + (offsetY < 0 ? -15 : 15));
 
             // Dwell progress arc — fills a small circle around the bar midpoint as the
             // hold timer counts down, confirming the note is staying in tune
             if (inTune && dwellProgress > 0) {
                 const cx = W / 2;
                 const cy = y + offsetY;
-                const r = 13;
+                const r = 20;
                 // Background circle
                 ctx.strokeStyle = '#333';
                 ctx.lineWidth = 2;
@@ -527,7 +527,7 @@ export class TunerScreen implements IScreen {
 
         // Phase label at top
         ctx.fillStyle = '#888';
-        ctx.font = '10px system-ui, sans-serif';
+        ctx.font = '14px system-ui, sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'top';
         if (this.phase.tag === 'correction') {
@@ -539,7 +539,7 @@ export class TunerScreen implements IScreen {
         // Debug: raw detected frequency — helps diagnose detection issues; remove once stable
         if (this.lastDetectedHz !== null) {
             ctx.fillStyle = '#444';
-            ctx.font = '9px system-ui, sans-serif';
+            ctx.font = '13px system-ui, sans-serif';
             ctx.textAlign = 'right';
             ctx.textBaseline = 'top';
             ctx.fillText(`${this.lastDetectedHz.toFixed(1)} Hz`, W - marginRight, 10);
@@ -566,10 +566,10 @@ export class TunerScreen implements IScreen {
         }
         // Label
         ctx.fillStyle = '#555';
-        ctx.font = '9px system-ui, sans-serif';
+        ctx.font = '13px system-ui, sans-serif';
         ctx.textAlign = 'left';
         ctx.textBaseline = 'middle';
-        ctx.fillText('MIC', barX + barMaxW + 5, barY + barH / 2);
+        ctx.fillText('MIC', barX + barMaxW + 8, barY + barH / 2);
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
