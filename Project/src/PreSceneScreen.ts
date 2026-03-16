@@ -54,7 +54,11 @@ export class PreSceneScreen implements IScreen {
                             </button>`).join('')}
                     </div>` : ''}
 
-                    <button class="pre-play-btn" id="pre-play">&#9654; Play</button>
+                    <div class="pre-action-row">
+                        <button class="pre-tune-btn${this.selectedPart.tuningOffsets ? '' : ' hidden'}"
+                            id="pre-tune">Tune</button>
+                        <button class="pre-play-btn" id="pre-play">&#9654; Play</button>
+                    </div>
                 </div>
             </div>`;
 
@@ -75,13 +79,31 @@ export class PreSceneScreen implements IScreen {
             this.selectedPart = part;
             container.querySelectorAll('.pre-part-btn').forEach(b =>
                 b.classList.toggle('active', (b as HTMLElement).dataset.partName === part.name));
+            container.querySelector('#pre-tune')?.classList.toggle('hidden', !part.tuningOffsets);
         });
 
-        // Play
+        // Tune button — explicit tune request, always goes through tuner
+        container.querySelector('#pre-tune')!.addEventListener('click', () => {
+            import('./TunerScreen').then(({ TunerScreen }) => {
+                this.app.navigate(new TunerScreen(
+                    this.app, this.texture, this.library, this.entry, this.selectedPart, 'song-flow',
+                ));
+            });
+        });
+
+        // Play — auto-tunes if needed, otherwise goes straight to active scene
         container.querySelector('#pre-play')!.addEventListener('click', () => {
-            this.app.navigate(
-                new ActiveSceneScreen(this.app, this.texture, this.library, this.entry, this.selectedPart),
-            );
+            if (this.app.shouldAutoTune(this.selectedPart)) {
+                import('./TunerScreen').then(({ TunerScreen }) => {
+                    this.app.navigate(new TunerScreen(
+                        this.app, this.texture, this.library, this.entry, this.selectedPart, 'song-flow',
+                    ));
+                });
+            } else {
+                this.app.navigate(
+                    new ActiveSceneScreen(this.app, this.texture, this.library, this.entry, this.selectedPart),
+                );
+            }
         });
 
         // Album art — async, may resolve after mount returns

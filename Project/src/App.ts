@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import type { Scene3D } from "./Scene3D";
 import { loadSettings, saveSettings, type Settings } from "./Settings";
+import type { SongIndexPart } from "./SongIndex";
 
 export interface IScreen {
     mount(container: HTMLElement): void | Promise<void>;
@@ -26,6 +27,17 @@ export class App {
 
     // Called when a settings toggle changes — ActiveSceneScreen uses this to live-update the scene.
     onSettingsChange: ((settings: Settings) => void) | null = null;
+
+    // Stringified StringSemitoneOffsets of the last instrument that passed through the tuner.
+    // null = first song of session; updated on every tuner exit (complete or skip).
+    lastTuningKey: string | null = null;
+
+    // Returns true if the tuner should auto-fire before playing this part.
+    // False for non-stringed instruments or if tuning hasn't changed since last time.
+    shouldAutoTune(part: SongIndexPart): boolean {
+        if (!part.tuningOffsets) return false;
+        return this.lastTuningKey !== JSON.stringify(part.tuningOffsets);
+    }
 
     private lastTime = 0;
     private currentScreen: IScreen | null = null;

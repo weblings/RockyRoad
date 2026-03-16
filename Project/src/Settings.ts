@@ -4,10 +4,12 @@
 const SETTINGS_KEY = 'chartplayer-settings';
 
 export interface Settings {
-    skipIntro: boolean;     // seek to first note on song load
-    boldText: boolean;      // high-contrast #E8E8E8 labels (default on)
-    invertStrings: boolean; // flip string order vertically
-    leftyMode: boolean;     // mirror the fretboard horizontally
+    skipIntro: boolean;         // seek to first note on song load
+    boldText: boolean;          // high-contrast #E8E8E8 labels (default on)
+    invertStrings: boolean;     // flip string order vertically
+    leftyMode: boolean;         // mirror the fretboard horizontally
+    tunerAutoAdvance: boolean;  // auto-proceed after "In tune!" (default on)
+    inputGain: number;          // mic gain multiplier 1–8 (default 1)
 }
 
 const DEFAULTS: Settings = {
@@ -15,6 +17,8 @@ const DEFAULTS: Settings = {
     boldText: true,
     invertStrings: false,
     leftyMode: false,
+    tunerAutoAdvance: true,
+    inputGain: 1,
 };
 
 export function loadSettings(): Settings {

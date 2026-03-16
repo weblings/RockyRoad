@@ -159,6 +159,12 @@ export class FretPlayerScene3D extends ChartScene3D {
         this.notesDetected = new Int8Array(instrumentNotes.Notes.length); // 0-filled
     }
 
+    // Exposes detection arrays so NoteDetector can write results the scene reads.
+    // The Int8Array is shared — writes are immediately visible to draw code.
+    detectionState(): { notes: SongNote[], notesDetected: Int8Array } {
+        return { notes: this.instrumentNotes.Notes, notesDetected: this.notesDetected };
+    }
+
     // Resets mock detection state — call when seeking or toggling mockDetection.
     resetMockDetection(): void {
         this.notesDetected.fill(0);

@@ -5,6 +5,8 @@ import { SongPlayer, type ISongPlayer } from "./SongPlayer";
 import type { SongStructure, SongInstrumentNotes, SongInfo, SongSection } from "./SongFormat";
 import type { SongIndexEntry, SongIndexPart, ISongLibrary } from "./SongIndex";
 import { loadSettings } from "./Settings";
+import { NoteDetector } from "./NoteDetector";
+import type { PitchDetector } from "./PitchDetector";
 
 function formatTime(seconds: number): string {
     const m = Math.floor(seconds / 60);
@@ -33,18 +35,27 @@ export class ActiveSceneScreen implements IScreen {
     private part: SongIndexPart;
     private mockKeyHandler: ((e: KeyboardEvent) => void) | null = null;
 
+    // Pitch detection — optional; null if mic was denied or not a stringed instrument.
+    // May be passed in from TunerScreen (reusing the already-open mic stream) or
+    // created lazily here if the user skipped the tuner.
+    private pitchDetector: PitchDetector | null;
+    private noteDetector: NoteDetector | null = null;
+    private ownsPitchDetector = false; // true = we created it, we must destroy it
+
     constructor(
         app: App,
         texture: THREE.Texture,
         library: ISongLibrary,
         entry: SongIndexEntry,
         part: SongIndexPart,
+        pitchDetector: PitchDetector | null = null,
     ) {
         this.app = app;
         this.texture = texture;
         this.library = library;
         this.entry = entry;
         this.part = part;
+        this.pitchDetector = pitchDetector;
     }
 
     async mount(container: HTMLElement): Promise<void> {
@@ -96,6 +107,26 @@ export class ActiveSceneScreen implements IScreen {
         this.app.activeScene = this.scene;
         this.songPlayer.play();
 
+        // Note detection — stringed instruments only.
+        if (this.part.tuningOffsets) {
+            const { notes, notesDetected } = this.scene.detectionState();
+            this.noteDetector = new NoteDetector(
+                notes, this.part,
+                () => this.songPlayer?.currentSecond ?? 0,
+                notesDetected,
+                () => this.scene?.gracePeriodEndTime ?? null,
+            );
+            // If no detector was passed from the tuner, open the mic now.
+            if (!this.pitchDetector) {
+                this.ownsPitchDetector = true;
+                import('./PitchDetector').then(({ PitchDetector }) => {
+                    PitchDetector.create().then(det => {
+                        this.pitchDetector = det;
+                    }).catch(() => { /* mic denied — stay in unscored mode */ });
+                });
+            }
+        }
+
         this.app.onSongPause = () => {
             if (!this.songPlayer?.isPlaying) return null;
             const pos = this.songPlayer.currentSecond;
@@ -115,6 +146,8 @@ export class ActiveSceneScreen implements IScreen {
             // Seek the audio player now so currentSecond reports the right position
             // during the countdown (audio stays paused, position is just updated).
             this.songPlayer.seekTo(seconds);
+            // Reset scoring so grace-period notes don't count against the player.
+            this.noteDetector?.reset();
         };
         // onSongResume: fires after the countdown completes — audio only.
         // Scene position was already set by onSongRollback / animation.
@@ -310,6 +343,13 @@ export class ActiveSceneScreen implements IScreen {
         this.app.onPreDraw = () => {
             if (!this.scene || !this.songPlayer) return;
 
+            // Drive note detection every frame — NoteDetector handles miss sweep
+            // and hit matching against the current song position.
+            if (this.noteDetector) {
+                const result = this.pitchDetector?.detect() ?? null;
+                this.noteDetector.tick(result);
+            }
+
             let displayTime: number;
             if (this.rollbackFromTime !== null && this.rollbackToTime !== null) {
                 const elapsed  = (performance.now() - this.rollbackStartMs) / 1000;
@@ -342,6 +382,9 @@ export class ActiveSceneScreen implements IScreen {
         if (this.mockKeyHandler) { window.removeEventListener('keydown', this.mockKeyHandler); this.mockKeyHandler = null; }
         this.songPlayer?.pause();
         this.scene?.destroy();
+        if (this.ownsPitchDetector) this.pitchDetector?.destroy();
+        this.pitchDetector = null;
+        this.noteDetector  = null;
         if (this.audioUrl) { URL.revokeObjectURL(this.audioUrl); this.audioUrl = null; }
         this.rollbackFromTime = null;
         this.rollbackToTime   = null;

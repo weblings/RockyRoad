@@ -17,8 +17,10 @@ export interface SongIndexPart {
     // Matches InstrumentName: "lead" | "bass" | etc. — used as the instrument .json filename.
     name: string;
     difficulty: number;
-    // Tuning display string, e.g. "E A D G B E". Only set for stringed instruments.
+    // Tuning display string, e.g. "E Standard". Only set for stringed instruments.
     tuning?: string;
+    // Raw StringSemitoneOffsets from song.json. Only set for stringed instruments.
+    tuningOffsets?: number[];
 }
 
 // ── ISongLibrary ──────────────────────────────────────────────────────────────
@@ -38,7 +40,7 @@ export interface ISongLibrary {
 
 // ── Tuning helpers ────────────────────────────────────────────────────────────
 
-const STANDARD_BASE_NOTES: Record<number, number[]> = {
+export const STANDARD_BASE_NOTES: Record<number, number[]> = {
     4: [28, 33, 38, 43],               // Bass:    E A D G
     5: [23, 28, 33, 38, 43],           // Bass 5:  B E A D G
     6: [40, 45, 50, 55, 59, 64],       // Guitar:  E A D G B E
@@ -98,11 +100,13 @@ function entryFromJson(folderPath: string, json: Record<string, unknown>): SongI
         const type = String(p.InstrumentType ?? '');
         const tuningData = p.Tuning as { StringSemitoneOffsets?: number[] } | undefined;
         const offsets = tuningData?.StringSemitoneOffsets;
+        const isStringed = STRINGED.has(type);
         return {
             type,
             name: String(p.InstrumentName ?? ''),
             difficulty: Number(p.SongDifficulty ?? 0),
-            tuning: offsets && STRINGED.has(type) ? tuningDisplayString(offsets) : undefined,
+            tuning:        isStringed && offsets ? tuningDisplayString(offsets) : undefined,
+            tuningOffsets: isStringed && offsets ? offsets : undefined,
         };
     });
     return {

@@ -398,12 +398,10 @@ The font images (`LargeFont`, `MainFont`) ARE in UISheet0.png as sprite regions,
                                     • Key toggles: skip intro, bold text           │
                                     • [Play] button                                │
                                             │                                      │
-                                   [Tuner / input-check scene]                     │
-                                    • Guitar/bass: chromatic tuner                 │
-                                      (mic input → detected pitch display)         │
-                                    • Keys/drums: MIDI input visualiser            │
-                                      (confirms device is connected + firing)      │
-                                    • All instruments: [Skip] + [Ready] buttons    │
+                                   [Tuner scene — guitar/bass only]                 │
+                                    • Chromatic tuner (mic → pitch display)        │
+                                    • [Skip (I'm in tune)] + auto-advance          │
+                                    • Keys/drums skip this step entirely           │
                                             │                                      │
                                    [Active scene]                                  │
                                     • Play/pause, seek bar, time display           │
@@ -448,7 +446,7 @@ Opened via the persistent top-right gear icon from any screen. Single panel, sam
 - `skipIntro` — boolean (default off; see Phase 5 toggle notes)
 - `leftyMode` — boolean
 - `tunerAutoAdvance` — boolean (default on); when off, tuner completion shows a button instead of auto-proceeding after the ✓ graphic
-- **"Tune" button** — opens the tuner in the appropriate context; added in Phase 6.5
+- **"Tune" button** — opens the tuner in the appropriate context; only shown when the active instrument is guitar/bass (stringed); added in Phase 6.5
 
 **Stretch settings (document now, build later):**
 - `playbackSpeed` — float 0.5–1.0 (requires WASM time-stretcher; see Phase 6.4 deferred)
@@ -656,15 +654,286 @@ Shown after picking a song, before entering the tuner/scene.
 - Instrument selector hidden entirely when only one playable part exists — no point showing a single button.
 - `Settings.ts` introduced here: thin `loadSettings()` / `saveSettings()` over a single `localStorage` JSON key. Fields: `skipIntro` (default `false`), `boldText` (default `true`), `invertStrings` (default `false`), `leftyMode` (default `false`). `ActiveSceneScreen` reads settings on mount — `boldText` applied to scene field, `skipIntro` seeks `scene.currentSecond` to `Notes[0].TimeOffset` before playback starts (audio seek omitted — song auto-plays from 0, scene displays from first note). Settings panel (Phase 6.7) will write to the same store.
 - Play button goes directly to `ActiveSceneScreen` for now; Phase 6.5 tuner will be inserted between them when tuning is required.
-- **Phase 6.5 addition:** add a "Tune" button to `PreSceneScreen` that opens the tuner voluntarily and returns to this screen on completion.
+- **Phase 6.5 addition:** add a "Tune" button to `PreSceneScreen` that opens the tuner voluntarily; only shown when a stringed instrument (guitar/bass) is selected. Keys/drums have no tune button and skip straight to the active scene.
 
 ---
 
-### Phase 6.5 — Tuner / input-check scene
+### Phase 6.5 — Tuner (guitar/bass only)
 
-Full UX spec in `project_phase6_ux.md` (memory). Summary below.
+Full UX spec in `project_phase6_ux.md` (memory). This section is the implementation plan — architecture, data flow, and technical spec.
 
-Full UX spec in `project_phase6_ux.md` (memory). Summary below.
+**Build order: flow first, pitch detection second.** Get navigation, state machine, and canvas drawing working with stubbed/random pitch data before wiring the Web Audio pipeline.
+
+---
+
+#### Files to write
+
+- `ThreeCP/Project/src/TunerScreen.ts` — `IScreen` implementation; owns the canvas, state machine, and Web Audio nodes
+- `ThreeCP/Project/src/PitchDetector.ts` — thin wrapper: `getUserMedia` → `AnalyserNode` → autocorrelation → `{ frequency: number, clarity: number } | null`
+
+---
+
+#### Step A — Flow (no audio)
+
+Get the full navigation working with a stubbed pitch source before touching Web Audio.
+
+**`SongIndexPart` extension (one-line change to `SongIndex.ts`):**
+
+Add `tuningOffsets?: number[]` to `SongIndexPart` and populate it in `entryFromJson` (the raw `offsets` array is already available there — just store it alongside the display string). The tuner needs the raw offsets; the display string alone is insufficient.
+
+```ts
+interface SongIndexPart {
+    // ... existing fields ...
+    tuningOffsets?: number[];   // raw StringSemitoneOffsets; only set for stringed instruments
+}
+```
+
+**`App.lastTuningKey` and `shouldAutoTune()`:**
+
+```ts
+// In App.ts
+lastTuningKey: string | null = null;  // null = first song of session; updated on every tuner exit
+
+shouldAutoTune(part: SongIndexPart): boolean {
+    if (!part.tuningOffsets) return false;   // non-stringed; skip tuner
+    return this.lastTuningKey !== JSON.stringify(part.tuningOffsets);
+}
+```
+
+`PreSceneScreen.onPlay()` checks `app.shouldAutoTune(selectedPart)`:
+- true → `app.navigate(new TunerScreen(app, 'song-flow', entry, selectedPart, library))`
+- false → `app.navigate(new ActiveSceneScreen(app, entry, selectedPart, library))`
+
+"Tune" button on `PreSceneScreen` always navigates to tuner with `'song-flow'` context (bypasses the `shouldAutoTune` check — user explicitly requested it).
+
+**`TunerContext` type and `TunerScreen` constructor:**
+
+```ts
+type TunerContext = 'song-flow' | 'mid-song' | 'menu';
+
+class TunerScreen implements IScreen {
+    constructor(
+        app: App,
+        context: TunerContext,
+        entry: SongIndexEntry,
+        part: SongIndexPart,
+        library: ISongLibrary,
+    ) { ... }
+}
+```
+
+Exit destinations by context (called after `app.lastTuningKey` is updated):
+- `song-flow` → `app.navigate(new ActiveSceneScreen(...))`
+- `mid-song` → `app.resumeWithCountdown(pausedAt)` (pausedAt passed via constructor from `ActiveSceneScreen`)
+- `menu` → `app.navigate(previousScreen)` (previous screen instance passed via constructor)
+
+**Controls (DOM, always visible):**
+- Audio input `<select>` (populated after `enumerateDevices()`)
+- Tuning override `<select>` (same lookup table as song library; default = song's own tuning)
+- `[Restart]` button — reset to phase 1, string 0
+- `[Skip (I'm in tune)]` button — `app.lastTuningKey = JSON.stringify(offsets)`; exit to destination
+
+**Phase state machine (step A: stub pitch as `null`):**
+
+```ts
+type TunerPhase =
+    | { tag: 'correction'; stringIndex: number }
+    | { tag: 'validation'; stringIndex: number; results: boolean[] }
+    | { tag: 'complete' };
+```
+
+`rAF` loop calls `tick(detectedCents: number | null)` each frame:
+- `correction`: if `detectedCents != null && Math.abs(detectedCents) <= 10` → advance to next string or enter `validation`
+- `validation`: within ±15 cents → mark pass and advance; fail → re-enter `correction` for that string only; all pass → `complete`
+- `complete`: show ✓ "In tune!" graphic; if `tunerAutoAdvance` → wait 1 s then exit; else show context button
+
+Strings are ordered lowest→highest (index 0 = thickest). `StringSemitoneOffsets[0]` = lowest string.
+
+---
+
+#### Step B — Canvas rendering
+
+Standalone `<canvas>` element (not the Three.js canvas). Drawn each `rAF` tick via `ctx.clearRect` + immediate-mode 2D.
+
+**String layout:**
+- N strings drawn as horizontal lines, evenly spaced vertically, centered in the canvas
+- Reuse the same colors as `FretPlayerScene3D` string colors (extract the color array to a shared constant or just hardcode: `['#FF4444', '#FFA500', '#FFFF00', '#00CC00', '#4444FF', '#FF88FF']` low→high)
+- Canvas height ≈ 280px; string spacing ≈ `(canvasHeight - 60) / (N - 1)`; outermost strings have 30px top/bottom margin
+- String note names (e.g. "E2", "A2", "D3") drawn at left edge, right-aligned before the string start
+- Active string (Phase 1): drawn brighter, 3px wide vs 1.5px for others
+- Passed strings (Phase 2): brief green flash on pass (draw green for ~300 ms, then return to normal color)
+
+**Deviation indicator (only shown when pitch detected and not null):**
+- A short horizontal white bar (80px wide, 3px tall) centered on the active string's X midpoint
+- Vertical offset: `clamped(detectedCents, -50, 50) / 50 * (stringSpacing * 0.45)` — positive cents → upward (sharp), negative → downward (flat)
+- When within ±10 cents: bar snaps to string Y, drawn green instead of white
+- String turns green simultaneously
+
+**"In tune!" overlay (complete state):**
+- Large ✓ drawn via `ctx.fillText('✓', cx, cy)` at ~96px, color `#44FF44`
+- `"In tune!"` text below at 32px
+- CSS `opacity` transition handles the fade-out before auto-advance
+
+---
+
+#### Step C — Pitch detection (Web Audio)
+
+Replace the stubbed `null` pitch with real autocorrelation output from `PitchDetector`.
+
+**Web Audio pipeline:**
+
+```ts
+class PitchDetector {
+    private ctx: AudioContext;
+    private analyser: AnalyserNode;
+    private buf: Float32Array;
+    private stream: MediaStream;
+
+    static async create(deviceId?: string): Promise<PitchDetector> {
+        const stream = await navigator.mediaDevices.getUserMedia({
+            audio: { deviceId: deviceId ? { exact: deviceId } : undefined, echoCancellation: false, noiseSuppression: false, autoGainControl: false }
+        });
+        const ctx = new AudioContext();
+        const source = ctx.createMediaStreamSource(stream);
+        const analyser = ctx.createAnalyser();
+        analyser.fftSize = 2048;       // 1024 bins; time-domain buffer is also 2048 samples
+        analyser.smoothingTimeConstant = 0;   // no smoothing — we want raw samples for autocorrelation
+        source.connect(analyser);
+        // do NOT connect analyser to ctx.destination — no mic monitoring
+        return new PitchDetector(ctx, analyser, stream);
+    }
+
+    detect(): { frequency: number; clarity: number } | null {
+        this.analyser.getFloatTimeDomainData(this.buf);
+        return autocorrelate(this.buf, this.ctx.sampleRate);
+    }
+
+    destroy(): void {
+        this.stream.getTracks().forEach(t => t.stop());
+        this.ctx.close();
+    }
+}
+```
+
+**Autocorrelation algorithm:**
+
+```ts
+function autocorrelate(buf: Float32Array, sampleRate: number): { frequency: number; clarity: number } | null {
+    const N = buf.length;
+
+    // 1. RMS silence check — don't process if signal is below noise floor
+    let rms = 0;
+    for (let i = 0; i < N; i++) rms += buf[i] * buf[i];
+    rms = Math.sqrt(rms / N);
+    if (rms < 0.01) return null;   // silence
+
+    // 2. Compute autocorrelation for lags [minLag, maxLag]
+    //    Guitar low E ≈ 82 Hz → max lag = sampleRate / 82 ≈ 537
+    //    Guitar high e ≈ 1319 Hz (no need to detect above ~1400) → min lag = sampleRate / 1400 ≈ 31
+    //    Bass low B ≈ 31 Hz → max lag = sampleRate / 31 ≈ 1419
+    const minLag = Math.floor(sampleRate / 1400);
+    const maxLag = Math.ceil(sampleRate / 30);   // covers bass low B
+
+    const r = new Float32Array(maxLag + 1);
+    for (let lag = minLag; lag <= maxLag; lag++) {
+        let sum = 0;
+        for (let i = 0; i < N - lag; i++) sum += buf[i] * buf[i + lag];
+        r[lag] = sum;
+    }
+
+    // 3. Find first local maximum after first zero-crossing (fundamental period)
+    let start = minLag;
+    while (start < maxLag && r[start] > 0) start++;   // skip to first negative region
+    let bestLag = start;
+    for (let lag = start + 1; lag <= maxLag; lag++) {
+        if (r[lag] > r[bestLag]) bestLag = lag;
+    }
+
+    // 4. Clarity = r[bestLag] / r[0] — confidence that the signal is periodic
+    const clarity = r[bestLag] / r[minLag];   // relative to r[minLag] (near-zero lag)
+    if (clarity < 0.85) return null;   // noisy / unpitched signal
+
+    // 5. Parabolic interpolation for sub-sample accuracy
+    const y0 = r[bestLag - 1], y1 = r[bestLag], y2 = r[bestLag + 1];
+    const refinedLag = bestLag + (y0 - y2) / (2 * (2 * y1 - y0 - y2));
+
+    return { frequency: sampleRate / refinedLag, clarity };
+}
+```
+
+**Frequency → cents deviation from target string:**
+
+```ts
+// targetMidi for string i = STANDARD_BASE_NOTES[n][i] + offsets[i]   (see SongIndex.ts)
+// targetFreq = 440 * 2^((targetMidi - 69) / 12)
+// detectedCents = 1200 * log2(detectedFreq / targetFreq)
+function centDeviation(detectedFreq: number, targetMidi: number): number {
+    const targetFreq = 440 * Math.pow(2, (targetMidi - 69) / 12);
+    return 1200 * Math.log2(detectedFreq / targetFreq);
+}
+```
+
+`STANDARD_BASE_NOTES` needs to be exported from `SongIndex.ts` (currently unexported) or duplicated as a small constant in `TunerScreen.ts`. Export is cleaner.
+
+**Octave error handling:** autocorrelation can lock onto an octave harmonic (e.g. detect 164 Hz when low E is 82 Hz). After computing `detectedCents`, also check `detectedCents - 1200` (one octave down) and `detectedCents + 1200` (one octave up); take the value closest to 0. A detected fundamental 12 semitones off is almost certainly an octave error.
+
+**Audio input dropdown population:**
+
+```ts
+const devices = await navigator.mediaDevices.enumerateDevices();
+const inputs = devices.filter(d => d.kind === 'audioinput');
+// Populate <select>; on change, call detector.destroy() then PitchDetector.create(newDeviceId)
+```
+
+`getUserMedia` must be called before `enumerateDevices` returns device labels (browser security); the initial `PitchDetector.create()` call satisfies this — labels will be populated on first open.
+
+**TunerScreen `rAF` loop integration:**
+
+```ts
+// Called each frame (requestAnimationFrame)
+private tick(): void {
+    const result = this.detector?.detect() ?? null;
+    const detectedCents = result ? centDeviation(result.frequency, this.targetMidi(this.currentString)) : null;
+    this.updateStateMachine(detectedCents);
+    this.drawCanvas(detectedCents);
+    this.rafId = requestAnimationFrame(() => this.tick());
+}
+```
+
+`PitchDetector.create()` is async — call it in `mount()` and store the promise. Until it resolves, `this.detector` is null and `detect()` returns null (handled gracefully by the stubbed flow from Step A). Show a "Waiting for mic access…" indicator on the canvas until detector is ready.
+
+---
+
+#### Session state and settings wiring
+
+`App.lastTuningKey` is updated by `TunerScreen.exit()` before navigating to the destination:
+
+```ts
+private exit(): void {
+    this.app.lastTuningKey = JSON.stringify(this.currentOffsets);
+    this.detector?.destroy();
+    cancelAnimationFrame(this.rafId);
+    // navigate based on this.context
+}
+```
+
+`tunerAutoAdvance` setting: read from `Settings` in `TunerScreen.mount()`; controls whether `complete` state auto-exits after 1 s or shows a button.
+
+**Mid-song entry:** `ActiveSceneScreen` pauses the song, records `pausedAt`, then calls:
+```ts
+app.navigate(new TunerScreen(app, 'mid-song', entry, part, library, pausedAt));
+```
+`TunerScreen` stores `pausedAt` and passes it to `app.resumeWithCountdown(pausedAt)` on exit.
+
+---
+
+#### Keys / drums
+
+Keys and drums skip the tuner entirely — `shouldAutoTune()` returns false for non-stringed instruments and `PreSceneScreen` navigates straight to `ActiveSceneScreen`. No `TunerScreen` is shown.
+
+A MIDI input-check screen (device list → "hit something" tile visualiser) is a possible future addition but is not planned for Phase 6.5.
+
+---
 
 **Session state:** `App.lastTuningKey: string | null` — stringified `StringSemitoneOffsets` of last tuned instrument. Updated on any tuner exit (complete or skip). Auto-tuner fires when `null` or tuning changed; does not re-fire for same tuning even after a skip.
 
@@ -675,17 +944,27 @@ Full UX spec in `project_phase6_ux.md` (memory). Summary below.
 
 **Auto-advance** (default on): ✓ "In tune!" fades → 1 second → proceeds automatically. `tunerAutoAdvance` setting (in Settings panel) disables this — shows context-appropriate button ("Play Song" / "Resume Song" / "Main Menu") and waits for press.
 
-**Guitar / bass — two-phase string tuner:**
-- Phase 1 (correction): one string lit at a time; white line above/below the string shows deviation (above = sharp, below = flat), proportional to cents, clamped at ±50 cents; turns green and auto-advances when within ±10 cents
-- Phase 2 (validation pass): fast cycle through all strings; auto-advances on ±15 cents; on fail re-enters Phase 1 for that string only
-- Completion: ✓ "In tune!" → auto-advance per context and `tunerAutoAdvance` toggle
-- Target pitches from `SongTuning.StringSemitoneOffsets` — pre-configured per song; tuning dropdown available to override
-- Pitch detection: autocorrelation (`getUserMedia({ audio: true })`) — no WASM
-- Visual: standalone `<canvas>` element reusing active-scene string geometry; not the full QuadBatch pipeline
+---
 
-**Controls:** audio input dropdown, tuning override dropdown, Restart, **"Skip (I'm in tune)"** — updates `lastTuningKey` and exits to destination.
+#### Known issues / follow-up (from first live test)
 
-**Keys / drums:** `navigator.requestMIDIAccess()` → device list → "hit something" tile visualiser → Skip / Ready.
+**Sustained note detection fails for some strings (e.g. A2):** ✅ Fixed
+Switched from raw autocorrelation (with `r[minLag]` as clarity reference) to full NSDF (McLeod Pitch Method). Denominator is now `m[lag] = Σ(x[i]² + x[i+lag]²)`, computed incrementally. nsdf ∈ [−1,1] — amplitude-independent and robust to harmonic-heavy sustained signals.
+
+**Gain slider range needs extending:** ✅ Fixed
+Extended to 1×–24×.
+
+**Tuner canvas too small / blurry on high-DPI screens:** ✅ Fixed
+Canvas buffer now scaled by `devicePixelRatio`; ctx pre-scaled so all drawing coordinates remain in CSS-pixel space. Canvas height set to 270px.
+
+**Validation phase causing infinite correction loop:** ✅ Fixed
+Removed instant kick-back on `cents > 30¢` (fired on any adjacent-string bleed during a strum). Replaced with a 5-second timeout per validation string — only retries correction if the string genuinely fails for an extended period.
+
+**Dwell times too long:** ✅ Fixed
+Correction: 500ms → 250ms. Validation: 300ms → 120ms.
+
+**Auto-boost for weak-signal strings (e.g. high e):** ✅ Added
+If `lastRms > 0.02` (signal present) but no pitch detected for 2 consecutive seconds in correction phase, gain is silently doubled (capped at 24×). Restored on string advance and restart.
 
 ---
 
@@ -792,18 +1071,82 @@ for (const input of midi.inputs.values()) {
 
 ## Stretch Goal B — Guitar Scoring (Note Detection)
 
-**Relevant analysis:** [NoteDetector.md](NoteDetector.md)
+**Prior art:** `NoteDetector.cs` in `ChartPlayerShared/` is fully implemented. Key findings from analysis:
+- Uses two detectors in parallel: autocorrelation (4096-sample FFT) + spectral peak finder (8192-sample FFT). The spectral path is for chords; for single notes the autocorrelation path suffices.
+- **No onset detection** — polls every 50ms: "is this frequency currently present?" If yes when the note is at the now-line, it's a hit. No timing window arithmetic.
+- **Tolerance: 0.5 semitones (~50¢)** — much more lenient than the tuner (±10–15¢). Live play, not tuning.
+- **Binary hit/miss** per note — no early/late grading.
+- Chord detection: all expected frequencies must be simultaneously present. Deferred — single notes only for now.
+
+**JS library landscape (evaluated):**
+- `aubio.js` — WASM port of mature C library; has pitch + onset detection. Most relevant if chords or onset timing are ever needed.
+- `Pitchfinder` — pure JS, several algorithms; no onset detection. Lightweight.
+- `ml5.js PitchDetection` — wraps CREPE (ML model); impressive real-instrument accuracy; heavier.
+- `essentia.js` — WASM, very comprehensive; overkill for current scope.
+- **Decision: no external library.** Our existing NSDF `PitchDetector` is sufficient for single-note polling. The C# didn't do anything we can't replicate.
+
+---
+
+#### Architecture
 
 **Files to write:**
-- `ThreeCP/SampleHistory.ts` — `SharedArrayBuffer`-backed ring buffer
-- `ThreeCP/NoteDetector.ts` — Web Worker running FFT pitch detection at ~50ms intervals
+- `ThreeCP/Project/src/NoteDetector.ts` — note matching class; owns hit/miss state; writes into the scene's existing `notesDetected` array
 
-**Requires:**
-- Microphone access via `getUserMedia({ audio: true })`
-- `AudioWorkletProcessor` to fill the sample ring buffer from the live audio stream
-- A JS or WASM pitch detection library (e.g. `pitchfinder`, or custom autocorrelation)
+**Files to modify:**
+- `ThreeCP/Project/src/PitchDetector.ts` — expose `ctx.currentTime` so hit timing uses the audio clock
+- `ThreeCP/Project/src/ActiveSceneScreen.ts` — create `NoteDetector`, optionally reuse `PitchDetector` from tuner exit
+- `ThreeCP/Project/src/TunerScreen.ts` — pass detector instance to `ActiveSceneScreen` on `song-flow` exit instead of destroying it
 
-**Isolated behind a feature flag** — everything from Phases 1–6 works without it. `notesDetected[]` in `FretPlayerScene3D` simply stays null when scoring is disabled.
+**No changes needed to `FretPlayerScene3D`** — `notesDetected: Int8Array` and `noteIndexMap: Map<SongNote, number>` are already in place, written by mock detection today; real detection writes to the same arrays.
+
+---
+
+#### `NoteDetector.ts` — design
+
+Constructor inputs:
+- `instrumentNotes: SongInstrumentNotes`
+- `part: SongIndexPart` (for `tuningOffsets`)
+- `currentSecond: () => number` — getter into `SongPlayer.currentSecond`
+- `notesDetected: Int8Array` — shared with scene; values: `0` = unscored, `1` = hit, `-1` = miss
+- `noteIndexMap: Map<SongNote, number>` — maps note → index in `notesDetected`
+
+Per-tick method `tick(result: PitchResult | null)` — called from `ActiveSceneScreen`'s rAF loop:
+
+**Job A — miss sweep (every tick, regardless of detection):**
+Walk notes near `currentSecond`. Any note with `TimeOffset + MISS_WINDOW_SECS` elapsed and `notesDetected[i] === 0` → mark `-1`. `MISS_WINDOW_SECS ≈ 0.15`.
+
+**Job B — hit matching (every tick, not gated on onset):**
+Mirrors the C# polling approach. If `result !== null` (pitch detected):
+1. Find candidate notes: `TimeOffset` within `±HIT_WINDOW_SECS` of `currentSecond`. `HIT_WINDOW_SECS ≈ 0.15`.
+2. For each candidate with `notesDetected[i] === 0`: compute expected MIDI = `BASE_NOTES[n][stringIndex] + tuningOffset[stringIndex] + note.FretNumber`. Compare to detected frequency via `centDeviationWithOctaveCorrection`.
+3. If within `±50¢`, mark hit (`1`). If multiple candidates qualify, take the closest `TimeOffset` to `currentSecond`.
+
+**Chord handling (single-note mode):**
+Chord notes each have their own entry in `noteIndexMap`. A chord is considered hit if any one of its constituent notes is matched. First-correct-string wins; remaining chord notes stay unscored (not penalised).
+
+**Grace period guard:**
+Skip scoring for notes with `TimeOffset < scene.gracePeriodEndTime` — these notes are already rendered as desaturated grace notes and must not be scored.
+
+**Note pitch lookup** — same formula as tuner's `computeTargetMidis`:
+```ts
+const midi = STANDARD_BASE_NOTES[n][stringIndex] + (tuningOffsets[stringIndex] ?? 0) + note.FretNumber;
+```
+
+---
+
+#### Tuner → active scene handoff
+
+When the tuner exits via `song-flow`, instead of calling `detector.destroy()`, pass the live `PitchDetector` instance to `ActiveSceneScreen`. This avoids a second `getUserMedia` prompt and removes the ~100ms gap while a new `AudioContext` is created.
+
+If the user skipped the tuner (went straight to Play), `ActiveSceneScreen` creates its own `PitchDetector` lazily — same async pattern as the tuner's `startDetector()`. If mic access is denied, `NoteDetector` receives `null` every tick and never scores anything; the scene runs in unscored mode silently.
+
+---
+
+#### Deferred / stretch
+
+- **Onset detection** — would enable timing grades (early/late/perfect). Not in C# original; add if desired later. `aubio.js` is the path.
+- **Chord detection** — requires the spectral peak detector path (8192-sample FFT, multi-peak). Hard with a mic; tractable with a direct-in guitar signal.
+- **SampleHistory ring buffer / AudioWorklet** — only needed if we move pitch detection off the main thread. Not required for current polling approach.
 
 ---
 
@@ -824,4 +1167,4 @@ for (const input of midi.inputs.values()) {
 | 5 | `FretCamera`, `FretPlayerScene3D` | Guitar/bass visualization |
 | 6 | `App`, HTML/CSS shell | Complete navigable application |
 | Stretch A | `DrumPlayerScene3D`, `MidiMap` | Drum visualization + MIDI scoring |
-| Stretch B | `NoteDetector`, `SampleHistory` | Guitar scoring via microphone |
+| Stretch B | `NoteDetector` | Guitar single-note scoring via microphone |
