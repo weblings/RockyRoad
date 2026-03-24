@@ -1,0 +1,621 @@
+{
+  "Sections": [],
+  "Notes": [
+    {
+      "TimeOffset": 0.0,
+      "TimeLength": 0.4,
+      "EndTime": 0.4,
+      "Note": 21,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 0.5,
+      "TimeLength": 0.4,
+      "EndTime": 0.9,
+      "Note": 22,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 1.0,
+      "TimeLength": 0.4,
+      "EndTime": 1.4,
+      "Note": 23,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 1.5,
+      "TimeLength": 0.4,
+      "EndTime": 1.9,
+      "Note": 24,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 2.0,
+      "TimeLength": 0.4,
+      "EndTime": 2.4,
+      "Note": 25,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 2.5,
+      "TimeLength": 0.4,
+      "EndTime": 2.9,
+      "Note": 26,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 3.0,
+      "TimeLength": 0.4,
+      "EndTime": 3.4,
+      "Note": 27,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 3.5,
+      "TimeLength": 0.4,
+      "EndTime": 3.9,
+      "Note": 28,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 4.0,
+      "TimeLength": 0.4,
+      "EndTime": 4.4,
+      "Note": 29,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 4.5,
+      "TimeLength": 0.4,
+      "EndTime": 4.9,
+      "Note": 30,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 5.0,
+      "TimeLength": 0.4,
+      "EndTime": 5.4,
+      "Note": 31,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 5.5,
+      "TimeLength": 0.4,
+      "EndTime": 5.9,
+      "Note": 32,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 6.0,
+      "TimeLength": 0.4,
+      "EndTime": 6.4,
+      "Note": 33,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 6.5,
+      "TimeLength": 0.4,
+      "EndTime": 6.9,
+      "Note": 34,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 7.0,
+      "TimeLength": 0.4,
+      "EndTime": 7.4,
+      "Note": 35,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 7.5,
+      "TimeLength": 0.4,
+      "EndTime": 7.9,
+      "Note": 36,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 8.0,
+      "TimeLength": 0.4,
+      "EndTime": 8.4,
+      "Note": 37,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 8.5,
+      "TimeLength": 0.4,
+      "EndTime": 8.9,
+      "Note": 38,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 9.0,
+      "TimeLength": 0.4,
+      "EndTime": 9.4,
+      "Note": 39,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 9.5,
+      "TimeLength": 0.4,
+      "EndTime": 9.9,
+      "Note": 40,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 10.0,
+      "TimeLength": 0.4,
+      "EndTime": 10.4,
+      "Note": 41,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 10.5,
+      "TimeLength": 0.4,
+      "EndTime": 10.9,
+      "Note": 42,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 11.0,
+      "TimeLength": 0.4,
+      "EndTime": 11.4,
+      "Note": 43,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 11.5,
+      "TimeLength": 0.4,
+      "EndTime": 11.9,
+      "Note": 44,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 12.0,
+      "TimeLength": 0.4,
+      "EndTime": 12.4,
+      "Note": 45,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 12.5,
+      "TimeLength": 0.4,
+      "EndTime": 12.9,
+      "Note": 46,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 13.0,
+      "TimeLength": 0.4,
+      "EndTime": 13.4,
+      "Note": 47,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 13.5,
+      "TimeLength": 0.4,
+      "EndTime": 13.9,
+      "Note": 48,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 14.0,
+      "TimeLength": 0.4,
+      "EndTime": 14.4,
+      "Note": 49,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 14.5,
+      "TimeLength": 0.4,
+      "EndTime": 14.9,
+      "Note": 50,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 15.0,
+      "TimeLength": 0.4,
+      "EndTime": 15.4,
+      "Note": 51,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 15.5,
+      "TimeLength": 0.4,
+      "EndTime": 15.9,
+      "Note": 52,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 16.0,
+      "TimeLength": 0.4,
+      "EndTime": 16.4,
+      "Note": 53,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 16.5,
+      "TimeLength": 0.4,
+      "EndTime": 16.9,
+      "Note": 54,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 17.0,
+      "TimeLength": 0.4,
+      "EndTime": 17.4,
+      "Note": 55,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 17.5,
+      "TimeLength": 0.4,
+      "EndTime": 17.9,
+      "Note": 56,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 18.0,
+      "TimeLength": 0.4,
+      "EndTime": 18.4,
+      "Note": 57,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 18.5,
+      "TimeLength": 0.4,
+      "EndTime": 18.9,
+      "Note": 58,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 19.0,
+      "TimeLength": 0.4,
+      "EndTime": 19.4,
+      "Note": 59,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 19.5,
+      "TimeLength": 0.4,
+      "EndTime": 19.9,
+      "Note": 60,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 20.0,
+      "TimeLength": 0.4,
+      "EndTime": 20.4,
+      "Note": 61,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 20.5,
+      "TimeLength": 0.4,
+      "EndTime": 20.9,
+      "Note": 62,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 21.0,
+      "TimeLength": 0.4,
+      "EndTime": 21.4,
+      "Note": 63,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 21.5,
+      "TimeLength": 0.4,
+      "EndTime": 21.9,
+      "Note": 64,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 22.0,
+      "TimeLength": 0.4,
+      "EndTime": 22.4,
+      "Note": 65,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 22.5,
+      "TimeLength": 0.4,
+      "EndTime": 22.9,
+      "Note": 66,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 23.0,
+      "TimeLength": 0.4,
+      "EndTime": 23.4,
+      "Note": 67,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 23.5,
+      "TimeLength": 0.4,
+      "EndTime": 23.9,
+      "Note": 68,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 24.0,
+      "TimeLength": 0.4,
+      "EndTime": 24.4,
+      "Note": 69,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 24.5,
+      "TimeLength": 0.4,
+      "EndTime": 24.9,
+      "Note": 70,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 25.0,
+      "TimeLength": 0.4,
+      "EndTime": 25.4,
+      "Note": 71,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 25.5,
+      "TimeLength": 0.4,
+      "EndTime": 25.9,
+      "Note": 72,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 26.0,
+      "TimeLength": 0.4,
+      "EndTime": 26.4,
+      "Note": 73,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 26.5,
+      "TimeLength": 0.4,
+      "EndTime": 26.9,
+      "Note": 74,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 27.0,
+      "TimeLength": 0.4,
+      "EndTime": 27.4,
+      "Note": 75,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 27.5,
+      "TimeLength": 0.4,
+      "EndTime": 27.9,
+      "Note": 76,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 28.0,
+      "TimeLength": 0.4,
+      "EndTime": 28.4,
+      "Note": 77,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 28.5,
+      "TimeLength": 0.4,
+      "EndTime": 28.9,
+      "Note": 78,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 29.0,
+      "TimeLength": 0.4,
+      "EndTime": 29.4,
+      "Note": 79,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 29.5,
+      "TimeLength": 0.4,
+      "EndTime": 29.9,
+      "Note": 80,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 30.0,
+      "TimeLength": 0.4,
+      "EndTime": 30.4,
+      "Note": 81,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 30.5,
+      "TimeLength": 0.4,
+      "EndTime": 30.9,
+      "Note": 82,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 31.0,
+      "TimeLength": 0.4,
+      "EndTime": 31.4,
+      "Note": 83,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 31.5,
+      "TimeLength": 0.4,
+      "EndTime": 31.9,
+      "Note": 84,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 32.0,
+      "TimeLength": 0.4,
+      "EndTime": 32.4,
+      "Note": 85,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 32.5,
+      "TimeLength": 0.4,
+      "EndTime": 32.9,
+      "Note": 86,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 33.0,
+      "TimeLength": 0.4,
+      "EndTime": 33.4,
+      "Note": 87,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 33.5,
+      "TimeLength": 0.4,
+      "EndTime": 33.9,
+      "Note": 88,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 34.0,
+      "TimeLength": 0.4,
+      "EndTime": 34.4,
+      "Note": 89,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 34.5,
+      "TimeLength": 0.4,
+      "EndTime": 34.9,
+      "Note": 90,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 35.0,
+      "TimeLength": 0.4,
+      "EndTime": 35.4,
+      "Note": 91,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 35.5,
+      "TimeLength": 0.4,
+      "EndTime": 35.9,
+      "Note": 92,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 36.0,
+      "TimeLength": 0.4,
+      "EndTime": 36.4,
+      "Note": 93,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 36.5,
+      "TimeLength": 0.4,
+      "EndTime": 36.9,
+      "Note": 94,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 37.0,
+      "TimeLength": 0.4,
+      "EndTime": 37.4,
+      "Note": 95,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 37.5,
+      "TimeLength": 0.4,
+      "EndTime": 37.9,
+      "Note": 96,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 38.0,
+      "TimeLength": 0.4,
+      "EndTime": 38.4,
+      "Note": 97,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 38.5,
+      "TimeLength": 0.4,
+      "EndTime": 38.9,
+      "Note": 98,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 39.0,
+      "TimeLength": 0.4,
+      "EndTime": 39.4,
+      "Note": 99,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 39.5,
+      "TimeLength": 0.4,
+      "EndTime": 39.9,
+      "Note": 100,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 40.0,
+      "TimeLength": 0.4,
+      "EndTime": 40.4,
+      "Note": 101,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 40.5,
+      "TimeLength": 0.4,
+      "EndTime": 40.9,
+      "Note": 102,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 41.0,
+      "TimeLength": 0.4,
+      "EndTime": 41.4,
+      "Note": 103,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 41.5,
+      "TimeLength": 0.4,
+      "EndTime": 41.9,
+      "Note": 104,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 42.0,
+      "TimeLength": 0.4,
+      "EndTime": 42.4,
+      "Note": 105,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 42.5,
+      "TimeLength": 0.4,
+      "EndTime": 42.9,
+      "Note": 106,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 43.0,
+      "TimeLength": 0.4,
+      "EndTime": 43.4,
+      "Note": 107,
+      "Velocity": 100
+    },
+    {
+      "TimeOffset": 43.5,
+      "TimeLength": 0.4,
+      "EndTime": 43.9,
+      "Note": 108,
+      "Velocity": 100
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "name": "project",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "bake": "tsx tools/bake-manifest.ts"
+  },
+  "devDependencies": {
+    "@types/wicg-file-system-access": "^2023.10.7",
+    "tsx": "^4.21.0",
+    "typescript": "~5.9.3",
+    "vite": "^8.0.0"
+  },
+  "dependencies": {
+    "@types/three": "^0.183.1",
+    "three": "^0.183.2"
+  }
+}
