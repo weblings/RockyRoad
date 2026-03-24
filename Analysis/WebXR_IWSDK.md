@@ -169,6 +169,16 @@ Steps:
 **Pass:** dev server runs, no TypeScript errors, browser shows IWSDK's emulation view.
 **Fail signal:** `erasableSyntaxOnly` rejects an IWSDK internal import, or Vite plugin conflicts prevent the build.
 
+**STATUS: ✅ COMPLETE**
+
+Findings:
+- `npm create @iwsdk@latest XRProto -- -y --no-locomotion --grabbing --no-physics --no-git --no-install` scaffolds non-interactively — no interactive terminal needed.
+- `erasableSyntaxOnly: true` added to tsconfig — zero TypeScript errors. IWSDK exports (`SessionMode` etc.) are all `const` objects, not enum declarations.
+- `server.fs.allow` merged cleanly alongside IWSDK's vite plugins (`@iwsdk/vite-plugin-dev`, `@iwsdk/vite-plugin-uikitml`, `vite-plugin-mkcert`). No conflicts.
+- mkcert requires a one-time UAC prompt to install its local CA on Windows. Must be accepted for HTTPS to work (WebXR requires a secure origin). `https: true` (Vite self-signed) also works but shows browser warnings.
+- `package.json` aliases `"three": "npm:super-three@0.181.0"` — so `import * as THREE from "three"` in our copied files resolves to the same package `@iwsdk/core` uses. No duplicate Three.js instance; the CLAUDE.md warning about importing from `'three'` does not apply in this project.
+- IWSDK scaffold generates a headless Chromium browser (Playwright) on first run for its XR emulator — one-time ~100MB download, takes a minute.
+
 ---
 
 ### Phase 1 — QuadBatch inside IWSDK *(validates concern 4)*
@@ -195,6 +205,21 @@ Steps:
 **Pass:** highway geometry renders and scrolls smoothly. No frame-ordering glitches (geometry missing or flickering between frames).
 **Fail signal:** QuadBatch `flush()` uploads after `renderer.render()`, causing a one-frame lag or blank frames. Fix: adjust system priority to run earlier, or hook into IWSDK's pre-render callback if one exists.
 
+**STATUS: ✅ COMPLETE**
+
+Findings:
+- Highway geometry rendered and scrolled with no frame-ordering glitches. QuadBatch `flush()` (buffer upload only, no render call) integrates cleanly with IWSDK's owned render loop.
+- **Key structural changes required to the copied files:**
+  - `QuadBatch.draw(renderer, scene, camera)` → `QuadBatch.flush()`: remove the `renderer.render()` call entirely. IWSDK renders the scene; we only need to mark buffers dirty and set the draw range.
+  - `Scene3D` must NOT add `quadBatch.mesh` to a private `THREE.Scene`. Expose `get mesh()` and let the IWSDK host register it via `world.createTransformEntity(scene.mesh, { parent: world.sceneEntity, persistent: true })`.
+  - `TextBatch` removed for Phase 1 (sprites require scene registration; deferred). `drawText()` stubbed as a no-op on `Scene3D` so `FretPlayerScene3D` call sites compile unchanged.
+  - `ChartScene3D` and `FretPlayerScene3D` copied unchanged — no modifications needed.
+- **System API:** the plan pseudocode used `execute(delta)` — the real method is `update(delta, time)`.
+- **Data loading:** song data loaded via `fetch('/@fs/...')` absolute paths in the `World.create().then(async ...)` callback before registering the system. Song base path hardcoded for the prototype. Three fetches: `song.json` (SongInfo), `arrangement.json` (SongStructure), `lead.json` (SongInstrumentNotes). `ImageManifest.json` copied to `XRProto/public/`.
+- **TransformSystem concern resolved:** `mesh.matrixAutoUpdate = false` and `mesh.matrixWorld.identity()` on the QuadBatch mesh are unaffected. IWSDK's TransformSystem initialises from the existing Object3D values and does not fight with a stationary identity-transform mesh.
+- **FretCamera** runs each frame inside `FretPlayerScene3D` (via `updateCamera`) but drives its own private `threeCamera`, not `world.camera`. This is harmless in Phase 1 — the camera update just has no visible effect. Phase 2 wires FretCamera's output to `world.camera`.
+- **Console noise (all harmless):** AudioContext autoplay warning (no audio in Phase 1), favicon 404, GLSL precision warnings from IWSDK's own internal shaders (not QuadBatch's shader).
+
 ---
 
 ### Phase 2 — FretCamera in desktop emulation *(validates concern 1, desktop path)*
@@ -202,24 +227,43 @@ Steps:
 **Goal:** confirm FretCamera can drive `world.camera` without conflicting with IWSDK's camera management.
 
 Steps:
-- Instantiate `FretCamera` with the instrument data (same as `FretPlayerScene3D` constructor)
-- Register a `FretCameraSystem` at priority `-1` (runs before game logic):
+- Add a `syncCameraTo(target: THREE.PerspectiveCamera): void` method to `FretPlayerScene3D` in `XRProto/src/`:
   ```ts
-  class FretCameraSystem extends System {
-    execute(delta: number) {
-      if (world.visibilityState.value !== 'non-immersive') return;
-      fretCamera.update(delta);
-      world.camera.position.copy(fretCamera.position);
-      world.camera.quaternion.copy(fretCamera.quaternion);
-      world.camera.fov = fretCamera.fov;
-      world.camera.updateProjectionMatrix();
+  syncCameraTo(target: THREE.PerspectiveCamera): void {
+    target.position.copy(this.fretCamera.threeCamera.position);
+    target.quaternion.copy(this.fretCamera.threeCamera.quaternion);
+    target.fov = this.fretCamera.threeCamera.fov;
+    target.updateProjectionMatrix();
+  }
+  ```
+- In `HighwaySystem.update()`, after `fretScene.draw(delta)`, call the sync — but only in desktop mode:
+  ```ts
+  import { VisibilityState } from '@iwsdk/core';
+
+  update(delta: number, _time: number): void {
+    const fretScene = this.world.globals.fretScene as FretPlayerScene3D | undefined;
+    if (!fretScene) return;
+    fretScene.currentSecond += delta;
+    fretScene.draw(delta);
+    // Only drive world.camera in desktop mode — in XR the headset owns the camera
+    if (this.visibilityState.peek() !== VisibilityState.Visible) {
+      fretScene.syncCameraTo(this.camera);
     }
   }
   ```
+- No separate `FretCameraSystem` needed — camera sync belongs in `HighwaySystem` after `draw()` since `draw()` is what runs `updateCamera()` and populates `fretCamera.threeCamera`
 - Verify IWSDK's desktop emulation (mouse look) doesn't fight the camera — if it does, find the flag to disable emulation camera controls
 
 **Pass:** highway renders with the correct angled-down-forward FretCamera perspective in the browser. Camera smoothly tracks the note range.
-**Fail signal:** IWSDK's emulation camera overrides FretCamera each frame. Fix: check IWSDK config for a `disableCameraEmulation` option, or use a higher priority for FretCameraSystem.
+**Fail signal:** IWSDK's emulation camera overrides FretCamera each frame. Fix: check IWSDK config for a `disableCameraEmulation` option, or use a higher priority for `HighwaySystem`.
+
+**Corrections to the original plan pseudocode (do not follow the original):**
+- `execute(delta)` → `update(delta, time)` — the real IWSDK system method name
+- `fretCamera.update(delta)` is wrong — `FretCamera.update()` takes `(minFret, maxFret, targetFocusFret, focusY, dt)`. Don't call it directly. `FretPlayerScene3D.draw()` already calls `updateCamera()` which calls `fretCamera.update()` with the correct computed values. Just copy the result afterward.
+- `fretCamera.position` / `.quaternion` / `.fov` are wrong sources — `FretCamera.update()` mutates `this.threeCamera` directly (calls `threeCamera.position.set(...)` and `threeCamera.lookAt(...)`). It does NOT update the `Camera3D.position` property. Copy from `fretCamera.threeCamera`, not from `fretCamera`.
+- `fretCamera` is `private` in `FretPlayerScene3D` — do not attempt to access it directly. Use `syncCameraTo()` as described above.
+- `visibilityState.value` → `visibilityState.peek()` in `update()` — `.value` creates a subscription overhead on every frame; `.peek()` reads without subscribing (per IWSDK CLAUDE.md guidelines for hot paths).
+- `VisibilityState` is a compiled enum exported from `@iwsdk/core`. Importing and using it is fine even with `erasableSyntaxOnly: true` — that constraint only blocks enum *declarations* in our own source files, not usage of enums from compiled packages.
 
 ---
 
@@ -229,7 +273,7 @@ Steps:
 
 Steps:
 - On device (or IWSDK's built-in WebXR emulator), enter immersive VR
-- `FretCameraSystem` already guards `if (visibilityState !== 'non-immersive') return` — so it's a no-op in XR
+- `HighwaySystem.update()` already guards with `visibilityState.peek() !== VisibilityState.Visible` — camera sync is a no-op in XR (see Phase 2 corrections)
 - Place the highway entity at a fixed world position the headset can see: 1m forward, slightly below eye level, rotated to face the user
 - Confirm the highway is visible and the headset can look around it freely
 
@@ -243,9 +287,11 @@ Steps:
 **Goal:** confirm `SongPlayer` (which creates its own `AudioContext`) coexists with IWSDK's audio system without conflict.
 
 Steps:
-- Load a song `.ogg` via `SongPlayer.loadSong(url)`
-- Start playback on first user gesture (required by browser AudioContext policy)
+- Copy `SongPlayer.ts` from `ThreeCP/Project/src/` into `XRProto/src/` — it has no App/screen dependencies
+- Load the `.ogg` via `SongPlayer.loadSong(url)` using the same `/@fs/` path pattern as the song JSON files
+- Start playback on first user gesture (required by browser AudioContext policy — we already saw the autoplay warning in Phase 1). In IWSDK, wire this to a controller button press detected in `HighwaySystem.update()` via `this.input.gamepads.right?.getButtonDown(InputComponent.Trigger)`, or add a `PokeInteractable` play button entity
 - Drive `fretScene.currentSecond` from `songPlayer.currentSecond` instead of accumulated delta
+- For testing, use the existing `skipIntro` flag (from `Settings.ts` — seek to `instrumentNotes.Notes[0].TimeOffset` at load when enabled). Copy `Settings.ts` unchanged; don't hardcode the seek or alter the general song logic
 - Verify audio plays and highway scrolls in sync
 
 **Pass:** audio plays, highway scrolls in sync, no `AudioContext` errors or conflicts with IWSDK's `AudioSource` component system.
@@ -258,17 +304,24 @@ Steps:
 **Goal:** confirm the highway panel is grabbable and repositionable using IWSDK's built-in grab system.
 
 Steps:
-- Add `Interactable` and `OneHandGrabbable` components to the highway entity:
+- The QuadBatch mesh has `matrixAutoUpdate = false` and `matrixWorld.identity()` — IWSDK's TransformSystem can update `object3D.position` but the matrixWorld won't recompute, so the mesh won't visually move if grabbed directly. **The parent-entity wrapper is required, not a fallback.** Create it upfront:
   ```ts
-  highwayEntity
-    .addComponent(Interactable)
-    .addComponent(OneHandGrabbable, { translate: true, rotate: true });
+  const anchorMesh = new THREE.Object3D();
+  const anchorEntity = world.createTransformEntity(anchorMesh, { parent: world.sceneEntity, persistent: true });
+  world.createTransformEntity(fretScene.mesh, { parent: anchorEntity, persistent: true });
   ```
+- Add grab components to `anchorEntity`, not to the mesh entity:
+  ```ts
+  anchorEntity
+    .addComponent(Interactable)
+    .addComponent(OneHandGrabbable);
+  ```
+  Note: verify `OneHandGrabbable` schema against IWSDK source before passing options — the `{ translate: true, rotate: true }` options in the original plan are unverified
 - Test in desktop emulation (mouse drag) and on device (controller trigger + move)
 - Confirm the highway can be freely repositioned and stays where released
 
 **Pass:** highway grabs and repositions naturally. Releasing it holds position.
-**Fail signal:** grab conflicts with QuadBatch geometry updates (mesh is being rebuilt each frame while IWSDK tries to track its transform). Fix: separate the grab anchor (a parent entity) from the mesh entity — grab the parent, QuadBatch mesh is a child.
+**Fail signal:** grab still doesn't move the visual highway — QuadBatch geometry is in world space and the anchor transform isn't being applied. May need to abandon `matrixAutoUpdate = false` on the mesh and let Three.js recompute matrixWorld from the parent chain each frame.
 
 ---
 
@@ -277,9 +330,13 @@ Steps:
 **Goal:** confirm a DOM HTML screen can be projected onto an XR plane and receive controller input.
 
 Steps:
+- Install `html2canvas`: `npm install html2canvas` — it is not in the scaffold dependencies
 - Mount a simplified `SongLibraryScreen`-like DOM element into a hidden off-screen `<div>`
 - Each frame (throttled to ~10fps — no need to match 90fps): `html2canvas(div)` → `CanvasTexture` → update a `PlaneGeometry` entity's material map
-- On controller ray intersection with the plane: compute UV coordinates → map to pixel coordinates on the div → synthesize and dispatch a `MouseEvent` at that point
+- For ray → UV → click: `RayInteractable` gives hover/press state tags but does not expose the UV of the hit point directly. Options:
+  1. Query IWSDK's input system or xr-input package to see if the ray intersection point is accessible on the entity or from `this.input`
+  2. Fall back to a manual `THREE.Raycaster` against the plane mesh to get the intersection UV (the IWSDK reviewer agent flags this, but it's acceptable for a prototype plane with no BVH needed)
+- Map intersection UV → pixel coordinates on the div → synthesize and dispatch a `MouseEvent` at that point
 - Verify a button click on the panel triggers the underlying DOM handler
 
 **Pass:** HTML screen is visible in XR, buttons respond to controller ray. Interaction latency is acceptable for navigation (not great for typing, but fine for song selection).
