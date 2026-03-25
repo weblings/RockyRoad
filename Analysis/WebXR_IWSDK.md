@@ -136,6 +136,38 @@ IWSDK uses `@iwsdk/vite-plugin-dev` and `@iwsdk/vite-plugin-uikitml`. Our `vite.
 **7. `erasableSyntaxOnly` compatibility**
 Our tsconfig has `erasableSyntaxOnly: true` which forbids TypeScript enums. IWSDK examples import `SessionMode` — need to verify it is exported as a `const` object, not a true enum, and that IWSDK's packages compile cleanly under this constraint.
 
+*(Concerns 1–7 above were validated by the prototype. All passed. See phase findings for detail.)*
+
+---
+
+### Post-prototype corrections and open questions
+
+These issues surfaced during the prototype and should be resolved before production implementation begins.
+
+**C1. Panel A render target is unnecessary — drop it**
+The plan describes "FretPlayerScene3D renders into a `WebGLRenderTarget`; a `PlaneGeometry` mesh displays that texture." The prototype proved the highway mesh can be a direct ECS entity, child of the world anchor. A render target adds a full extra GPU pass for no benefit. The plan was written before direct mesh registration was validated. Use direct mesh parenting.
+
+**C2. XRGizmo.ts may be largely replaceable**
+The plan calls for hand-rolled axis-constrained drag handles (`XRGizmo.ts`). IWSDK's `OneHandGrabbable` already accepts `{ translateMin, translateMax, rotateMin, rotateMax }` for constrained manipulation. The visual handle meshes may still be needed for discoverability, but the drag math is already in the SDK. Evaluate constrained grabs before building custom hit-test/drag logic.
+
+**C3. Grab uses squeeze, not trigger — UX description is wrong throughout**
+"Point at panel, hold trigger, move" appears multiple times in the plan. In IWSDK, `OneHandGrabbable` is activated by the **squeeze** button; the trigger is the ray-select button. Every UX description involving "hold trigger to grab" needs updating to "hold squeeze."
+
+**C4. HUD seek and speed controls are undefined**
+The HUD bar lists `[seek]` and `[speed]` as if they're buttons, but both are continuous controls (scrubbers/sliders). How a seek scrubber works in XR — drag a handle along a line, step buttons, thumbstick nudge — is not sketched anywhere. This is the largest unaddressed interaction design problem in the plan and needs a decision before building the HUD.
+
+**C5. Initial anchor placement needs a concrete implementation sketch**
+"Placed 1m in front of the user at eye height, facing them — derived from the initial XR camera pose" is correct intent but not implemented. Concretely: subscribe to `visibilityState`; when it first becomes `Visible`, read `world.player.head.getWorldPosition()` and `getWorldQuaternion()`, then compute anchor position as `headPos + headForward * 1.0` at `headPos.y`. If this is wrong the user spawns staring into the back of the highway. Needs explicit code, not a prose note.
+
+**C6. Session strategy heuristic is fragile**
+The `pointer: fine` + UA-string standalone-device detection will misfire — Quest Browser behaviour varies by OS version and emulation mode. Safer default: always show an "Enter VR" button (IWSDK's `offer: 'always'` behaviour) and let the user tap it. The one-tap cost on standalone is low; the cost of a bad auto-entry heuristic is high (wrong mode, broken layout). Revisit auto-entry only if user research shows the button is a meaningful friction point.
+
+**C7. Screen router → IWSDK system migration is underspecified**
+"App.ts screen router becomes an IWSDK system with a `currentScreen` signal" covers a lot of complexity in one line. The current `App` has async navigation, mount/unmount lifecycle, and hooks that cross-cut scenes (`onSongPause`, `onSongRollback`, `onSongResume`, `onSettingsChange`). `ActiveSceneScreen` in particular holds song playback state across pause/resume cycles. How this maps to ECS — and which hooks become signals vs system queries — needs at least a rough sketch before starting the migration.
+
+**C8. "Immersive mode" is a placeholder, not a plan**
+The immersive mode section ("player stands inside the highway at real scale") is a single paragraph. The 0.003 anchor scale would need to become 1:1; FretCamera is irrelevant (player physically walks); note collision/miss feedback, HUD visibility, and what "inside the highway" means spatially are all open. Fine to keep as a stretch goal, but it should be explicitly marked deferred — it reads like a decision when it's a concept.
+
 ---
 
 ## Prototype phases
