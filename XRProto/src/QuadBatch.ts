@@ -76,8 +76,6 @@ export class QuadBatch {
         });
 
         this.mesh = new THREE.Mesh(this.geometry, this.material);
-        this.mesh.matrixAutoUpdate = false;
-        this.mesh.matrixWorld.identity();
         this.mesh.frustumCulled = false;
     }
 

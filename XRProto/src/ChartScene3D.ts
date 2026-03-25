@@ -21,6 +21,12 @@ export class ChartScene3D extends Scene3D {
     protected startTime = 0;
     protected endTime = 0;
 
+    // Convert absolute song time → local Z coordinate.
+    // now-line is always at Z=0; notes ahead are at negative Z.
+    protected toZ(songTime: number): number {
+        return (songTime - this.currentTime) * -this.timeScale;
+    }
+
     // Highway X bounds for beat lines — subclasses override
     protected highwayStartX = -5;
     protected highwayEndX = 5;
@@ -106,7 +112,7 @@ export class ChartScene3D extends Scene3D {
         color: ReturnType<typeof makeColor>,
         imageScale: number,
     ): void {
-        const z = time * -this.timeScale;
+        const z = this.toZ(time);
         const image = getImage("HorizontalFretLine");
         const halfThick = image.height * imageScale;
 

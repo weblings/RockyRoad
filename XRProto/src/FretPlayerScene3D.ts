@@ -193,9 +193,33 @@ export class FretPlayerScene3D extends ChartScene3D {
             this.minFret,
             this.maxFret,
             this.targetFocusFret,
-            -(this.currentTime * this.timeScale),
+            0, // now-line is always at local Z=0
             dt,
         );
+    }
+
+    // Copy FretCamera's computed pose to any external camera (e.g. world.camera).
+    // Must be called after draw() — updateCamera() runs inside draw() and populates
+    // fretCamera.threeCamera before this is useful.
+    //
+    // If anchor is supplied, FretCamera's local-space position is mapped through
+    // anchor.matrixWorld into world space first. Use this in desktop (2D) mode when
+    // the highway mesh is parented under a scaled anchor entity.
+    syncCameraTo(camera: THREE.PerspectiveCamera, anchor?: THREE.Object3D): void {
+        const fc = this.fretCamera.threeCamera;
+        if (anchor) {
+            const localPos    = fc.position.clone();
+            const localTarget = fc.position.clone().add(
+                new THREE.Vector3(0, 0, -1).applyQuaternion(fc.quaternion),
+            );
+            camera.position.copy(localPos.applyMatrix4(anchor.matrixWorld));
+            camera.lookAt(localTarget.applyMatrix4(anchor.matrixWorld));
+        } else {
+            camera.position.copy(fc.position);
+            camera.quaternion.copy(fc.quaternion);
+        }
+        camera.fov = fc.fov;
+        camera.updateProjectionMatrix();
     }
 
     // ─── Mock detection ───────────────────────────────────────────────────────
@@ -540,8 +564,12 @@ export class FretPlayerScene3D extends ChartScene3D {
             }
         }
 
-        // Vertical connector line from fretboard up to note head
-        this.drawFretVerticalLine(drawFret - 0.5, noteHeadTime, 0, this.getStringHeight(stringOffset), WHITE_HALF, 0.03);
+        // Vertical connector line from fretboard up to note head.
+        // Guard matches the note head — past notes in the 1-second lookback range
+        // should not draw a connector at Z=0 with no head attached.
+        if (!isCurrent || drawCurrent) {
+            this.drawFretVerticalLine(drawFret - 0.5, noteHeadTime, 0, this.getStringHeight(stringOffset), WHITE_HALF, 0.03);
+        }
 
         if (note.TimeOffset > this.currentTime) this.firstNote = note;
     }
@@ -741,7 +769,7 @@ export class FretPlayerScene3D extends ChartScene3D {
     ): void {
         const x = getFretPosition(fretCenter);
         const y = verticalCenter;
-        const z = timeCenter * -this.timeScale;
+        const z = this.toZ(timeCenter);
         this.drawText(text, new THREE.Vector3(x, y, z), color, imageScale, rightAlign);
     }
 
@@ -750,8 +778,8 @@ export class FretPlayerScene3D extends ChartScene3D {
     // Thin strip in XZ plane at fixed Y, running from startTime to endTime — fret lane line
     private drawFretTimeLine(fretCenter: number, height: number, startTime: number, endTime: number, color: UIColor): void {
         const cx = getFretPosition(fretCenter);
-        const sz = startTime * -this.timeScale;
-        const ez = endTime   * -this.timeScale;
+        const sz = this.toZ(startTime);
+        const ez = this.toZ(endTime);
         const img = getImage("VerticalFretLine");
         const half = img.width * 0.03;
         this.drawQuad(img,
@@ -766,7 +794,7 @@ export class FretPlayerScene3D extends ChartScene3D {
     private drawFretHorizontalLine(startFret: number, endFret: number, time: number, heightOffset: number, color: UIColor, imageScale: number): void {
         const sx = getFretPosition(startFret);
         const ex = getFretPosition(endFret);
-        const z  = time * -this.timeScale;
+        const z  = this.toZ(time);
         const img = getImage("HorizontalFretLine");
         const half = img.height * imageScale;
         this.drawQuad(img,
@@ -780,7 +808,7 @@ export class FretPlayerScene3D extends ChartScene3D {
     // Thin strip in XY plane at fixed Z — spans string height range
     private drawFretVerticalLine(fretCenter: number, time: number, startHeight: number, endHeight: number, color: UIColor, imageScale: number): void {
         const cx = getFretPosition(fretCenter);
-        const z  = time * -this.timeScale;
+        const z  = this.toZ(time);
         const img = getImage("VerticalFretLine");
         const half = img.width * imageScale;
         this.drawQuad(img,
@@ -795,7 +823,7 @@ export class FretPlayerScene3D extends ChartScene3D {
     private drawVerticalImage(image: UIImage, startFret: number, endFret: number, time: number, heightOffset: number, color: UIColor, imageScale: number): void {
         const sx = getFretPosition(startFret);
         const ex = getFretPosition(endFret);
-        const z  = time * -this.timeScale;
+        const z  = this.toZ(time);
         const half = image.height * imageScale;
         this.drawQuad(image,
             new THREE.Vector3(sx, heightOffset - half, z), color,
@@ -808,7 +836,7 @@ export class FretPlayerScene3D extends ChartScene3D {
     // Vertical image (XY plane) — centered at a single fret, square extent
     private drawVerticalImageCentered(image: UIImage, fretCenter: number, timeCenter: number, heightOffset: number, color: UIColor, imageScale: number): void {
         const cx = getFretPosition(fretCenter);
-        const z  = timeCenter * -this.timeScale;
+        const z  = this.toZ(timeCenter);
         const hx = image.width  * imageScale;
         const hy = image.height * imageScale;
         this.drawQuad(image,
@@ -823,7 +851,7 @@ export class FretPlayerScene3D extends ChartScene3D {
     private drawVerticalNinePatch(image: UIImage, startFret: number, endFret: number, time: number, startHeight: number, endHeight: number, color: UIColor): void {
         const sx = getFretPosition(startFret);
         const ex = getFretPosition(endFret);
-        const z  = time * -this.timeScale;
+        const z  = this.toZ(time);
         this.drawNinePatch(
             image, image.width / 2, image.height / 2,
             new THREE.Vector3(sx, startHeight, z),  // bottomLeft
@@ -837,8 +865,8 @@ export class FretPlayerScene3D extends ChartScene3D {
     // Flat image (XZ plane) — note trail, centered on fret, narrow X
     private drawFlatImage(image: UIImage, fretCenter: number, startTime: number, endTime: number, heightOffset: number, color: UIColor, imageScale: number): void {
         const cx = getFretPosition(fretCenter);
-        const sz = startTime * -this.timeScale;
-        const ez = endTime   * -this.timeScale;
+        const sz = this.toZ(startTime);
+        const ez = this.toZ(endTime);
         const half = image.width * imageScale;
         this.drawQuad(image,
             new THREE.Vector3(cx - half, heightOffset, sz), color,
@@ -852,8 +880,8 @@ export class FretPlayerScene3D extends ChartScene3D {
     private drawFlatImageFull(image: UIImage, startFret: number, endFret: number, startTime: number, endTime: number, heightOffset: number, color: UIColor): void {
         const sx = getFretPosition(startFret);
         const ex = getFretPosition(endFret);
-        const sz = startTime * -this.timeScale;
-        const ez = endTime   * -this.timeScale;
+        const sz = this.toZ(startTime);
+        const ez = this.toZ(endTime);
         this.drawQuad(image,
             new THREE.Vector3(sx, heightOffset, sz), color,
             new THREE.Vector3(sx, heightOffset, ez), color,
@@ -869,8 +897,8 @@ export class FretPlayerScene3D extends ChartScene3D {
             if (last !== null) {
                 const lx = getFretPosition(last.x);
                 const px = getFretPosition(point.x);
-                const lz = last.z  * -this.timeScale;
-                const pz = point.z * -this.timeScale;
+                const lz = this.toZ(last.z);
+                const pz = this.toZ(point.z);
                 const half = image.width * imageScale;
                 this.drawQuad(image,
                     new THREE.Vector3(lx - half, last.y,  lz), color,
@@ -900,8 +928,8 @@ export class FretPlayerScene3D extends ChartScene3D {
                 continue;
             }
             const height = heightOffset + Math.sin((time - startTime) * 50) * 1;
-            const lz = lastTime * -this.timeScale;
-            const tz = time    * -this.timeScale;
+            const lz = this.toZ(lastTime);
+            const tz = this.toZ(time);
             this.drawQuad(image,
                 new THREE.Vector3(cx - half, lastHeight, lz), color,
                 new THREE.Vector3(cx - half, height,     tz), color,
@@ -936,8 +964,8 @@ export class FretPlayerScene3D extends ChartScene3D {
                     lh = lerp(lh, height, t);
                     lt = this.currentTime;
                 }
-                const lz = lt               * -this.timeScale;
-                const oz = offset.TimeOffset * -this.timeScale;
+                const lz = this.toZ(lt);
+                const oz = this.toZ(offset.TimeOffset);
                 this.drawQuad(image,
                     new THREE.Vector3(cx - half, lh,     lz), color,
                     new THREE.Vector3(cx - half, height, oz), color,
@@ -951,8 +979,8 @@ export class FretPlayerScene3D extends ChartScene3D {
 
         if (lastTime < endTime) {
             lastTime = Math.max(lastTime, this.currentTime);
-            const lz = lastTime * -this.timeScale;
-            const ez = endTime  * -this.timeScale;
+            const lz = this.toZ(lastTime);
+            const ez = this.toZ(endTime);
             this.drawQuad(image,
                 new THREE.Vector3(cx - half, lastHeight, lz), color,
                 new THREE.Vector3(cx - half, lastHeight, ez), color,

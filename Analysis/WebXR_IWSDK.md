@@ -257,6 +257,14 @@ Steps:
 **Pass:** highway renders with the correct angled-down-forward FretCamera perspective in the browser. Camera smoothly tracks the note range.
 **Fail signal:** IWSDK's emulation camera overrides FretCamera each frame. Fix: check IWSDK config for a `disableCameraEmulation` option, or use a higher priority for `HighwaySystem`.
 
+**STATUS: ✅ COMPLETE**
+
+Findings:
+- `syncCameraTo(this.world.camera as any)` — the `as any` cast is required because `world.camera` is typed against IWSDK's internal Three.js re-export, while `syncCameraTo` accepts `THREE.PerspectiveCamera` from our `'three'` import. At runtime these are the same deduped module; the cast is purely a TypeScript type boundary workaround. No runtime issues.
+- IWSDK's desktop emulation camera did **not** fight FretCamera. Camera sync wins without needing priority tuning or a disable flag.
+- `VisibilityState` imported from `@iwsdk/core` works correctly with `erasableSyntaxOnly: true` — no issues (it's a compiled enum from a package, not a declaration in our source).
+- `this.world.visibilityState.peek()` works as expected in `update()` — no subscription overhead.
+
 **Corrections to the original plan pseudocode (do not follow the original):**
 - `execute(delta)` → `update(delta, time)` — the real IWSDK system method name
 - `fretCamera.update(delta)` is wrong — `FretCamera.update()` takes `(minFret, maxFret, targetFocusFret, focusY, dt)`. Don't call it directly. `FretPlayerScene3D.draw()` already calls `updateCamera()` which calls `fretCamera.update()` with the correct computed values. Just copy the result afterward.
@@ -280,6 +288,15 @@ Steps:
 **Pass:** highway renders in headset. No camera conflicts. User can physically look at the scrolling highway from a natural head position.
 **Fail signal:** highway is at the wrong scale or position and uncomfortable to view — adjust the world-space transform. Not a fundamental failure, just calibration.
 
+**STATUS: ✅ COMPLETE**
+
+Findings:
+- **Local-Z refactor required before XR was visible.** The original geometry used absolute song-time Z coordinates (`z = time * -timeScale`). In XR, the headset stays near world origin but the geometry drifted arbitrarily far in -Z as `currentSecond` advanced — invisible within seconds of page load. Fix: switch to local Z (`z = (time - currentTime) * -timeScale` via `toZ()` helper on `ChartScene3D`), so the now-line is always at Z=0 in mesh-local space. `FretCamera.update()` focusY argument changed from `-(currentTime * timeScale)` to `0` accordingly.
+- **`matrixAutoUpdate`**: removed `mesh.matrixAutoUpdate = false` and `mesh.matrixWorld.identity()` from `QuadBatch` — mesh is now a child of the anchor and needs Three.js to propagate parent transforms normally.
+- **Anchor entity**: `new Object3D()` (imported from `@iwsdk/core`) at `scale=0.003`, `position=(-0.45, 0.8, -0.5)`. Highway mesh parented under it via `world.createTransformEntity(mesh, { parent: anchorEntity })`. Scale 0.003 maps highway width (~225 units) to ~0.68m in world space.
+- **Desktop camera restored** via `syncCameraTo(world.camera, anchor)` — FretCamera's local-space position mapped through `anchor.matrixWorld` each frame. `anchor.updateMatrixWorld()` called manually before the sync since IWSDK's TransformSystem may not have run at our system priority. Guard: `visibilityState.peek() !== VisibilityState.Visible` — XR path unaffected.
+- **Bug found and fixed in both ThreeCP/Project and XRProto**: vertical connector line (`drawFretVerticalLine`) had no guard, drawing a white stub at Z=0 for all finished notes still in the 1-second lookback window. Fixed by wrapping with `if (!isCurrent || drawCurrent)` to match the note head guard.
+
 ---
 
 ### Phase 4 — Audio sync *(validates SongPlayer coexistence)*
@@ -296,6 +313,17 @@ Steps:
 
 **Pass:** audio plays, highway scrolls in sync, no `AudioContext` errors or conflicts with IWSDK's `AudioSource` component system.
 **Fail signal:** two `AudioContext` instances in the same page cause issues. Fix: check if IWSDK exposes its `AudioContext` for reuse, or verify browser allows two concurrent contexts (it does in most cases — this is the low-risk concern).
+
+**STATUS: ✅ COMPLETE**
+
+Findings:
+- **No AudioContext conflict**: `SongPlayer` creates its own `AudioContext` alongside IWSDK's — no errors, no interference. Two concurrent contexts work fine in Chrome/Edge.
+- **`SongPlayer.ts` copied unchanged** — zero App/screen dependencies confirmed. Dropped into `XRProto/src/` with no modifications.
+- **Parallel load**: `songPlayer.loadSong()` added to the existing `Promise.all()` alongside JSON/manifest fetches — audio ready at the same time as song data.
+- **Skip intro**: `seekTo(instrumentNotes.Notes[0].TimeOffset)` called after load. `fretScene.currentSecond` initialised to match before the system loop starts.
+- **XR input**: `this.input.gamepads.right?.getButtonDown(InputComponent.Trigger)` in `HighwaySystem.update()` — right trigger toggles play/pause. `InputComponent` imported from `@iwsdk/core`. No additional system or component needed.
+- **Desktop input**: `document.addEventListener('keydown', ...)` for Space bar — satisfies AudioContext user-gesture requirement without any IWSDK-specific API.
+- **Timing driver**: `fretScene.currentSecond = songPlayer.currentSecond` replaces the `+= delta` accumulator. Highway visuals are now slaved to the AudioContext clock, so they stay locked to audio across frame-rate variation.
 
 ---
 
@@ -323,11 +351,30 @@ Steps:
 **Pass:** highway grabs and repositions naturally. Releasing it holds position.
 **Fail signal:** grab still doesn't move the visual highway — QuadBatch geometry is in world space and the anchor transform isn't being applied. May need to abandon `matrixAutoUpdate = false` on the mesh and let Three.js recompute matrixWorld from the parent chain each frame.
 
+**STATUS: ✅ COMPLETE**
+
+Findings:
+- **`Interactable` is deprecated** — replaced by `RayInteractable` (for ray/pointer interaction) and `PokeInteractable` (for touch). `OneHandGrabbable` uses `RayInteractable`, not the old `Interactable`.
+- **`OneHandGrabbable` takes `{}`** — no required schema options. `{ translate, rotate }` options from original plan were unverified and unnecessary for default free-grab behavior.
+- **Real device (Quest Link) requires `V` key to launch XR** — IWER's overlay provides the "Enter XR" button; without IWER the button disappears. Added `V` keydown → `world.launchXR()` as a device-mode trigger.
+- **IWER disable: use `--mode device` not env var** — `vite.config.ts` switched to `defineConfig(({ mode }) => ...)` pattern; `npm run dev:device` passes `--mode device`, skipping the `iwsdkDev` plugin entirely. `cross-env IWER=false` did not propagate reliably.
+- **Grab works on real hardware** — anchor entity with `RayInteractable` + `OneHandGrabbable`, highway mesh parented under it. Controller squeeze grabs and repositions the highway freely; position holds on release.
+
 ---
 
 ### Phase 6 — html2canvas UI panel *(validates concern 2, option 1)*
 
 **Goal:** confirm a DOM HTML screen can be projected onto an XR plane and receive controller input.
+
+**STATUS: ✅ COMPLETE**
+
+Findings:
+- **`html2canvas` → `CanvasTexture` pipeline works** — DOM div rendered off-screen (`position:fixed; left:-9999px`), html2canvas renders it to a canvas each 100ms, drawn into a `CanvasTexture` backing a `PlaneGeometry` entity. `panelTex.needsUpdate = true` required after each draw.
+- **`RayInteractable` required for ray cursor** — without it, the controller ray renders but the cursor doesn't snap to the panel surface. Adding it to the panel entity makes the ray visually respond.
+- **Manual `Raycaster` for UV** — IWSDK's `InputSystem` doesn't expose intersection UV via the `Pressed` component. Manual `Raycaster.intersectObject(panelMesh)` after calling `ray.updateMatrixWorld()` + `panelMesh.updateMatrixWorld()` gives the UV. Ray direction: `(0,0,-1).transformDirection(raySpace.matrixWorld)`.
+- **Button hit-test via `getBoundingClientRect()`** — buttons are off-screen but their rects are still valid. `btn.getBoundingClientRect()` minus `panelDiv.getBoundingClientRect()` gives panel-local pixel coords. Compare against UV-mapped pixel position to find which button was hit, then call `onClick()` directly.
+- **Both hands needed** — loop over `[gamepads.left, gamepads.right]` with their respective `raySpaces`; either trigger fires the panel. Hardcoding right-only was an oversight.
+- **`IWER=false` / device mode** — use `npm run dev:device` (`--mode device`) to skip IWER plugin entirely. Press `V` on keyboard to call `world.launchXR()` since IWER's Enter XR button is absent.
 
 Steps:
 - Install `html2canvas`: `npm install html2canvas` — it is not in the scaffold dependencies

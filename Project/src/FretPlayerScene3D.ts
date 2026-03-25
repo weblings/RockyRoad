@@ -540,8 +540,12 @@ export class FretPlayerScene3D extends ChartScene3D {
             }
         }
 
-        // Vertical connector line from fretboard up to note head
-        this.drawFretVerticalLine(drawFret - 0.5, noteHeadTime, 0, this.getStringHeight(stringOffset), WHITE_HALF, 0.03);
+        // Vertical connector line from fretboard up to note head.
+        // Guard matches the note head — past notes in the 1-second lookback range
+        // should not draw a connector at Z=0 with no head attached.
+        if (!isCurrent || drawCurrent) {
+            this.drawFretVerticalLine(drawFret - 0.5, noteHeadTime, 0, this.getStringHeight(stringOffset), WHITE_HALF, 0.03);
+        }
 
         if (note.TimeOffset > this.currentTime) this.firstNote = note;
     }
