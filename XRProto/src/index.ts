@@ -32,7 +32,7 @@ const ATLAS_URL =
 const MANIFEST_URL = "/ImageManifest.json";
 
 const SONG_BASE =
-    "/@fs/D:/Users/Andrew/Documents/Coding/MusicThing/dlc/dlc/boypablo/tkm";
+    "/@fs/home/andrew/Music/Charts";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
