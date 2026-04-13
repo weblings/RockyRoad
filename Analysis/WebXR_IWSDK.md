@@ -170,6 +170,22 @@ The immersive mode section ("player stands inside the highway at real scale") is
 
 ---
 
+## Piano (Keys) in XR
+
+`KeysPlayerScene3D` is now wired into `ActiveSceneScreen` for 2D. When the XR migration begins, piano brings one difference and one simplification relative to the fret highway.
+
+**Difference — no FretCamera:** `KeysPlayerScene3D` takes a plain `Camera3D` (not `FretCamera`). In 2D, `ActiveSceneScreen` constructs it with `new Camera3D(width, height)` and the scene drives it every frame via `updateCamera()`. In XR desktop-emulation mode the same approach works: `updateCamera()` sets `world.camera` position and lookAt each frame, which the prototype validated. In headset mode the camera is the HMD pose and `updateCamera()` should be disabled, same as for `FretPlayerScene3D`.
+
+**Simplification — no pitch detection, no grace period:** `KeysPlayerScene3D` has no `gracePeriodEndTime`, no `detectionState()`, and no `mockDetection`. `onSongRollback`'s grace-period logic (already guarded by `instanceof FretPlayerScene3D` in `ActiveSceneScreen`) needs no special handling in the XR path.
+
+**Panel A rendering:** `KeysPlayerScene3D` uses the same `QuadBatch` / `Scene3D` rendering pipeline as `FretPlayerScene3D`. It will slot into Panel A (direct ECS mesh child of world anchor) identically — no extra work.
+
+**HUD:** The piano scene has no per-string or per-fret controls, so the HUD interaction surface is simpler than guitar. The unresolved seek/speed scrubber question (C4) applies equally.
+
+**Migration order:** get the 2D piano rendering verified first. XR migration can then treat piano and guitar as the same Panel A problem.
+
+---
+
 ## Prototype phases
 
 Six sequential phases, each with a clear pass/fail criterion. Phases build on each other — stop if any fails and reassess.

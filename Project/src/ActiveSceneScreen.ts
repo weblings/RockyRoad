@@ -1,8 +1,12 @@
 import * as THREE from "three";
 import type { App, IScreen } from "./App";
 import { FretPlayerScene3D } from "./FretPlayerScene3D";
-import { SongPlayer, type ISongPlayer } from "./SongPlayer";
-import type { SongStructure, SongInstrumentNotes, SongInfo, SongSection } from "./SongFormat";
+import { KeysPlayerScene3D } from "./KeysPlayerScene3D";
+import { ChartScene3D } from "./ChartScene3D";
+import { Camera3D } from "./Camera3D";
+import { fromHex } from "./UIColor";
+import { SongPlayer, SilentPlayer, type ISongPlayer } from "./SongPlayer";
+import type { SongStructure, SongInstrumentNotes, SongKeyboardNotes, SongInfo, SongSection } from "./SongFormat";
 import type { SongIndexEntry, SongIndexPart, ISongLibrary } from "./SongIndex";
 import { loadSettings } from "./Settings";
 import { NoteDetector } from "./NoteDetector";
@@ -15,7 +19,10 @@ function formatTime(seconds: number): string {
 }
 
 export class ActiveSceneScreen implements IScreen {
-    private scene: FretPlayerScene3D | null = null;
+    private scene: ChartScene3D | null = null;
+    // Note range of the loaded keys chart — used when fullKeyboard is toggled off.
+    private keysNoteMin = 21;
+    private keysNoteMax = 108;
     private songPlayer: ISongPlayer | null = null;
     private container: HTMLElement | null = null;
     private audioUrl: string | null = null;
@@ -66,10 +73,9 @@ export class ActiveSceneScreen implements IScreen {
             return JSON.parse(await file.text()) as T;
         };
 
-        const [songStructure, songInfo, instrumentNotes] = await Promise.all([
+        const [songStructure, songInfo] = await Promise.all([
             readJson<SongStructure>('arrangement.json'),
             readJson<SongInfo>('song.json'),
-            readJson<SongInstrumentNotes>(`${this.part.name}.json`),
         ]);
 
         const instrumentPart =
@@ -78,54 +84,96 @@ export class ActiveSceneScreen implements IScreen {
 
         const settings = loadSettings();
 
-        this.scene = new FretPlayerScene3D(
-            this.app.renderer, this.texture, songStructure, instrumentNotes, instrumentPart,
-        );
-        this.scene.boldText      = settings.boldText;
-        this.scene.invertStrings = settings.invertStrings;
+        this.app.activeInstrumentType = this.part.type;
 
-        // Load audio via object URL, then revoke — AudioContext holds the decoded buffer.
-        const audioFile = await this.library.getSongFile(this.entry, 'song.ogg');
-        this.audioUrl = URL.createObjectURL(audioFile);
-        const player = new SongPlayer();
-        await player.loadSong(this.audioUrl);
-        URL.revokeObjectURL(this.audioUrl);
-        this.audioUrl = null;
+        let notes0TimeOffset = 0;
+
+        if (this.part.type === 'Keys') {
+            const keyboardNotes = await readJson<SongKeyboardNotes>(`${this.part.name}.json`);
+            this.sections = keyboardNotes.Sections ?? [];
+            notes0TimeOffset = keyboardNotes.Notes[0]?.TimeOffset ?? 0;
+            // Store the actual note range so fullKeyboard can be toggled live.
+            const midiNotes = keyboardNotes.Notes.map(n => n.Note);
+            this.keysNoteMin = Math.max(21, Math.min(...midiNotes) - 1);
+            this.keysNoteMax = Math.min(108, Math.max(...midiNotes) + 1);
+            const size = this.app.renderer.getSize(new THREE.Vector2());
+            const keysScene = new KeysPlayerScene3D(
+                this.app.renderer,
+                new Camera3D(size.x, size.y),
+                this.texture,
+                songStructure,
+                keyboardNotes,
+            );
+            if (settings.fullKeyboard) {
+                keysScene.minKey = 21;   // A0 — standard 88-key lower bound
+                keysScene.maxKey = 108;  // C8 — standard 88-key upper bound
+            } else {
+                keysScene.minKey = this.keysNoteMin;
+                keysScene.maxKey = this.keysNoteMax;
+            }
+            keysScene.syncHighwayBounds();
+            keysScene.rightHandColor = fromHex(settings.keysRightHandColor);
+            keysScene.leftHandColor  = fromHex(settings.keysLeftHandColor);
+            this.scene = keysScene;
+        } else {
+            const instrumentNotes = await readJson<SongInstrumentNotes>(`${this.part.name}.json`);
+            this.sections = instrumentNotes.Sections?.length > 0
+                ? instrumentNotes.Sections
+                : (songStructure.Sections ?? []);
+            notes0TimeOffset = instrumentNotes.Notes[0]?.TimeOffset ?? 0;
+            const fretScene = new FretPlayerScene3D(
+                this.app.renderer, this.texture, songStructure, instrumentNotes, instrumentPart,
+            );
+            fretScene.boldText      = settings.boldText;
+            fretScene.invertStrings = settings.invertStrings;
+            fretScene.leftyMode     = settings.leftyMode;
+            this.scene = fretScene;
+
+            // Note detection — stringed instruments only.
+            if (this.part.tuningOffsets) {
+                const { notes, notesDetected } = fretScene.detectionState();
+                this.noteDetector = new NoteDetector(
+                    notes, this.part,
+                    () => this.songPlayer?.currentSecond ?? 0,
+                    notesDetected,
+                    () => fretScene.gracePeriodEndTime ?? null,
+                );
+                // If no detector was passed from the tuner, open the mic now.
+                if (!this.pitchDetector) {
+                    this.ownsPitchDetector = true;
+                    import('./PitchDetector').then(({ PitchDetector }) => {
+                        PitchDetector.create().then(det => {
+                            this.pitchDetector = det;
+                        }).catch(() => { /* mic denied — stay in unscored mode */ });
+                    });
+                }
+            }
+        }
+
+        // Load audio — optional. Songs without song.ogg (e.g. piano-only charts) run
+        // with a no-op clock player so all scene and UI logic continues to work.
+        let player: ISongPlayer;
+        try {
+            const audioFile = await this.library.getSongFile(this.entry, 'song.ogg');
+            this.audioUrl = URL.createObjectURL(audioFile);
+            const songPlayer = new SongPlayer();
+            await songPlayer.loadSong(this.audioUrl);
+            URL.revokeObjectURL(this.audioUrl);
+            this.audioUrl = null;
+            player = songPlayer;
+        } catch {
+            player = new SilentPlayer(songInfo.SongLengthSeconds ?? 0);
+        }
         this.songPlayer = player;
 
         this.totalDuration = player.duration > 0 ? player.duration : (songInfo.SongLengthSeconds ?? 0);
-        // Prefer instrument-level sections; fall back to arrangement-level.
-        this.sections = instrumentNotes.Sections?.length > 0
-            ? instrumentNotes.Sections
-            : (songStructure.Sections ?? []);
 
-        if (settings.skipIntro) {
-            const skipTarget = instrumentNotes.Notes[0]?.TimeOffset ?? 0;
-            if (skipTarget > 0) this.scene.currentSecond = skipTarget;
+        if (settings.skipIntro && notes0TimeOffset > 0) {
+            this.scene.currentSecond = notes0TimeOffset;
         }
 
         this.app.activeScene = this.scene;
         this.songPlayer.play();
-
-        // Note detection — stringed instruments only.
-        if (this.part.tuningOffsets) {
-            const { notes, notesDetected } = this.scene.detectionState();
-            this.noteDetector = new NoteDetector(
-                notes, this.part,
-                () => this.songPlayer?.currentSecond ?? 0,
-                notesDetected,
-                () => this.scene?.gracePeriodEndTime ?? null,
-            );
-            // If no detector was passed from the tuner, open the mic now.
-            if (!this.pitchDetector) {
-                this.ownsPitchDetector = true;
-                import('./PitchDetector').then(({ PitchDetector }) => {
-                    PitchDetector.create().then(det => {
-                        this.pitchDetector = det;
-                    }).catch(() => { /* mic denied — stay in unscored mode */ });
-                });
-            }
-        }
 
         this.app.onSongPause = () => {
             if (!this.songPlayer?.isPlaying) return null;
@@ -142,7 +190,9 @@ export class ActiveSceneScreen implements IScreen {
             this.rollbackToTime   = seconds;
             this.rollbackStartMs  = performance.now();
             // Mark notes before the seeked-to position as grace notes.
-            this.scene.gracePeriodEndTime = this.rollbackFromTime;
+            if (this.scene instanceof FretPlayerScene3D) {
+                this.scene.gracePeriodEndTime = this.rollbackFromTime;
+            }
             // Seek the audio player now so currentSecond reports the right position
             // during the countdown (audio stays paused, position is just updated).
             this.songPlayer.seekTo(seconds);
@@ -156,9 +206,16 @@ export class ActiveSceneScreen implements IScreen {
             this.songPlayer?.play();
         };
         this.app.onSettingsChange = (s) => {
-            if (this.scene) {
+            if (this.scene instanceof FretPlayerScene3D) {
                 this.scene.boldText      = s.boldText;
                 this.scene.invertStrings = s.invertStrings;
+                this.scene.leftyMode     = s.leftyMode;
+            } else if (this.scene instanceof KeysPlayerScene3D) {
+                this.scene.minKey = s.fullKeyboard ? 21 : this.keysNoteMin;
+                this.scene.maxKey = s.fullKeyboard ? 108 : this.keysNoteMax;
+                this.scene.syncHighwayBounds();
+                this.scene.rightHandColor = fromHex(s.keysRightHandColor);
+                this.scene.leftHandColor  = fromHex(s.keysLeftHandColor);
             }
         };
 
@@ -167,7 +224,7 @@ export class ActiveSceneScreen implements IScreen {
         // Press M to toggle mock detection (2 hits / 1 miss cycle).
         this.mockKeyHandler = (e: KeyboardEvent) => {
             if (e.key !== 'm' && e.key !== 'M') return;
-            if (!this.scene) return;
+            if (!(this.scene instanceof FretPlayerScene3D)) return;
             this.scene.mockDetection = !this.scene.mockDetection;
             this.scene.resetMockDetection();
         };
@@ -388,8 +445,9 @@ export class ActiveSceneScreen implements IScreen {
         if (this.audioUrl) { URL.revokeObjectURL(this.audioUrl); this.audioUrl = null; }
         this.rollbackFromTime = null;
         this.rollbackToTime   = null;
-        this.app.activeScene       = null;
-        this.app.onPreDraw         = null;
+        this.app.activeScene           = null;
+        this.app.activeInstrumentType  = null;
+        this.app.onPreDraw             = null;
         this.app.onSongPause       = null;
         this.app.onSongRollback    = null;
         this.app.onSongResume      = null;

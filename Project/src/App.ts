@@ -28,6 +28,10 @@ export class App {
     // Called when a settings toggle changes — ActiveSceneScreen uses this to live-update the scene.
     onSettingsChange: ((settings: Settings) => void) | null = null;
 
+    // Set by ActiveSceneScreen to the current part's InstrumentType; cleared on unmount.
+    // Used by the settings panel to show/hide instrument-specific options.
+    activeInstrumentType: string | null = null;
+
     // Stringified StringSemitoneOffsets of the last instrument that passed through the tuner.
     // null = first song of session; updated on every tuner exit (complete or skip).
     lastTuningKey: string | null = null;
@@ -67,11 +71,20 @@ export class App {
             const s = loadSettings();
             s.invertStrings = (document.getElementById("s-invert-strings") as HTMLInputElement).checked;
             s.boldText      = (document.getElementById("s-bold-text")      as HTMLInputElement).checked;
+            s.leftyMode          = (document.getElementById("s-lefty-mode")       as HTMLInputElement).checked;
+            s.fullKeyboard       = (document.getElementById("s-full-keyboard")    as HTMLInputElement).checked;
+            s.keysRightHandColor = (document.getElementById("s-keys-right-color") as HTMLInputElement).value;
+            s.keysLeftHandColor  = (document.getElementById("s-keys-left-color")  as HTMLInputElement).value;
             saveSettings(s);
             this.onSettingsChange?.(s);
         };
-        document.getElementById("s-invert-strings")!.addEventListener("change", onToggle);
-        document.getElementById("s-bold-text")!      .addEventListener("change", onToggle);
+        document.getElementById("s-invert-strings")!  .addEventListener("change", onToggle);
+        document.getElementById("s-bold-text")!        .addEventListener("change", onToggle);
+        document.getElementById("s-lefty-mode")!       .addEventListener("change", onToggle);
+        document.getElementById("s-full-keyboard")!    .addEventListener("change", onToggle);
+        // Color pickers: use "input" for live preview as the user drags.
+        document.getElementById("s-keys-right-color")!.addEventListener("input",  onToggle);
+        document.getElementById("s-keys-left-color")!  .addEventListener("input",  onToggle);
 
         new ResizeObserver(() => this.onResize()).observe(canvas);
         this.onResize();
@@ -106,10 +119,20 @@ export class App {
                 this.songPausedBySettings = true;
             }
         }
+        // Show only the settings relevant to the current instrument type.
+        const isKeys   = this.activeInstrumentType === 'Keys';
+        const isGuitar = this.activeInstrumentType !== null && !isKeys;
+        (document.getElementById("s-guitar-only") as HTMLElement).style.display = isGuitar ? '' : 'none';
+        (document.getElementById("s-keys-only")   as HTMLElement).style.display = isKeys   ? '' : 'none';
+
         // Sync checkboxes to current persisted values each time the panel opens.
         const s = loadSettings();
         (document.getElementById("s-invert-strings") as HTMLInputElement).checked = s.invertStrings;
         (document.getElementById("s-bold-text")      as HTMLInputElement).checked = s.boldText;
+        (document.getElementById("s-lefty-mode")       as HTMLInputElement).checked = s.leftyMode;
+        (document.getElementById("s-full-keyboard")    as HTMLInputElement).checked = s.fullKeyboard;
+        (document.getElementById("s-keys-right-color") as HTMLInputElement).value   = s.keysRightHandColor;
+        (document.getElementById("s-keys-left-color")  as HTMLInputElement).value   = s.keysLeftHandColor;
         this.settingsOverlay.classList.remove("hidden");
     }
 

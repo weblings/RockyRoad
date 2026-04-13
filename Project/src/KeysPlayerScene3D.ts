@@ -2,7 +2,7 @@ import * as THREE from "three";
 import { Camera3D } from "./Camera3D";
 import { ChartScene3D, getStartNote } from "./ChartScene3D";
 import { lerp } from "./MathUtil";
-import { makeColor } from "./UIColor";
+import { makeColor, fromHex, type UIColor } from "./UIColor";
 import { getImage } from "./UIImage";
 import type { UIImage } from "./UIImage";
 import type { SongKeyboardNotes, SongStructure } from "./SongFormat";
@@ -17,6 +17,9 @@ const SCALE_OFFSETS     = [0, 0.5, 1, 1.5, 2, 3, 3.5, 4, 4.5, 5, 5.5, 6];
 export class KeysPlayerScene3D extends ChartScene3D {
     minKey = 48;
     maxKey = 72;
+
+    rightHandColor: UIColor = fromHex('#2E71D6');
+    leftHandColor:  UIColor = fromHex('#E33737');
 
     private targetCameraDistance = 64;
     private cameraDistance = 70;
@@ -109,8 +112,9 @@ export class KeysPlayerScene3D extends ChartScene3D {
             if (note.TimeOffset > this.endTime) break;
             if (note.Note < this.minKey || note.Note > this.maxKey) continue;
 
-            const isWhite  = SCALE_WHITE_BLACK[(note.Note - this.minKey) % 12] === 0;
+            const isWhite    = SCALE_WHITE_BLACK[(note.Note - this.minKey) % 12] === 0;
             const trailStart = Math.max(note.TimeOffset, this.currentTime);
+            const color      = note.Hand === 'left' ? this.leftHandColor : this.rightHandColor;
 
             this.drawFlatImage(
                 getImage(isWhite ? "NoteTrailWhite" : "NoteTrailBlack"),
@@ -118,7 +122,7 @@ export class KeysPlayerScene3D extends ChartScene3D {
                 trailStart,
                 note.TimeOffset + note.TimeLength,
                 0,
-                makeColor(1, 1, 1, 1),
+                color,
                 0.06,
             );
         }

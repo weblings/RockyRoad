@@ -135,14 +135,16 @@ export function getStartNote<T extends ISongEvent>(
 
     // Walk backward while notes are still visible
     while (startPos > 0) {
-        const endTime = Math.max(notes[startPos].EndTime ?? notes[startPos].TimeOffset, notes[startPos].TimeOffset + minLength);
+        const n = notes[startPos];
+        const endTime = Math.max(n.EndTime ?? (n.TimeOffset + (n.TimeLength ?? 0)), n.TimeOffset + minLength);
         if (endTime < timeOffset) break;
         startPos--;
     }
 
     // Walk forward until we reach a visible note
     while (startPos < notes.length) {
-        const endTime = Math.max(notes[startPos].EndTime ?? notes[startPos].TimeOffset, notes[startPos].TimeOffset + minLength);
+        const n = notes[startPos];
+        const endTime = Math.max(n.EndTime ?? (n.TimeOffset + (n.TimeLength ?? 0)), n.TimeOffset + minLength);
         if (endTime > timeOffset) break;
         startPos++;
     }

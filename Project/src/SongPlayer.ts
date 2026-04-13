@@ -12,6 +12,44 @@ export interface ISongPlayer {
     seekTo(seconds: number): void;
 }
 
+// No-op player for songs without audio (e.g. piano-only charts with no song.ogg).
+// Advances currentSecond in real time using performance.now() so scene timing works normally.
+export class SilentPlayer implements ISongPlayer {
+    private _duration: number;
+    private _playing = false;
+    private _rate = 1;
+    private _pausedAt = 0;
+    private _startedAt = 0;  // performance.now() when play() was last called
+
+    constructor(duration: number) { this._duration = duration; }
+
+    get isPlaying(): boolean { return this._playing; }
+    get duration(): number { return this._duration; }
+    get currentSecond(): number {
+        if (!this._playing) return this._pausedAt;
+        return this._pausedAt + (performance.now() - this._startedAt) / 1000 * this._rate;
+    }
+    get playbackRate(): number { return this._rate; }
+    set playbackRate(r: number) {
+        if (this._playing) { this._pausedAt = this.currentSecond; this._startedAt = performance.now(); }
+        this._rate = r;
+    }
+    play(): void {
+        if (this._playing) return;
+        this._startedAt = performance.now();
+        this._playing = true;
+    }
+    pause(): void {
+        if (!this._playing) return;
+        this._pausedAt = this.currentSecond;
+        this._playing = false;
+    }
+    seekTo(seconds: number): void {
+        this._pausedAt = seconds;
+        if (this._playing) this._startedAt = performance.now();
+    }
+}
+
 export class SongPlayer implements ISongPlayer {
     private context: AudioContext | null = null;
     private buffer: AudioBuffer | null = null;

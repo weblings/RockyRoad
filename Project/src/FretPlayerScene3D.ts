@@ -77,6 +77,9 @@ export class FretPlayerScene3D extends ChartScene3D {
     // When true: string order is flipped vertically (low strings on top, high strings on bottom).
     invertStrings = false;
 
+    // When true: mirrors the fretboard horizontally for left-handed players.
+    set leftyMode(v: boolean) { this.fretCamera.mirrorLeftRight = v; }
+
     // When non-null, notes whose TimeOffset < gracePeriodEndTime are drawn as grace notes
     // (desaturated, low alpha) and skipped for scoring. Auto-clears when currentTime reaches it.
     gracePeriodEndTime: number | null = null;
