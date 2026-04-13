@@ -184,6 +184,31 @@ The immersive mode section ("player stands inside the highway at real scale") is
 
 **Migration order:** get the 2D piano rendering verified first. XR migration can then treat piano and guitar as the same Panel A problem.
 
+**Physical keyboard calibration:** Before positioning the virtual highway, the player needs to tell the system where their physical keyboard starts and ends in world space. The proposed flow is a two-point tap calibration: prompt the player to touch the leftmost playable key, confirm, then the rightmost, confirm. The system records both world positions and uses them to set the anchor's X extent and yaw so the virtual keyboard aligns to the physical one.
+
+For input, two modes are needed:
+
+- **Hand tracking (preferred):** use the index fingertip joint position at the moment of confirmation. The WebXR Hand Input API provides 25 joints per hand — `XRHand` with `XRHandJoint` spaces — and the prototype already enables `handTracking: true`. However, IWSDK's documented player API only exposes `player.raySpaces` and `player.gripSpaces`, not individual finger joints. **Open question: does IWSDK surface per-joint hand data, or does it require dropping to the raw WebXR API?** This needs verification before committing to the finger-tap approach. The IWSDK `iwsdk-rag-local` MCP tool should have the answer.
+- **Controller fallback:** user holds the trigger or a confirm button while positioning the controller tip at each key. Controller grip position is already accessible via `player.gripSpaces`. This is the safe baseline if finger joints aren't cleanly exposed.
+
+The calibration result — two world-space points — feeds directly into the gizmo's initial anchor placement: midpoint becomes the anchor origin, distance between points sets the X scale relative to the virtual keyboard width, and the vector between them sets yaw. If the player's piano is rotated or tilted, the anchor inherits that orientation automatically.
+
+Calibration should be re-triggerable from the gizmo UI (a "Recalibrate" button) in case the headset drifts or the player moves.
+
+**Gizmo and snapped positioning:** The prototype used `OneHandGrabbable` on the world anchor for free movement — sufficient for the fret highway but not ideal for piano. Piano has a natural spatial contract: the keyboard runs left-right at a fixed height, and the player needs to align it precisely relative to their body or a physical surface. Free grab is too imprecise for this. Piano XR requires a dedicated gizmo.
+
+The gizmo should provide axis-constrained translation handles (X/Y/Z arrows) and optionally yaw-only rotation (spinning the keyboard to face the player). More importantly, it needs a **snapping mode**: instead of continuous drag, movement along each axis advances in discrete ticks so the player can dial in an exact position without fighting floating-point drift.
+
+Required UI (small spatial panel attached to or near the gizmo):
+
+- **Snap toggle** — enables/disables tick snapping per axis or globally. When off, movement is free as today.
+- **Tick increment field** — a numeric input (or +/− stepper) specifying the world-space distance of each tick in meters (e.g. 0.05 m default). A single global increment is sufficient to start; per-axis increments can come later.
+
+Implementation notes:
+- IWSDK's `OneHandGrabbable` accepts `{ translateMin, translateMax }` constraints (concern C2) but has no built-in snapping. Snapping would need to be applied in the grab system by rounding the anchor's position to the nearest tick increment after each controller move delta is applied.
+- The tick increment field is a natural fit for IWSDK's `PanelUI` / uikit — a small floating label + stepper rendered as a spatial panel parented to the gizmo anchor so it moves with the highway.
+- The snap state and increment value should persist in `localStorage` alongside other settings so the player's preferred layout survives between sessions.
+
 ---
 
 ## Prototype phases
@@ -456,3 +481,16 @@ Once the panel model is working, a second mode: XR cameras replace the panel met
 In XR mode, let the user position the keyboard instrument in physical space using spatial anchors (WebXR Anchors API). The piano would sit at a fixed real-world location across sessions. Requires 6DOF tracking (Quest 3, etc.).
 
 With the panel model established, the keys scene is Panel A for keyboard songs — same anchor and gizmo infrastructure. Spatial anchors persist the anchor's world transform between sessions.
+
+2D Piano bug to fix:
+
+buildOverlay() now accepts an optional KeysPlayerScene3D
+When a keys scene is passed, a "Piano image" panel is appended to the container with three <input type="range"> sliders — Scale (0.5–3), X (−500–500), Y (−200–400) — each showing its current value and updating the scene property live
+The Y slider maps to pianoOffsetZ (world Z from the now-line). Drag Scale first to get the width right, then use X to center it horizontally, then Y to nudge it toward/away from the now-line.
+
+That actually looks pretty good as is. However some of the black key notes don't seem to be lining up? Double check if the 88 key note logic is correct
+The bug is in getKeyPosition. The SCALE_OFFSETS and SCALE_WHITE_BLACK arrays are indexed from C (C, C#, D, D#, …), but the current code uses (key - minKey) % 12 — which only works correctly when minKey is itself a C note (like the C# default of 48). For 88-key mode minKey = 21 (A0), key 24 (C1) maps to index 3 which the arrays treat as a black key, shifting every note after the first B.
+
+The fix: use the key's absolute position in the chromatic scale (key % 12) for the array lookups, and compute positions relative to minKey's absolute offset.
+
+Let me check all three uses:

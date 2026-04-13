@@ -11,6 +11,7 @@ export interface Settings {
     tunerAutoAdvance: boolean;  // auto-proceed after "In tune!" (default on)
     inputGain: number;          // mic gain multiplier 1–8 (default 1)
     fullKeyboard: boolean;      // keys: always show full 88-key range (default on)
+    keysTopDown: boolean;       // keys: top-down piano-roll camera (default off)
     keysRightHandColor: string; // hex color for right-hand notes
     keysLeftHandColor: string;  // hex color for left-hand notes
 }
@@ -23,6 +24,7 @@ const DEFAULTS: Settings = {
     tunerAutoAdvance: true,
     inputGain: 1,
     fullKeyboard: true,
+    keysTopDown: false,
     keysRightHandColor: '#2E71D6',
     keysLeftHandColor: '#E33737',
 };

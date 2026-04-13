@@ -73,6 +73,7 @@ export class App {
             s.boldText      = (document.getElementById("s-bold-text")      as HTMLInputElement).checked;
             s.leftyMode          = (document.getElementById("s-lefty-mode")       as HTMLInputElement).checked;
             s.fullKeyboard       = (document.getElementById("s-full-keyboard")    as HTMLInputElement).checked;
+            s.keysTopDown        = (document.getElementById("s-keys-top-down")    as HTMLInputElement).checked;
             s.keysRightHandColor = (document.getElementById("s-keys-right-color") as HTMLInputElement).value;
             s.keysLeftHandColor  = (document.getElementById("s-keys-left-color")  as HTMLInputElement).value;
             saveSettings(s);
@@ -82,6 +83,7 @@ export class App {
         document.getElementById("s-bold-text")!        .addEventListener("change", onToggle);
         document.getElementById("s-lefty-mode")!       .addEventListener("change", onToggle);
         document.getElementById("s-full-keyboard")!    .addEventListener("change", onToggle);
+        document.getElementById("s-keys-top-down")!    .addEventListener("change", onToggle);
         // Color pickers: use "input" for live preview as the user drags.
         document.getElementById("s-keys-right-color")!.addEventListener("input",  onToggle);
         document.getElementById("s-keys-left-color")!  .addEventListener("input",  onToggle);
@@ -131,6 +133,7 @@ export class App {
         (document.getElementById("s-bold-text")      as HTMLInputElement).checked = s.boldText;
         (document.getElementById("s-lefty-mode")       as HTMLInputElement).checked = s.leftyMode;
         (document.getElementById("s-full-keyboard")    as HTMLInputElement).checked = s.fullKeyboard;
+        (document.getElementById("s-keys-top-down")    as HTMLInputElement).checked = s.keysTopDown;
         (document.getElementById("s-keys-right-color") as HTMLInputElement).value   = s.keysRightHandColor;
         (document.getElementById("s-keys-left-color")  as HTMLInputElement).value   = s.keysLeftHandColor;
         this.settingsOverlay.classList.remove("hidden");

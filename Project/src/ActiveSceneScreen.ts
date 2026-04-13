@@ -112,6 +112,7 @@ export class ActiveSceneScreen implements IScreen {
                 keysScene.maxKey = this.keysNoteMax;
             }
             keysScene.syncHighwayBounds();
+            keysScene.topDown        = settings.keysTopDown;
             keysScene.rightHandColor = fromHex(settings.keysRightHandColor);
             keysScene.leftHandColor  = fromHex(settings.keysLeftHandColor);
             this.scene = keysScene;
@@ -214,12 +215,13 @@ export class ActiveSceneScreen implements IScreen {
                 this.scene.minKey = s.fullKeyboard ? 21 : this.keysNoteMin;
                 this.scene.maxKey = s.fullKeyboard ? 108 : this.keysNoteMax;
                 this.scene.syncHighwayBounds();
+                this.scene.topDown        = s.keysTopDown;
                 this.scene.rightHandColor = fromHex(s.keysRightHandColor);
                 this.scene.leftHandColor  = fromHex(s.keysLeftHandColor);
             }
         };
 
-        this.buildOverlay(container);
+        this.buildOverlay(container, this.scene instanceof KeysPlayerScene3D ? this.scene : null);
 
         // Press M to toggle mock detection (2 hits / 1 miss cycle).
         this.mockKeyHandler = (e: KeyboardEvent) => {
@@ -231,7 +233,7 @@ export class ActiveSceneScreen implements IScreen {
         window.addEventListener('keydown', this.mockKeyHandler);
     }
 
-    private buildOverlay(container: HTMLElement): void {
+    private buildOverlay(container: HTMLElement, keysScene: KeysPlayerScene3D | null = null): void {
         const dur = this.totalDuration;
         const durStr = formatTime(dur);
 
@@ -253,6 +255,57 @@ export class ActiveSceneScreen implements IScreen {
                     </div>
                 </div>
             </div>`;
+
+        // Piano calibration panel — only for keys scenes so the piano image can be
+        // aligned to the physical keyboard. Sliders drive KeysPlayerScene3D properties live.
+        if (keysScene) {
+            const calPanel = document.createElement('div');
+            calPanel.style.cssText = [
+                'position:absolute', 'bottom:16px', 'left:16px', 'z-index:10',
+                'background:rgba(0,0,0,0.75)', 'border:1px solid #333', 'border-radius:8px',
+                'padding:10px 14px', 'color:#fff', 'font-family:system-ui,sans-serif',
+                'font-size:12px', 'display:flex', 'flex-direction:column', 'gap:6px',
+                'min-width:220px', 'pointer-events:auto',
+            ].join(';');
+            calPanel.innerHTML = `
+                <div style="font-weight:600;margin-bottom:2px;">Piano image</div>
+                <label style="display:flex;align-items:center;gap:8px;">
+                    <span style="min-width:36px">Scale</span>
+                    <input id="pcal-scale" type="range" min="0.5" max="3" step="0.01" value="1" style="flex:1" />
+                    <span id="pcal-scale-val" style="min-width:34px;text-align:right">1.00</span>
+                </label>
+                <label style="display:flex;align-items:center;gap:8px;">
+                    <span style="min-width:36px">X</span>
+                    <input id="pcal-x" type="range" min="-500" max="500" step="1" value="0" style="flex:1" />
+                    <span id="pcal-x-val" style="min-width:34px;text-align:right">0</span>
+                </label>
+                <label style="display:flex;align-items:center;gap:8px;">
+                    <span style="min-width:36px">Y</span>
+                    <input id="pcal-y" type="range" min="-200" max="400" step="1" value="0" style="flex:1" />
+                    <span id="pcal-y-val" style="min-width:34px;text-align:right">0</span>
+                </label>`;
+            container.appendChild(calPanel);
+
+            const scaleEl = calPanel.querySelector('#pcal-scale') as HTMLInputElement;
+            const xEl     = calPanel.querySelector('#pcal-x')     as HTMLInputElement;
+            const yEl     = calPanel.querySelector('#pcal-y')     as HTMLInputElement;
+            const scaleV  = calPanel.querySelector('#pcal-scale-val') as HTMLElement;
+            const xV      = calPanel.querySelector('#pcal-x-val')     as HTMLElement;
+            const yV      = calPanel.querySelector('#pcal-y-val')     as HTMLElement;
+
+            scaleEl.addEventListener('input', () => {
+                keysScene.pianoScale = Number(scaleEl.value);
+                scaleV.textContent = Number(scaleEl.value).toFixed(2);
+            });
+            xEl.addEventListener('input', () => {
+                keysScene.pianoOffsetX = Number(xEl.value);
+                xV.textContent = xEl.value;
+            });
+            yEl.addEventListener('input', () => {
+                keysScene.pianoOffsetZ = Number(yEl.value);
+                yV.textContent = yEl.value;
+            });
+        }
 
         const overlay  = container.querySelector('#active-overlay') as HTMLElement;
         const seekEl   = container.querySelector('#active-seek') as HTMLInputElement;
