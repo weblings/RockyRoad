@@ -147,7 +147,7 @@ export class KeysPlayerScene3D extends ChartScene3D {
 
         // Lane dividers on white keys (loop to maxKey+2 matches C# source)
         for (let key = this.minKey; key <= this.maxKey + 2; key++) {
-            if (SCALE_WHITE_BLACK[(key - this.minKey) % 12] === 0) {
+            if (SCALE_WHITE_BLACK[key % 12] === 0) {
                 this.drawKeyTimeLine(key, 0, this.startTime, this.endTime, whiteHalfAlpha);
             }
         }
@@ -166,7 +166,7 @@ export class KeysPlayerScene3D extends ChartScene3D {
             if (note.TimeOffset > this.endTime) break;
             if (note.Note < this.minKey || note.Note > this.maxKey) continue;
 
-            const isWhite    = SCALE_WHITE_BLACK[(note.Note - this.minKey) % 12] === 0;
+            const isWhite    = SCALE_WHITE_BLACK[note.Note % 12] === 0;
             const trailStart = Math.max(note.TimeOffset, this.currentTime);
             const color      = note.Hand === 'left' ? this.leftHandColor : this.rightHandColor;
 
@@ -257,12 +257,19 @@ export class KeysPlayerScene3D extends ChartScene3D {
     // Maps MIDI note number to world X coordinate.
     // One octave = 7 white keys = 56 world units (ScaleOffsets * 8).
     // Fractional keys interpolate linearly (used for centering note trails).
+    //
+    // Uses absolute chromatic position (key % 12) so the layout is correct for
+    // any minKey — not just C notes.  The original (key - minKey) % 12 only worked
+    // when minKey was itself a C (MIDI multiple of 12, e.g. 48).  For 88-key mode
+    // minKey = 21 (A0), so every key after the first B was shifted by one position.
     private getKeyPosition(key: number): number {
         const intKey = Math.floor(key);
 
         if (key === intKey) {
-            const octave = Math.floor((intKey - this.minKey) / 12);
-            return (SCALE_OFFSETS[(intKey - this.minKey) % 12] + octave * 7) * 8;
+            // Absolute white-key offset from C0 for any MIDI note.
+            const absOffset = (k: number) =>
+                SCALE_OFFSETS[k % 12] + Math.floor(k / 12) * 7;
+            return (absOffset(intKey) - absOffset(this.minKey)) * 8;
         }
 
         const pos = this.getKeyPosition(intKey);
