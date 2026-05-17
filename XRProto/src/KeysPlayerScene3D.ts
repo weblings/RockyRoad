@@ -15,8 +15,8 @@ const SCALE_WHITE_BLACK = [0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0];
 const SCALE_OFFSETS     = [0, 0.5, 1, 1.5, 2, 3, 3.5, 4, 4.5, 5, 5.5, 6];
 
 export class KeysPlayerScene3D extends ChartScene3D {
-    minKey = 48;
-    maxKey = 72;
+    minKey = 21;   // A0 — standard 88-key lower bound
+    maxKey = 108;  // C8 — standard 88-key upper bound
 
     // When true, camera looks straight down (piano-roll style) instead of the
     // default angled perspective view. Future notes appear at the top of the screen.
