@@ -21,8 +21,9 @@ import {
 
 import { loadManifest } from "./UIImage.js";
 import { FretPlayerScene3D } from "./FretPlayerScene3D.js";
+import { KeysPlayerScene3D } from "./KeysPlayerScene3D.js";
 import { SongPlayer } from "./SongPlayer.js";
-import type { SongInfo, SongStructure, SongInstrumentNotes } from "./SongFormat.js";
+import type { SongInfo, SongStructure, SongInstrumentNotes, SongKeyboardNotes } from "./SongFormat.js";
 
 // ── Hardcoded asset paths (Phase 1 prototype) ────────────────────────────────
 
@@ -31,8 +32,7 @@ const ATLAS_URL =
 
 const MANIFEST_URL = "/ImageManifest.json";
 
-const SONG_BASE =
-    "/@fs/home/andrew/Music/Charts";
+const SONG_BASE = "/songs/fur-elise";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -57,25 +57,25 @@ class HighwaySystem extends createSystem({}) {
     }
 
     update(delta: number, time: number): void {
-        const fretScene = this.world.globals.fretScene as FretPlayerScene3D | undefined;
-        if (!fretScene) return;
+        const scene = this.world.globals.highwayScene as FretPlayerScene3D | KeysPlayerScene3D | undefined;
+        if (!scene) return;
 
-        // Drive currentSecond from audio player (Phase 4).
+        // Drive currentSecond from audio player.
         const songPlayer = this.world.globals.songPlayer as SongPlayer | undefined;
         if (songPlayer) {
-            fretScene.currentSecond = songPlayer.currentSecond;
+            scene.currentSecond = songPlayer.currentSecond;
         } else {
-            fretScene.currentSecond += delta;
+            scene.currentSecond += delta;
         }
 
-        fretScene.draw(delta);
+        scene.draw(delta);
 
-        // Desktop only: map FretCamera through the anchor's world matrix.
+        // Desktop only: map scene camera through the anchor's world matrix.
         if (this.world.visibilityState.peek() !== VisibilityState.Visible) {
             const anchor = this.world.globals.anchor as Object3D | undefined;
             if (anchor) {
                 anchor.updateMatrixWorld();
-                fretScene.syncCameraTo(this.world.camera as any, anchor as any);
+                scene.syncCameraTo(this.world.camera as any, anchor as any);
             }
         }
 
@@ -164,29 +164,49 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
 
     const songPlayer = new SongPlayer();
 
-    const [songInfo, songStructure, instrumentNotes] = await Promise.all([
-        fetch(`${SONG_BASE}/song.json`).then(r => r.json()) as Promise<SongInfo>,
-        fetch(`${SONG_BASE}/arrangement.json`).then(r => r.json()) as Promise<SongStructure>,
-        fetch(`${SONG_BASE}/lead.json`).then(r => r.json()) as Promise<SongInstrumentNotes>,
+    // Stage 1: load song manifest, image manifest, and audio in parallel.
+    // Notes filename depends on the instrument part name, so song.json must load first.
+    // Audio load is optional — if song.ogg is absent, the scene still renders without sound.
+    const fetchJson = (url: string) =>
+        fetch(url).then(r => {
+            if (!r.ok) throw new Error(`HTTP ${r.status} fetching ${url}`);
+            const ct = r.headers.get('content-type') ?? '';
+            if (!ct.includes('json')) throw new Error(`Expected JSON, got ${ct} from ${url}`);
+            return r.json();
+        });
+
+    const [songInfo] = await Promise.all([
+        fetchJson(`${SONG_BASE}/song.json`) as Promise<SongInfo>,
         loadManifest(MANIFEST_URL),
-        songPlayer.loadSong(`${SONG_BASE}/song.ogg`),
-    ]) as [SongInfo, SongStructure, SongInstrumentNotes, void, void];
+        songPlayer.loadSong(`${SONG_BASE}/song.ogg`).catch(() => {}),
+    ]) as [SongInfo, void, void];
 
-    const instrumentPart = songInfo.InstrumentParts[0];
+    const part = songInfo.InstrumentParts[0];
 
-    const firstNoteTime = instrumentNotes.Notes[0]?.TimeOffset ?? 0;
+    // Stage 2: load structure and instrument-specific notes in parallel.
+    const [songStructure, rawNotes] = await Promise.all([
+        fetchJson(`${SONG_BASE}/arrangement.json`) as Promise<SongStructure>,
+        fetchJson(`${SONG_BASE}/${part.InstrumentName}.json`),
+    ]);
+
+    // Instantiate the correct scene for the instrument type — mirrors ActiveSceneScreen.
+    let highwayScene: FretPlayerScene3D | KeysPlayerScene3D;
+    let firstNoteTime: number;
+
+    if (part.InstrumentType === 'Keys') {
+        const keyboardNotes = rawNotes as SongKeyboardNotes;
+        highwayScene = new KeysPlayerScene3D(world.renderer, texture, songStructure, keyboardNotes);
+        firstNoteTime = keyboardNotes.Notes[0]?.TimeOffset ?? 0;
+    } else {
+        const instrumentNotes = rawNotes as SongInstrumentNotes;
+        highwayScene = new FretPlayerScene3D(world.renderer, texture, songStructure, instrumentNotes, part);
+        firstNoteTime = instrumentNotes.Notes[0]?.TimeOffset ?? 0;
+    }
+
     if (firstNoteTime > 0) {
         songPlayer.seekTo(firstNoteTime);
     }
-
-    const fretScene = new FretPlayerScene3D(
-        world.renderer,
-        texture,
-        songStructure,
-        instrumentNotes,
-        instrumentPart,
-    );
-    fretScene.currentSecond = songPlayer.currentSecond;
+    highwayScene.currentSecond = songPlayer.currentSecond;
 
     // ── Highway anchor ────────────────────────────────────────────────────────
     const anchor = new Object3D();
@@ -201,7 +221,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     anchorEntity.addComponent(RayInteractable);
     anchorEntity.addComponent(OneHandGrabbable, {});
 
-    world.createTransformEntity(fretScene.mesh, {
+    world.createTransformEntity(highwayScene.mesh, {
         parent: anchorEntity,
         persistent: true,
     });
@@ -269,7 +289,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     });
     panelEntity.addComponent(RayInteractable);
 
-    world.globals.fretScene  = fretScene;
+    world.globals.highwayScene = highwayScene;
     world.globals.songPlayer = songPlayer;
     world.globals.uiPanel    = uiPanel;
     world.globals.panelMesh  = panelMesh;
@@ -290,9 +310,6 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         }
     });
 
-    console.log(
-        `[XRProto] Phase 6 ready — UI panel active. ` +
-        `First note at ${firstNoteTime.toFixed(2)}s. ` +
-        "Space / right-trigger = play/pause. Right-squeeze = grab. V = enter XR.",
-    );
+}).catch((err: unknown) => {
+    console.error('[XRProto] World.create or bootstrap failed:', err);
 });

@@ -180,16 +180,22 @@ The immersive mode section ("player stands inside the highway at real scale") is
 
 **Panel A rendering:** `KeysPlayerScene3D` uses the same `QuadBatch` / `Scene3D` rendering pipeline as `FretPlayerScene3D`. It will slot into Panel A (direct ECS mesh child of world anchor) identically — no extra work.
 
+**Prerequisite — local-Z refactor:** Phase 3 findings required `FretPlayerScene3D` to switch from absolute song-time Z (`z = time * -timeScale`) to local Z (`z = (time - currentTime) * -timeScale`) so the now-line stays at Z=0 in mesh-local space. Without this, the geometry drifts invisibly off-screen as `currentSecond` advances in XR. `KeysPlayerScene3D` uses identical absolute-Z coordinates and needs the same refactor before it can work in XR. This is the first step of the piano XR port — do it before registering the mesh as an ECS entity.
+
+**Top-down mode and piano mesh in XR:** The 2D `topDown` flag makes `updateCamera()` run a straight-down camera path and shows `syncPianoMesh()` (a flat `THREE.Mesh` of `piano.png`). Both are 2D-only features:
+- In XR headset mode `updateCamera()` is already a no-op (HMD owns the camera) — no special handling needed for `topDown`.
+- `syncPianoMesh()` should be fully skipped in XR (add an `isXR` guard at the top of the method). The piano image exists to help the 2D player visualize key columns; in XR the user sees the physical keyboard directly.
+- The `topDown` setting need not be exposed in the XR HUD at all.
+
 **HUD:** The piano scene has no per-string or per-fret controls, so the HUD interaction surface is simpler than guitar. The unresolved seek/speed scrubber question (C4) applies equally.
 
 **Migration order:** get the 2D piano rendering verified first. XR migration can then treat piano and guitar as the same Panel A problem.
 
 **Physical keyboard calibration:** Before positioning the virtual highway, the player needs to tell the system where their physical keyboard starts and ends in world space. The proposed flow is a two-point tap calibration: prompt the player to touch the leftmost playable key, confirm, then the rightmost, confirm. The system records both world positions and uses them to set the anchor's X extent and yaw so the virtual keyboard aligns to the physical one.
 
-For input, two modes are needed:
+Calibration uses **controller input** as the baseline: user positions the controller tip at each key and presses trigger/confirm. Controller grip position is accessible via `player.gripSpaces`. This is straightforward to implement with the patterns validated in Phase 4.
 
-- **Hand tracking (preferred):** use the index fingertip joint position at the moment of confirmation. The WebXR Hand Input API provides 25 joints per hand — `XRHand` with `XRHandJoint` spaces — and the prototype already enables `handTracking: true`. However, IWSDK's documented player API only exposes `player.raySpaces` and `player.gripSpaces`, not individual finger joints. **Open question: does IWSDK surface per-joint hand data, or does it require dropping to the raw WebXR API?** This needs verification before committing to the finger-tap approach. The IWSDK `iwsdk-rag-local` MCP tool should have the answer.
-- **Controller fallback:** user holds the trigger or a confirm button while positioning the controller tip at each key. Controller grip position is already accessible via `player.gripSpaces`. This is the safe baseline if finger joints aren't cleanly exposed.
+**Hand tracking — stretch goal:** Fingertip position via the WebXR Hand Input API would give a more natural "touch the key" gesture, but IWSDK's player API only documents `player.raySpaces` and `player.gripSpaces` — individual finger joints may require dropping to the raw WebXR API. Leave this for a later iteration after the controller path is working and tested.
 
 The calibration result — two world-space points — feeds directly into the gizmo's initial anchor placement: midpoint becomes the anchor origin, distance between points sets the X scale relative to the virtual keyboard width, and the vector between them sets yaw. If the player's piano is rotated or tilted, the anchor inherits that orientation automatically.
 

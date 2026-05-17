@@ -49,32 +49,38 @@ export class SongPlayer implements ISongPlayer {
     }
 
     async loadSong(url: string): Promise<void> {
-        this.context = new AudioContext();
+        if (!this.context) this.context = new AudioContext();
         const response = await fetch(url);
+        if (!response.ok) throw new Error(`HTTP ${response.status} fetching ${url}`);
         const arrayBuffer = await response.arrayBuffer();
         this.buffer = await this.context.decodeAudioData(arrayBuffer);
     }
 
     play(): void {
-        if (!this.context || !this.buffer || this._playing) return;
+        if (this._playing) return;
 
+        // Ensure a context exists even when no audio loaded — used as a pure clock.
+        if (!this.context) this.context = new AudioContext();
         this.context.resume();
-
-        this.source = this.context.createBufferSource();
-        this.source.buffer = this.buffer;
-        this.source.playbackRate.value = this._playbackRate;
-        this.source.connect(this.context.destination);
 
         // startContextTime is the raw context clock at the moment play() is called.
         // currentSecond = pausedAt + (context.currentTime - startContextTime) * rate
         this.startContextTime = this.context.currentTime;
-        this.source.start(0, this.pausedAt);
 
-        const thisSource = this.source;
-        this.source.onended = () => {
-            // Guard against a seek (which stops the old source) clobbering new playback state.
-            if (this.source === thisSource) this._playing = false;
-        };
+        if (this.buffer) {
+            this.source = this.context.createBufferSource();
+            this.source.buffer = this.buffer;
+            this.source.playbackRate.value = this._playbackRate;
+            this.source.connect(this.context.destination);
+            this.source.start(0, this.pausedAt);
+
+            const thisSource = this.source;
+            this.source.onended = () => {
+                // Guard against a seek (which stops the old source) clobbering new playback state.
+                if (this.source === thisSource) this._playing = false;
+            };
+        }
+
         this._playing = true;
     }
 

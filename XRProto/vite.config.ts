@@ -30,6 +30,7 @@ export default defineConfig(({ mode }) => {
           "D:/Users/Andrew/Documents/Coding/MusicThing/dlc",
           "D:/Users/Andrew/Documents/Coding/MusicThing/ChartPlayer/ChartPlayerShared",
           "D:/Users/Andrew/Documents/Coding/MusicThing/ChartPlayer/ThreeCP/Project/public",
+          "C:/Users/mewuz/Music/Charts",
         ],
       },
     },

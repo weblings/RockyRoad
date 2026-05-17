@@ -26,6 +26,11 @@ export function multiplyAlpha(c: UIColor, s: number): UIColor {
     return { r: c.r, g: c.g, b: c.b, a: c.a * s };
 }
 
+export function fromHex(hex: string, a = 1): UIColor {
+    const n = parseInt(hex.replace('#', ''), 16);
+    return { r: ((n >> 16) & 0xff) / 255, g: ((n >> 8) & 0xff) / 255, b: (n & 0xff) / 255, a };
+}
+
 export const White       = makeColor(1, 1, 1);
 export const Black       = makeColor(0, 0, 0);
 export const Transparent = makeColor(0, 0, 0, 0);

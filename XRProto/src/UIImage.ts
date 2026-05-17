@@ -30,6 +30,7 @@ interface Manifest {
 
 export async function loadManifest(url: string): Promise<void> {
     const response = await fetch(url);
+    if (!response.ok) throw new Error(`HTTP ${response.status} fetching ${url}`);
     const manifest: Manifest = await response.json();
 
     registry.clear();
