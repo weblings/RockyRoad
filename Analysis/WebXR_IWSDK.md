@@ -191,13 +191,35 @@ The immersive mode section ("player stands inside the highway at real scale") is
 
 **Migration order:** get the 2D piano rendering verified first. XR migration can then treat piano and guitar as the same Panel A problem.
 
-**Physical keyboard calibration:** Before positioning the virtual highway, the player needs to tell the system where their physical keyboard starts and ends in world space. The proposed flow is a two-point tap calibration: prompt the player to touch the leftmost playable key, confirm, then the rightmost, confirm. The system records both world positions and uses them to set the anchor's X extent and yaw so the virtual keyboard aligns to the physical one.
+**Highway orientation in AR:** The highway lies flat on the XZ plane at piano-surface height — the same geometry as now, but positioned so it overlaps the physical keys. Local X = piano's left-right axis. Local -Z = depth into the piano (notes travel from -Z toward Z=0 as time advances). The now-line (Z=0) sits at the front edge of the physical keys — the edge nearest the player. When a note reaches Z=0 the player presses that key. The HMD looking down at the piano is the natural viewing angle; `updateCamera()` is a no-op in headset mode, same as the guitar scene.
 
-Calibration uses **controller input** as the baseline: user positions the controller tip at each key and presses trigger/confirm. Controller grip position is accessible via `player.gripSpaces`. This is straightforward to implement with the patterns validated in Phase 4.
+**Desktop testing camera:** Enable `topDown = true` on `KeysPlayerScene3D` in XRProto for desktop mode. The top-down camera gives a faithful preview of what the AR overlay will look like when viewed from above — lets you verify key alignment and note timing without the headset.
 
-**Hand tracking — stretch goal:** Fingertip position via the WebXR Hand Input API would give a more natural "touch the key" gesture, but IWSDK's player API only documents `player.raySpaces` and `player.gripSpaces` — individual finger joints may require dropping to the raw WebXR API. Leave this for a later iteration after the controller path is working and tested.
+**Physical keyboard calibration:** Before positioning the virtual highway, the player needs to tell the system where their physical keyboard starts and ends in world space. Two-point calibration flow:
+1. Prompt: *"Hold your controller at the leftmost key (A0) and press trigger"*
+2. Record `leftPoint` = controller grip world position
+3. Prompt: *"Hold your controller at the rightmost key (C8) and press trigger"*
+4. Record `rightPoint` = controller grip world position
 
-The calibration result — two world-space points — feeds directly into the gizmo's initial anchor placement: midpoint becomes the anchor origin, distance between points sets the X scale relative to the virtual keyboard width, and the vector between them sets yaw. If the player's piano is rotated or tilted, the anchor inherits that orientation automatically.
+From those two points, compute the anchor transform:
+- `position` = midpoint of left/right, Y from the grip positions
+- `scale` = `distance(left, right) / 408` (408 = highway width in world units for 88 keys; uniform scale)
+- `rotation` = quaternion aligning local +X with `normalize(rightPoint − leftPoint)`, local +Y with world up, local −Z with `cross(worldUp, rightVector)` so notes approach from the far side of the piano
+
+The now-line's Z offset relative to the front edge of the keys is not knowable from calibration alone — fine-tune with the gizmo after calibration.
+
+**CalibrationPointer interface — controller-first, hand-tracking ready:**
+```ts
+interface CalibrationPointer {
+    getWorldPosition(target: THREE.Vector3): void;
+    isConfirmPressed(): boolean;  // controller: trigger down; hands: index pinch
+}
+```
+The calibration system is written against this interface only. The controller implementation reads from `player.gripSpaces.right` (dominant hand). The hand implementation (stretch goal) would read the index distal joint from the raw WebXR Hand Input API and detect a pinch gesture. Swapping implementations requires no changes to calibration logic.
+
+**Calibration trigger — Part 1 (MVP):** Auto-prompt on first XR entry. Re-triggerable via a Recalibrate button in the UI panel.
+
+**Calibration persistence — Part 2:** Serialize anchor `position`, `quaternion`, `scale` to `localStorage` on completion. On XR entry, if a saved calibration exists, restore the anchor and skip the prompt.
 
 Calibration should be re-triggerable from the gizmo UI (a "Recalibrate" button) in case the headset drifts or the player moves.
 

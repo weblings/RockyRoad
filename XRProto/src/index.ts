@@ -148,7 +148,7 @@ const assets: AssetManifest = {
 World.create(document.getElementById("scene-container") as HTMLDivElement, {
     assets,
     xr: {
-        sessionMode: SessionMode.ImmersiveVR,
+        sessionMode: SessionMode.ImmersiveAR,
         offer: "always",
         features: { handTracking: true, layers: true },
     },
@@ -156,7 +156,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         locomotion: false,
         grabbing: true,
         physics: false,
-        sceneUnderstanding: false,
+        sceneUnderstanding: true,
         environmentRaycast: false,
     },
 }).then(async (world) => {

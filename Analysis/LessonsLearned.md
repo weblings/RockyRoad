@@ -53,3 +53,13 @@ Gotchas, non-obvious findings, and hard-won decisions that aren't obvious from r
 **Root cause:** `--mode device` skips the `iwsdkDev` Vite plugin entirely, so IWER's overlay isn't injected.
 
 **Fix:** Add a `V` keydown handler calling `world.launchXR()` as a keyboard shortcut for device mode. Already wired in `XRProto/src/index.ts`.
+
+---
+
+## XRProto: Charts without `song.ogg` freeze the highway
+
+**Symptom:** Notes render but don't move regardless of pressing play.
+
+**Root cause:** Some charts ship JSON-only with no audio file. `SongPlayer` requires a decoded audio buffer before `play()` does anything, so time never advances.
+
+**Fix:** `SongPlayer.play()` now works as a pure timer even with no audio — it creates an `AudioContext` for timekeeping whether or not a buffer was loaded. Audio playback is conditional on the buffer existing. Charts without `.ogg` now scroll correctly.
