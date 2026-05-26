@@ -79,6 +79,16 @@ The app tab appears in the list. Click **inspect** for full DevTools — console
 
 ---
 
+## XR / DOM: `+` in element IDs crashes `querySelector`
+
+**Symptom:** `Uncaught SyntaxError: Failed to execute 'querySelector' on 'Element': '#ft-px+' is not a valid selector.` Error appears at runtime in XR (no build-time warning).
+
+**Root cause:** `+` is the CSS adjacent-sibling combinator, so it is illegal inside an ID selector string passed to `querySelector`. TypeScript and Vite do not catch this; it only blows up when the selector is evaluated.
+
+**Fix:** Use alphabetic suffixes instead of operator characters in element IDs. Convention used here: `m` = minus, `p` = plus (e.g. `ft-pxm` / `ft-pxp`). Applies to any character that has CSS selector meaning: `+`, `~`, `>`, `.`, `[`, `:`, etc.
+
+---
+
 ## XRProto: Charts without `song.ogg` freeze the highway
 
 **Symptom:** Notes render but don't move regardless of pressing play.

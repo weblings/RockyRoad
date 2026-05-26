@@ -75,7 +75,7 @@ export class CalibrationSystem extends createSystem({}) {
     private _ftPZ = 0;    // local Z offset (m)
     private _ftRY = 0;    // yaw offset (degrees) — pivots around the piano center (_calMid)
     private _ftS  = 1;    // scale multiplier (1.0 = calibrated scale)
-    private _ftIncrIdx = 4; // index into INCR_STEPS; starts at 0.1 m (position still needs ~0.3–0.5 m adjustment)
+    private _ftIncrIdx = 4; // index into INCR_STEPS; starts at 0.1 m
 
     // Registered fine-tune XrButtons — removed from world.globals.xrButtons on recalibrate.
     private _ftButtons: XrButton[] = [];
@@ -133,23 +133,28 @@ export class CalibrationSystem extends createSystem({}) {
                 .setY(0)
                 .normalize();
 
-            console.log('[Calib] headLookDir =',
-                `(${this.headLookDir.x.toFixed(3)}, ${this.headLookDir.y.toFixed(3)}, ${this.headLookDir.z.toFixed(3)})`);
-
             this.applyCalibration();
             this.state = 'done';
-            this.showFineTunePanel();
+            this.showFineTunePanel(); // builds HTML and caches span refs
+            this.reapply();           // apply Z heuristic; also updates displayed values
             return;
         }
 
         // ── Steps 1 & 2: capture grip position ───────────────────────────────
-        const gripSpace = this.player.gripSpaces.right ?? this.player.gripSpaces.left;
+        // A0 is on the LEFT side of the keyboard — user naturally reaches with
+        // their left hand. C8 is on the RIGHT — right hand. Matching grip to
+        // the expected hand is critical: always reading `right` meant step 1
+        // captured the right controller hanging idle, not the left hand on A0.
+        const isLeftStep = this.state === 'prompt_left';
+        const gripSpace = isLeftStep
+            ? (this.player.gripSpaces.left  ?? this.player.gripSpaces.right)
+            : (this.player.gripSpaces.right ?? this.player.gripSpaces.left);
         if (!gripSpace) return;
 
         (gripSpace as unknown as THREE.Object3D).updateMatrixWorld();
         (gripSpace as unknown as THREE.Object3D).getWorldPosition(this.scratchPos);
 
-        if (this.state === 'prompt_left') {
+        if (isLeftStep) {
             this.leftPoint.copy(this.scratchPos);
             this.state = 'prompt_right';
         } else {
@@ -167,75 +172,50 @@ export class CalibrationSystem extends createSystem({}) {
         const anchor = this.world.globals.anchor as THREE.Object3D | undefined;
         if (!anchor) return;
 
-        const fmt = (v: THREE.Vector3) =>
-            `(${v.x.toFixed(3)}, ${v.y.toFixed(3)}, ${v.z.toFixed(3)})`;
-
-        console.log('[Calib] leftPoint  =', fmt(this.leftPoint));
-        console.log('[Calib] rightPoint =', fmt(this.rightPoint));
-
         // Physical midpoint between the two grip positions.
         const mid = new THREE.Vector3()
             .addVectors(this.leftPoint, this.rightPoint)
             .multiplyScalar(0.5);
 
-        // Scale: use the 88-key preset rather than measuring grip-to-grip distance.
-        // The grip center is not at the key surface, and reach angle skews the
-        // measured span — in practice the grip-to-grip distance covers only ~40%
-        // of the actual keyboard width even when "touching" A0 and C8.
+        // Scale from the 88-key preset.  Using measured grip-to-grip was unreliable
+        // (grip center ≠ key surface) — empirically off by 2.5× before the fix.
         const scale = PIANO_SCALE_88;
-        const physicalWidth = this.leftPoint.distanceTo(this.rightPoint);
-
-        console.log('[Calib] mid           =', fmt(mid));
-        console.log('[Calib] grip-to-grip  =', physicalWidth.toFixed(4), 'm (for reference; not used for scale)');
-        console.log('[Calib] scale         =', scale.toFixed(6), '(88-key preset)');
 
         const worldUp = new THREE.Vector3(0, 1, 0);
 
-        // Piano's local +X axis: derived from head look direction captured in step 3.
-        // headLookDir × worldUp gives the player's rightward direction, which is A0→C8.
-        // This avoids the ~22° error introduced by using controller grip positions,
-        // whose measured vector reflects reach angle rather than the keyboard axis.
+        // Piano's local +X axis: derived from head look direction (step 3).
+        // headLookDir × worldUp gives the player's rightward direction = A0→C8.
+        // Avoids ~22° error from using controller-to-controller vector.
         const rightVec = new THREE.Vector3()
             .crossVectors(this.headLookDir, worldUp)
             .normalize();
 
-        // Piano's local +Z axis: perpendicular to rightVec in the horizontal plane,
-        // pointing FROM piano TOWARD player (so notes scroll toward the viewer).
-        // worldUp × rightVec points toward the piano; negate for toward-player direction.
+        // Piano's local +Z axis: perpendicular to rightVec, pointing FROM piano
+        // TOWARD player so notes scroll toward the viewer.
         const forward = new THREE.Vector3().crossVectors(worldUp, rightVec).negate();
-        // Sanity check: forward should oppose headLookDir (headLookDir→piano, forward←piano).
-        const lookDot = forward.dot(this.headLookDir);
-
-        console.log('[Calib] rightVec (head-derived) =', fmt(rightVec));
-        console.log('[Calib] forward (localZ)         =', fmt(forward));
-        console.log('[Calib] forward · headLookDir    =', lookDot.toFixed(4),
-            '(expect negative — forward points away from player)');
 
         // Build rotation: columns = local X, Y, Z axes in world space.
         const matrix = new THREE.Matrix4().makeBasis(rightVec, worldUp, forward);
         const quaternion = new THREE.Quaternion().setFromRotationMatrix(matrix);
 
         // Position the anchor so that local X=LOCAL_MID_X (midpoint between
-        // A0-center=2 and C8-center=410) lands on the physical midpoint.
-        // anchorPos = mid − rightVec × LOCAL_MID_X × scale
+        // A0-center=2 and C8-center=410) lands on the physical grip midpoint.
         const anchorPos = mid.clone().addScaledVector(rightVec, -LOCAL_MID_X * scale);
-
-        console.log('[Calib] offset (m)   =', (LOCAL_MID_X * scale).toFixed(4), 'm');
-        console.log('[Calib] anchorPos    =', fmt(anchorPos));
-        console.log('[Calib] anchor.scale =', scale.toFixed(6));
 
         anchor.position.copy(anchorPos);
         anchor.quaternion.copy(quaternion);
         anchor.scale.setScalar(scale);
-
-        console.log('[Calib] ✅ anchor applied — position/quaternion/scale set');
 
         // Store calibrated baseline for fine-tuning. Reset all offsets.
         // _calMid is the physical midpoint — rotation pivots around it.
         this._calMid.copy(mid);
         this._calQuat.copy(quaternion);
         this._calScale = scale;
-        this._ftPX = 0; this._ftPY = 0; this._ftPZ = 0;
+        this._ftPX = 0; this._ftPY = 0;
+        // Z heuristic: the controller grip space sits slightly closer to the player
+        // than the actual key surface (arm angle, grip body offset).  Empirically
+        // ~5 cm on a standard piano with the correct-hand calibration flow.
+        this._ftPZ = -0.05;
         this._ftRY = 0;
         this._ftS  = 1;
     }
@@ -422,8 +402,8 @@ export class CalibrationSystem extends createSystem({}) {
 
         const messages: Record<CalibrationState, string> = {
             idle:         '',
-            prompt_left:  '🎹 Step 1 of 3<br><br>Rest your controller on the<br><b>leftmost key (A0)</b> and pull the trigger.',
-            prompt_right: '🎹 Step 2 of 3<br><br>Left key recorded.<br>Rest your controller on the<br><b>rightmost key (C8)</b> and pull the trigger.',
+            prompt_left:  '🎹 Step 1 of 3<br><br>Rest your <b>LEFT controller</b><br>on the leftmost key <b>(A0)</b><br>and pull the left trigger.',
+            prompt_right: '🎹 Step 2 of 3<br><br>Left key recorded ✓<br>Rest your <b>RIGHT controller</b><br>on the rightmost key <b>(C8)</b><br>and pull the right trigger.',
             prompt_look:  '🎹 Step 3 of 3<br><br>Sit at your piano and<br><b>look directly forward</b>, then pull the trigger.',
             done:         '',  // fine-tune panel takes over
         };
