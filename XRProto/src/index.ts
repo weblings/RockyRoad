@@ -23,6 +23,7 @@ import { loadManifest } from "./UIImage.js";
 import { FretPlayerScene3D } from "./FretPlayerScene3D.js";
 import { KeysPlayerScene3D } from "./KeysPlayerScene3D.js";
 import { SongPlayer } from "./SongPlayer.js";
+import { CalibrationSystem } from "./CalibrationSystem.js";
 import type { SongInfo, SongStructure, SongInstrumentNotes, SongKeyboardNotes } from "./SongFormat.js";
 
 // ── Hardcoded asset paths (Phase 1 prototype) ────────────────────────────────
@@ -296,6 +297,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     world.globals.panelTex   = panelTex;
     world.globals.xrButtons  = xrButtons;
 
+    world.registerSystem(CalibrationSystem);
     world.registerSystem(HighwaySystem);
 
     // Desktop: Space bar toggles play/pause. V launches XR (no IWER button in device mode).

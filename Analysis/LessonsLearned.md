@@ -56,6 +56,29 @@ Gotchas, non-obvious findings, and hard-won decisions that aren't obvious from r
 
 ---
 
+## Debugging JS console from Quest Browser on PC
+
+**Problem:** `console.log` output from a WebXR app running in Meta Quest Browser is not accessible — no DevTools on-device and the Quest can't inspect itself.
+
+**Solution:** Connect the Quest via USB with ADB enabled (Settings → Developer Mode), then:
+
+```powershell
+# 1. Forward the Chrome DevTools port
+& "<path-to-adb>" forward tcp:9222 localabstract:chrome_devtools_remote
+
+# 2. Open in Chrome on PC
+chrome://inspect
+```
+
+The app tab appears in the list. Click **inspect** for full DevTools — console, network, breakpoints. Works with Meta Quest Browser (Chromium-based).
+
+**ADB path on this machine (Andrew's PC):**
+`C:\Program Files\Unity\Hub\Editor\6000.0.30f1\Editor\Data\PlaybackEngines\AndroidPlayer\SDK\platform-tools\adb.exe`
+
+**Note:** `adb logcat -s chromium` shows XR session lifecycle events but NOT `console.log` output from JS. Use `chrome://inspect` instead.
+
+---
+
 ## XRProto: Charts without `song.ogg` freeze the highway
 
 **Symptom:** Notes render but don't move regardless of pressing play.

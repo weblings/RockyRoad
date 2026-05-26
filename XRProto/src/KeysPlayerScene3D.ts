@@ -22,7 +22,8 @@ export class KeysPlayerScene3D extends ChartScene3D {
     // default angled perspective view. Future notes appear at the top of the screen.
     // XR note: topDown only affects updateCamera(); in headset mode updateCamera()
     // is a no-op (HMD owns the camera), so topDown has no effect in XR.
-    topDown = false;
+    // Default true in XRProto — desktop view matches the AR overhead perspective.
+    topDown = true;
 
     rightHandColor: UIColor = fromHex('#2E71D6');
     leftHandColor:  UIColor = fromHex('#E33737');
