@@ -4,9 +4,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "dev:device": "vite --mode device",
-    "build": "vite build",
+    "bake-songs": "tsx tools/bake-songs.ts",
+    "dev": "npm run bake-songs && vite",
+    "dev:device": "npm run bake-songs && vite --mode device",
+    "build": "npm run bake-songs && vite build",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -16,6 +17,7 @@
   },
   "devDependencies": {
     "@felixtz/iwsdk-rag-mcp": "^0.3.1",
+    "tsx": "^4.21.0",
     "@iwsdk/vite-plugin-dev": "0.3.1",
     "@iwsdk/vite-plugin-uikitml": "0.3.1",
     "@meta-quest/hzdb": "^1.0.0",

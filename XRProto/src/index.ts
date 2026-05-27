@@ -14,7 +14,6 @@ import {
     RayInteractable,
     SessionMode,
     Vector3,
-    VisibilityState,
     World,
     createSystem,
 } from "@iwsdk/core";
@@ -24,70 +23,71 @@ import { FretPlayerScene3D } from "./FretPlayerScene3D.js";
 import { KeysPlayerScene3D } from "./KeysPlayerScene3D.js";
 import { SongPlayer } from "./SongPlayer.js";
 import { CalibrationSystem } from "./CalibrationSystem.js";
-import type { SongInfo, SongStructure, SongInstrumentNotes, SongKeyboardNotes } from "./SongFormat.js";
+import { XRSongLibrary, type SongManifestEntry } from "./XRSongLibrary.js";
+import { XRPreScene } from "./XRPreScene.js";
+import { XRActiveScene } from "./XRActiveScene.js";
+import type { XrButton } from "./XRTypes.js";
+import type { SongStructure, SongKeyboardNotes, SongSection, SongInfo } from "./SongFormat.js";
 
-// ── Hardcoded asset paths (Phase 1 prototype) ────────────────────────────────
+// ── Asset paths ───────────────────────────────────────────────────────────────
 
 const ATLAS_URL =
     "/@fs/D:/Users/Andrew/Documents/Coding/MusicThing/ChartPlayer/ChartPlayerShared/Content/Textures/UISheet0.png";
 
-const MANIFEST_URL = "/ImageManifest.json";
-
-const SONG_BASE = "/songs/fur-elise";
-
-// ── Types ─────────────────────────────────────────────────────────────────────
-
-interface XrButton { el: HTMLButtonElement; onClick: () => void; }
+const IMAGE_MANIFEST_URL = "/ImageManifest.json";
+const SONG_MANIFEST_URL  = "/songs/manifest.json";
 
 // ── IWSDK HighwaySystem ───────────────────────────────────────────────────────
 
 class HighwaySystem extends createSystem({}) {
-    // Pre-allocated scratch objects — no allocations in update().
     private raycaster!: Raycaster;
     private rayOrigin!: Vector3;
     private rayDir!: Vector3;
 
-    // Panel render throttle state.
     private lastPanelRender = -999;
     private panelRenderPending = false;
 
     init(): void {
         this.raycaster = new Raycaster();
         this.rayOrigin = new Vector3();
-        this.rayDir = new Vector3();
+        this.rayDir    = new Vector3();
     }
 
     update(delta: number, time: number): void {
+        // ── Highway scene — only when a song is loaded ────────────────────────
         const scene = this.world.globals.highwayScene as FretPlayerScene3D | KeysPlayerScene3D | undefined;
-        if (!scene) return;
-
-        // Drive currentSecond from audio player.
-        const songPlayer = this.world.globals.songPlayer as SongPlayer | undefined;
-        if (songPlayer) {
-            scene.currentSecond = songPlayer.currentSecond;
-        } else {
-            scene.currentSecond += delta;
-        }
-
-        scene.draw(delta);
-
-        // Desktop only: map scene camera through the anchor's world matrix.
-        if (this.world.visibilityState.peek() !== VisibilityState.Visible) {
-            const anchor = this.world.globals.anchor as Object3D | undefined;
-            if (anchor) {
-                anchor.updateMatrixWorld();
-                scene.syncCameraTo(this.world.camera as any, anchor as any);
+        if (scene) {
+            type RollbackState = { from: number; to: number; startMs: number };
+            const rollback = this.world.globals.rollbackState as RollbackState | undefined;
+            if (rollback) {
+                const elapsed  = (performance.now() - rollback.startMs) / 1000;
+                const progress = Math.min(elapsed / 0.8, 1);
+                const eased    = 1 - Math.pow(1 - progress, 3);
+                scene.currentSecond = rollback.from + (rollback.to - rollback.from) * eased;
+                if (progress >= 1) this.world.globals.rollbackState = undefined;
+            } else {
+                const songPlayer = this.world.globals.songPlayer as SongPlayer | undefined;
+                if (songPlayer) {
+                    scene.currentSecond = songPlayer.currentSecond;
+                } else {
+                    scene.currentSecond += delta;
+                }
             }
+            scene.draw(delta);
         }
 
         // ── Panel: throttled html2canvas render (~10 fps) ─────────────────────
+        // Runs regardless of whether a song is loaded — the panel shows library/
+        // pre-scene/active screens at all times.
         const uiPanel   = this.world.globals.uiPanel   as HTMLDivElement  | undefined;
-        const panelMesh = this.world.globals.panelMesh as Mesh            | undefined;
         const panelTex  = this.world.globals.panelTex  as CanvasTexture   | undefined;
         const xrButtons = this.world.globals.xrButtons as XrButton[]      | undefined;
+        const panelMesh = this.world.globals.panelMesh as Mesh            | undefined;
 
         if (uiPanel && panelTex && !this.panelRenderPending
                 && time - this.lastPanelRender > 0.1) {
+            // Let the active scene update seek-bar position and time label before capture.
+            (this.world.globals.updateActivePanel as (() => void) | undefined)?.();
             this.panelRenderPending = true;
             this.lastPanelRender = time;
             html2canvas(uiPanel, { backgroundColor: null, logging: false }).then(canvas => {
@@ -98,11 +98,12 @@ class HighwaySystem extends createSystem({}) {
             }).catch(() => { this.panelRenderPending = false; });
         }
 
-        // Either trigger: hit-test panel and fire the button under the ray.
+        // ── Ray hit-test: fire buttons under the controller ray ───────────────
         const hands = [
             { pad: this.input.gamepads.left,  ray: this.player.raySpaces.left },
             { pad: this.input.gamepads.right, ray: this.player.raySpaces.right },
         ] as const;
+
         for (const { pad, ray } of hands) {
             if (!pad?.getButtonDown(InputComponent.Trigger)) continue;
             if (!panelMesh || !uiPanel || !xrButtons || !ray) continue;
@@ -122,13 +123,17 @@ class HighwaySystem extends createSystem({}) {
             const pixX = uv.x * panelRect.width;
             const pixY = (1 - uv.y) * panelRect.height;
 
-            for (const { el, onClick } of xrButtons) {
-                const r = el.getBoundingClientRect();
+            for (const btn of xrButtons) {
+                const r  = btn.el.getBoundingClientRect();
                 const bx = r.left - panelRect.left;
                 const by = r.top  - panelRect.top;
                 if (pixX >= bx && pixX <= bx + r.width
                         && pixY >= by && pixY <= by + r.height) {
-                    onClick();
+                    if (btn.onClickAt) {
+                        btn.onClickAt((pixX - bx) / r.width);
+                    } else {
+                        btn.onClick?.();
+                    }
                     break;
                 }
             }
@@ -139,11 +144,7 @@ class HighwaySystem extends createSystem({}) {
 // ── Bootstrap ─────────────────────────────────────────────────────────────────
 
 const assets: AssetManifest = {
-    atlas: {
-        url: ATLAS_URL,
-        type: AssetType.Texture,
-        priority: "critical",
-    },
+    atlas: { url: ATLAS_URL, type: AssetType.Texture, priority: "critical" },
 };
 
 World.create(document.getElementById("scene-container") as HTMLDivElement, {
@@ -161,55 +162,23 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         environmentRaycast: false,
     },
 }).then(async (world) => {
-    const texture = AssetManager.getTexture("atlas")!;
+    const texture  = AssetManager.getTexture("atlas")!;
 
-    const songPlayer = new SongPlayer();
-
-    // Stage 1: load song manifest, image manifest, and audio in parallel.
-    // Notes filename depends on the instrument part name, so song.json must load first.
-    // Audio load is optional — if song.ogg is absent, the scene still renders without sound.
-    const fetchJson = (url: string) =>
+    const fetchJson = <T>(url: string): Promise<T> =>
         fetch(url).then(r => {
             if (!r.ok) throw new Error(`HTTP ${r.status} fetching ${url}`);
             const ct = r.headers.get('content-type') ?? '';
             if (!ct.includes('json')) throw new Error(`Expected JSON, got ${ct} from ${url}`);
-            return r.json();
+            return r.json() as Promise<T>;
         });
 
-    const [songInfo] = await Promise.all([
-        fetchJson(`${SONG_BASE}/song.json`) as Promise<SongInfo>,
-        loadManifest(MANIFEST_URL),
-        songPlayer.loadSong(`${SONG_BASE}/song.ogg`).catch(() => {}),
-    ]) as [SongInfo, void, void];
-
-    const part = songInfo.InstrumentParts[0];
-
-    // Stage 2: load structure and instrument-specific notes in parallel.
-    const [songStructure, rawNotes] = await Promise.all([
-        fetchJson(`${SONG_BASE}/arrangement.json`) as Promise<SongStructure>,
-        fetchJson(`${SONG_BASE}/${part.InstrumentName}.json`),
+    // Load image manifest and song manifest in parallel.
+    const [songManifest] = await Promise.all([
+        fetchJson<SongManifestEntry[]>(SONG_MANIFEST_URL),
+        loadManifest(IMAGE_MANIFEST_URL),
     ]);
 
-    // Instantiate the correct scene for the instrument type — mirrors ActiveSceneScreen.
-    let highwayScene: FretPlayerScene3D | KeysPlayerScene3D;
-    let firstNoteTime: number;
-
-    if (part.InstrumentType === 'Keys') {
-        const keyboardNotes = rawNotes as SongKeyboardNotes;
-        highwayScene = new KeysPlayerScene3D(world.renderer, texture, songStructure, keyboardNotes);
-        firstNoteTime = keyboardNotes.Notes[0]?.TimeOffset ?? 0;
-    } else {
-        const instrumentNotes = rawNotes as SongInstrumentNotes;
-        highwayScene = new FretPlayerScene3D(world.renderer, texture, songStructure, instrumentNotes, part);
-        firstNoteTime = instrumentNotes.Notes[0]?.TimeOffset ?? 0;
-    }
-
-    if (firstNoteTime > 0) {
-        songPlayer.seekTo(firstNoteTime);
-    }
-    highwayScene.currentSecond = songPlayer.currentSecond;
-
-    // ── Highway anchor ────────────────────────────────────────────────────────
+    // ── Anchor (empty — highway mesh attached after song selection) ───────────
     const anchor = new Object3D();
     anchor.scale.setScalar(0.003);
     anchor.position.set(-0.45, 0.8, -0.5);
@@ -217,63 +186,22 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         parent: world.sceneEntity,
         persistent: true,
     });
-    world.globals.anchor = anchor;
-
     anchorEntity.addComponent(RayInteractable);
     anchorEntity.addComponent(OneHandGrabbable, {});
+    world.globals.anchor = anchor;
 
-    world.createTransformEntity(highwayScene.mesh, {
-        parent: anchorEntity,
-        persistent: true,
-    });
-
-    // ── UI Panel (Phase 6) ────────────────────────────────────────────────────
-    // DOM div is off-screen but still laid out so getBoundingClientRect() works.
+    // ── UI panel ──────────────────────────────────────────────────────────────
     const uiPanel = document.createElement("div");
     uiPanel.style.cssText = [
-        "position:fixed",
-        "left:-9999px",
-        "top:0",
-        "width:400px",
-        "height:300px",
-        "background:#1a1a2e",
-        "color:#e8e8e8",
-        "font-family:sans-serif",
-        "padding:20px",
-        "box-sizing:border-box",
-        "border-radius:8px",
+        "position:fixed", "left:-9999px", "top:0",
+        "width:400px", "height:300px", "background:#1a1a2e",
+        "color:#e8e8e8", "font-family:sans-serif", "padding:0",
+        "box-sizing:border-box", "border-radius:8px",
     ].join(";");
-    uiPanel.innerHTML = `
-        <div style="font-size:20px;font-weight:bold;margin-bottom:20px">
-            ${(songInfo as any).Title ?? "ChartPlayer XR"}
-        </div>
-        <button id="xr-btn-play" style="display:block;width:100%;margin-bottom:12px;
-            padding:14px;background:#3a3a7a;color:#e8e8e8;border:none;border-radius:6px;
-            font-size:16px;cursor:pointer">
-            ▶ Play / Pause
-        </button>
-        <button id="xr-btn-exit" style="display:block;width:100%;
-            padding:14px;background:#7a3a3a;color:#e8e8e8;border:none;border-radius:6px;
-            font-size:16px;cursor:pointer">
-            ✕ Exit XR
-        </button>
-    `;
     document.body.appendChild(uiPanel);
 
-    const xrButtons: XrButton[] = [
-        {
-            el: uiPanel.querySelector("#xr-btn-play") as HTMLButtonElement,
-            onClick: () => { if (songPlayer.isPlaying) songPlayer.pause(); else songPlayer.play(); },
-        },
-        {
-            el: uiPanel.querySelector("#xr-btn-exit") as HTMLButtonElement,
-            onClick: () => world.exitXR(),
-        },
-    ];
-
-    // 400×300 canvas backs the CanvasTexture.
     const panelCanvas = document.createElement("canvas");
-    panelCanvas.width = 400;
+    panelCanvas.width  = 400;
     panelCanvas.height = 300;
     const panelTex = new CanvasTexture(panelCanvas);
 
@@ -281,7 +209,6 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         new PlaneGeometry(0.4, 0.3),
         new MeshBasicMaterial({ map: panelTex, transparent: true }),
     );
-    // Position: to the right of and slightly above the highway anchor.
     panelMesh.position.set(0.25, 1.3, -0.6);
 
     const panelEntity = world.createTransformEntity(panelMesh, {
@@ -290,22 +217,207 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     });
     panelEntity.addComponent(RayInteractable);
 
-    world.globals.highwayScene = highwayScene;
-    world.globals.songPlayer = songPlayer;
-    world.globals.uiPanel    = uiPanel;
-    world.globals.panelMesh  = panelMesh;
-    world.globals.panelTex   = panelTex;
-    world.globals.xrButtons  = xrButtons;
+    const xrButtons: XrButton[] = [];
+
+    world.globals.uiPanel   = uiPanel;
+    world.globals.panelMesh = panelMesh;
+    world.globals.panelTex  = panelTex;
+    world.globals.xrButtons = xrButtons;
+
+    // ── App state machine ─────────────────────────────────────────────────────
+
+    // Tracks the current highway scene entity so we can dispose it before loading
+    // a new song. Only the ECS entity wrapper is disposed; the scene's GPU resources
+    // are released by GC (acceptable for a prototype).
+    let highwayEntity: { dispose(): void } | null = null;
+
+    function clearXrButtons(): void {
+        xrButtons.length = 0;
+    }
+
+    function showLibrary(): void {
+        clearXrButtons();
+        // Pause any playing song when returning to the library.
+        (world.globals.songPlayer as SongPlayer | undefined)?.pause();
+        library.show(uiPanel, xrButtons, showPreScene);
+    }
+
+    function showPreScene(entry: SongManifestEntry): void {
+        clearXrButtons();
+        preScene.show(
+            uiPanel,
+            xrButtons,
+            entry,
+            () => (world.globals.tryLoadCalibration as (() => boolean) | undefined)?.() ?? false,
+            playEntry,
+            calibrateAndPlay,
+            showLibrary,
+        );
+    }
+
+    // Shared song-load logic. Disposes any previous highway, fetches data,
+    // creates the scene, and attaches it to the anchor. Returns null if unsupported.
+    async function loadSong(
+        entry: SongManifestEntry,
+        partName: string,
+    ): Promise<{ songPlayer: SongPlayer; sections: SongSection[]; totalDuration: number } | null> {
+        if (highwayEntity) {
+            highwayEntity.dispose();
+            highwayEntity = null;
+        }
+        world.globals.highwayScene = undefined;
+        world.globals.songPlayer   = undefined;
+
+        const part = entry.parts.find(p => p.name === partName);
+        if (!part || part.type !== 'Keys') return null; // XRProto v1: Keys only
+
+        const SONG_BASE  = `/songs/${entry.folder}`;
+        const songPlayer = new SongPlayer();
+
+        const [songStructure, rawNotes, songInfo] = await Promise.all([
+            fetchJson<SongStructure>(`${SONG_BASE}/arrangement.json`),
+            fetchJson<SongKeyboardNotes>(`${SONG_BASE}/${partName}.json`),
+            fetchJson<SongInfo>(`${SONG_BASE}/song.json`),
+            songPlayer.loadSong(`${SONG_BASE}/song.ogg`).catch(() => {}),
+        ]) as [SongStructure, SongKeyboardNotes, SongInfo, void];
+
+        const scene = new KeysPlayerScene3D(world.renderer, texture, songStructure, rawNotes);
+        const firstNoteTime = rawNotes.Notes[0]?.TimeOffset ?? 0;
+        if (firstNoteTime > 0) songPlayer.seekTo(firstNoteTime);
+        scene.currentSecond = songPlayer.currentSecond;
+
+        highwayEntity = world.createTransformEntity(scene.mesh, {
+            parent: anchorEntity,
+            persistent: true,
+        });
+        world.globals.highwayScene = scene;
+        world.globals.songPlayer   = songPlayer;
+
+        const totalDuration = songPlayer.duration > 0
+            ? songPlayer.duration
+            : (songInfo.SongLengthSeconds ?? 0);
+
+        return { songPlayer, sections: rawNotes.Sections ?? [], totalDuration };
+    }
+
+    // Saved calibration path: load song then go straight to active scene.
+    async function playEntry(entry: SongManifestEntry, partName: string): Promise<void> {
+        clearXrButtons();
+        uiPanel.innerHTML = `
+            <div style="font-size:18px;padding:24px;text-align:center;
+                        color:#e8e8e8;font-family:sans-serif">⏳ Loading…</div>`;
+
+        const result = await loadSong(entry, partName);
+        if (!result) { showLibrary(); return; }
+        showActiveScene(entry, result.songPlayer, result.sections, result.totalDuration);
+    }
+
+    // No saved calibration path: load song first (highway visible), then calibrate.
+    async function calibrateAndPlay(entry: SongManifestEntry, partName: string): Promise<void> {
+        clearXrButtons();
+        uiPanel.innerHTML = `
+            <div style="font-size:18px;padding:24px;text-align:center;
+                        color:#e8e8e8;font-family:sans-serif">⏳ Loading…</div>`;
+
+        const result = await loadSong(entry, partName);
+        if (!result) { showLibrary(); return; }
+        const { songPlayer, sections, totalDuration } = result;
+
+        // Highway is now attached to the anchor and rendering — start calibration
+        // so the user can see the highway move into alignment as they calibrate.
+        (world.globals.startCalibration as ((d: () => void) => void) | undefined)?.(
+            () => showActiveScene(entry, songPlayer, sections, totalDuration),
+        );
+    }
+
+    function showActiveScene(
+        entry: SongManifestEntry,
+        songPlayer: SongPlayer,
+        sections: SongSection[],
+        totalDuration: number,
+    ): void {
+        clearXrButtons();
+        world.globals.updateActivePanel = undefined;
+        activeScene.show(
+            uiPanel,
+            xrButtons,
+            entry.title,
+            songPlayer,
+            totalDuration,
+            sections,
+            (done: () => void) => {
+                (world.globals.recalibrate as ((d: () => void) => void) | undefined)?.(done);
+            },
+            (pausedAt: number) => resumeWithCountdown(pausedAt, entry, songPlayer, sections, totalDuration),
+            (cb: () => void) => { world.globals.updateActivePanel = cb; },
+            () => {
+                songPlayer.pause();
+                world.globals.updateActivePanel = undefined;
+                showLibrary();
+            },
+        );
+    }
+
+    // 3-2-1 countdown with 3s scroll-back animation on resume.
+    function resumeWithCountdown(
+        pausedAt: number,
+        entry: SongManifestEntry,
+        songPlayer: SongPlayer,
+        sections: SongSection[],
+        totalDuration: number,
+    ): void {
+        const resumeAt = Math.max(0, pausedAt - 3);
+
+        // Pause audio and seek to the rollback position.
+        songPlayer.pause();
+        songPlayer.seekTo(resumeAt);
+
+        // Drive scene.currentSecond backward via HighwaySystem rollback animation.
+        world.globals.rollbackState = { from: pausedAt, to: resumeAt, startMs: performance.now() };
+
+        // Replace panel with countdown; no XR buttons during countdown.
+        clearXrButtons();
+        world.globals.updateActivePanel = undefined;
+
+        const showCount = (n: number) => {
+            uiPanel.innerHTML = `
+                <div style="display:flex;align-items:center;justify-content:center;
+                            height:100%;font-size:80px;color:#e8e8e8;font-family:sans-serif">
+                    ${n}
+                </div>`;
+        };
+
+        showCount(3);
+        setTimeout(() => showCount(2), 1000);
+        setTimeout(() => showCount(1), 2000);
+        setTimeout(() => {
+            songPlayer.play();
+            showActiveScene(entry, songPlayer, sections, totalDuration);
+        }, 3000);
+    }
+
+    // ── Screens ───────────────────────────────────────────────────────────────
+
+    const library    = new XRSongLibrary(songManifest);
+    const preScene   = new XRPreScene();
+    const activeScene = new XRActiveScene();
+
+    // ── Systems ───────────────────────────────────────────────────────────────
 
     world.registerSystem(CalibrationSystem);
     world.registerSystem(HighwaySystem);
 
-    // Desktop: Space bar toggles play/pause. V launches XR (no IWER button in device mode).
+    // ── Initial state ─────────────────────────────────────────────────────────
+
+    showLibrary();
+
+    // ── Keyboard shortcuts (desktop / device mode) ────────────────────────────
+
     document.addEventListener("keydown", (e) => {
         if (e.code === "Space" && !e.repeat) {
             e.preventDefault();
-            if (songPlayer.isPlaying) songPlayer.pause();
-            else songPlayer.play();
+            const sp = world.globals.songPlayer as SongPlayer | undefined;
+            if (sp) { if (sp.isPlaying) sp.pause(); else sp.play(); }
         }
         if (e.code === "KeyV" && !e.repeat) {
             world.launchXR();
