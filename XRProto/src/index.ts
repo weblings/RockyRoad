@@ -47,6 +47,11 @@ class HighwaySystem extends createSystem({}) {
     private lastPanelRender = -999;
     private panelRenderPending = false;
 
+    // Scrub state — active while the user holds trigger over the seek bar.
+    private scrubBtn: XrButton | null = null;
+    private scrubHandIdx = -1; // index into hands[] array; -1 = not scrubbing
+    private scrubLastX = 0;
+
     init(): void {
         this.raycaster = new Raycaster();
         this.rayOrigin = new Vector3();
@@ -98,19 +103,59 @@ class HighwaySystem extends createSystem({}) {
             }).catch(() => { this.panelRenderPending = false; });
         }
 
-        // ── Ray hit-test: fire buttons under the controller ray ───────────────
+        // ── Ray hit-test: scrub drag and button clicks ────────────────────────
         const hands = [
             { pad: this.input.gamepads.left,  ray: this.player.raySpaces.left },
             { pad: this.input.gamepads.right, ray: this.player.raySpaces.right },
         ] as const;
 
-        for (const { pad, ray } of hands) {
+        // Helper: cast the active ray against the panel; return normalised X within
+        // el (clamped 0–1), or null if the ray misses the panel entirely.
+        const rayNormX = (
+            ray: (typeof hands)[number]['ray'],
+            el: HTMLElement,
+        ): number | null => {
+            if (!panelMesh || !uiPanel || !ray) return null;
+            ray.updateMatrixWorld();
+            panelMesh.updateMatrixWorld();
+            ray.getWorldPosition(this.rayOrigin);
+            this.rayDir.set(0, 0, -1).transformDirection(ray.matrixWorld);
+            this.raycaster.set(this.rayOrigin, this.rayDir);
+            const hits = this.raycaster.intersectObject(panelMesh);
+            if (hits.length === 0 || !hits[0].uv) return null;
+            const panelRect = uiPanel.getBoundingClientRect();
+            const pixX = hits[0].uv.x * panelRect.width;
+            const r    = el.getBoundingClientRect();
+            return Math.max(0, Math.min((pixX - (r.left - panelRect.left)) / r.width, 1));
+        };
+
+        // ── Active scrub: move or end ─────────────────────────────────────────
+        if (this.scrubBtn !== null && this.scrubHandIdx >= 0) {
+            const { pad, ray } = hands[this.scrubHandIdx];
+            if (pad?.getButtonPressed(InputComponent.Trigger)) {
+                // Trigger still held — update scrub position.
+                const nx = rayNormX(ray, this.scrubBtn.el);
+                if (nx !== null && nx !== this.scrubLastX) {
+                    this.scrubLastX = nx;
+                    this.scrubBtn.onScrubMove?.(nx);
+                }
+            } else {
+                // Trigger released — finalise at last known position.
+                this.scrubBtn.onScrubEnd?.(this.scrubLastX);
+                this.scrubBtn     = null;
+                this.scrubHandIdx = -1;
+            }
+            return; // don't start new clicks while scrubbing
+        }
+
+        // ── New button press ──────────────────────────────────────────────────
+        for (let i = 0; i < hands.length; i++) {
+            const { pad, ray } = hands[i];
             if (!pad?.getButtonDown(InputComponent.Trigger)) continue;
             if (!panelMesh || !uiPanel || !xrButtons || !ray) continue;
 
             ray.updateMatrixWorld();
             panelMesh.updateMatrixWorld();
-
             ray.getWorldPosition(this.rayOrigin);
             this.rayDir.set(0, 0, -1).transformDirection(ray.matrixWorld);
             this.raycaster.set(this.rayOrigin, this.rayDir);
@@ -118,10 +163,9 @@ class HighwaySystem extends createSystem({}) {
             const hits = this.raycaster.intersectObject(panelMesh);
             if (hits.length === 0 || !hits[0].uv) continue;
 
-            const uv = hits[0].uv;
             const panelRect = uiPanel.getBoundingClientRect();
-            const pixX = uv.x * panelRect.width;
-            const pixY = (1 - uv.y) * panelRect.height;
+            const pixX      = hits[0].uv.x * panelRect.width;
+            const pixY      = (1 - hits[0].uv.y) * panelRect.height;
 
             for (const btn of xrButtons) {
                 const r  = btn.el.getBoundingClientRect();
@@ -129,8 +173,12 @@ class HighwaySystem extends createSystem({}) {
                 const by = r.top  - panelRect.top;
                 if (pixX >= bx && pixX <= bx + r.width
                         && pixY >= by && pixY <= by + r.height) {
-                    if (btn.onClickAt) {
-                        btn.onClickAt((pixX - bx) / r.width);
+                    if (btn.onScrubStart) {
+                        // Enter scrub mode.
+                        this.scrubLastX   = Math.max(0, Math.min((pixX - bx) / r.width, 1));
+                        this.scrubHandIdx = i;
+                        this.scrubBtn     = btn;
+                        btn.onScrubStart();
                     } else {
                         btn.onClick?.();
                     }

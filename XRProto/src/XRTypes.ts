@@ -2,6 +2,8 @@
 export interface XrButton {
     el: HTMLElement;
     onClick?: () => void;
-    // For seek bars: called with normalised X position within the element (0–1).
-    onClickAt?: (normalizedX: number) => void;
+    // Drag-to-scrub: trigger-down starts, held frames move, trigger-up ends.
+    onScrubStart?: () => void;
+    onScrubMove?:  (normalizedX: number) => void;
+    onScrubEnd?:   (normalizedX: number) => void;
 }

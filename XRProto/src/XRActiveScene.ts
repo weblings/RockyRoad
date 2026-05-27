@@ -130,16 +130,26 @@ export class XRActiveScene {
             },
         });
 
-        // Seek bar — click-to-seek via normalised X position.
+        // Seek bar — drag-to-scrub.
+        // Visual (highway + seek bar) updates during drag; audio finalised on release.
+        let scrubWasPlaying = false;
         xrButtons.push({
             el: seekTrack,
-            onClickAt: (normalizedX: number) => {
+            onScrubStart: () => {
+                scrubWasPlaying = songPlayer.isPlaying;
+                if (scrubWasPlaying) songPlayer.pause();
+            },
+            onScrubMove: (normalizedX: number) => {
+                // seekTo while paused just sets pausedAt — O(1), safe every frame.
+                // HighwaySystem reads currentSecond to drive scene position.
+                songPlayer.seekTo(Math.max(0, Math.min(normalizedX * totalDuration, totalDuration)));
+            },
+            onScrubEnd: (normalizedX: number) => {
                 const t = Math.max(0, Math.min(normalizedX * totalDuration, totalDuration));
-                if (songPlayer.isPlaying) {
-                    songPlayer.pause();
+                songPlayer.seekTo(t); // ensures position set even on press-without-move
+                if (scrubWasPlaying) {
                     onResumeWithCountdown(t);
                 } else {
-                    songPlayer.seekTo(t);
                     rerender();
                 }
             },
