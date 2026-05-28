@@ -16,6 +16,7 @@ export class XRActiveScene {
         startCalibration: (done: () => void) => void,
         // Pause + 3s rollback + 3-2-1 countdown, then resume.
         onResumeWithCountdown: (pausedAt: number) => void,
+        onSettings: () => void,
         // Register a callback HighwaySystem calls before each html2canvas render.
         registerPanelUpdate: (cb: () => void) => void,
         onBack: () => void,
@@ -82,6 +83,9 @@ export class XRActiveScene {
                 <button id="as-recal" style="${smallBtn}background:#3a3a6a">
                     🔄 Recalibrate Piano
                 </button>
+                <button id="as-settings" style="${smallBtn}background:#4a4a3a">
+                    ⚙ Settings
+                </button>
                 <button id="as-back" style="${smallBtn}background:#5a3a3a">
                     ← Library
                 </button>
@@ -92,13 +96,14 @@ export class XRActiveScene {
             this.show(
                 uiPanel, xrButtons, songTitle, songPlayer,
                 totalDuration, sections, startCalibration,
-                onResumeWithCountdown, registerPanelUpdate, onBack,
+                onResumeWithCountdown, onSettings, registerPanelUpdate, onBack,
             );
         };
 
-        const playEl    = uiPanel.querySelector('#as-playpause')  as HTMLButtonElement;
-        const recalEl   = uiPanel.querySelector('#as-recal')      as HTMLButtonElement;
-        const backEl    = uiPanel.querySelector('#as-back')       as HTMLButtonElement;
+        const playEl      = uiPanel.querySelector('#as-playpause')  as HTMLButtonElement;
+        const recalEl     = uiPanel.querySelector('#as-recal')      as HTMLButtonElement;
+        const settingsEl  = uiPanel.querySelector('#as-settings')   as HTMLButtonElement;
+        const backEl      = uiPanel.querySelector('#as-back')       as HTMLButtonElement;
         const sdwnEl    = uiPanel.querySelector('#as-speed-down') as HTMLButtonElement;
         const supEl     = uiPanel.querySelector('#as-speed-up')   as HTMLButtonElement;
         const seekTrack = uiPanel.querySelector('#as-seek-track') as HTMLDivElement;
@@ -179,6 +184,15 @@ export class XRActiveScene {
             onClick: () => {
                 if (songPlayer.isPlaying) songPlayer.pause();
                 startCalibration(() => rerender());
+            },
+        });
+
+        // Settings.
+        xrButtons.push({
+            el: settingsEl,
+            onClick: () => {
+                if (songPlayer.isPlaying) songPlayer.pause();
+                onSettings();
             },
         });
 

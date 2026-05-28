@@ -26,6 +26,9 @@ import { CalibrationSystem } from "./CalibrationSystem.js";
 import { XRSongLibrary, type SongManifestEntry } from "./XRSongLibrary.js";
 import { XRPreScene } from "./XRPreScene.js";
 import { XRActiveScene } from "./XRActiveScene.js";
+import { XRSettingsScene } from "./XRSettingsScene.js";
+import { loadSettings, saveSettings, type Settings } from "./Settings.js";
+import { fromHex } from "./UIColor.js";
 import type { XrButton } from "./XRTypes.js";
 import type { SongStructure, SongKeyboardNotes, SongSection, SongInfo } from "./SongFormat.js";
 
@@ -308,7 +311,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     async function loadSong(
         entry: SongManifestEntry,
         partName: string,
-    ): Promise<{ songPlayer: SongPlayer; sections: SongSection[]; totalDuration: number } | null> {
+    ): Promise<{ songPlayer: SongPlayer; sections: SongSection[]; totalDuration: number; noteMin: number; noteMax: number } | null> {
         if (highwayEntity) {
             highwayEntity.dispose();
             highwayEntity = null;
@@ -329,7 +332,24 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
             songPlayer.loadSong(`${SONG_BASE}/song.ogg`).catch(() => {}),
         ]) as [SongStructure, SongKeyboardNotes, SongInfo, void];
 
+        const notes   = rawNotes.Notes;
+        const noteMin = notes.length > 0
+            ? Math.max(21,  Math.min(...notes.map(n => n.Note)) - 1)
+            : 21;
+        const noteMax = notes.length > 0
+            ? Math.min(108, Math.max(...notes.map(n => n.Note)) + 1)
+            : 108;
+
         const scene = new KeysPlayerScene3D(world.renderer, texture, songStructure, rawNotes);
+
+        // Apply saved color/range settings immediately on load.
+        const saved = loadSettings();
+        scene.minKey = saved.fullKeyboard ? 21 : noteMin;
+        scene.maxKey = saved.fullKeyboard ? 108 : noteMax;
+        scene.syncHighwayBounds();
+        scene.rightHandColor = fromHex(saved.keysRightHandColor);
+        scene.leftHandColor  = fromHex(saved.keysLeftHandColor);
+
         const firstNoteTime = rawNotes.Notes[0]?.TimeOffset ?? 0;
         if (firstNoteTime > 0) songPlayer.seekTo(firstNoteTime);
         scene.currentSecond = songPlayer.currentSecond;
@@ -345,7 +365,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
             ? songPlayer.duration
             : (songInfo.SongLengthSeconds ?? 0);
 
-        return { songPlayer, sections: rawNotes.Sections ?? [], totalDuration };
+        return { songPlayer, sections: rawNotes.Sections ?? [], totalDuration, noteMin, noteMax };
     }
 
     // Saved calibration path: load song then go straight to active scene.
@@ -357,7 +377,8 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
 
         const result = await loadSong(entry, partName);
         if (!result) { showLibrary(); return; }
-        showActiveScene(entry, result.songPlayer, result.sections, result.totalDuration);
+        const { songPlayer, sections, totalDuration, noteMin, noteMax } = result;
+        showActiveScene(entry, songPlayer, sections, totalDuration, noteMin, noteMax);
     }
 
     // No saved calibration path: load song first (highway visible), then calibrate.
@@ -369,12 +390,12 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
 
         const result = await loadSong(entry, partName);
         if (!result) { showLibrary(); return; }
-        const { songPlayer, sections, totalDuration } = result;
+        const { songPlayer, sections, totalDuration, noteMin, noteMax } = result;
 
         // Highway is now attached to the anchor and rendering — start calibration
         // so the user can see the highway move into alignment as they calibrate.
         (world.globals.startCalibration as ((d: () => void) => void) | undefined)?.(
-            () => showActiveScene(entry, songPlayer, sections, totalDuration),
+            () => showActiveScene(entry, songPlayer, sections, totalDuration, noteMin, noteMax),
         );
     }
 
@@ -383,6 +404,8 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         songPlayer: SongPlayer,
         sections: SongSection[],
         totalDuration: number,
+        noteMin: number,
+        noteMax: number,
     ): void {
         clearXrButtons();
         world.globals.updateActivePanel = undefined;
@@ -396,12 +419,43 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
             (done: () => void) => {
                 (world.globals.recalibrate as ((d: () => void) => void) | undefined)?.(done);
             },
-            (pausedAt: number) => resumeWithCountdown(pausedAt, entry, songPlayer, sections, totalDuration),
+            (pausedAt: number) => resumeWithCountdown(pausedAt, entry, songPlayer, sections, totalDuration, noteMin, noteMax),
+            () => showSettings(entry, songPlayer, sections, totalDuration, noteMin, noteMax),
             (cb: () => void) => { world.globals.updateActivePanel = cb; },
             () => {
                 songPlayer.pause();
                 world.globals.updateActivePanel = undefined;
                 showLibrary();
+            },
+        );
+    }
+
+    function showSettings(
+        entry: SongManifestEntry,
+        songPlayer: SongPlayer,
+        sections: SongSection[],
+        totalDuration: number,
+        noteMin: number,
+        noteMax: number,
+    ): void {
+        clearXrButtons();
+        world.globals.updateActivePanel = undefined;
+        settingsScene.show(
+            uiPanel,
+            xrButtons,
+            noteMin,
+            noteMax,
+            (s: Settings) => {
+                // Apply the new settings to the live highway scene.
+                const scene = world.globals.highwayScene as KeysPlayerScene3D | undefined;
+                if (scene) {
+                    scene.minKey = s.fullKeyboard ? 21 : noteMin;
+                    scene.maxKey = s.fullKeyboard ? 108 : noteMax;
+                    scene.syncHighwayBounds();
+                    scene.rightHandColor = fromHex(s.keysRightHandColor);
+                    scene.leftHandColor  = fromHex(s.keysLeftHandColor);
+                }
+                showActiveScene(entry, songPlayer, sections, totalDuration, noteMin, noteMax);
             },
         );
     }
@@ -413,6 +467,8 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         songPlayer: SongPlayer,
         sections: SongSection[],
         totalDuration: number,
+        noteMin: number,
+        noteMax: number,
     ): void {
         const resumeAt = Math.max(0, pausedAt - 3);
 
@@ -440,15 +496,16 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         setTimeout(() => showCount(1), 2000);
         setTimeout(() => {
             songPlayer.play();
-            showActiveScene(entry, songPlayer, sections, totalDuration);
+            showActiveScene(entry, songPlayer, sections, totalDuration, noteMin, noteMax);
         }, 3000);
     }
 
     // ── Screens ───────────────────────────────────────────────────────────────
 
-    const library    = new XRSongLibrary(songManifest);
-    const preScene   = new XRPreScene();
-    const activeScene = new XRActiveScene();
+    const library       = new XRSongLibrary(songManifest);
+    const preScene      = new XRPreScene();
+    const activeScene   = new XRActiveScene();
+    const settingsScene = new XRSettingsScene();
 
     // ── Systems ───────────────────────────────────────────────────────────────
 
