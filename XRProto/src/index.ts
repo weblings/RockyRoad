@@ -256,17 +256,52 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     panelCanvas.height = 300;
     const panelTex = new CanvasTexture(panelCanvas);
 
+    // Parent group: grabbable, owns the panel's world position.
+    const panelGroup = new Object3D();
+    panelGroup.position.set(0.25, 1.3, -0.6);
+    const panelGroupEntity = world.createTransformEntity(panelGroup, {
+        parent: world.sceneEntity,
+        persistent: true,
+    });
+    panelGroupEntity.addComponent(OneHandGrabbable, {});
+
+    // Panel canvas mesh: child of group, ray-interactable for button clicks.
     const panelMesh = new Mesh(
         new PlaneGeometry(0.4, 0.3),
         new MeshBasicMaterial({ map: panelTex, transparent: true }),
     );
-    panelMesh.position.set(0.25, 1.3, -0.6);
-
-    const panelEntity = world.createTransformEntity(panelMesh, {
-        parent: world.sceneEntity,
+    const panelMeshEntity = world.createTransformEntity(panelMesh, {
+        parent: panelGroupEntity,
         persistent: true,
     });
-    panelEntity.addComponent(RayInteractable);
+    panelMeshEntity.addComponent(RayInteractable);
+
+    // Grab bar: flat 2D pill below the panel — gap of 15mm between panel bottom and bar top.
+    // y = -(half panel height 0.15 + gap 0.015 + half bar height 0.004) = -0.169
+    const grabBarCanvas = document.createElement('canvas');
+    grabBarCanvas.width  = 200;
+    grabBarCanvas.height = 32;
+    const gbCtx = grabBarCanvas.getContext('2d')!;
+    const W = grabBarCanvas.width, H = grabBarCanvas.height, gbR = H / 2;
+    gbCtx.fillStyle = 'rgba(255,255,255,0.85)';
+    gbCtx.beginPath();
+    gbCtx.moveTo(gbR, 0);
+    gbCtx.lineTo(W - gbR, 0);
+    gbCtx.arc(W - gbR, gbR, gbR, -Math.PI / 2, Math.PI / 2);
+    gbCtx.lineTo(gbR, H);
+    gbCtx.arc(gbR, gbR, gbR, Math.PI / 2, 3 * Math.PI / 2);
+    gbCtx.closePath();
+    gbCtx.fill();
+
+    const grabBar = new Mesh(
+        new PlaneGeometry(0.08, 0.008),
+        new MeshBasicMaterial({ map: new CanvasTexture(grabBarCanvas), transparent: true }),
+    );
+    grabBar.position.set(0, -0.169, 0);
+    world.createTransformEntity(grabBar, {
+        parent: panelGroupEntity,
+        persistent: true,
+    });
 
     const xrButtons: XrButton[] = [];
 
