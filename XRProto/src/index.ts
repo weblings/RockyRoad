@@ -4,9 +4,11 @@ import {
     AssetType,
     AssetManager,
     CanvasTexture,
+    DistanceGrabbable,
     InputComponent,
     Mesh,
     MeshBasicMaterial,
+    MovementMode,
     Object3D,
     OneHandGrabbable,
     PlaneGeometry,
@@ -256,40 +258,25 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     panelCanvas.height = 300;
     const panelTex = new CanvasTexture(panelCanvas);
 
-    // Parent group: grabbable, owns the panel's world position.
-    const panelGroup = new Object3D();
-    panelGroup.position.set(0.25, 1.3, -0.6);
-    const panelGroupEntity = world.createTransformEntity(panelGroup, {
-        parent: world.sceneEntity,
-        persistent: true,
-    });
-    panelGroupEntity.addComponent(OneHandGrabbable, {});
-
-    // Panel canvas mesh: child of group, ray-interactable for button clicks.
-    const panelMesh = new Mesh(
-        new PlaneGeometry(0.4, 0.3),
-        new MeshBasicMaterial({ map: panelTex, transparent: true }),
-    );
-    const panelMeshEntity = world.createTransformEntity(panelMesh, {
-        parent: panelGroupEntity,
-        persistent: true,
-    });
-    panelMeshEntity.addComponent(RayInteractable);
-
-    // Grab bar: flat 2D pill below the panel — gap of 15mm between panel bottom and bar top.
-    // y = -(half panel height 0.15 + gap 0.015 + half bar height 0.004) = -0.169
+    // Grab bar is the movable root — DistanceGrabbable lets trigger-hold at ray distance move it.
+    // Panel canvas is a child so it travels with the bar when grabbed.
+    // Panel centre = y 1.3; bar sits 0.169 m below → bar world y = 1.131.
     const grabBarCanvas = document.createElement('canvas');
     grabBarCanvas.width  = 200;
     grabBarCanvas.height = 32;
     const gbCtx = grabBarCanvas.getContext('2d')!;
-    const W = grabBarCanvas.width, H = grabBarCanvas.height, gbR = H / 2;
+    const W = grabBarCanvas.width, H = grabBarCanvas.height, gbR = 5;
     gbCtx.fillStyle = 'rgba(255,255,255,0.85)';
-    gbCtx.beginPath();
+    gbCtx.beginPath();                                             // 4 quarter-arcs (not semicircles)
     gbCtx.moveTo(gbR, 0);
     gbCtx.lineTo(W - gbR, 0);
-    gbCtx.arc(W - gbR, gbR, gbR, -Math.PI / 2, Math.PI / 2);
+    gbCtx.arc(W - gbR, gbR,     gbR, -Math.PI / 2, 0);           // top-right
+    gbCtx.lineTo(W, H - gbR);
+    gbCtx.arc(W - gbR, H - gbR, gbR, 0,            Math.PI / 2); // bottom-right
     gbCtx.lineTo(gbR, H);
-    gbCtx.arc(gbR, gbR, gbR, Math.PI / 2, 3 * Math.PI / 2);
+    gbCtx.arc(gbR,     H - gbR, gbR, Math.PI / 2,  Math.PI);     // bottom-left
+    gbCtx.lineTo(0, gbR);
+    gbCtx.arc(gbR,     gbR,     gbR, Math.PI,       3 * Math.PI / 2); // top-left
     gbCtx.closePath();
     gbCtx.fill();
 
@@ -297,11 +284,29 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         new PlaneGeometry(0.08, 0.008),
         new MeshBasicMaterial({ map: new CanvasTexture(grabBarCanvas), transparent: true }),
     );
-    grabBar.position.set(0, -0.169, 0);
-    world.createTransformEntity(grabBar, {
-        parent: panelGroupEntity,
+    grabBar.position.set(0.25, 1.131, -0.6);
+    const grabBarEntity = world.createTransformEntity(grabBar, {
+        parent: world.sceneEntity,
         persistent: true,
     });
+    grabBarEntity.addComponent(RayInteractable);
+    grabBarEntity.addComponent(DistanceGrabbable, {
+        rotate: false,
+        scale:  false,
+        movementMode: MovementMode.MoveAtSource,
+    });
+
+    // Panel canvas mesh: child of grab bar, offset +0.169 m up so its centre is at y 1.3.
+    const panelMesh = new Mesh(
+        new PlaneGeometry(0.4, 0.3),
+        new MeshBasicMaterial({ map: panelTex, transparent: true }),
+    );
+    panelMesh.position.set(0, 0.169, 0);
+    const panelMeshEntity = world.createTransformEntity(panelMesh, {
+        parent: grabBarEntity,
+        persistent: true,
+    });
+    panelMeshEntity.addComponent(RayInteractable);
 
     const xrButtons: XrButton[] = [];
 
