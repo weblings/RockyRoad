@@ -375,15 +375,18 @@ export class CalibrationSystem extends createSystem({}) {
         const uiPanel = this.world.globals.uiPanel as HTMLDivElement | undefined;
         if (!uiPanel) return;
 
-        const btn  = 'background:#3a3a7a;color:#e8e8e8;border:none;border-radius:4px;' +
-                     'padding:2px 7px;cursor:pointer;font-size:11px;margin:1px';
-        const btnP = 'background:#3a5a3a;color:#e8e8e8;border:none;border-radius:4px;' +
-                     'padding:2px 10px;cursor:pointer;font-size:11px;margin:1px';
-        const btnD = 'background:#5a3a7a;color:#e8e8e8;border:none;border-radius:4px;' +
-                     'padding:4px 12px;cursor:pointer;font-size:12px;margin:1px';
+        const btn     = 'background:#3a3a7a;color:#e8e8e8;border:none;border-radius:4px;' +
+                        'padding:2px 7px;cursor:pointer;font-size:11px;margin:1px';
+        const btnFull = 'display:inline-block;padding:6px 16px;border:none;border-radius:4px;' +
+                        'font-size:12px;cursor:pointer;color:#111';
 
         uiPanel.innerHTML = `
             <div style="padding:10px;font-family:sans-serif;color:#e8e8e8;font-size:11px">
+
+                <div style="text-align:center;margin-bottom:8px">
+                    <button id="ft-restart" style="${btnFull}background:#3a5a3a">↺ Full Reposition</button>
+                </div>
+
                 <div style="display:flex;gap:4px;margin-bottom:8px">
 
                     <div style="flex:1;text-align:center">
@@ -424,14 +427,18 @@ export class CalibrationSystem extends createSystem({}) {
                     </div>
 
                 </div>
-                <div style="border-top:1px solid #555;padding-top:7px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+
+                <div style="text-align:center;margin-bottom:8px">
                     <span>Incr:</span>
                     <button id="ft-incrm" style="${btn}">-</button>
                     <span id="ft-incr-val" style="display:inline-block;width:36px;text-align:center">0.01</span>
                     <button id="ft-incrp" style="${btn}">+</button>
-                    <button id="ft-restart" style="${btnP}">↺ Full Setup</button>
-                    <button id="ft-done"    style="${btnD}">✓ Done</button>
                 </div>
+
+                <div style="text-align:center">
+                    <button id="ft-done" style="${btnFull}background:#5a3a7a">✓ Done</button>
+                </div>
+
             </div>
         `;
 

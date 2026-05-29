@@ -277,13 +277,13 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     countdownCanvas.height = 512;
     const countdownTex  = new CanvasTexture(countdownCanvas);
     const countdownMesh = new Mesh(
-        new PlaneGeometry(100, 100), // anchor-local units; 100 × 0.003 = 0.3 m world
+        new PlaneGeometry(50, 50), // anchor-local units; 50 × 0.003 = 0.15 m world
         new MeshBasicMaterial({ map: countdownTex, transparent: true }),
     );
     // X=204: center of full 88-key highway (key 21→108 spans ~408 units).
     // Y=200: ~1.4 m world height (eye level above 0.8 m anchor).
     // Z=0: at the now-line.
-    countdownMesh.position.set(204, 150, 0);
+    countdownMesh.position.set(204, 125, -100);
     countdownMesh.visible = false;
     world.createTransformEntity(countdownMesh, { parent: anchorEntity, persistent: true });
     world.globals.countdownMesh   = countdownMesh;
