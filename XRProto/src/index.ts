@@ -57,6 +57,8 @@ class HighwaySystem extends createSystem({}) {
     private scrubHandIdx = -1; // index into hands[] array; -1 = not scrubbing
     private scrubLastX = 0;
 
+    private lastCountdownN: number | undefined = undefined;
+
     init(): void {
         this.raycaster = new Raycaster();
         this.rayOrigin = new Vector3();
@@ -84,6 +86,35 @@ class HighwaySystem extends createSystem({}) {
                 }
             }
             scene.draw(delta);
+        }
+
+        // ── Countdown overlay ─────────────────────────────────────────────────
+        const countdownN    = this.world.globals.countdownN    as number | undefined;
+        const countdownMesh = this.world.globals.countdownMesh as Mesh   | undefined;
+        if (countdownMesh) {
+            if (countdownN !== undefined && countdownN !== this.lastCountdownN) {
+                this.lastCountdownN = countdownN;
+                const cv  = this.world.globals.countdownCanvas as HTMLCanvasElement;
+                const tex = this.world.globals.countdownTex    as CanvasTexture;
+                const ctx = cv.getContext('2d')!;
+                ctx.clearRect(0, 0, cv.width, cv.height);
+                ctx.beginPath();
+                ctx.arc(cv.width / 2, cv.height / 2, cv.width * 0.38, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(0,0,0,0.45)';
+                ctx.fill();
+                ctx.font         = `bold ${Math.round(cv.height * 0.55)}px sans-serif`;
+                ctx.fillStyle    = '#ffffff';
+                ctx.textAlign    = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.shadowColor  = 'rgba(0,0,0,0.7)';
+                ctx.shadowBlur   = 24;
+                ctx.fillText(String(countdownN), cv.width / 2, cv.height / 2);
+                tex.needsUpdate = true;
+                countdownMesh.visible = true;
+            } else if (countdownN === undefined && this.lastCountdownN !== undefined) {
+                this.lastCountdownN = undefined;
+                countdownMesh.visible = false;
+            }
         }
 
         // ── Panel: throttled html2canvas render (~10 fps) ─────────────────────
@@ -242,6 +273,25 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     anchorEntity.addComponent(RayInteractable);
     anchorEntity.addComponent(OneHandGrabbable, {});
     world.globals.anchor = anchor;
+
+    // ── Countdown overlay (3D canvas mesh over highway) ───────────────────────
+    const countdownCanvas = document.createElement('canvas');
+    countdownCanvas.width  = 512;
+    countdownCanvas.height = 512;
+    const countdownTex  = new CanvasTexture(countdownCanvas);
+    const countdownMesh = new Mesh(
+        new PlaneGeometry(100, 100), // anchor-local units; 100 × 0.003 = 0.3 m world
+        new MeshBasicMaterial({ map: countdownTex, transparent: true }),
+    );
+    // X=204: center of full 88-key highway (key 21→108 spans ~408 units).
+    // Y=200: ~1.4 m world height (eye level above 0.8 m anchor).
+    // Z=0: at the now-line.
+    countdownMesh.position.set(204, 150, 0);
+    countdownMesh.visible = false;
+    world.createTransformEntity(countdownMesh, { parent: anchorEntity, persistent: true });
+    world.globals.countdownMesh   = countdownMesh;
+    world.globals.countdownCanvas = countdownCanvas;
+    world.globals.countdownTex    = countdownTex;
 
     // ── UI panel ──────────────────────────────────────────────────────────────
     const uiPanel = document.createElement("div");
@@ -531,22 +581,15 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         // Drive scene.currentSecond backward via HighwaySystem rollback animation.
         world.globals.rollbackState = { from: pausedAt, to: resumeAt, startMs: performance.now() };
 
-        // Replace panel with countdown; no XR buttons during countdown.
+        // Panel stays showing active scene (static); buttons inactive during countdown.
         clearXrButtons();
-        world.globals.updateActivePanel = undefined;
 
-        const showCount = (n: number) => {
-            uiPanel.innerHTML = `
-                <div style="display:flex;align-items:center;justify-content:center;
-                            height:100%;font-size:80px;color:#e8e8e8;font-family:sans-serif">
-                    ${n}
-                </div>`;
-        };
-
-        showCount(3);
-        setTimeout(() => showCount(2), 1000);
-        setTimeout(() => showCount(1), 2000);
+        // 3D overlay drives the countdown — panel HTML is untouched.
+        world.globals.countdownN = 3;
+        setTimeout(() => { world.globals.countdownN = 2; }, 1000);
+        setTimeout(() => { world.globals.countdownN = 1; }, 2000);
         setTimeout(() => {
+            world.globals.countdownN = undefined;
             songPlayer.play();
             showActiveScene(entry, songPlayer, sections, totalDuration, noteMin, noteMax);
         }, 3000);
