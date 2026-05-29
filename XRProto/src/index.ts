@@ -280,12 +280,14 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     gbCtx.closePath();
     gbCtx.fill();
 
-    const grabBar = new Mesh(
-        new PlaneGeometry(0.08, 0.008),
-        new MeshBasicMaterial({ map: new CanvasTexture(grabBarCanvas), transparent: true }),
+    // Invisible hit area — larger plane so the grab bar is easy to raycast.
+    // Visual grab bar and panel canvas are children so they move with it.
+    const grabBarHit = new Mesh(
+        new PlaneGeometry(0.2, 0.04),
+        new MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false }),
     );
-    grabBar.position.set(0.25, 1.131, -0.6);
-    const grabBarEntity = world.createTransformEntity(grabBar, {
+    grabBarHit.position.set(0.25, 1.131, -0.6);
+    const grabBarEntity = world.createTransformEntity(grabBarHit, {
         parent: world.sceneEntity,
         persistent: true,
     });
@@ -296,7 +298,17 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         movementMode: MovementMode.MoveAtSource,
     });
 
-    // Panel canvas mesh: child of grab bar, offset +0.169 m up so its centre is at y 1.3.
+    // Visible grab bar: centred on the hit area, no RayInteractable (hit area owns that).
+    const grabBarVisual = new Mesh(
+        new PlaneGeometry(0.08, 0.008),
+        new MeshBasicMaterial({ map: new CanvasTexture(grabBarCanvas), transparent: true }),
+    );
+    world.createTransformEntity(grabBarVisual, {
+        parent: grabBarEntity,
+        persistent: true,
+    });
+
+    // Panel canvas mesh: child of grab bar root, offset +0.169 m up so its centre is at y 1.3.
     const panelMesh = new Mesh(
         new PlaneGeometry(0.4, 0.3),
         new MeshBasicMaterial({ map: panelTex, transparent: true }),
