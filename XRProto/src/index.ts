@@ -42,9 +42,9 @@ const IMAGE_MANIFEST_URL = "/ImageManifest.json";
 const SONG_MANIFEST_URL  = "/songs/manifest.json";
 
 // ── Panel billboard ───────────────────────────────────────────────────────────
-let PANEL_BILLBOARD_LOW_Y    = 1.45; // world m: below → pitch +30°  (tweakable via overlay)
-let PANEL_BILLBOARD_HIGH_Y   = 2.0;  // world m: above → pitch −30°  (tweakable via overlay)
-let PANEL_PITCH_TWEEN_SECS   = 0.5;  // ease-out-expo tween duration (seconds, tweakable)
+let PANEL_BILLBOARD_LOW_OFFSET  = 0.2;  // m below head Y → pitch −30° (tweakable via overlay)
+let PANEL_BILLBOARD_HIGH_OFFSET = 0.3;  // m above head Y → pitch +30° (tweakable via overlay)
+let PANEL_PITCH_TWEEN_SECS      = 0.5;  // ease-out-expo tween duration (seconds, tweakable)
 
 // ── IWSDK HighwaySystem ───────────────────────────────────────────────────────
 
@@ -196,11 +196,12 @@ class HighwaySystem extends createSystem({}) {
                     this.headPos.z - this.panelPos.z,
                 );
 
-                // Pitch target from panel visual-centre world height.
+                // Pitch target relative to head height.
                 // panelMesh is 0.169 m above the grab bar root.
                 const panelCenterY = this.panelPos.y + 0.169;
-                const newTarget = panelCenterY > PANEL_BILLBOARD_HIGH_Y ?  Math.PI / 6
-                                : panelCenterY < PANEL_BILLBOARD_LOW_Y  ? -Math.PI / 6
+                const headY = this.headPos.y;
+                const newTarget = panelCenterY > headY + PANEL_BILLBOARD_HIGH_OFFSET ?  Math.PI / 6
+                                : panelCenterY < headY - PANEL_BILLBOARD_LOW_OFFSET  ? -Math.PI / 6
                                 : 0;
                 if (newTarget !== this.pitchTarget) {
                     this.pitchAnimFrom     = this.pitchCurrent;
@@ -700,47 +701,6 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     // ── Initial state ─────────────────────────────────────────────────────────
 
     showLibrary();
-
-    // ── Billboard tweaker overlay ─────────────────────────────────────────────
-    {
-        const overlay = document.createElement('div');
-        overlay.style.cssText =
-            'position:fixed;bottom:12px;right:12px;background:rgba(0,0,0,0.72);' +
-            'color:#e8e8e8;font-family:monospace;font-size:12px;padding:10px 14px;' +
-            'border-radius:8px;z-index:9999;min-width:200px;line-height:1.8';
-
-        const mkRow = (
-            label: string,
-            min: number, max: number, step: number, get: () => number,
-            set: (v: number) => void,
-        ): HTMLElement => {
-            const row = document.createElement('div');
-            const valSpan = document.createElement('span');
-            valSpan.textContent = get().toFixed(2);
-            valSpan.style.cssText = 'display:inline-block;width:36px;text-align:right;margin-right:6px;color:#8cf';
-            const slider = document.createElement('input');
-            slider.type  = 'range';
-            slider.min   = String(min);
-            slider.max   = String(max);
-            slider.step  = String(step);
-            slider.value = String(get());
-            slider.style.cssText = 'width:110px;vertical-align:middle;margin-right:6px';
-            slider.addEventListener('input', () => {
-                const v = parseFloat(slider.value);
-                set(v);
-                valSpan.textContent = v.toFixed(2);
-            });
-            row.appendChild(valSpan);
-            row.appendChild(slider);
-            row.appendChild(document.createTextNode(label));
-            return row;
-        };
-
-        overlay.appendChild(mkRow('Low Y',    0, 2.5, 0.05, () => PANEL_BILLBOARD_LOW_Y,  v => { PANEL_BILLBOARD_LOW_Y  = v; }));
-        overlay.appendChild(mkRow('High Y',   0, 2.5, 0.05, () => PANEL_BILLBOARD_HIGH_Y, v => { PANEL_BILLBOARD_HIGH_Y = v; }));
-        overlay.appendChild(mkRow('Tween s',  0, 2.0, 0.05, () => PANEL_PITCH_TWEEN_SECS, v => { PANEL_PITCH_TWEEN_SECS = v; }));
-        document.body.appendChild(overlay);
-    }
 
     // ── Keyboard shortcuts (desktop / device mode) ────────────────────────────
 
