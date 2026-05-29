@@ -17,7 +17,7 @@ export interface CalibrationPointer {
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type CalibrationState = 'idle' | 'prompt_left' | 'prompt_right' | 'prompt_look' | 'done';
+type CalibrationState = 'idle' | 'prompt_left' | 'prompt_right' | 'done';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -55,9 +55,6 @@ export class CalibrationSystem extends createSystem({}) {
     private leftPoint  = new THREE.Vector3();
     private rightPoint = new THREE.Vector3();
     private scratchPos = new THREE.Vector3();
-
-    // Step 3: head look direction captured while the player faces the piano.
-    private headLookDir = new THREE.Vector3();
 
     // ── Fine-tune state ───────────────────────────────────────────────────────
 
@@ -143,23 +140,6 @@ export class CalibrationSystem extends createSystem({}) {
         const anyConfirm   = leftConfirm || rightConfirm;
         if (!anyConfirm) return;
 
-        // ── Step 3: look direction → apply calibration → show fine-tune UI ────
-        if (this.state === 'prompt_look') {
-            const headObj = this.player.head as unknown as THREE.Object3D;
-            headObj.updateMatrixWorld();
-            this.headLookDir
-                .set(0, 0, -1)
-                .transformDirection(headObj.matrixWorld)
-                .setY(0)
-                .normalize();
-
-            this.applyCalibration();
-            this.state = 'done';
-            this.showFineTunePanel();
-            this.reapply();
-            return;
-        }
-
         // ── Steps 1 & 2: capture tip position ────────────────────────────────
         // A0 is on the LEFT side — left hand/controller.
         // C8 is on the RIGHT side — right hand/controller.
@@ -172,11 +152,15 @@ export class CalibrationSystem extends createSystem({}) {
         if (isLeftStep) {
             this.leftPoint.copy(this.scratchPos);
             this.state = 'prompt_right';
+            this.updatePanel();
         } else {
             this.rightPoint.copy(this.scratchPos);
-            this.state = 'prompt_look';
+            // Forward is derived from the perpendicular to the L-R line — no step 3 needed.
+            this.applyCalibration();
+            this.state = 'done';
+            this.showFineTunePanel();
+            this.reapply();
         }
-        this.updatePanel();
     }
 
     // ── Input helpers: controller + hand tracking ─────────────────────────────
@@ -303,16 +287,20 @@ export class CalibrationSystem extends createSystem({}) {
 
         const worldUp = new THREE.Vector3(0, 1, 0);
 
-        // Piano's local +X axis: derived from head look direction (step 3).
-        // headLookDir × worldUp gives the player's rightward direction = A0→C8.
-        // Avoids ~22° error from using controller-to-controller vector.
+        // Piano's local +X axis: A0 → C8 direction projected onto XZ plane.
         const rightVec = new THREE.Vector3()
-            .crossVectors(this.headLookDir, worldUp)
+            .subVectors(this.rightPoint, this.leftPoint)
+            .setY(0)
             .normalize();
 
-        // Piano's local +Z axis: perpendicular to rightVec, pointing FROM piano
-        // TOWARD player so notes scroll toward the viewer.
-        const forward = new THREE.Vector3().crossVectors(worldUp, rightVec).negate();
+        // Piano's local +Z axis: perpendicular to rightVec in XZ plane, toward the user.
+        // Two candidates — pick the one with a positive dot product against head position.
+        const headPos = new THREE.Vector3();
+        (this.player.head as unknown as THREE.Object3D).updateMatrixWorld();
+        (this.player.head as unknown as THREE.Object3D).getWorldPosition(headPos);
+        const toHead = new THREE.Vector3().subVectors(headPos, mid).setY(0);
+        const candidate = new THREE.Vector3(-rightVec.z, 0, rightVec.x);
+        const forward = candidate.dot(toHead) >= 0 ? candidate : candidate.negate();
 
         const matrix = new THREE.Matrix4().makeBasis(rightVec, worldUp, forward);
         const quaternion = new THREE.Quaternion().setFromRotationMatrix(matrix);
@@ -566,14 +554,11 @@ export class CalibrationSystem extends createSystem({}) {
             idle:  '',
             done:  '',
             prompt_left: ctrl
-                ? '🎹 Step 1 of 3<br><br>Rest your <b>LEFT controller</b><br>on the leftmost key <b>(A0)</b><br>and pull the left trigger.'
-                : '🎹 Step 1 of 3<br><br>Touch the leftmost key <b>(A0)</b><br>with your <b>left index finger</b><br>and pinch to confirm.',
+                ? '🎹 Step 1 of 2<br><br>Rest your <b>LEFT controller</b><br>on the leftmost key <b>(A0)</b><br>and pull the left trigger.'
+                : '🎹 Step 1 of 2<br><br>Touch the leftmost key <b>(A0)</b><br>with your <b>left index finger</b><br>and pinch to confirm.',
             prompt_right: ctrl
-                ? '🎹 Step 2 of 3<br><br>Left key recorded ✓<br>Rest your <b>RIGHT controller</b><br>on the rightmost key <b>(C8)</b><br>and pull the right trigger.'
-                : '🎹 Step 2 of 3<br><br>Left key recorded ✓<br>Touch the rightmost key <b>(C8)</b><br>with your <b>right index finger</b><br>and pinch to confirm.',
-            prompt_look: ctrl
-                ? '🎹 Step 3 of 3<br><br>Sit at your piano and<br><b>look directly forward</b>, then pull the trigger.'
-                : '🎹 Step 3 of 3<br><br>Sit at your piano and<br><b>look directly forward</b>, then pinch to confirm.',
+                ? '🎹 Step 2 of 2<br><br>Left key recorded ✓<br>Rest your <b>RIGHT controller</b><br>on the rightmost key <b>(C8)</b><br>and pull the right trigger.'
+                : '🎹 Step 2 of 2<br><br>Left key recorded ✓<br>Touch the rightmost key <b>(C8)</b><br>with your <b>right index finger</b><br>and pinch to confirm.',
         };
 
         uiPanel.innerHTML = `
