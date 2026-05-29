@@ -173,6 +173,8 @@ class HighwaySystem extends createSystem({}) {
                     ray.getWorldPosition(this.rayOrigin);
                     this.rayDir.set(0, 0, -1).transformDirection(ray.matrixWorld);
                     this.raycaster.set(this.rayOrigin, this.rayDir);
+                    // Ray hitting the panel canvas means a button click — don't start a grab.
+                    if (panelMesh && this.raycaster.intersectObject(panelMesh).length > 0) continue;
                     if (this.raycaster.intersectObject(grabBarHit).length > 0) {
                         this.isGrabbed       = true;
                         this.grabbingHandIdx = i;

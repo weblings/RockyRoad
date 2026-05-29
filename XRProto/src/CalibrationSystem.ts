@@ -98,6 +98,7 @@ export class CalibrationSystem extends createSystem({}) {
             this._onComplete = onComplete;
             this.clearFtButtons();
             this.state = 'prompt_left';
+            this.setHighwayVisible(false);
             this.updatePanel();
         };
 
@@ -158,6 +159,7 @@ export class CalibrationSystem extends createSystem({}) {
             // Forward is derived from the perpendicular to the L-R line — no step 3 needed.
             this.applyCalibration();
             this.state = 'done';
+            this.setHighwayVisible(true);
             this.showFineTunePanel();
             this.reapply();
         }
@@ -468,6 +470,7 @@ export class CalibrationSystem extends createSystem({}) {
             // done() callback (e.g. showActiveScene) still fires after the redo.
             this.clearFtButtons();
             this.state = 'prompt_left';
+            this.setHighwayVisible(false);
             this.updatePanel();
         });
         reg('ft-done',  () => {
@@ -478,6 +481,11 @@ export class CalibrationSystem extends createSystem({}) {
 
         const xrButtons = this.world.globals.xrButtons as XrButton[] | undefined;
         if (xrButtons) xrButtons.push(...this._ftButtons);
+    }
+
+    private setHighwayVisible(visible: boolean): void {
+        const anchor = this.world.globals.anchor as THREE.Object3D | undefined;
+        if (anchor) anchor.visible = visible;
     }
 
     private reapply(): void {
@@ -557,8 +565,8 @@ export class CalibrationSystem extends createSystem({}) {
                 ? '🎹 Step 1 of 2<br><br>Rest your <b>LEFT controller</b><br>on the leftmost key <b>(A0)</b><br>and pull the left trigger.'
                 : '🎹 Step 1 of 2<br><br>Touch the leftmost key <b>(A0)</b><br>with your <b>left index finger</b><br>and pinch to confirm.',
             prompt_right: ctrl
-                ? '🎹 Step 2 of 2<br><br>Left key recorded ✓<br>Rest your <b>RIGHT controller</b><br>on the rightmost key <b>(C8)</b><br>and pull the right trigger.'
-                : '🎹 Step 2 of 2<br><br>Left key recorded ✓<br>Touch the rightmost key <b>(C8)</b><br>with your <b>right index finger</b><br>and pinch to confirm.',
+                ? '🎹 Step 2 of 2<br><br>Rest your <b>RIGHT controller</b><br>on the rightmost key <b>(C8)</b><br>and pull the right trigger.'
+                : '🎹 Step 2 of 2<br><br>Touch the rightmost key <b>(C8)</b><br>with your <b>right index finger</b><br>and pinch to confirm.',
         };
 
         uiPanel.innerHTML = `
