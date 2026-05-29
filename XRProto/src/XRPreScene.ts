@@ -12,8 +12,10 @@ export class XRPreScene {
         tryLoadCalibration: () => boolean,
         // Saved calibration exists — load song and go straight to active scene.
         onPlay: (entry: SongManifestEntry, partName: string) => void,
-        // No saved calibration — load song first (highway visible), then calibrate.
+        // No saved calibration — load song first (highway visible), then full 3-step calibrate.
         onCalibratePlay: (entry: SongManifestEntry, partName: string) => void,
+        // Saved calibration exists — load song then open fine-tune panel directly.
+        onReposition: (entry: SongManifestEntry, partName: string) => void,
         onBack: () => void,
     ): void {
         // Only show Keys parts — guitar/bass are not supported in XRProto v1.
@@ -49,7 +51,7 @@ export class XRPreScene {
                 <div style="font-size:16px;font-weight:bold;margin-bottom:2px">${esc(entry.title)}</div>
                 <div style="font-size:12px;color:#aaa;margin-bottom:12px">${esc(entry.artist)}</div>
                 ${calNote}
-                ${hasSavedCal ? `<button id="ps-recal" style="${btnStyle}background:#3a3a6a;color:#111">🔄 Recalibrate</button>` : ''}
+                ${hasSavedCal ? `<button id="ps-recal" style="${btnStyle}background:#3a3a6a;color:#111">🔄 Reposition Piano</button>` : ''}
                 <button id="ps-play" style="${playBtnStyle}" ${hasKeys ? '' : 'disabled'}>
                     ${hasSavedCal ? '▶ Play' : '▶ Calibrate & Play'}
                 </button>
@@ -74,10 +76,10 @@ export class XRPreScene {
             xrButtons.push({ el: playEl, onClick: () => onCalibratePlay(entry, partName) });
         }
 
-        // Recalibrate button — only shown when saved calibration was found.
+        // Reposition Piano button — only shown when saved calibration was found.
         if (hasSavedCal) {
             const recalEl = uiPanel.querySelector('#ps-recal') as HTMLButtonElement;
-            xrButtons.push({ el: recalEl, onClick: () => onCalibratePlay(entry, partName) });
+            xrButtons.push({ el: recalEl, onClick: () => onReposition(entry, partName) });
         }
     }
 }

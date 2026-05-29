@@ -10,7 +10,6 @@ import {
     MeshBasicMaterial,
     MovementMode,
     Object3D,
-    OneHandGrabbable,
     PlaneGeometry,
     Raycaster,
     RayInteractable,
@@ -270,8 +269,6 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         parent: world.sceneEntity,
         persistent: true,
     });
-    anchorEntity.addComponent(RayInteractable);
-    anchorEntity.addComponent(OneHandGrabbable, {});
     world.globals.anchor = anchor;
 
     // ── Countdown overlay (3D canvas mesh over highway) ───────────────────────
@@ -404,6 +401,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
             () => (world.globals.tryLoadCalibration as (() => boolean) | undefined)?.() ?? false,
             playEntry,
             calibrateAndPlay,
+            repositionEntry,
             showLibrary,
         );
     }
@@ -483,7 +481,23 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         showActiveScene(entry, songPlayer, sections, totalDuration, noteMin, noteMax);
     }
 
-    // No saved calibration path: load song first (highway visible), then calibrate.
+    // Reposition path: load song (highway visible), then open fine-tune panel directly.
+    async function repositionEntry(entry: SongManifestEntry, partName: string): Promise<void> {
+        clearXrButtons();
+        uiPanel.innerHTML = `
+            <div style="font-size:18px;padding:24px;text-align:center;
+                        color:#e8e8e8;font-family:sans-serif">⏳ Loading…</div>`;
+
+        const result = await loadSong(entry, partName);
+        if (!result) { showLibrary(); return; }
+        const { songPlayer, sections, totalDuration, noteMin, noteMax } = result;
+
+        (world.globals.showCalibrationFineTune as ((d: () => void) => void) | undefined)?.(
+            () => showActiveScene(entry, songPlayer, sections, totalDuration, noteMin, noteMax),
+        );
+    }
+
+    // No saved calibration path: load song first (highway visible), then full 3-step calibrate.
     async function calibrateAndPlay(entry: SongManifestEntry, partName: string): Promise<void> {
         clearXrButtons();
         uiPanel.innerHTML = `

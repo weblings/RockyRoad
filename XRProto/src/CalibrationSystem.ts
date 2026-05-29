@@ -113,11 +113,12 @@ export class CalibrationSystem extends createSystem({}) {
         };
 
         // Expose a recalibrate hook (used by XRActiveScene's Recalibrate button).
+        // Opens fine-tune directly; user can trigger full reposition from there.
         this.world.globals.recalibrate = (onComplete: () => void): void => {
             this._onComplete = onComplete;
-            this.clearFtButtons();
-            this.state = 'prompt_left';
-            this.updatePanel();
+            this.state = 'done';
+            this.showFineTunePanel();
+            this.reapply();
         };
 
         // Expose the fine-tune panel so XRPreScene can show it after auto-loading
@@ -428,8 +429,7 @@ export class CalibrationSystem extends createSystem({}) {
                     <button id="ft-incrm" style="${btn}">-</button>
                     <span id="ft-incr-val" style="display:inline-block;width:36px;text-align:center">0.01</span>
                     <button id="ft-incrp" style="${btn}">+</button>
-                    <button id="ft-print"   style="${btnP}">Print</button>
-                    <button id="ft-restart" style="${btnP}">↺ Restart</button>
+                    <button id="ft-restart" style="${btnP}">↺ Full Setup</button>
                     <button id="ft-done"    style="${btnD}">✓ Done</button>
                 </div>
             </div>
@@ -468,7 +468,6 @@ export class CalibrationSystem extends createSystem({}) {
             this._ftIncrIdx = Math.min(INCR_STEPS.length - 1, this._ftIncrIdx + 1);
             this.refreshValues();
         });
-        reg('ft-print',   () => { this.printValues(); });
         reg('ft-restart', () => {
             // Return to step 1 without clearing _onComplete — the original
             // done() callback (e.g. showActiveScene) still fires after the redo.

@@ -81,7 +81,7 @@ export class XRActiveScene {
                     ${songPlayer.isPlaying ? '⏸ Pause' : '▶ Play'}
                 </button>
                 <button id="as-recal" style="${smallBtn}background:#3a3a6a">
-                    🔄 Recalibrate Piano
+                    🔄 Reposition Piano
                 </button>
                 <button id="as-settings" style="${smallBtn}background:#4a4a3a">
                     ⚙ Settings
