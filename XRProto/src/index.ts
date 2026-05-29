@@ -178,12 +178,14 @@ class HighwaySystem extends createSystem({}) {
                     if (this.raycaster.intersectObject(grabBarHit).length > 0) {
                         this.isGrabbed       = true;
                         this.grabbingHandIdx = i;
+                        (this.input.multiPointers[i === 0 ? 'left' : 'right'] as any).ray.visual.enabled = false;
                         break;
                     }
                 }
             } else if (this.grabbingHandIdx >= 0) {
                 // Release when the grabbing hand lets go of trigger.
                 if (hands[this.grabbingHandIdx].pad?.getButtonUp(InputComponent.Trigger)) {
+                    (this.input.multiPointers[this.grabbingHandIdx === 0 ? 'left' : 'right'] as any).ray.visual.enabled = true;
                     this.isGrabbed       = false;
                     this.grabbingHandIdx = -1;
                 }
