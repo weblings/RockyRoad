@@ -1,97 +1,12 @@
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-body {
-  background: #facade;
-  font-family: 'Inter', system-ui, sans-serif;
-  min-height: 100vh;
-  padding: 16px;
-}
-
-.frame {
-  width: 400px;
-  height: 300px;
-  border-radius: 12px;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-
-.frame .actions .button {
-  width: 150px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  padding: 8px;
-  flex: 0 0 auto;
-  border-radius: 5px;
-  border: none;
-  font-size: 13.30px;
-  font-weight: 400;
-  text-align: center;
-  cursor: pointer;
-}
-
-.frame .actions .button.primary-dark {
-  background: #333333;
-  color: #ffffff;
-}
-
-.frame .actions .button.primary-dark:hover {
-  background: #515151;
-}
-
-.frame .actions .button.primary-dark:active {
-  background: #7c7c7c;
-}
-
-.frame .actions .button.primary-light {
-  background: #dadada;
-  color: #111111;
-}
-
-.frame .actions .button.primary-light:hover {
-  background: #bebebe;
-}
-
-.frame .actions .button.primary-light:active {
-  background: #9c9c9c;
-}
-
-.frame .content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  background: #0a0a0a;
-  border-radius: 12px 12px 0 0;
-  overflow: hidden;
-}
+/* Song-specific styles only — shared panel structure lives in panel.css */
 
 .frame .content .song-info {
   flex: 1;
-  width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   background: #0a0a0a;
-}
-
-.frame .actions {
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  align-items: center;
-  gap: 10px;
-  padding: 0 10px 10px 10px;
-  background: #0a0a0a;
-  border-radius: 0 0 12px 12px;
 }
 
 .frame .content .song-details {
@@ -115,7 +30,6 @@ body {
   flex-direction: column;
   align-items: flex-start;
   justify-content: center;
-  gap: 0px;
   flex: 0 0 auto;
   background: #242424;
   border-radius: 10px;
@@ -129,80 +43,24 @@ body {
   overflow: hidden;
 }
 
-.frame .content .song-info .artist-name {
-  color: #8c8c8c;
-  max-width: 100px;
-  font-size: 14.30px;
-  font-weight: 400;
-  text-align: center;
-}
-
-.frame .content .song-info .album-name {
-  color: rgba(200, 200, 200, 0.533);
-  max-width: 100px;
-  font-size: 14.30px;
-  font-weight: 400;
-  text-align: center;
-}
-
 .frame .content .song-info .song-title {
   color: #ffffff;
-  max-width: 38px;
   font-size: 20px;
   font-weight: 700;
   text-align: center;
   line-height: 20px;
 }
 
-.frame .content .header {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 10px;
-  width: auto;
-  height: auto;
-  flex: 0 0 auto;
-}
-
-.frame .content .header .button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  padding: 8px;
-  width: auto;
-  height: auto;
-  flex: 0 0 auto;
-  border-radius: 5px;
-  border: none;
-  cursor: pointer;
-}
-
-.frame .content .header .button.primary-dark {
-  background: #333333;
-}
-
-.frame .content .header .button.primary-dark:hover {
-  background: #515151;
-}
-
-.frame .content .header .button.primary-dark:active {
-  background: #7c7c7c;
-}
-
-.frame .content .header .button .back-label {
-  color: #ffffff;
-  max-width: 100px;
-  font-size: 12px;
+.frame .content .song-info .artist-name {
+  color: #8c8c8c;
+  font-size: 14px;
   font-weight: 400;
   text-align: center;
 }
 
-.frame .content .header .button .back-icon {
-  color: #ffffff;
-  max-width: 12px;
-  font-size: 12px;
+.frame .content .song-info .album-name {
+  color: rgba(200, 200, 200, 0.533);
+  font-size: 14px;
   font-weight: 400;
   text-align: center;
 }
