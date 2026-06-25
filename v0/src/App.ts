@@ -73,6 +73,21 @@ export class App {
         document.getElementById("s-invert-strings")!.addEventListener("change", onToggle);
         document.getElementById("s-bold-text")!      .addEventListener("change", onToggle);
 
+        // DEBUG — press H to download the current screen HTML for inspection / Figma reference.
+        // Remove before shipping.
+        document.addEventListener('keydown', (e) => {
+            if (e.code !== 'KeyH' || e.repeat) return;
+            const styles = Array.from(document.querySelectorAll('style'))
+                .map(s => `<style>${s.textContent}</style>`)
+                .join('\n');
+            const html = `<!DOCTYPE html><html><head><meta charset="utf-8">${styles}</head>` +
+                `<body><!-- DEBUG EXPORT: screen-container innerHTML -->${this.screenContainer.innerHTML}</body></html>`;
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(new Blob([html], { type: 'text/html' }));
+            a.download = 'screen-debug.html';
+            a.click();
+        });
+
         new ResizeObserver(() => this.onResize()).observe(canvas);
         this.onResize();
 

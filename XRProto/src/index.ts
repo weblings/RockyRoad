@@ -35,8 +35,7 @@ import type { SongStructure, SongKeyboardNotes, SongSection, SongInfo } from "./
 
 // ── Asset paths ───────────────────────────────────────────────────────────────
 
-const ATLAS_URL =
-    "/@fs/D:/Users/Andrew/Documents/Coding/MusicThing/ChartPlayer/ChartPlayerShared/Content/Textures/UISheet0.png";
+const ATLAS_URL = "/UISheet0.png";
 
 const IMAGE_MANIFEST_URL = "/ImageManifest.json";
 const SONG_MANIFEST_URL  = "/songs/manifest.json";
@@ -306,7 +305,7 @@ class HighwaySystem extends createSystem({}) {
 // ── Bootstrap ─────────────────────────────────────────────────────────────────
 
 const assets: AssetManifest = {
-    atlas: { url: ATLAS_URL, type: AssetType.Texture, priority: "critical" },
+    atlas: { url: ATLAS_URL, type: AssetType.Texture },
 };
 
 World.create(document.getElementById("scene-container") as HTMLDivElement, {
@@ -324,7 +323,15 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         environmentRaycast: false,
     },
 }).then(async (world) => {
-    const texture  = AssetManager.getTexture("atlas")!;
+    const texture = AssetManager.getTexture("atlas") ?? (() => {
+        const canvas = document.createElement('canvas');
+        canvas.width = 64; canvas.height = 64;
+        const ctx = canvas.getContext('2d')!;
+        ctx.fillStyle = '#888888';
+        ctx.fillRect(0, 0, 64, 64);
+        console.warn('[XRProto] Atlas texture failed to load — using fallback grey square');
+        return new CanvasTexture(canvas);
+    })();
 
     const fetchJson = <T>(url: string): Promise<T> =>
         fetch(url).then(r => {
@@ -716,6 +723,20 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         }
         if (e.code === "KeyV" && !e.repeat) {
             world.launchXR();
+        }
+        // DEBUG — press H to download the current uiPanel HTML for inspection / Figma reference.
+        // Remove before shipping.
+        if (e.code === "KeyH" && !e.repeat) {
+            const clone = uiPanel.cloneNode(true) as HTMLDivElement;
+            clone.style.position = 'static';
+            clone.style.left = '0';
+            const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
+<style>body{margin:0;background:#000;display:flex;align-items:flex-start;justify-content:flex-start}</style>
+</head><body><!-- DEBUG EXPORT: raw uiPanel outerHTML -->${clone.outerHTML}</body></html>`;
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(new Blob([html], { type: 'text/html' }));
+            a.download = 'panel-debug.html';
+            a.click();
         }
     });
 

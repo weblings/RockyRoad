@@ -36,8 +36,8 @@ export class XRPreScene {
         const hasSavedCal = hasKeys && tryLoadCalibration();
 
         const playBtnStyle = hasKeys
-            ? `${btnStyle}background:#3a5a3a;color:#111`
-            : `${btnStyle}background:#444;color:#555;cursor:default`;
+            ? `${btnStyle};background:#3a5a3a;color:#111`
+            : `${btnStyle};background:#444;color:#555;cursor:default`;
 
         const calNote = hasSavedCal
             ? '<div style="font-size:11px;color:#8f8;margin-bottom:8px">✓ Calibration loaded</div>'
@@ -51,7 +51,7 @@ export class XRPreScene {
                 <div style="font-size:16px;font-weight:bold;margin-bottom:2px">${esc(entry.title)}</div>
                 <div style="font-size:12px;color:#aaa;margin-bottom:12px">${esc(entry.artist)}</div>
                 ${calNote}
-                ${hasSavedCal ? `<button id="ps-recal" style="${btnStyle}background:#3a3a6a;color:#111">🔄 Reposition Piano</button>` : ''}
+                ${hasSavedCal ? `<button id="ps-recal" style="${btnStyle};background:#3a3a6a;color:#111">🔄 Reposition Piano</button>` : ''}
                 <button id="ps-play" style="${playBtnStyle}" ${hasKeys ? '' : 'disabled'}>
                     ${hasSavedCal ? '▶ Play' : '▶ Calibrate & Play'}
                 </button>

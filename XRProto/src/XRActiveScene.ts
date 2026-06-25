@@ -77,16 +77,16 @@ export class XRActiveScene {
                     </span>
                     <button id="as-speed-up" style="${speedBtnStyle}">+</button>
                 </div>
-                <button id="as-playpause" style="${btnStyle}background:#3a5a3a">
+                <button id="as-playpause" style="${btnStyle};background:#3a5a3a">
                     ${songPlayer.isPlaying ? '⏸ Pause' : '▶ Play'}
                 </button>
-                <button id="as-recal" style="${smallBtn}background:#3a3a6a">
+                <button id="as-recal" style="${smallBtn};background:#3a3a6a">
                     🔄 Reposition Piano
                 </button>
-                <button id="as-settings" style="${smallBtn}background:#4a4a3a">
+                <button id="as-settings" style="${smallBtn};background:#4a4a3a">
                     ⚙ Settings
                 </button>
-                <button id="as-back" style="${smallBtn}background:#5a3a3a">
+                <button id="as-back" style="${smallBtn};background:#5a3a3a">
                     ← Library
                 </button>
             </div>
