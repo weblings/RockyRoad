@@ -3,79 +3,147 @@
   height: 525px;
   display: flex;
   flex-direction: column;
+  background: linear-gradient(180deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0) 88px);
 }
 
 .play-bar {
   display: flex;
   flex-direction: row;
   align-items: center;
-  background: linear-gradient(180deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0) 100%);
+  gap: 8px;
+  padding: 10px 12px;
+  font-family: 'Inter', system-ui, sans-serif;
 }
 
-/* Current time / total duration labels */
+/* Back button */
+.play-back-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: #333333;
+  border: none;
+  border-radius: 5px;
+  color: #ffffff;
+  font-size: 12px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.play-back-btn:hover { background: #515151; }
+.play-back-btn svg { display: block; flex-shrink: 0; }
+
+/* Play/pause — circular, stands out as primary action */
+.play-pause-btn {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #eeeeee;
+  border: none;
+  border-radius: 50%;
+  color: #111111;
+  font-size: 14px;
+  cursor: pointer;
+}
+.play-pause-btn:hover { background: #bebebe; }
+
+/* Time labels */
 .time-current,
 .time-duration {
   color: #c8c8c8;
   font-size: 13px;
   font-weight: 400;
+  font-variant-numeric: tabular-nums;
   text-align: center;
-  min-width: 28px;
+  flex-shrink: 0;
+  min-width: 34px;
 }
 
-/* Seek bar */
+/* Seek bar — custom track */
 .seek-wrap {
   flex: 1;
   min-width: 0;
-  position: relative;
   display: flex;
   align-items: center;
+}
+
+.seek-track {
+  position: relative;
+  width: 100%;
+  height: 14px;
   background: #333333;
+  border-radius: 7px;
+  cursor: pointer;
+}
+.seek-track:hover { background: #515151; }
+
+.seek-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  background: #c0c0c0;
+  border-radius: 7px;
+}
+
+.seek-sections {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
 }
 
 .seek-tick {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
   width: 2px;
   height: 10px;
-  background: rgba(140,140,140,0.55);
+  background: rgba(255,255,255,0.55);
   border-radius: 1px;
 }
 
 .seek-thumb {
-  width: 24px;
-  height: 24px;
-  background: #eeeeee;
-  box-shadow: 0px 0px 3px 0px rgba(0,0,0,0.6);
-  border-radius: 100px;
+  position: absolute;
+  top: -3px;
+  width: 20px;
+  height: 20px;
+  background: #dadada;
+  border-radius: 50%;
+  z-index: 1;
 }
+.seek-thumb:hover { background: #bebebe; }
 
-/* Speed control: [−] [display] [+] */
+/* Speed control: [−] [value] [+] */
 .speed-control {
   display: flex;
   align-items: stretch;
+  flex-shrink: 0;
   border-radius: 5px;
   overflow: hidden;
 }
 
 .speed-btn {
-  width: 32px;
-  height: 32px;
+  width: 22px;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 4px 9px;
+  padding: 8px 0;
   background: #333333;
-  color: #cccccc;
-  font-size: 15px;
-  font-weight: 700;
-  line-height: 1;
   border: none;
+  color: #cccccc;
+  font-size: 11px;
+  font-weight: 600;
   cursor: pointer;
+  line-height: 1;
 }
+.speed-btn:hover { background: #515151; color: #fff; }
 
 .speed-display {
-  height: 32px;
   display: flex;
   align-items: center;
-  padding: 0px 20px 0px 8px;
+  padding: 8px 10px;
   background: #1a1a1a;
 }
 
@@ -87,37 +155,19 @@
   line-height: 1;
 }
 
-/* Nav buttons (Library, play/pause, Settings) */
-.btn-group {
-  height: 32px;
-  display: flex;
-  align-items: center;
-}
-
-.play-back-btn,
-.play-pause-btn,
+/* Settings button */
 .settings-btn {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 2px;
-  padding: 8px;
+  gap: 6px;
+  padding: 8px 14px;
   background: #333333;
   border: none;
   border-radius: 5px;
-  cursor: pointer;
-}
-
-.back-icon,
-.back-label,
-.settings-label {
   color: #ffffff;
   font-size: 12px;
-  font-weight: 400;
+  cursor: pointer;
+  flex-shrink: 0;
 }
-
-.settings-icon {
-  color: #111111;
-  font-size: 11px;
-  font-weight: 400;
-}
+.settings-btn:hover { background: #515151; }
+.settings-btn svg { display: block; flex-shrink: 0; }

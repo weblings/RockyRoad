@@ -17,41 +17,43 @@
 
 <div class="play-overlay">
   <div class="play-bar">
-    <div class="btn-group">
-      <button class="play-back-btn" type="button">
-        <span class="back-icon">←</span>
-        <span class="back-label">Library</span>
-      </button>
-    </div>
-    <div class="btn-group">
-      <button class="play-pause-btn" type="button">▶</button>
-    </div>
+    <button class="play-back-btn" type="button">
+      <svg width="14" height="14" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M13.0908 14.3334C12.972 14.3334 12.9125 14.1898 12.9965 14.1058L17.7021 9.40022C17.9625 9.13987 17.9625 8.71776 17.7021 8.45741L16.2879 7.04319C16.0275 6.78284 15.6054 6.78284 15.3451 7.04319L6.8598 15.5285C6.59945 15.7888 6.59945 16.2109 6.8598 16.4713L8.27401 17.8855L8.27536 17.8868L15.3453 24.9568C15.6057 25.2172 16.0278 25.2172 16.2881 24.9568L17.7024 23.5426C17.9627 23.2822 17.9627 22.8601 17.7024 22.5998L12.9969 17.8944C12.9129 17.8104 12.9724 17.6668 13.0912 17.6668L26 17.6668C26.3682 17.6668 26.6667 17.3683 26.6667 17.0001V15.0001C26.6667 14.6319 26.3682 14.3334 26 14.3334L13.0908 14.3334Z" fill="currentColor"/></svg>
+      <span>Library</span>
+    </button>
+
+    <button class="play-pause-btn" type="button">&#9654;</button>
+
     <span class="time-current">0:20</span>
+
     <div class="seek-wrap">
-      <input type="range" min="0" max="1000" value="0" />
-      <div class="seek-sections">
-        <div class="seek-tick"></div>
-        <div class="seek-tick"></div>
-        <div class="seek-tick"></div>
-        <div class="seek-tick"></div>
-        <div class="seek-tick"></div>
+      <div class="seek-track">
+        <div class="seek-fill" style="width: 6%;"></div>
+        <div class="seek-sections">
+          <div class="seek-tick" style="left: 20%;"></div>
+          <div class="seek-tick" style="left: 45%;"></div>
+          <div class="seek-tick" style="left: 68%;"></div>
+          <div class="seek-tick" style="left: 82%;"></div>
+          <div class="seek-tick" style="left: 91%;"></div>
+        </div>
+        <div class="seek-thumb" style="left: calc(6% - 10px);"></div>
       </div>
-      <div class="seek-thumb"></div>
     </div>
+
     <span class="time-duration">5:42</span>
+
     <div class="speed-control">
       <button class="speed-btn" type="button">−</button>
       <div class="speed-display">
-        <span class="speed-value">0.2×</span>
+        <span class="speed-value">1×</span>
       </div>
       <button class="speed-btn" type="button">+</button>
     </div>
-    <div class="btn-group">
-      <button class="settings-btn" type="button">
-        <span class="settings-icon">⚙</span>
-        <span class="settings-label">Settings</span>
-      </button>
-    </div>
+
+    <button class="settings-btn" type="button">
+      <svg width="14" height="14" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M13.3321 4C12.598 4 11.9728 4.50932 11.8154 5.22745L11.4396 6.96752C10.8867 7.19965 10.3672 7.49361 9.88904 7.84127L8.19799 7.29239C7.50395 7.06339 6.74634 7.35056 6.37926 7.98082L4.71259 10.8636C4.34551 11.4939 4.48613 12.2948 5.04981 12.7627L6.42361 13.9071C6.38394 14.2002 6.36329 14.4981 6.36329 14.8C6.36329 15.1019 6.38394 15.3998 6.42361 15.6929L5.04981 16.8373C4.48613 17.3052 4.34551 18.1061 4.71259 18.7364L6.37926 21.6192C6.74634 22.2494 7.50395 22.5366 8.19799 22.3076L9.88904 21.7587C10.3672 22.1064 10.8867 22.4003 11.4396 22.6325L11.8154 24.3725C11.9728 25.0907 12.598 25.6 13.3321 25.6H16.6654C17.3994 25.6 18.0247 25.0907 18.182 24.3725L18.5579 22.6325C19.1107 22.4003 19.6303 22.1064 20.1084 21.7587L21.7995 22.3076C22.4935 22.5366 23.2511 22.2494 23.6182 21.6192L25.2849 18.7364C25.6519 18.1061 25.5113 17.3052 24.9476 16.8373L23.5738 15.6929C23.6135 15.3998 23.6342 15.1019 23.6342 14.8C23.6342 14.4981 23.6135 14.2002 23.5738 13.9071L24.9476 12.7627C25.5113 12.2948 25.6519 11.4939 25.2849 10.8636L23.6182 7.98082C23.2511 7.35056 22.4935 7.06339 21.7995 7.29239L20.1084 7.84127C19.6303 7.49361 19.1107 7.19965 18.5579 6.96752L18.182 5.22745C18.0247 4.50932 17.3994 4 16.6654 4H13.3321ZM14.9987 18.4C16.9869 18.4 18.5987 16.7882 18.5987 14.8C18.5987 12.8118 16.9869 11.2 14.9987 11.2C13.0105 11.2 11.3987 12.8118 11.3987 14.8C11.3987 16.7882 13.0105 18.4 14.9987 18.4Z" fill="currentColor"/></svg>
+      <span>Settings</span>
+    </button>
   </div>
 </div>
 
