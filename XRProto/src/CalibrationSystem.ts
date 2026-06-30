@@ -69,6 +69,18 @@ export class CalibrationSystem extends createSystem({}) {
     private _ftS  = 1;
     private _ftIncrIdx = 4; // starts at 0.1 m
 
+    // ── Full Reposition state ─────────────────────────────────────────────────
+
+    // True while the user is partway through a Full Reposition from the fine-tune panel.
+    // Keeps the fine-tune controls visible but disabled until both steps complete.
+    private _fullRepositionInProgress = false;
+
+    // Deferred fine-tune panel render: showFineTunePanel() is scheduled for the
+    // NEXT frame instead of the frame where step 2 is confirmed. This prevents
+    // HighwaySystem from clicking ft-restart on the same frame that CalibrationSystem
+    // consumes the right trigger for the step-2 confirm (both read getButtonDown).
+    private _pendingFineTunePanel = false;
+
     // ── Hand-tracking pinch state ─────────────────────────────────────────────
 
     private _leftWasPinching  = false;
@@ -130,6 +142,13 @@ export class CalibrationSystem extends createSystem({}) {
     }
 
     update(_delta: number, _time: number): void {
+        // Deferred from step-2 completion — show panel one frame after the confirm
+        // so HighwaySystem can't click ft-restart with the same getButtonDown tick.
+        if (this._pendingFineTunePanel) {
+            this._pendingFineTunePanel = false;
+            this.showFineTunePanel();
+        }
+
         if (this.state === 'idle' || this.state === 'done') return;
 
         // hasHandInputSources() is the reliable signal — IWSDK may keep gamepad
@@ -153,15 +172,24 @@ export class CalibrationSystem extends createSystem({}) {
         if (isLeftStep) {
             this.leftPoint.copy(this.scratchPos);
             this.state = 'prompt_right';
-            this.updatePanel();
+            if (this._fullRepositionInProgress) {
+                // Keep fine-tune panel visible with updated step message and values.
+                this.showFineTunePanel();
+                this.refreshValues();
+            } else {
+                this.updatePanel();
+            }
         } else {
             this.rightPoint.copy(this.scratchPos);
             // Forward is derived from the perpendicular to the L-R line — no step 3 needed.
             this.applyCalibration();
             this.state = 'done';
+            this._fullRepositionInProgress = false;
             this.setHighwayVisible(true);
-            this.showFineTunePanel();
             this.reapply();
+            // Defer panel render to next frame — prevents HighwaySystem from clicking
+            // ft-restart on the same frame that this trigger confirm is processed.
+            this._pendingFineTunePanel = true;
         }
     }
 
@@ -365,8 +393,33 @@ export class CalibrationSystem extends createSystem({}) {
         const uiPanel = this.world.globals.uiPanel as HTMLDivElement | undefined;
         if (!uiPanel) return;
 
+        // Always clear previously registered buttons before rebuilding.
+        this.clearFtButtons();
+
         // Resize back to standard panel dimensions (e.g. coming from 1000×525 Library).
         (this.world.globals.resizePanel as ((w: number, h: number) => void) | undefined)?.(400, 300);
+
+        if (this._fullRepositionInProgress) {
+            // Show only the step instruction — no controls, no buttons.
+            const ctrl = !this.hasHandInputSources();
+            const stepMsg = this.state === 'prompt_left'
+                ? (ctrl
+                    ? '🎹 Step 1 of 2<br><br>Rest your <b>LEFT controller</b><br>on the <b>leftmost key</b><br>and pull the left trigger.'
+                    : '🎹 Step 1 of 2<br><br>Touch the <b>leftmost key</b><br>with your <b>left index finger</b><br>and pinch to confirm.')
+                : (ctrl
+                    ? '🎹 Step 2 of 2<br><br>Rest your <b>RIGHT controller</b><br>on the <b>rightmost key</b><br>and pull the right trigger.'
+                    : '🎹 Step 2 of 2<br><br>Touch the <b>rightmost key</b><br>with your <b>right index finger</b><br>and pinch to confirm.');
+
+            uiPanel.innerHTML = `
+                <div class="frame">
+                    <div class="content" style="justify-content:center;align-items:center;">
+                        <p style="font-size:15px;line-height:1.7;color:#e8e8e8;text-align:center;padding:24px">${stepMsg}</p>
+                    </div>
+                </div>
+            `;
+            // No buttons registered — nothing interactive during the reposition flow.
+            return;
+        }
 
         uiPanel.innerHTML = `
             <div class="frame">
@@ -449,7 +502,8 @@ export class CalibrationSystem extends createSystem({}) {
         this._spIncr = uiPanel.querySelector('#ft-incr-val');
 
         const reg = (id: string, onClick: () => void): void => {
-            const el = uiPanel.querySelector(`#${id}`) as HTMLButtonElement;
+            const el = uiPanel.querySelector(`#${id}`) as HTMLButtonElement | null;
+            if (!el) return;
             const entry: XrButton = { el, onClick };
             this._ftButtons.push(entry);
         };
@@ -476,13 +530,13 @@ export class CalibrationSystem extends createSystem({}) {
         });
         reg('ft-restart', () => {
             // Return to step 1 without clearing _onComplete — the original
-            // done() callback (e.g. showActiveScene) still fires after the redo.
-            this.clearFtButtons();
+            // done() callback fires after the redo completes.
+            this._fullRepositionInProgress = true;
             this.state = 'prompt_left';
             this.setHighwayVisible(false);
-            this.updatePanel();
+            this.showFineTunePanel();
         });
-        reg('ft-done',  () => {
+        reg('ft-done', () => {
             this.saveCalibration();
             this._onComplete?.();
             this._onComplete = null;
@@ -571,11 +625,11 @@ export class CalibrationSystem extends createSystem({}) {
             idle:  '',
             done:  '',
             prompt_left: ctrl
-                ? '🎹 Step 1 of 2<br><br>Rest your <b>LEFT controller</b><br>on the leftmost key <b>(A0)</b><br>and pull the left trigger.'
-                : '🎹 Step 1 of 2<br><br>Touch the leftmost key <b>(A0)</b><br>with your <b>left index finger</b><br>and pinch to confirm.',
+                ? '🎹 Step 1 of 2<br><br>Rest your <b>LEFT controller</b><br>on the <b>leftmost key</b><br>and pull the left trigger.'
+                : '🎹 Step 1 of 2<br><br>Touch the <b>leftmost key</b><br>with your <b>left index finger</b><br>and pinch to confirm.',
             prompt_right: ctrl
-                ? '🎹 Step 2 of 2<br><br>Rest your <b>RIGHT controller</b><br>on the rightmost key <b>(C8)</b><br>and pull the right trigger.'
-                : '🎹 Step 2 of 2<br><br>Touch the rightmost key <b>(C8)</b><br>with your <b>right index finger</b><br>and pinch to confirm.',
+                ? '🎹 Step 2 of 2<br><br>Rest your <b>RIGHT controller</b><br>on the <b>rightmost key</b><br>and pull the right trigger.'
+                : '🎹 Step 2 of 2<br><br>Touch the <b>rightmost key</b><br>with your <b>right index finger</b><br>and pinch to confirm.',
         };
 
         uiPanel.innerHTML = `
