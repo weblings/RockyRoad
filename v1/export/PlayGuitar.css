@@ -1,0 +1,123 @@
+.play-overlay {
+  width: 1000px;
+  height: 525px;
+  display: flex;
+  flex-direction: column;
+}
+
+.play-bar {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  background: linear-gradient(180deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0) 100%);
+}
+
+/* Current time / total duration labels */
+.time-current,
+.time-duration {
+  color: #c8c8c8;
+  font-size: 13px;
+  font-weight: 400;
+  text-align: center;
+  min-width: 28px;
+}
+
+/* Seek bar */
+.seek-wrap {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: #333333;
+}
+
+.seek-tick {
+  width: 2px;
+  height: 10px;
+  background: rgba(140,140,140,0.55);
+  border-radius: 1px;
+}
+
+.seek-thumb {
+  width: 24px;
+  height: 24px;
+  background: #eeeeee;
+  box-shadow: 0px 0px 3px 0px rgba(0,0,0,0.6);
+  border-radius: 100px;
+}
+
+/* Speed control: [−] [display] [+] */
+.speed-control {
+  display: flex;
+  align-items: stretch;
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.speed-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 9px;
+  background: #333333;
+  color: #cccccc;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1;
+  border: none;
+  cursor: pointer;
+}
+
+.speed-display {
+  height: 32px;
+  display: flex;
+  align-items: center;
+  padding: 0px 20px 0px 8px;
+  background: #1a1a1a;
+}
+
+.speed-value {
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 400;
+  text-align: center;
+  line-height: 1;
+}
+
+/* Nav buttons (Library, play/pause, Settings) */
+.btn-group {
+  height: 32px;
+  display: flex;
+  align-items: center;
+}
+
+.play-back-btn,
+.play-pause-btn,
+.settings-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 8px;
+  background: #333333;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.back-icon,
+.back-label,
+.settings-label {
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.settings-icon {
+  color: #111111;
+  font-size: 11px;
+  font-weight: 400;
+}
