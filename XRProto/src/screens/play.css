@@ -153,6 +153,29 @@
   text-overflow: ellipsis;
 }
 
+/* Stats row — centered inline stats (streak, totals, etc.) */
+.xr-panel .frame .content .play-body .stats-row {
+  display: flex;
+  flex-direction: row;
+  align-items: baseline;
+  justify-content: center;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
+.xr-panel .frame .content .play-body .stats-row .stat-value {
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.xr-panel .frame .content .play-body .stats-row .stat-label {
+  color: #c8c8c8;
+  font-size: 10px;
+  font-weight: 400;
+  margin-right: 6px;
+}
+
 /* Speed control */
 .xr-panel .frame .content .play-body .speed-control {
   flex: 0 0 auto;
