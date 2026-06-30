@@ -36,13 +36,13 @@
   background: #1a1a1a;
   border: 1px solid #333333;
   border-radius: 6px;
-  color: #c8c8c8;
   font-size: 13px;
   font-family: inherit;
-  outline: none;
+  display: flex;
+  align-items: center;
 }
 
-.xr-panel .library-frame .toolbar .search-input::placeholder {
+.xr-panel .library-frame .toolbar .search-placeholder {
   color: #555555;
 }
 

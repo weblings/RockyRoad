@@ -61,8 +61,7 @@ export class XRSongLibrary {
             <div class="library-frame">
                 <div class="toolbar">
                     <div class="search-row">
-                        <input class="search-input" id="lib-search" type="text"
-                            placeholder="Search..." autocomplete="off">
+                        <div class="search-input"><span class="search-placeholder">Search...</span></div>
                         <div class="sort-dropdown${this.sortOpen ? ' open' : ''}">
                             <button class="sort-trigger" id="sort-trigger" type="button">
                                 <span class="sort-label">${currentLabel}</span>
