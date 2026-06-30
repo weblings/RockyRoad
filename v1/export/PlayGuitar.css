@@ -1,5 +1,5 @@
 .play-overlay {
-  width: 1000px;
+  width: 100vw;
   height: 525px;
   display: flex;
   flex-direction: column;

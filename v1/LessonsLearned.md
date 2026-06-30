@@ -56,3 +56,60 @@ Element-level sizes (`lib-title`, `lib-subtitle`, etc.) remain authoritative.
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 ```
 Set `font-family: 'Inter', system-ui, sans-serif` on `body` so all screens inherit it.
+
+---
+
+## Figma export is a body fragment — wrap it for static collaboration
+
+**Symptom:** Exported HTML has no `<!doctype>`, `<head>`, or `<body>` — can't be opened as a standalone page.
+
+**Fix:** Wrap the fragment in a full HTML shell with Inter font loading, a `<link>` to the companion CSS file, and `background: #000` on body so dark UI is visible. This is the standard format for static collaboration pages in this project.
+
+---
+
+## Figma icon colors reflect their Figma background, not the implementation background
+
+**Symptom:** Settings gear icon exported with `color: #111111` — invisible on the `#333333` button it sits on.
+
+**Root cause:** In Figma the icon was designed on a light surface. The exporter outputs the Figma fill color verbatim.
+
+**Fix:** Any icon on a `primary-dark` (`#333333`) button needs `color: #ffffff`. Check all icon colors on first cleanup pass.
+
+---
+
+## Play/pause is circular, not a standard button
+
+**Context:** XRProto design language makes the play/pause button visually distinct as the primary action — `border-radius: 50%`, 40×40, `#eeeeee` bg, `#111111` text. Figma exports it as a square button like everything else.
+
+**Fix:** Always convert the play/pause button to circular on cleanup. It should stand out from the nav buttons.
+
+---
+
+## Custom seek track replaces native `<input type="range">`
+
+**Context:** XRProto uses a fully custom seek bar: a `position: relative` track div containing an absolutely-positioned fill div, section tick overlay, and thumb div. Figma exports the seek as a static visual with separate sibling elements.
+
+**Fix on cleanup:**
+- Replace any `<input type="text">` or `<input type="range">` from the export with `.seek-track > .seek-fill + .seek-sections + .seek-thumb`
+- Track: `#333333`, border-radius 7px, height 14px
+- Fill: `#c0c0c0`, absolutely positioned from left
+- Thumb: `#dadada`, 20×20 circle, `top: -3px`, z-index 1
+- Ticks: `position: absolute`, `rgba(255,255,255,0.55)`, 2×10px
+
+---
+
+## Speed control height — use padding, not fixed height
+
+**Symptom:** Speed `[−] [value] [+]` control is shorter than adjacent buttons even though they look aligned in Figma.
+
+**Root cause:** Figma exports the speed buttons with a fixed pixel height (e.g. `height: 22px`). The settings/back buttons size from padding + content, ending up taller.
+
+**Fix:** Remove `height` from speed buttons; use `padding: 8px 0` (matching the vertical padding of sibling buttons) so all controls reach the same natural height.
+
+---
+
+## Static export page needs `width: 100vw`, not Figma's artboard pixel width
+
+**Symptom:** Seek bar doesn't fill the screen — the overlay is capped at the Figma artboard width (e.g. `1000px`).
+
+**Fix:** Change the root overlay from `width: 1000px` to `width: 100vw` on cleanup. The seek wrap already has `flex: 1` so it expands automatically once the container is full-width.
