@@ -29,7 +29,7 @@ body {
 .button.primary-light:hover, .button.primary-light.xr-hover { background: #bebebe; }
 .button.primary-light:active { background: #9c9c9c; }
 
-.button.secondary-dark { background: #8b8b8b; color: #e8e8e8; }
+.button.secondary-dark { background: #8b8b8b; color: #111111; font-weight: 700; }
 .button.secondary-dark:hover, .button.secondary-dark.xr-hover { background: #7c7c7c; }
 .button.secondary-dark:active { background: #6c6c6c; }
 

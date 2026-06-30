@@ -29,7 +29,7 @@
 .xr-panel .button.primary-light:hover, .xr-panel .button.primary-light.xr-hover { background: #bebebe; }
 .xr-panel .button.primary-light:active { background: #9c9c9c; }
 
-.xr-panel .button.secondary-dark { background: #8b8b8b; color: #e8e8e8; }
+.xr-panel .button.secondary-dark { background: #8b8b8b; color: #111111; font-weight: 700; }
 .xr-panel .button.secondary-dark:hover, .xr-panel .button.secondary-dark.xr-hover { background: #7c7c7c; }
 .xr-panel .button.secondary-dark:active { background: #6c6c6c; }
 
