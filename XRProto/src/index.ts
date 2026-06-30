@@ -3,6 +3,7 @@ import './screens/song.css';
 import './screens/reposition.css';
 import './screens/settings.css';
 import './screens/library.css';
+import './screens/play.css';
 
 import html2canvas from "html2canvas";
 import {
@@ -663,6 +664,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
             uiPanel,
             xrButtons,
             entry.title,
+            entry.artist,
             songPlayer,
             totalDuration,
             sections,
@@ -678,6 +680,10 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
                 showLibrary();
             },
         );
+
+        if (!songPlayer.isPlaying) {
+            resumeWithCountdown(songPlayer.currentSecond, entry, songPlayer, sections, totalDuration, noteMin, noteMax);
+        }
     }
 
     function showSettings(

@@ -33,6 +33,10 @@
 .xr-panel .button.secondary-dark:hover { background: #7c7c7c; }
 .xr-panel .button.secondary-dark:active { background: #6c6c6c; }
 
+.xr-panel .button.secondary-light { background: #c0c0c0; color: #111111; }
+.xr-panel .button.secondary-light:hover { background: #ababab; }
+.xr-panel .button.secondary-light:active { background: #969696; }
+
 /* ─── Panel shell ─── */
 
 .xr-panel .frame {

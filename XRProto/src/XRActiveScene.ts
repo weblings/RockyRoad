@@ -9,6 +9,7 @@ export class XRActiveScene {
         uiPanel: HTMLDivElement,
         xrButtons: XrButton[],
         songTitle: string,
+        songArtist: string,
         songPlayer: SongPlayer,
         totalDuration: number,
         sections: SongSection[],
@@ -21,16 +22,6 @@ export class XRActiveScene {
         registerPanelUpdate: (cb: () => void) => void,
         onBack: () => void,
     ): void {
-        const btnStyle =
-            'display:block;width:100%;padding:10px;margin-bottom:8px;border:none;' +
-            'border-radius:5px;font-size:14px;cursor:pointer;box-sizing:border-box;color:#111';
-        const smallBtn =
-            'display:block;width:100%;padding:7px;margin-bottom:6px;border:none;' +
-            'border-radius:5px;font-size:12px;cursor:pointer;box-sizing:border-box;color:#111';
-        const speedBtnStyle =
-            'flex:0 0 auto;padding:4px 14px;border:none;border-radius:4px;' +
-            'font-size:15px;cursor:pointer;color:#111;background:#555';
-
         const speedLabel = (r: number) =>
             (Math.round(r * 100) / 100).toString().replace(/\.?0+$/, '') + '×';
 
@@ -47,69 +38,76 @@ export class XRActiveScene {
             : '';
 
         uiPanel.innerHTML = `
-            <div style="padding:14px;font-family:sans-serif;color:#e8e8e8">
-                <div style="font-size:13px;font-weight:bold;margin-bottom:6px;
-                            white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
-                    🎹 ${esc(songTitle)}
+            <div class="frame">
+                <div class="content">
+                    <div class="play-header">
+                        <button class="button primary-dark" id="as-library" type="button">
+                            <span class="back-icon">←</span>
+                            <span>Library</span>
+                        </button>
+                        <button class="button primary-dark" id="as-settings" type="button">
+                            <span>⚙</span>
+                            <span>Settings</span>
+                        </button>
+                    </div>
+                    <div class="play-body">
+                        <div class="progress-row">
+                            <div class="progress-area">
+                                <div class="times">
+                                    <span id="as-time" class="time-elapsed">0:00</span>
+                                    <span class="time-total">${formatTime(totalDuration)}</span>
+                                </div>
+                                <div id="as-seek-track" class="seek-track">
+                                    <div id="as-seek-fill" class="seek-fill"></div>
+                                    ${sectionTicks}
+                                    <div id="as-seek-thumb" class="seek-thumb"></div>
+                                </div>
+                            </div>
+                            <button id="as-playpause" class="play-btn${songPlayer.isPlaying ? ' is-playing' : ''}" type="button">
+                                ${songPlayer.isPlaying ? '⏸' : '▶'}
+                            </button>
+                        </div>
+                        <div class="song-row">
+                            <div class="art-thumb"></div>
+                            <div class="song-meta">
+                                <p class="song-title">${esc(songTitle)}</p>
+                                <p class="song-subtitle">${esc(songArtist)}</p>
+                            </div>
+                            <div class="speed-control">
+                                <span class="speed-label">Speed</span>
+                                <div class="speed-row">
+                                    <button id="as-speed-dec" class="button secondary-dark speed-btn" type="button">−</button>
+                                    <span id="as-speed-val" class="speed-value">${speedLabel(songPlayer.playbackRate)}</span>
+                                    <button id="as-speed-inc" class="button secondary-dark speed-btn" type="button">+</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div style="display:flex;justify-content:space-between;
-                            font-size:11px;color:#aaa;margin-bottom:4px">
-                    <span id="as-time">0:00</span>
-                    <span>${formatTime(totalDuration)}</span>
+                <div class="actions">
+                    <button class="button primary-dark" id="as-reposition" type="button">🔄 Reposition</button>
                 </div>
-                <div id="as-seek-track"
-                     style="position:relative;width:100%;height:14px;background:#555;
-                            border-radius:7px;margin-bottom:10px;cursor:pointer;
-                            box-sizing:border-box">
-                    <div id="as-seek-fill"
-                         style="position:absolute;left:0;top:0;height:100%;
-                                background:#6aaa6a;border-radius:7px;width:0%"></div>
-                    ${sectionTicks}
-                    <div id="as-seek-thumb"
-                         style="position:absolute;top:-3px;width:20px;height:20px;
-                                background:#9aca9a;border-radius:50%;left:0px;
-                                box-shadow:0 0 3px rgba(0,0,0,0.6)"></div>
-                </div>
-                <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-                    <button id="as-speed-down" style="${speedBtnStyle}">−</button>
-                    <span style="flex:1;text-align:center;font-size:12px;color:#ccc">
-                        ${speedLabel(songPlayer.playbackRate)}
-                    </span>
-                    <button id="as-speed-up" style="${speedBtnStyle}">+</button>
-                </div>
-                <button id="as-playpause" style="${btnStyle};background:#3a5a3a">
-                    ${songPlayer.isPlaying ? '⏸ Pause' : '▶ Play'}
-                </button>
-                <button id="as-recal" style="${smallBtn};background:#3a3a6a">
-                    🔄 Reposition Piano
-                </button>
-                <button id="as-settings" style="${smallBtn};background:#4a4a3a">
-                    ⚙ Settings
-                </button>
-                <button id="as-back" style="${smallBtn};background:#5a3a3a">
-                    ← Library
-                </button>
             </div>
         `;
 
         const rerender = () => {
             this.show(
-                uiPanel, xrButtons, songTitle, songPlayer,
+                uiPanel, xrButtons, songTitle, songArtist, songPlayer,
                 totalDuration, sections, startCalibration,
                 onResumeWithCountdown, onSettings, registerPanelUpdate, onBack,
             );
         };
 
-        const playEl      = uiPanel.querySelector('#as-playpause')  as HTMLButtonElement;
-        const recalEl     = uiPanel.querySelector('#as-recal')      as HTMLButtonElement;
+        const libraryEl   = uiPanel.querySelector('#as-library')    as HTMLButtonElement;
         const settingsEl  = uiPanel.querySelector('#as-settings')   as HTMLButtonElement;
-        const backEl      = uiPanel.querySelector('#as-back')       as HTMLButtonElement;
-        const sdwnEl    = uiPanel.querySelector('#as-speed-down') as HTMLButtonElement;
-        const supEl     = uiPanel.querySelector('#as-speed-up')   as HTMLButtonElement;
-        const seekTrack = uiPanel.querySelector('#as-seek-track') as HTMLDivElement;
-        const seekFill  = uiPanel.querySelector('#as-seek-fill')  as HTMLDivElement;
-        const seekThumb = uiPanel.querySelector('#as-seek-thumb') as HTMLDivElement;
-        const timeEl    = uiPanel.querySelector('#as-time')       as HTMLSpanElement;
+        const playEl      = uiPanel.querySelector('#as-playpause')  as HTMLButtonElement;
+        const reposEl     = uiPanel.querySelector('#as-reposition') as HTMLButtonElement;
+        const sdwnEl      = uiPanel.querySelector('#as-speed-dec')  as HTMLButtonElement;
+        const supEl       = uiPanel.querySelector('#as-speed-inc')  as HTMLButtonElement;
+        const seekTrack   = uiPanel.querySelector('#as-seek-track') as HTMLDivElement;
+        const seekFill    = uiPanel.querySelector('#as-seek-fill')  as HTMLDivElement;
+        const seekThumb   = uiPanel.querySelector('#as-seek-thumb') as HTMLDivElement;
+        const timeEl      = uiPanel.querySelector('#as-time')       as HTMLSpanElement;
 
         // Per-frame DOM update: seek fill width, thumb position, time label.
         registerPanelUpdate(() => {
@@ -117,8 +115,7 @@ export class XRActiveScene {
             const pct = totalDuration > 0 ? Math.min(t / totalDuration * 100, 100) : 0;
             seekFill.style.width = `${pct}%`;
             timeEl.textContent   = formatTime(t);
-            // Position thumb centre at pct% of the track width; thumb is 20px wide.
-            const trackW = seekTrack.offsetWidth || (seekTrack.getBoundingClientRect().width) || 372;
+            const trackW = seekTrack.offsetWidth || (seekTrack.getBoundingClientRect().width) || 356;
             seekThumb.style.left = `${Math.max(0, Math.min(Math.round(pct / 100 * trackW) - 10, trackW - 20))}px`;
         });
 
@@ -136,7 +133,6 @@ export class XRActiveScene {
         });
 
         // Seek bar — drag-to-scrub.
-        // Visual (highway + seek bar) updates during drag; audio finalised on release.
         let scrubWasPlaying = false;
         xrButtons.push({
             el: seekTrack,
@@ -145,13 +141,11 @@ export class XRActiveScene {
                 if (scrubWasPlaying) songPlayer.pause();
             },
             onScrubMove: (normalizedX: number) => {
-                // seekTo while paused just sets pausedAt — O(1), safe every frame.
-                // HighwaySystem reads currentSecond to drive scene position.
                 songPlayer.seekTo(Math.max(0, Math.min(normalizedX * totalDuration, totalDuration)));
             },
             onScrubEnd: (normalizedX: number) => {
                 const t = Math.max(0, Math.min(normalizedX * totalDuration, totalDuration));
-                songPlayer.seekTo(t); // ensures position set even on press-without-move
+                songPlayer.seekTo(t);
                 if (scrubWasPlaying) {
                     onResumeWithCountdown(t);
                 } else {
@@ -160,11 +154,11 @@ export class XRActiveScene {
             },
         });
 
-        // Speed [−] — 0.2 step to match 2D preset anchors, clamped to [0.2, 2.0]
+        // Speed [−]
         xrButtons.push({
             el: sdwnEl,
             onClick: () => {
-                songPlayer.playbackRate = Math.max(0.2, Math.round((songPlayer.playbackRate - 0.2) * 10) / 10);
+                songPlayer.playbackRate = Math.max(0.1, Math.round((songPlayer.playbackRate - 0.1) * 10) / 10);
                 rerender();
             },
         });
@@ -173,21 +167,21 @@ export class XRActiveScene {
         xrButtons.push({
             el: supEl,
             onClick: () => {
-                songPlayer.playbackRate = Math.min(2.0, Math.round((songPlayer.playbackRate + 0.2) * 10) / 10);
+                songPlayer.playbackRate = Math.min(2.0, Math.round((songPlayer.playbackRate + 0.1) * 10) / 10);
                 rerender();
             },
         });
 
-        // Recalibrate — pause while calibrating, re-show panel when done.
+        // Reposition
         xrButtons.push({
-            el: recalEl,
+            el: reposEl,
             onClick: () => {
                 if (songPlayer.isPlaying) songPlayer.pause();
                 startCalibration(() => rerender());
             },
         });
 
-        // Settings.
+        // Settings
         xrButtons.push({
             el: settingsEl,
             onClick: () => {
@@ -196,8 +190,8 @@ export class XRActiveScene {
             },
         });
 
-        // Back to library.
-        xrButtons.push({ el: backEl, onClick: onBack });
+        // Back to library
+        xrButtons.push({ el: libraryEl, onClick: onBack });
     }
 }
 
