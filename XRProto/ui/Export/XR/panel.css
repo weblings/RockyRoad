@@ -37,6 +37,11 @@ body {
 .button.secondary-light:hover, .button.secondary-light.xr-hover { background: #ababab; }
 .button.secondary-light:active { background: #969696; }
 
+/* ─── Text hierarchy ─── */
+
+.text-primary   { color: #ffffff; font-size: 12px; font-weight: 700; }
+.text-secondary { color: #c8c8c8; font-size: 10px; font-weight: 400; }
+
 /* ─── Icon button ─── */
 
 .button.icon-btn > svg { display: block; flex-shrink: 0; margin-left: -2px; }

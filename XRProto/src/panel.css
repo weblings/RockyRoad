@@ -37,6 +37,11 @@
 .xr-panel .button.secondary-light:hover, .xr-panel .button.secondary-light.xr-hover { background: #ababab; }
 .xr-panel .button.secondary-light:active { background: #969696; }
 
+/* ─── Text hierarchy ─── */
+
+.xr-panel .text-primary   { color: #ffffff; font-size: 12px; font-weight: 700; }
+.xr-panel .text-secondary { color: #c8c8c8; font-size: 10px; font-weight: 400; }
+
 /* ─── Icon button ─── */
 
 .xr-panel .button.icon-btn > svg { display: block; flex-shrink: 0; margin-left: -2px; }

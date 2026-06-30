@@ -163,18 +163,7 @@
   flex: 0 0 auto;
 }
 
-.xr-panel .frame .content .play-body .stats-row .stat-value {
-  color: #ffffff;
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.xr-panel .frame .content .play-body .stats-row .stat-label {
-  color: #c8c8c8;
-  font-size: 10px;
-  font-weight: 400;
-  margin-right: 6px;
-}
+.xr-panel .frame .content .play-body .stats-row .text-secondary { margin-right: 6px; }
 
 /* Speed control */
 .xr-panel .frame .content .play-body .speed-control {
