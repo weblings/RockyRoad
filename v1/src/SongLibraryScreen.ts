@@ -148,8 +148,8 @@ export class SongLibraryScreen implements IScreen {
         this.setContent(`
             <div class="lib-splash">
                 <div class="lib-splash-inner">
-                    <h1 class="lib-title">ChartPlayer</h1>
-                    <p class="lib-subtitle">Choose the folder where your songs are stored.</p>
+                    <h1 class="lib-title text-primary">ChartPlayer</h1>
+                    <p class="lib-subtitle text-secondary">Choose the folder where your songs are stored.</p>
                     <button class="lib-btn-primary" id="lib-pick">Choose folder</button>
                     ${persistenceNote}
                 </div>
@@ -165,8 +165,8 @@ export class SongLibraryScreen implements IScreen {
         this.setContent(`
             <div class="lib-splash">
                 <div class="lib-splash-inner">
-                    <h1 class="lib-title">ChartPlayer</h1>
-                    <p class="lib-subtitle">Re-allow access to your songs folder to continue.</p>
+                    <h1 class="lib-title text-primary">ChartPlayer</h1>
+                    <p class="lib-subtitle text-secondary">Re-allow access to your songs folder to continue.</p>
                     <button class="lib-btn-primary" id="lib-reallow">Re-allow access</button>
                     <button class="lib-btn-secondary" id="lib-pick-new">Choose a different folder</button>
                 </div>

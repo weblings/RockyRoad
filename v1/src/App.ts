@@ -55,8 +55,8 @@ export class App {
         this.settingsOverlay  = document.getElementById("settings-overlay")!;
         this.countdownOverlay = document.getElementById("countdown-overlay")!;
 
-        document.getElementById("settings-btn")!
-            .addEventListener("click", () => this.openSettings());
+        document.getElementById("settings-btn")
+            ?.addEventListener("click", () => this.openSettings());
         document.getElementById("settings-close")!
             .addEventListener("click", () => this.closeSettings());
         document.getElementById("settings-scrim")!
