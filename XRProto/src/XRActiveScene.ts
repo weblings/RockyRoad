@@ -64,7 +64,7 @@ export class XRActiveScene {
                                 </div>
                             </div>
                             <button id="as-playpause" class="play-btn${songPlayer.isPlaying ? ' is-playing' : ''}" type="button">
-                                ${songPlayer.isPlaying ? '⏸' : '▶'}
+                                <img src="/ui/${songPlayer.isPlaying ? 'pause' : 'play'}.svg" width="24" height="24" style="display:block">
                             </button>
                         </div>
                         <div class="song-row">

@@ -99,8 +99,6 @@
   align-items: center;
   justify-content: center;
 }
-.xr-panel .frame .content .play-body .play-btn:not(.is-playing) { padding-left: 2px; }
-.xr-panel .frame .content .play-body .play-btn.is-playing { padding-top: 2px; }
 
 .xr-panel .frame .content .play-body .play-btn:hover,
 .xr-panel .frame .content .play-body .play-btn.xr-hover { background: #bebebe; }
