@@ -523,20 +523,22 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     function resizePanel(w: number, h: number): void {
         uiPanel.style.width  = `${w}px`;
         uiPanel.style.height = `${h}px`;
-        // Setting canvas dimensions clears its contents automatically.
-        panelCanvas.width  = w;
-        panelCanvas.height = h;
-        panelMesh.geometry.dispose();
-        panelMesh.geometry = new PlaneGeometry(w * 0.001, h * 0.001);
-        // Keep panel centre at ~1.3 m world height relative to the grab bar root.
-        // Base offset 0.169 m assumes 300 px height; scale up proportionally.
-        panelMesh.position.y = 0.169 + (h - 300) * 0.001 * 0.5;
-        // Dispose the WebGL texture so THREE.js must re-upload via texImage2D
-        // (not texSubImage2D) at the new canvas dimensions. Without this, the old
-        // GPU texture stays at its previous size and the new content only fills
-        // a fraction of it, leaving the previous screen visible in the rest.
-        panelTex.dispose();
-        panelTex.needsUpdate = true;
+        if (panelCanvas.width !== w || panelCanvas.height !== h) {
+            // Setting canvas dimensions clears its contents automatically.
+            panelCanvas.width  = w;
+            panelCanvas.height = h;
+            panelMesh.geometry.dispose();
+            panelMesh.geometry = new PlaneGeometry(w * 0.001, h * 0.001);
+            // Keep panel centre at ~1.3 m world height relative to the grab bar root.
+            // Base offset 0.169 m assumes 300 px height; scale up proportionally.
+            panelMesh.position.y = 0.169 + (h - 300) * 0.001 * 0.5;
+            // Dispose the WebGL texture so THREE.js must re-upload via texImage2D
+            // (not texSubImage2D) at the new canvas dimensions. Without this, the old
+            // GPU texture stays at its previous size and the new content only fills
+            // a fraction of it, leaving the previous screen visible in the rest.
+            panelTex.dispose();
+            panelTex.needsUpdate = true;
+        }
         // Cancel any in-flight html2canvas render so it can't overwrite the
         // new screen's content with pixels from the previous screen.
         (world.globals.invalidatePanelRender as (() => void) | undefined)?.();
