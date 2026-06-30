@@ -32,45 +32,53 @@ export class XRSettingsScene {
         uiPanel: HTMLDivElement,
         xrButtons: XrButton[],
         s: Settings,
-        noteMin: number,
-        noteMax: number,
+        _noteMin: number,
+        _noteMax: number,
         onDone: (s: Settings) => void,
         rerender: () => void,
     ): void {
-        const toggleActive   = 'flex:1;padding:6px 8px;border:none;border-radius:4px;font-size:12px;cursor:pointer;background:#3a5a8a;color:#e8e8e8';
-        const toggleInactive = 'flex:1;padding:6px 8px;border:none;border-radius:4px;font-size:12px;cursor:pointer;background:#333;color:#777';
-
         uiPanel.innerHTML = `
-            <div style="padding:12px;font-family:sans-serif;color:#e8e8e8">
-                <div style="font-size:13px;font-weight:bold;margin-bottom:10px">⚙ Settings</div>
-
-                <div style="font-size:11px;color:#aaa;margin-bottom:5px">Key range</div>
-                <div style="display:flex;gap:6px;margin-bottom:12px">
-                    <button id="ss-note-range" style="${s.fullKeyboard ? toggleInactive : toggleActive}">
-                        Note range
-                    </button>
-                    <button id="ss-full-88" style="${s.fullKeyboard ? toggleActive : toggleInactive}">
-                        Full 88-key
-                    </button>
+            <div class="frame">
+                <div class="content">
+                    <div class="header">
+                        <button id="ss-back" class="button primary-dark" type="button">
+                            <span class="back-icon">←</span>
+                            <span class="back-label">Play</span>
+                        </button>
+                    </div>
+                    <div class="settings-body">
+                        <div class="setting-row">
+                            <p class="setting-title">Key Range</p>
+                        </div>
+                        <div class="toggle-group">
+                            <button id="ss-note-range" class="button ${s.fullKeyboard ? 'primary-dark' : 'primary-light'}" type="button">Note range</button>
+                            <button id="ss-full-88" class="button ${s.fullKeyboard ? 'primary-light' : 'primary-dark'}" type="button">Full 88-key</button>
+                        </div>
+                        <div class="setting-row">
+                            <p class="setting-title">Right Hand Color</p>
+                        </div>
+                        <div class="swatch-row">
+                            ${COLOR_PRESETS.map((c, i) => swatchHtml(c.hex, i, s.keysRightHandColor === c.hex, 'rh')).join('')}
+                        </div>
+                        <div class="setting-row">
+                            <p class="setting-title">Left Hand Color</p>
+                        </div>
+                        <div class="swatch-row">
+                            ${COLOR_PRESETS.map((c, i) => swatchHtml(c.hex, i, s.keysLeftHandColor === c.hex, 'lh')).join('')}
+                        </div>
+                    </div>
                 </div>
-
-                <div style="font-size:11px;color:#aaa;margin-bottom:6px">Right hand</div>
-                <div style="display:flex;gap:8px;margin-bottom:10px">
-                    ${COLOR_PRESETS.map((c, i) => swatchHtml(c.hex, i, s.keysRightHandColor === c.hex, 'rh')).join('')}
-                </div>
-
-                <div style="font-size:11px;color:#aaa;margin-bottom:6px">Left hand</div>
-                <div style="display:flex;gap:8px;margin-bottom:12px">
-                    ${COLOR_PRESETS.map((c, i) => swatchHtml(c.hex, i, s.keysLeftHandColor === c.hex, 'lh')).join('')}
-                </div>
-
-                <button id="ss-done" style="display:block;width:100%;padding:9px;border:none;
-                    border-radius:5px;font-size:13px;cursor:pointer;background:#3a6a3a;
-                    color:#111;box-sizing:border-box">
-                    ✓ Done
-                </button>
             </div>
         `;
+
+        // Back button — saves and returns to active scene.
+        xrButtons.push({
+            el: uiPanel.querySelector('#ss-back') as HTMLButtonElement,
+            onClick: () => {
+                saveSettings(s);
+                onDone(s);
+            },
+        });
 
         // Key range toggle
         xrButtons.push({
@@ -97,19 +105,9 @@ export class XRSettingsScene {
                 onClick: () => { s.keysLeftHandColor = c.hex; rerender(); },
             });
         });
-
-        xrButtons.push({
-            el: uiPanel.querySelector('#ss-done') as HTMLButtonElement,
-            onClick: () => {
-                saveSettings(s);
-                onDone(s);
-            },
-        });
     }
 }
 
 function swatchHtml(hex: string, i: number, selected: boolean, hand: string): string {
-    const border = selected ? 'border:3px solid #ffffff' : 'border:3px solid transparent';
-    return `<div id="ss-${hand}-${i}" style="width:30px;height:30px;border-radius:50%;` +
-           `background:${hex};cursor:pointer;box-sizing:border-box;${border}"></div>`;
+    return `<div id="ss-${hand}-${i}" class="color-swatch${selected ? ' selected' : ''}" style="background: ${hex};"></div>`;
 }

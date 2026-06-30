@@ -25,61 +25,57 @@ export class XRPreScene {
         // Default to the first Keys part, or the first part overall.
         const selectedPart = keysParts[0] ?? entry.parts[0];
 
-        const btnStyle =
-            'display:block;width:100%;padding:10px;margin-bottom:8px;border:none;' +
-            'border-radius:5px;font-size:14px;cursor:pointer;box-sizing:border-box';
-        const backStyle =
-            'background:none;border:none;color:#aaa;font-size:12px;cursor:pointer;' +
-            'padding:0;margin-bottom:12px';
-
         // Attempt to load saved calibration immediately.
         const hasSavedCal = hasKeys && tryLoadCalibration();
 
-        const playBtnStyle = hasKeys
-            ? `${btnStyle};background:#3a5a3a;color:#111`
-            : `${btnStyle};background:#444;color:#555;cursor:default`;
-
-        const calNote = hasSavedCal
-            ? '<div style="font-size:11px;color:#8f8;margin-bottom:8px">✓ Calibration loaded</div>'
-            : (hasKeys
-                ? '<div style="font-size:11px;color:#fa8;margin-bottom:8px">Calibration required before playing</div>'
-                : '<div style="font-size:11px;color:#f88;margin-bottom:8px">No Keys part in this song</div>');
-
         uiPanel.innerHTML = `
-            <div style="padding:14px;font-family:sans-serif;color:#e8e8e8">
-                <button id="ps-back" style="${backStyle}">← Library</button>
-                <div style="font-size:16px;font-weight:bold;margin-bottom:2px">${esc(entry.title)}</div>
-                <div style="font-size:12px;color:#aaa;margin-bottom:12px">${esc(entry.artist)}</div>
-                ${calNote}
-                ${hasSavedCal ? `<button id="ps-recal" style="${btnStyle};background:#3a3a6a;color:#111">🔄 Reposition Piano</button>` : ''}
-                <button id="ps-play" style="${playBtnStyle}" ${hasKeys ? '' : 'disabled'}>
-                    ${hasSavedCal ? '▶ Play' : '▶ Calibrate & Play'}
-                </button>
+            <div class="frame">
+                <div class="content">
+                    <div class="header">
+                        <button id="ps-back" class="button primary-dark" type="button">
+                            <span class="back-icon">←</span>
+                            <span class="back-label">Library</span>
+                        </button>
+                    </div>
+                    <div class="song-info">
+                        <div class="song-details">
+                            <div class="row">
+                                <div class="art-bg"><div class="art-image"></div></div>
+                            </div>
+                            <p class="song-title">${esc(entry.title)}</p>
+                            <div class="row">
+                                <div class="text-wrap"><p class="artist-name">${esc(entry.artist)}</p></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="actions">
+                    ${hasSavedCal
+                        ? `<button id="ps-recal" class="button primary-dark" type="button">🔄 Reposition</button>`
+                        : ''}
+                    <button id="ps-play" class="button primary-light" type="button"
+                        ${hasKeys ? '' : 'disabled'}>▶ Play</button>
+                </div>
             </div>
         `;
 
-        // Back button.
-        const backEl = uiPanel.querySelector('#ps-back') as HTMLButtonElement;
-        xrButtons.push({ el: backEl, onClick: onBack });
+        xrButtons.push({
+            el: uiPanel.querySelector('#ps-back') as HTMLButtonElement,
+            onClick: onBack,
+        });
 
         if (!hasKeys) return;
 
         const partName = selectedPart.name;
 
-        // Play button — branches on whether calibration is already loaded.
         const playEl = uiPanel.querySelector('#ps-play') as HTMLButtonElement;
         if (hasSavedCal) {
-            // Saved calibration applied — load song and go straight to active scene.
             xrButtons.push({ el: playEl, onClick: () => onPlay(entry, partName) });
-        } else {
-            // No calibration — load song first (highway visible), then calibrate.
-            xrButtons.push({ el: playEl, onClick: () => onCalibratePlay(entry, partName) });
-        }
 
-        // Reposition Piano button — only shown when saved calibration was found.
-        if (hasSavedCal) {
             const recalEl = uiPanel.querySelector('#ps-recal') as HTMLButtonElement;
             xrButtons.push({ el: recalEl, onClick: () => onReposition(entry, partName) });
+        } else {
+            xrButtons.push({ el: playEl, onClick: () => onCalibratePlay(entry, partName) });
         }
     }
 }

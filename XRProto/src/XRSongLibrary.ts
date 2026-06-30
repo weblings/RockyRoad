@@ -9,13 +9,27 @@ export interface SongManifestEntry {
     parts:  { name: string; type: string }[];
 }
 
+// ── Sort options ──────────────────────────────────────────────────────────────
+
+const SORT_OPTIONS = [
+    { value: 'title-asc',       label: 'Title A–Z' },
+    { value: 'title-desc',      label: 'Title Z–A' },
+    { value: 'artist-asc',      label: 'Artist A–Z' },
+    { value: 'artist-desc',     label: 'Artist Z–A' },
+    { value: 'difficulty-asc',  label: 'Difficulty ↑' },
+    { value: 'difficulty-desc', label: 'Difficulty ↓' },
+    { value: 'tuning-asc',      label: 'Tuning A–Z' },
+] as const;
+
+type SortValue = (typeof SORT_OPTIONS)[number]['value'];
+
 // ── XRSongLibrary ─────────────────────────────────────────────────────────────
 
-const PAGE_SIZE = 5;
-
 export class XRSongLibrary {
-    private page = 0;
     private entries: SongManifestEntry[];
+    private sortKey: SortValue = 'title-asc';
+    private filterKey: 'all' | 'lead' = 'all';
+    private sortOpen = false;
 
     constructor(entries: SongManifestEntry[]) {
         this.entries = entries;
@@ -26,74 +40,121 @@ export class XRSongLibrary {
         xrButtons: XrButton[],
         onSelect: (entry: SongManifestEntry) => void,
     ): void {
-        const totalPages = Math.max(1, Math.ceil(this.entries.length / PAGE_SIZE));
-        this.page = Math.min(this.page, totalPages - 1);
+        xrButtons.length = 0;
+        this._render(uiPanel, xrButtons, onSelect);
+    }
 
-        const pageEntries = this.entries.slice(
-            this.page * PAGE_SIZE,
-            this.page * PAGE_SIZE + PAGE_SIZE,
-        );
+    private _render(
+        uiPanel: HTMLDivElement,
+        xrButtons: XrButton[],
+        onSelect: (entry: SongManifestEntry) => void,
+    ): void {
+        const rerender = (): void => {
+            xrButtons.length = 0;
+            this._render(uiPanel, xrButtons, onSelect);
+        };
 
-        const rowStyle =
-            'display:block;width:100%;text-align:left;padding:8px 10px;margin-bottom:6px;' +
-            'background:#2a2a4a;color:#111;border:none;border-radius:5px;' +
-            'font-size:13px;cursor:pointer;box-sizing:border-box';
-        const navStyle =
-            'padding:4px 12px;background:#3a3a5a;color:#111;border:none;' +
-            'border-radius:4px;font-size:12px;cursor:pointer';
-
-        const rowsHtml = pageEntries.map((e, i) => `
-            <button id="lib-song-${i}" style="${rowStyle}">
-                <div style="font-weight:bold">${esc(e.title)}</div>
-                <div style="font-size:11px;color:#aaa">${esc(e.artist)}</div>
-            </button>`).join('');
-
-        const navHtml = totalPages > 1 ? `
-            <div style="display:flex;justify-content:space-between;align-items:center;
-                        margin-top:8px;font-size:12px;color:#aaa">
-                <button id="lib-prev" style="${navStyle}">◀ Prev</button>
-                <span>Page ${this.page + 1} / ${totalPages}</span>
-                <button id="lib-next" style="${navStyle}">Next ▶</button>
-            </div>` : '';
+        const currentLabel = SORT_OPTIONS.find(o => o.value === this.sortKey)?.label ?? 'Title A–Z';
+        const displayEntries = this._getFiltered();
 
         uiPanel.innerHTML = `
-            <div style="padding:14px;font-family:sans-serif">
-                <div style="font-size:14px;font-weight:bold;color:#e8e8e8;margin-bottom:10px">
-                    🎵 Song Library
+            <div class="library-frame">
+                <div class="toolbar">
+                    <div class="search-row">
+                        <input class="search-input" id="lib-search" type="text"
+                            placeholder="Search..." autocomplete="off">
+                        <div class="sort-dropdown${this.sortOpen ? ' open' : ''}">
+                            <button class="sort-trigger" id="sort-trigger" type="button">
+                                <span class="sort-label">${currentLabel}</span>
+                                <span class="sort-chevron">&#9662;</span>
+                            </button>
+                            <div class="sort-menu">
+                                ${SORT_OPTIONS.map(o =>
+                                    `<button class="sort-option${o.value === this.sortKey ? ' selected' : ''}"
+                                        id="sort-opt-${o.value}" type="button">${o.label}</button>`
+                                ).join('')}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="filter-row">
+                        <button id="filter-all" class="button ${this.filterKey === 'all' ? 'primary-light' : 'primary-dark'}" type="button">All</button>
+                        <button id="filter-lead" class="button ${this.filterKey === 'lead' ? 'primary-light' : 'primary-dark'}" type="button">Lead</button>
+                    </div>
                 </div>
-                ${this.entries.length === 0
-                    ? '<div style="color:#aaa;font-size:13px">No songs found in /songs/manifest.json</div>'
-                    : rowsHtml}
-                ${navHtml}
+                <div class="song-list">
+                    ${displayEntries.length === 0
+                        ? '<p style="color:#555;font-size:13px;padding:8px">No songs found.</p>'
+                        : displayEntries.map((e, i) => `
+                            <button class="song-entry" id="song-${i}" type="button">
+                                <div class="art-placeholder"></div>
+                                <div class="song-meta">
+                                    <p class="song-title">${esc(e.title)}</p>
+                                    <p class="song-album"></p>
+                                    <p class="song-artist">${esc(e.artist)}</p>
+                                </div>
+                            </button>`).join('')}
+                </div>
             </div>
         `;
 
-        // Register song row buttons.
-        for (let i = 0; i < pageEntries.length; i++) {
-            const entry = pageEntries[i];
-            const el = uiPanel.querySelector(`#lib-song-${i}`) as HTMLButtonElement;
-            xrButtons.push({ el, onClick: () => onSelect(entry) });
+        // Sort trigger — toggles the dropdown open/closed.
+        xrButtons.push({
+            el: uiPanel.querySelector('#sort-trigger') as HTMLButtonElement,
+            onClick: () => { this.sortOpen = !this.sortOpen; rerender(); },
+        });
+
+        // Sort option buttons — selecting one applies sort and closes dropdown.
+        for (const opt of SORT_OPTIONS) {
+            const el = uiPanel.querySelector(`#sort-opt-${opt.value}`) as HTMLButtonElement | null;
+            if (!el) continue;
+            const value = opt.value;
+            xrButtons.push({
+                el,
+                onClick: () => {
+                    this.sortKey  = value;
+                    this.sortOpen = false;
+                    rerender();
+                },
+            });
         }
 
-        // Register prev/next buttons.
-        if (totalPages > 1) {
-            const prevEl = uiPanel.querySelector('#lib-prev') as HTMLButtonElement;
-            const nextEl = uiPanel.querySelector('#lib-next') as HTMLButtonElement;
-            xrButtons.push({
-                el: prevEl,
-                onClick: () => {
-                    this.page = Math.max(0, this.page - 1);
-                    this.show(uiPanel, xrButtons, onSelect);
-                },
-            });
-            xrButtons.push({
-                el: nextEl,
-                onClick: () => {
-                    this.page = Math.min(totalPages - 1, this.page + 1);
-                    this.show(uiPanel, xrButtons, onSelect);
-                },
-            });
+        // Filter chips.
+        xrButtons.push({
+            el: uiPanel.querySelector('#filter-all') as HTMLButtonElement,
+            onClick: () => { this.filterKey = 'all'; rerender(); },
+        });
+        xrButtons.push({
+            el: uiPanel.querySelector('#filter-lead') as HTMLButtonElement,
+            onClick: () => { this.filterKey = 'lead'; rerender(); },
+        });
+
+        // Song entry buttons.
+        for (let i = 0; i < displayEntries.length; i++) {
+            const entry = displayEntries[i];
+            const el = uiPanel.querySelector(`#song-${i}`) as HTMLButtonElement | null;
+            if (!el) continue;
+            xrButtons.push({ el, onClick: () => onSelect(entry) });
         }
+    }
+
+    private _getFiltered(): SongManifestEntry[] {
+        const filtered = this.filterKey === 'lead'
+            ? this.entries.filter(e => e.parts.some(p => p.type === 'Keys'))
+            : this.entries;
+        return this._sorted(filtered);
+    }
+
+    private _sorted(entries: SongManifestEntry[]): SongManifestEntry[] {
+        const copy = [...entries];
+        switch (this.sortKey) {
+            case 'title-asc':       copy.sort((a, b) => a.title.localeCompare(b.title));   break;
+            case 'title-desc':      copy.sort((a, b) => b.title.localeCompare(a.title));   break;
+            case 'artist-asc':      copy.sort((a, b) => a.artist.localeCompare(b.artist)); break;
+            case 'artist-desc':     copy.sort((a, b) => b.artist.localeCompare(a.artist)); break;
+            // difficulty / tuning not in data model — fall back to title sort.
+            default:                copy.sort((a, b) => a.title.localeCompare(b.title));   break;
+        }
+        return copy;
     }
 }
 

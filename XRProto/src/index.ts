@@ -1,3 +1,9 @@
+import './panel.css';
+import './screens/song.css';
+import './screens/reposition.css';
+import './screens/settings.css';
+import './screens/library.css';
+
 import html2canvas from "html2canvas";
 import {
     AssetManifest,
@@ -378,12 +384,8 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
 
     // ── UI panel ──────────────────────────────────────────────────────────────
     const uiPanel = document.createElement("div");
-    uiPanel.style.cssText = [
-        "position:fixed", "left:-9999px", "top:0",
-        "width:400px", "height:300px", "background:#1a1a2e",
-        "color:#e8e8e8", "font-family:sans-serif", "padding:0",
-        "box-sizing:border-box", "border-radius:8px",
-    ].join(";");
+    uiPanel.className = 'xr-panel';
+    uiPanel.style.cssText = "position:fixed;left:-9999px;top:0;width:400px;height:300px";
     document.body.appendChild(uiPanel);
 
     const panelCanvas = document.createElement("canvas");
@@ -462,6 +464,22 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     world.globals.xrButtons  = xrButtons;
     world.globals.grabBarHit = grabBarHit;
 
+    // Resize the panel mesh, canvas, and DOM element together.
+    // Scale factor: 1px = 0.001 m in world space.
+    function resizePanel(w: number, h: number): void {
+        uiPanel.style.width  = `${w}px`;
+        uiPanel.style.height = `${h}px`;
+        panelCanvas.width  = w;
+        panelCanvas.height = h;
+        panelMesh.geometry.dispose();
+        panelMesh.geometry = new PlaneGeometry(w * 0.001, h * 0.001);
+        // Keep panel centre at ~1.3 m world height relative to the grab bar root.
+        // Base offset 0.169 m assumes 300 px height; scale up proportionally.
+        panelMesh.position.y = 0.169 + (h - 300) * 0.001 * 0.5;
+    }
+
+    world.globals.resizePanel = resizePanel;
+
     // ── App state machine ─────────────────────────────────────────────────────
 
     // Tracks the current highway scene entity so we can dispose it before loading
@@ -475,6 +493,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
 
     function showLibrary(): void {
         clearXrButtons();
+        resizePanel(1000, 525);
         // Pause any playing song when returning to the library.
         (world.globals.songPlayer as SongPlayer | undefined)?.pause();
         library.show(uiPanel, xrButtons, showPreScene);
@@ -482,6 +501,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
 
     function showPreScene(entry: SongManifestEntry): void {
         clearXrButtons();
+        resizePanel(400, 300);
         preScene.show(
             uiPanel,
             xrButtons,
@@ -612,6 +632,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         noteMax: number,
     ): void {
         clearXrButtons();
+        resizePanel(400, 300);
         world.globals.updateActivePanel = undefined;
         activeScene.show(
             uiPanel,
@@ -643,6 +664,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         noteMax: number,
     ): void {
         clearXrButtons();
+        resizePanel(400, 300);
         world.globals.updateActivePanel = undefined;
         settingsScene.show(
             uiPanel,

@@ -82,12 +82,12 @@ export class CalibrationSystem extends createSystem({}) {
     // ── Fine-tune panel ───────────────────────────────────────────────────────
 
     private _ftButtons: XrButton[] = [];
-    private _spPX:   HTMLSpanElement | null = null;
-    private _spPY:   HTMLSpanElement | null = null;
-    private _spPZ:   HTMLSpanElement | null = null;
-    private _spRY:   HTMLSpanElement | null = null;
-    private _spS:    HTMLSpanElement | null = null;
-    private _spIncr: HTMLSpanElement | null = null;
+    private _spPX:   HTMLElement | null = null;
+    private _spPY:   HTMLElement | null = null;
+    private _spPZ:   HTMLElement | null = null;
+    private _spRY:   HTMLElement | null = null;
+    private _spS:    HTMLElement | null = null;
+    private _spIncr: HTMLElement | null = null;
 
     // ── Lifecycle ─────────────────────────────────────────────────────────────
 
@@ -365,70 +365,79 @@ export class CalibrationSystem extends createSystem({}) {
         const uiPanel = this.world.globals.uiPanel as HTMLDivElement | undefined;
         if (!uiPanel) return;
 
-        const btn     = 'background:#3a3a7a;color:#e8e8e8;border:none;border-radius:4px;' +
-                        'padding:2px 7px;cursor:pointer;font-size:11px;margin:1px';
-        const btnFull = 'display:inline-block;padding:6px 16px;border:none;border-radius:4px;' +
-                        'font-size:12px;cursor:pointer;color:#111';
+        // Resize back to standard panel dimensions (e.g. coming from 1000×525 Library).
+        (this.world.globals.resizePanel as ((w: number, h: number) => void) | undefined)?.(400, 300);
 
         uiPanel.innerHTML = `
-            <div style="padding:10px;font-family:sans-serif;color:#e8e8e8;font-size:11px">
-
-                <div style="text-align:center;margin-bottom:8px">
-                    <button id="ft-restart" style="${btnFull}background:#3a5a3a">↺ Full Reposition</button>
-                </div>
-
-                <div style="display:flex;gap:4px;margin-bottom:8px">
-
-                    <div style="flex:1;text-align:center">
-                        <div style="font-weight:bold;margin-bottom:5px;font-size:12px">POSITION (m)</div>
-                        <div style="margin-bottom:3px">
-                            X <button id="ft-pxm" style="${btn}">-</button>
-                            <span id="ft-px-val" style="display:inline-block;width:40px;text-align:center">0.000</span>
-                            <button id="ft-pxp" style="${btn}">+</button>
+            <div class="frame">
+                <div class="content">
+                    <div class="header"></div>
+                    <div class="controls">
+                        <div class="section-row">
+                            <div class="section">
+                                <div class="section-label">
+                                    <p class="section-title">Position</p>
+                                </div>
+                                <div class="axis-row">
+                                    <p class="axis-label">X</p>
+                                    <button id="ft-pxm" class="button secondary-dark" type="button">-</button>
+                                    <p id="ft-px-val" class="value-display">0.000</p>
+                                    <button id="ft-pxp" class="button secondary-dark" type="button">+</button>
+                                </div>
+                                <div class="axis-row">
+                                    <p class="axis-label">Y</p>
+                                    <button id="ft-pym" class="button secondary-dark" type="button">-</button>
+                                    <p id="ft-py-val" class="value-display">0.000</p>
+                                    <button id="ft-pyp" class="button secondary-dark" type="button">+</button>
+                                </div>
+                                <div class="axis-row">
+                                    <p class="axis-label">Z</p>
+                                    <button id="ft-pzm" class="button secondary-dark" type="button">-</button>
+                                    <p id="ft-pz-val" class="value-display">0.000</p>
+                                    <button id="ft-pzp" class="button secondary-dark" type="button">+</button>
+                                </div>
+                            </div>
+                            <div class="section">
+                                <div class="section-group">
+                                    <div class="section-label">
+                                        <p class="section-title">Rotation</p>
+                                    </div>
+                                    <div class="axis-row">
+                                        <button id="ft-rym" class="button secondary-dark" type="button">-</button>
+                                        <p id="ft-ry-val" class="value-display">0.0</p>
+                                        <button id="ft-ryp" class="button secondary-dark" type="button">+</button>
+                                    </div>
+                                </div>
+                                <div class="section-group">
+                                    <div class="section-label">
+                                        <p class="section-title">Scale</p>
+                                    </div>
+                                    <div class="axis-row">
+                                        <button id="ft-sm" class="button secondary-dark" type="button">-</button>
+                                        <p id="ft-s-val" class="value-display">1.000</p>
+                                        <button id="ft-sp" class="button secondary-dark" type="button">+</button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <div style="margin-bottom:3px">
-                            Y <button id="ft-pym" style="${btn}">-</button>
-                            <span id="ft-py-val" style="display:inline-block;width:40px;text-align:center">0.000</span>
-                            <button id="ft-pyp" style="${btn}">+</button>
-                        </div>
-                        <div>
-                            Z <button id="ft-pzm" style="${btn}">-</button>
-                            <span id="ft-pz-val" style="display:inline-block;width:40px;text-align:center">0.000</span>
-                            <button id="ft-pzp" style="${btn}">+</button>
+                        <div class="section">
+                            <div class="section-group">
+                                <div class="section-label">
+                                    <p class="section-title">Increment</p>
+                                </div>
+                                <div class="axis-row">
+                                    <button id="ft-incrm" class="button secondary-dark" type="button">-</button>
+                                    <p id="ft-incr-val" class="value-display">0.01</p>
+                                    <button id="ft-incrp" class="button secondary-dark" type="button">+</button>
+                                </div>
+                            </div>
                         </div>
                     </div>
-
-                    <div style="flex:1;text-align:center">
-                        <div style="font-weight:bold;margin-bottom:5px;font-size:12px">ROT Y (°)</div>
-                        <div>
-                            <button id="ft-rym" style="${btn}">-</button>
-                            <span id="ft-ry-val" style="display:inline-block;width:36px;text-align:center">0.0</span>
-                            <button id="ft-ryp" style="${btn}">+</button>
-                        </div>
-                    </div>
-
-                    <div style="flex:1;text-align:center">
-                        <div style="font-weight:bold;margin-bottom:5px;font-size:12px">SCALE</div>
-                        <div>
-                            <button id="ft-sm" style="${btn}">-</button>
-                            <span id="ft-s-val" style="display:inline-block;width:36px;text-align:center">1.00</span>
-                            <button id="ft-sp" style="${btn}">+</button>
-                        </div>
-                    </div>
-
                 </div>
-
-                <div style="text-align:center;margin-bottom:8px">
-                    <span>Incr:</span>
-                    <button id="ft-incrm" style="${btn}">-</button>
-                    <span id="ft-incr-val" style="display:inline-block;width:36px;text-align:center">0.01</span>
-                    <button id="ft-incrp" style="${btn}">+</button>
+                <div class="actions">
+                    <button id="ft-restart" class="button primary-dark" type="button">🔄 Full Reposition</button>
+                    <button id="ft-done" class="button primary-light" type="button">▶ Play</button>
                 </div>
-
-                <div style="text-align:center">
-                    <button id="ft-done" style="${btnFull}background:#5a3a7a">✓ Done</button>
-                </div>
-
             </div>
         `;
 
