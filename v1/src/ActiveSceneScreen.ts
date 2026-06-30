@@ -181,26 +181,38 @@ export class ActiveSceneScreen implements IScreen {
         container.innerHTML = `
             <div id="active-overlay">
                 <div class="active-bar">
-                    <button class="active-back-btn" id="active-back">&#8592; Library</button>
-                    <button class="active-play-btn" id="active-play">&#9646;&#9646;</button>
+                    <button class="active-back-btn" id="active-back" type="button">
+                        <svg width="14" height="14" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M13.0908 14.3334C12.972 14.3334 12.9125 14.1898 12.9965 14.1058L17.7021 9.40022C17.9625 9.13987 17.9625 8.71776 17.7021 8.45741L16.2879 7.04319C16.0275 6.78284 15.6054 6.78284 15.3451 7.04319L6.8598 15.5285C6.59945 15.7888 6.59945 16.2109 6.8598 16.4713L8.27401 17.8855L8.27536 17.8868L15.3453 24.9568C15.6057 25.2172 16.0278 25.2172 16.2881 24.9568L17.7024 23.5426C17.9627 23.2822 17.9627 22.8601 17.7024 22.5998L12.9969 17.8944C12.9129 17.8104 12.9724 17.6668 13.0912 17.6668L26 17.6668C26.3682 17.6668 26.6667 17.3683 26.6667 17.0001V15.0001C26.6667 14.6319 26.3682 14.3334 26 14.3334L13.0908 14.3334Z" fill="currentColor"/></svg>
+                        <span>Library</span>
+                    </button>
+                    <button class="active-play-btn" id="active-play" type="button">&#9654;</button>
                     <span class="active-time" id="active-time">0:00</span>
                     <div class="active-seek-wrap">
-                        <input type="range" id="active-seek" min="0" max="1000" step="1" value="0" />
-                        <div id="active-sections"></div>
+                        <div class="seek-track" id="active-seek">
+                            <div class="seek-fill" id="active-seek-fill"></div>
+                            <div id="active-sections"></div>
+                            <div class="seek-thumb" id="active-seek-thumb"></div>
+                        </div>
                     </div>
                     <span class="active-duration">${durStr}</span>
                     <div class="speed-group">
-                        <button class="speed-step" id="speed-down">&#x2212;</button>
+                        <button class="speed-step" id="speed-down" type="button">&#x2212;</button>
                         <select id="active-speed-select"></select>
-                        <button class="speed-step" id="speed-up">+</button>
+                        <button class="speed-step" id="speed-up" type="button">+</button>
                     </div>
+                    <button class="active-back-btn" id="active-settings" type="button">
+                        <svg width="14" height="14" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M13.3321 4C12.598 4 11.9728 4.50932 11.8154 5.22745L11.4396 6.96752C10.8867 7.19965 10.3672 7.49361 9.88904 7.84127L8.19799 7.29239C7.50395 7.06339 6.74634 7.35056 6.37926 7.98082L4.71259 10.8636C4.34551 11.4939 4.48613 12.2948 5.04981 12.7627L6.42361 13.9071C6.38394 14.2002 6.36329 14.4981 6.36329 14.8C6.36329 15.1019 6.38394 15.3998 6.42361 15.6929L5.04981 16.8373C4.48613 17.3052 4.34551 18.1061 4.71259 18.7364L6.37926 21.6192C6.74634 22.2494 7.50395 22.5366 8.19799 22.3076L9.88904 21.7587C10.3672 22.1064 10.8867 22.4003 11.4396 22.6325L11.8154 24.3725C11.9728 25.0907 12.598 25.6 13.3321 25.6H16.6654C17.3994 25.6 18.0247 25.0907 18.182 24.3725L18.5579 22.6325C19.1107 22.4003 19.6303 22.1064 20.1084 21.7587L21.7995 22.3076C22.4935 22.5366 23.2511 22.2494 23.6182 21.6192L25.2849 18.7364C25.6519 18.1061 25.5113 17.3052 24.9476 16.8373L23.5738 15.6929C23.6135 15.3998 23.6342 15.1019 23.6342 14.8C23.6342 14.4981 23.6135 14.2002 23.5738 13.9071L24.9476 12.7627C25.5113 12.2948 25.6519 11.4939 25.2849 10.8636L23.6182 7.98082C23.2511 7.35056 22.4935 7.06339 21.7995 7.29239L20.1084 7.84127C19.6303 7.49361 19.1107 7.19965 18.5579 6.96752L18.182 5.22745C18.0247 4.50932 17.3994 4 16.6654 4H13.3321ZM14.9987 18.4C16.9869 18.4 18.5987 16.7882 18.5987 14.8C18.5987 12.8118 16.9869 11.2 14.9987 11.2C13.0105 11.2 11.3987 12.8118 11.3987 14.8C11.3987 16.7882 13.0105 18.4 14.9987 18.4Z" fill="currentColor"/></svg>
+                        <span>Settings</span>
+                    </button>
                 </div>
             </div>`;
 
-        const overlay  = container.querySelector('#active-overlay') as HTMLElement;
-        const seekEl   = container.querySelector('#active-seek') as HTMLInputElement;
-        const timeEl   = container.querySelector('#active-time') as HTMLElement;
-        const playBtn  = container.querySelector('#active-play') as HTMLButtonElement;
+        const overlay    = container.querySelector('#active-overlay') as HTMLElement;
+        const seekTrack  = container.querySelector('#active-seek') as HTMLElement;
+        const fillEl     = container.querySelector('#active-seek-fill') as HTMLElement;
+        const thumbEl    = container.querySelector('#active-seek-thumb') as HTMLElement;
+        const timeEl     = container.querySelector('#active-time') as HTMLElement;
+        const playBtn    = container.querySelector('#active-play') as HTMLButtonElement;
         const sectionsDiv = container.querySelector('#active-sections') as HTMLElement;
 
         // Section tick marks
@@ -237,26 +249,39 @@ export class ActiveSceneScreen implements IScreen {
         let wasPlayingBeforeScrub = false;
         let prevIsPlaying = true;
 
-        seekEl.addEventListener('pointerdown', () => {
+        const getPct = (e: PointerEvent): number => {
+            const rect = seekTrack.getBoundingClientRect();
+            return Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+        };
+        const setScrubPos = (pct: number): number => {
+            const t = pct * dur;
+            fillEl.style.width  = `${pct * 100}%`;
+            thumbEl.style.left  = `calc(${pct * 100}% - 10px)`;
+            timeEl.textContent  = formatTime(t);
+            if (this.scene) this.scene.currentSecond = t;
+            return t;
+        };
+
+        seekTrack.addEventListener('pointerdown', (e) => {
             isScrubbing = true;
             wasPlayingBeforeScrub = this.songPlayer?.isPlaying ?? false;
             if (wasPlayingBeforeScrub) this.songPlayer?.pause();
+            seekTrack.setPointerCapture(e.pointerId);
+            setScrubPos(getPct(e));
         });
-        seekEl.addEventListener('input', () => {
-            const t = Number(seekEl.value) / 1000 * dur;
-            timeEl.textContent = formatTime(t);
-            if (this.scene) this.scene.currentSecond = t;
+        seekTrack.addEventListener('pointermove', (e) => {
+            if (!isScrubbing) return;
+            setScrubPos(getPct(e));
         });
-        seekEl.addEventListener('pointerup', () => {
-            const t = Number(seekEl.value) / 1000 * dur;
-            // Always seek the scene to the scrubbed position.
+        seekTrack.addEventListener('pointerup', (e) => {
+            if (!isScrubbing) return;
+            const t = setScrubPos(getPct(e));
             this.songPlayer?.seekTo(t);
             if (wasPlayingBeforeScrub) {
-                // Resume via the same 3-2-1 countdown used when closing settings.
                 this.app.resumeWithCountdown(t);
                 scheduleHide();
             } else {
-                showBar(); // stay visible when scrubbing while paused
+                showBar();
             }
             isScrubbing = false;
         });
@@ -337,6 +362,12 @@ export class ActiveSceneScreen implements IScreen {
             });
         });
 
+        // Settings button
+        container.querySelector('#active-settings')!.addEventListener('click', e => {
+            e.stopPropagation();
+            this.app.openSettings();
+        });
+
         // onPreDraw: keep seek bar and play button in sync with audio clock.
         // During the scroll-back animation, scene.currentSecond is driven by the
         // eased animation rather than the audio clock.
@@ -365,8 +396,10 @@ export class ActiveSceneScreen implements IScreen {
             }
 
             if (!isScrubbing && dur > 0) {
-                seekEl.value = String(Math.round(displayTime / dur * 1000));
-                timeEl.textContent = formatTime(displayTime);
+                const pct = displayTime / dur * 100;
+                fillEl.style.width  = `${pct}%`;
+                thumbEl.style.left  = `calc(${pct}% - 10px)`;
+                timeEl.textContent  = formatTime(displayTime);
             }
 
             const playing = this.songPlayer.isPlaying;

@@ -369,46 +369,60 @@
     /* ── Active scene overlay ──────────────────────────────────────────────── */
     #active-overlay {
       position: absolute; inset: 0;
-      /* gradient fades from bar bg down to transparent so the highway shows through */
       background: linear-gradient(rgba(0,0,0,0.55) 0%, transparent 88px);
-      pointer-events: none;   /* overlay itself is click-through */
+      pointer-events: none;
       transition: opacity 0.4s;
     }
     #active-overlay.bar-hidden { opacity: 0.12; }
 
-    /* Top bar — the only pointer-interactive region */
     .active-bar {
       display: flex; align-items: center; gap: 8px;
-      padding: 10px 54px 10px 12px; /* right pad clears the fixed ⚙ button */
+      padding: 10px 12px;
       pointer-events: auto;
-      font-family: system-ui, sans-serif;
+      font-family: 'Inter', system-ui, sans-serif;
     }
 
-    /* Back + play buttons */
-    .active-back-btn, .active-play-btn {
-      padding: 5px 12px; background: rgba(255,255,255,0.12);
-      border: none; border-radius: 6px; color: #fff; font-size: 14px;
-      cursor: pointer; flex-shrink: 0; line-height: 1.4;
+    /* Back button */
+    .active-back-btn {
+      display: flex; align-items: center; gap: 6px;
+      padding: 8px 14px; background: #333333;
+      border: none; border-radius: 5px; color: #ffffff; font-size: 12px;
+      cursor: pointer; flex-shrink: 0;
     }
-    .active-back-btn:hover, .active-play-btn:hover { background: rgba(255,255,255,0.22); }
-    .active-play-btn { width: 34px; padding: 5px; text-align: center; }
+    .active-back-btn:hover { background: #515151; }
+    .active-back-btn svg { display: block; flex-shrink: 0; }
+
+    /* Play/pause — circular, stands out as primary action */
+    .active-play-btn {
+      width: 40px; height: 40px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      background: #eeeeee; border: none; border-radius: 50%;
+      color: #111111; font-size: 14px; cursor: pointer;
+    }
+    .active-play-btn:hover { background: #bebebe; }
 
     /* Time labels */
     .active-time, .active-duration {
-      color: #ccc; font-size: 13px; font-variant-numeric: tabular-nums;
+      color: #c8c8c8; font-size: 13px; font-weight: 400;
+      font-variant-numeric: tabular-nums;
       flex-shrink: 0; min-width: 34px; text-align: center;
     }
 
-    /* Seek bar container — fills remaining space */
-    .active-seek-wrap {
-      flex: 1; position: relative; height: 20px;
-      display: flex; align-items: center; min-width: 0;
+    /* Seek bar container */
+    .active-seek-wrap { flex: 1; min-width: 0; display: flex; align-items: center; }
+
+    /* Custom seek track */
+    .seek-track {
+      position: relative; width: 100%; height: 14px;
+      background: #333333; border-radius: 7px; cursor: pointer;
     }
-    #active-seek {
-      width: 100%; accent-color: #2a6eff; cursor: pointer;
+    .seek-track:hover { background: #515151; }
+
+    .seek-fill {
+      position: absolute; left: 0; top: 0; height: 100%;
+      background: #c0c0c0; border-radius: 7px; pointer-events: none;
     }
 
-    /* Section tick marks overlaid on the seek bar track */
     #active-sections { position: absolute; inset: 0; pointer-events: none; }
     .seek-section-tick {
       position: absolute; top: 50%; transform: translate(-50%, -50%);
@@ -416,23 +430,31 @@
       border-radius: 1px; pointer-events: auto; cursor: default;
     }
 
+    .seek-thumb {
+      position: absolute; top: -3px;
+      width: 20px; height: 20px;
+      background: #dadada; border-radius: 50%; z-index: 1;
+      pointer-events: none;
+    }
+
     /* Speed compound control: [−] [select] [+] as one visual unit */
     .speed-group {
       display: flex; align-items: stretch; flex-shrink: 0;
-      border: 1px solid rgba(255,255,255,0.22); border-radius: 6px; overflow: hidden;
+      border-radius: 5px; overflow: hidden;
     }
     .speed-step {
-      padding: 4px 9px; background: rgba(255,255,255,0.1);
-      border: none; color: #ccc; font-size: 15px; font-weight: 600;
+      width: 22px; display: flex; align-items: center; justify-content: center;
+      padding: 8px 0; background: #333333; border: none;
+      color: #cccccc; font-size: 11px; font-weight: 600;
       cursor: pointer; line-height: 1;
     }
-    .speed-step:hover { background: rgba(255,255,255,0.22); color: #fff; }
+    .speed-step:hover { background: #515151; color: #fff; }
     #active-speed-select {
-      background: rgba(0,0,0,0.35); border: none;
-      border-left: 1px solid rgba(255,255,255,0.15);
-      border-right: 1px solid rgba(255,255,255,0.15);
-      color: #fff; font-size: 13px; padding: 0 4px; cursor: pointer;
-      text-align: center;
+      appearance: none; -webkit-appearance: none;
+      background: #1a1a1a; border: none;
+      color: #ffffff; font-size: 13px; font-weight: 400;
+      padding: 8px 10px; text-align: center; cursor: pointer;
+      min-width: 42px;
     }
     #active-speed-select option { background: #1a1a1a; }
   </style>
