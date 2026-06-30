@@ -60,6 +60,7 @@ class HighwaySystem extends createSystem({}) {
 
     private lastPanelRender = -999;
     private panelRenderPending = false;
+    private panelRenderGen = 0;
 
     // Scrub state — active while the user holds trigger over the seek bar.
     private scrubBtn: XrButton | null = null;
@@ -84,6 +85,14 @@ class HighwaySystem extends createSystem({}) {
         this.rayDir    = new Vector3();
         this.panelPos  = new Vector3();
         this.headPos   = new Vector3();
+
+        // Called by resizePanel() to discard any in-flight html2canvas render
+        // and immediately start a fresh one next frame.
+        this.world.globals.invalidatePanelRender = (): void => {
+            this.panelRenderGen++;
+            this.panelRenderPending = false;
+            this.lastPanelRender = -999;
+        };
     }
 
     update(delta: number, time: number): void {
@@ -152,7 +161,13 @@ class HighwaySystem extends createSystem({}) {
             (this.world.globals.updateActivePanel as (() => void) | undefined)?.();
             this.panelRenderPending = true;
             this.lastPanelRender = time;
+            const captureGen = this.panelRenderGen;
             html2canvas(uiPanel, { backgroundColor: null, logging: false }).then(canvas => {
+                // Discard if a screen transition invalidated this render.
+                if (this.panelRenderGen !== captureGen) {
+                    this.panelRenderPending = false;
+                    return;
+                }
                 const dst = panelTex.image as HTMLCanvasElement;
                 dst.getContext("2d")!.drawImage(canvas, 0, 0, dst.width, dst.height);
                 panelTex.needsUpdate = true;
@@ -469,6 +484,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     function resizePanel(w: number, h: number): void {
         uiPanel.style.width  = `${w}px`;
         uiPanel.style.height = `${h}px`;
+        // Setting canvas dimensions clears its contents automatically.
         panelCanvas.width  = w;
         panelCanvas.height = h;
         panelMesh.geometry.dispose();
@@ -476,6 +492,15 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         // Keep panel centre at ~1.3 m world height relative to the grab bar root.
         // Base offset 0.169 m assumes 300 px height; scale up proportionally.
         panelMesh.position.y = 0.169 + (h - 300) * 0.001 * 0.5;
+        // Dispose the WebGL texture so THREE.js must re-upload via texImage2D
+        // (not texSubImage2D) at the new canvas dimensions. Without this, the old
+        // GPU texture stays at its previous size and the new content only fills
+        // a fraction of it, leaving the previous screen visible in the rest.
+        panelTex.dispose();
+        panelTex.needsUpdate = true;
+        // Cancel any in-flight html2canvas render so it can't overwrite the
+        // new screen's content with pixels from the previous screen.
+        (world.globals.invalidatePanelRender as (() => void) | undefined)?.();
     }
 
     world.globals.resizePanel = resizePanel;
