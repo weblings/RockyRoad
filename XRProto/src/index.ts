@@ -203,6 +203,7 @@ class HighwaySystem extends createSystem({}) {
                         this.isGrabbed       = true;
                         this.grabbingHandIdx = i;
                         (this.input.multiPointers[i === 0 ? 'left' : 'right'] as any).ray.visual.enabled = false;
+                        // console.log('[grab-start] grabBar world pos:', ...)
                         break;
                     }
                 }
@@ -219,6 +220,7 @@ class HighwaySystem extends createSystem({}) {
                 // Yaw: rotate panel so its +Z faces the user (instant, no easing).
                 grabBarHit.getWorldPosition(this.panelPos);
                 this.player.head.getWorldPosition(this.headPos);
+                // console.log('[billboard] grabBar LOCAL pos changed this frame:', ...)
                 grabBarHit.rotation.y = Math.atan2(
                     this.headPos.x - this.panelPos.x,
                     this.headPos.z - this.panelPos.z,
