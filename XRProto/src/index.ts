@@ -68,6 +68,9 @@ class HighwaySystem extends createSystem({}) {
     private scrubHandIdx = -1; // index into hands[] array; -1 = not scrubbing
     private scrubLastX = 0;
 
+    // Hover state — whichever xrButton the ray is currently over.
+    private hoveredBtn: XrButton | null = null;
+
     private lastCountdownN: number | undefined = undefined;
 
     // Billboard grab-tracking state.
@@ -281,6 +284,41 @@ class HighwaySystem extends createSystem({}) {
                 this.scrubHandIdx = -1;
             }
             return; // don't start new clicks while scrubbing
+        }
+
+        // ── Per-frame hover scan ──────────────────────────────────────────────
+        // Updates .xr-hover class on whichever button the ray is over.
+        // No render invalidation needed — the 10fps html2canvas tick picks it up.
+        if (xrButtons && panelMesh && uiPanel) {
+            let newHovered: XrButton | null = null;
+            hoverOuter: for (const { ray } of hands) {
+                if (!ray) continue;
+                ray.updateMatrixWorld();
+                panelMesh.updateMatrixWorld();
+                ray.getWorldPosition(this.rayOrigin);
+                this.rayDir.set(0, 0, -1).transformDirection(ray.matrixWorld);
+                this.raycaster.set(this.rayOrigin, this.rayDir);
+                const hits = this.raycaster.intersectObject(panelMesh);
+                if (hits.length === 0 || !hits[0].uv) continue;
+                const panelRect = uiPanel.getBoundingClientRect();
+                const pixX = hits[0].uv.x * panelRect.width;
+                const pixY = (1 - hits[0].uv.y) * panelRect.height;
+                for (const btn of xrButtons) {
+                    const r  = btn.el.getBoundingClientRect();
+                    const bx = r.left - panelRect.left;
+                    const by = r.top  - panelRect.top;
+                    if (pixX >= bx && pixX <= bx + r.width && pixY >= by && pixY <= by + r.height) {
+                        newHovered = btn;
+                        break hoverOuter;
+                    }
+                }
+                break; // first hand that hits the panel wins
+            }
+            if (newHovered !== this.hoveredBtn) {
+                this.hoveredBtn?.el.classList.remove('xr-hover');
+                newHovered?.el.classList.add('xr-hover');
+                this.hoveredBtn = newHovered;
+            }
         }
 
         // ── New button press ──────────────────────────────────────────────────
@@ -514,6 +552,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     let highwayEntity: { dispose(): void } | null = null;
 
     function clearXrButtons(): void {
+        for (const btn of xrButtons) btn.el.classList.remove('xr-hover');
         xrButtons.length = 0;
     }
 

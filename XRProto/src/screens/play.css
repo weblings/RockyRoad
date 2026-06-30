@@ -102,10 +102,12 @@
 .xr-panel .frame .content .play-body .play-btn:not(.is-playing) { padding-left: 2px; }
 .xr-panel .frame .content .play-body .play-btn.is-playing { padding-top: 2px; }
 
-.xr-panel .frame .content .play-body .play-btn:hover { background: #bebebe; }
+.xr-panel .frame .content .play-body .play-btn:hover,
+.xr-panel .frame .content .play-body .play-btn.xr-hover { background: #bebebe; }
 .xr-panel .frame .content .play-body .play-btn:active { background: #9c9c9c; }
 
-.xr-panel .frame .content .play-body .seek-track:hover:not(:has(.seek-thumb:hover)) { background: #515151; }
+.xr-panel .frame .content .play-body .seek-track:hover:not(:has(.seek-thumb:hover)),
+.xr-panel .frame .content .play-body .seek-track.xr-hover { background: #515151; }
 .xr-panel .frame .content .play-body .seek-track:active { background: #7c7c7c; }
 
 /* Song info + speed row */

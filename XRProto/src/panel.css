@@ -22,19 +22,19 @@
 }
 
 .xr-panel .button.primary-dark { background: #333333; color: #ffffff; }
-.xr-panel .button.primary-dark:hover { background: #515151; }
+.xr-panel .button.primary-dark:hover, .xr-panel .button.primary-dark.xr-hover { background: #515151; }
 .xr-panel .button.primary-dark:active { background: #7c7c7c; }
 
 .xr-panel .button.primary-light { background: #dadada; color: #111111; }
-.xr-panel .button.primary-light:hover { background: #bebebe; }
+.xr-panel .button.primary-light:hover, .xr-panel .button.primary-light.xr-hover { background: #bebebe; }
 .xr-panel .button.primary-light:active { background: #9c9c9c; }
 
 .xr-panel .button.secondary-dark { background: #8b8b8b; color: #e8e8e8; }
-.xr-panel .button.secondary-dark:hover { background: #7c7c7c; }
+.xr-panel .button.secondary-dark:hover, .xr-panel .button.secondary-dark.xr-hover { background: #7c7c7c; }
 .xr-panel .button.secondary-dark:active { background: #6c6c6c; }
 
 .xr-panel .button.secondary-light { background: #c0c0c0; color: #111111; }
-.xr-panel .button.secondary-light:hover { background: #ababab; }
+.xr-panel .button.secondary-light:hover, .xr-panel .button.secondary-light.xr-hover { background: #ababab; }
 .xr-panel .button.secondary-light:active { background: #969696; }
 
 /* ─── Panel shell ─── */

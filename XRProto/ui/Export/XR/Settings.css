@@ -48,7 +48,8 @@
   cursor: pointer;
 }
 
-.frame .content .settings-body .color-swatch:not(.selected):hover {
+.frame .content .settings-body .color-swatch:not(.selected):hover,
+.frame .content .settings-body .color-swatch:not(.selected).xr-hover {
   border-color: #666666;
 }
 
