@@ -48,8 +48,8 @@ const IMAGE_MANIFEST_URL = "/ImageManifest.json";
 const SONG_MANIFEST_URL  = "/songs/manifest.json";
 
 // ── Panel billboard ───────────────────────────────────────────────────────────
-let PANEL_BILLBOARD_LOW_OFFSET  = 0.2;  // m below head Y → pitch −30° (tweakable via overlay)
-let PANEL_BILLBOARD_HIGH_OFFSET = 0.3;  // m above head Y → pitch +30° (tweakable via overlay)
+let PANEL_BILLBOARD_LOW_OFFSET  = 0.375;  // m below head Y → pitch −30° (tweakable via overlay)
+let PANEL_BILLBOARD_HIGH_OFFSET = 0.375;  // m above head Y → pitch +30° (tweakable via overlay)
 let PANEL_PITCH_TWEEN_SECS      = 0.5;  // ease-out-expo tween duration (seconds, tweakable)
 
 // ── IWSDK HighwaySystem ───────────────────────────────────────────────────────
