@@ -37,6 +37,11 @@
 .xr-panel .button.secondary-light:hover, .xr-panel .button.secondary-light.xr-hover { background: #ababab; }
 .xr-panel .button.secondary-light:active { background: #969696; }
 
+/* ─── Icon button ─── */
+
+.xr-panel .button.icon-btn > svg { display: block; flex-shrink: 0; margin-left: -2px; }
+.xr-panel .button.icon-btn > span { position: relative; top: -0.5px; }
+
 /* ─── Panel shell ─── */
 
 .xr-panel .frame {
@@ -74,6 +79,7 @@
   padding: 8px;
   flex: 0 0 auto;
   border-radius: 5px;
+  font-size: 12px;
 }
 
 .xr-panel .frame .content .header .button .back-icon {

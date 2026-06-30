@@ -37,6 +37,11 @@ body {
 .button.secondary-light:hover, .button.secondary-light.xr-hover { background: #ababab; }
 .button.secondary-light:active { background: #969696; }
 
+/* ─── Icon button ─── */
+
+.button.icon-btn > svg { display: block; flex-shrink: 0; margin-left: -2px; }
+.button.icon-btn > span { position: relative; top: -0.5px; }
+
 /* ─── Panel shell ─── */
 
 .frame {
@@ -74,6 +79,7 @@ body {
   padding: 8px;
   flex: 0 0 auto;
   border-radius: 5px;
+  font-size: 12px;
 }
 
 .frame .content .header .button .back-icon {
