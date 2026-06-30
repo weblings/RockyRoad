@@ -109,9 +109,25 @@ export class XRActiveScene {
         const seekThumb   = uiPanel.querySelector('#as-seek-thumb') as HTMLDivElement;
         const timeEl      = uiPanel.querySelector('#as-time')       as HTMLSpanElement;
 
-        // Per-frame DOM update: seek fill width, thumb position, time label.
+        // Per-frame DOM update: seek fill width, thumb position, time label, play button state.
+        let wasPlaying = songPlayer.isPlaying;
         registerPanelUpdate(() => {
-            const t   = songPlayer.currentSecond;
+            // Natural song end: onended may not fire reliably in WebXR browsers.
+            // Detect it here and force a clean stop so the UI doesn't keep counting up.
+            if (songPlayer.isPlaying && totalDuration > 0 && songPlayer.currentSecond >= totalDuration) {
+                songPlayer.pause();
+                songPlayer.seekTo(totalDuration);
+            }
+
+            const nowPlaying = songPlayer.isPlaying;
+            if (nowPlaying !== wasPlaying) {
+                wasPlaying = nowPlaying;
+                playEl.className = `play-btn${nowPlaying ? ' is-playing' : ''}`;
+                const img = playEl.querySelector('img') as HTMLImageElement | null;
+                if (img) img.src = `/ui/${nowPlaying ? 'pause' : 'play'}.svg`;
+            }
+
+            const t   = Math.min(songPlayer.currentSecond, totalDuration > 0 ? totalDuration : Infinity);
             const pct = totalDuration > 0 ? Math.min(t / totalDuration * 100, 100) : 0;
             seekFill.style.width = `${pct}%`;
             timeEl.textContent   = formatTime(t);

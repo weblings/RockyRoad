@@ -77,7 +77,10 @@ export class SongPlayer implements ISongPlayer {
             const thisSource = this.source;
             this.source.onended = () => {
                 // Guard against a seek (which stops the old source) clobbering new playback state.
-                if (this.source === thisSource) this._playing = false;
+                if (this.source === thisSource) {
+                    this.pausedAt = this.buffer!.duration;
+                    this._playing = false;
+                }
             };
         }
 
