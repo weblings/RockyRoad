@@ -13,6 +13,11 @@ When importing Figma-exported HTML/CSS, apply these fixes before doing anything 
 
 **How to apply:** Run through this checklist on every Figma export before treating it as a starting point.
 
+## Plugins used
+
+- **Export (Figma → HTML/CSS):** [HTML & CSS Export by PX2REM](https://www.figma.com/community/plugin/1602025208679642315)
+- **Import (HTML/CSS → Figma):** [HTML to Figma](https://www.figma.com/community/plugin/1159123024924461424)
+
 ## Exporter choice matters
 
 Two Figma exporters were compared. The scoped-selector exporter (Song2) is far better than the numbered-class exporter (Song):
