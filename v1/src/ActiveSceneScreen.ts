@@ -4,7 +4,7 @@ import { FretPlayerScene3D } from "./FretPlayerScene3D";
 import { KeysPlayerScene3D } from "./KeysPlayerScene3D";
 import { Camera3D } from "./Camera3D";
 import { fromHex } from "./UIColor";
-import { SongPlayer, type ISongPlayer } from "./SongPlayer";
+import { SongPlayer, SilentPlayer, type ISongPlayer } from "./SongPlayer";
 import type { SongStructure, SongInstrumentNotes, SongKeyboardNotes, SongInfo, SongSection } from "./SongFormat";
 import type { SongIndexEntry, SongIndexPart, ISongLibrary } from "./SongIndex";
 import { loadSettings } from "./Settings";
@@ -25,7 +25,6 @@ export class ActiveSceneScreen implements IScreen {
     private keysNoteMax = 108;
     private songPlayer: ISongPlayer | null = null;
     private container: HTMLElement | null = null;
-    private audioUrl: string | null = null;
     private totalDuration = 0;
     private sections: SongSection[] = [];
 
@@ -111,6 +110,7 @@ export class ActiveSceneScreen implements IScreen {
             );
             this.scene.boldText      = settings.boldText;
             this.scene.invertStrings = settings.invertStrings;
+            this.scene.leftyMode     = settings.leftyMode;
             this.sections = instrumentNotes.Sections?.length > 0
                 ? instrumentNotes.Sections
                 : (songStructure.Sections ?? []);
@@ -120,19 +120,23 @@ export class ActiveSceneScreen implements IScreen {
             }
         }
 
-        const player = new SongPlayer();
+        let player: ISongPlayer;
         try {
             const audioFile = await this.library.getSongFile(this.entry, 'song.ogg');
-            this.audioUrl = URL.createObjectURL(audioFile);
-            await player.loadSong(this.audioUrl);
-            URL.revokeObjectURL(this.audioUrl);
-            this.audioUrl = null;
-        } catch { /* no audio — player runs as a pure clock */ }
+            const audioUrl = URL.createObjectURL(audioFile);
+            const songPlayer = new SongPlayer();
+            await songPlayer.loadSong(audioUrl);
+            URL.revokeObjectURL(audioUrl);
+            player = songPlayer;
+        } catch {
+            player = new SilentPlayer(songInfo.SongLengthSeconds ?? 0);
+        }
         this.songPlayer = player;
 
-        this.totalDuration = player.duration > 0 ? player.duration : (songInfo.SongLengthSeconds ?? 0);
+        this.totalDuration = player.duration;
 
         this.app.activeScene = this.scene ?? this.keysScene;
+        this.app.activeInstrumentType = this.part.type;
         this.songPlayer.play();
 
         // Note detection — stringed instruments only.
@@ -182,6 +186,7 @@ export class ActiveSceneScreen implements IScreen {
             if (this.scene) {
                 this.scene.boldText      = s.boldText;
                 this.scene.invertStrings = s.invertStrings;
+                this.scene.leftyMode     = s.leftyMode;
             }
             if (this.keysScene) {
                 this.keysScene.minKey = s.fullKeyboard ? 21  : this.keysNoteMin;
@@ -452,11 +457,11 @@ export class ActiveSceneScreen implements IScreen {
         if (this.ownsPitchDetector) this.pitchDetector?.destroy();
         this.pitchDetector = null;
         this.noteDetector  = null;
-        if (this.audioUrl) { URL.revokeObjectURL(this.audioUrl); this.audioUrl = null; }
         this.rollbackFromTime = null;
         this.rollbackToTime   = null;
-        this.app.activeScene       = null;
-        this.app.onPreDraw         = null;
+        this.app.activeScene          = null;
+        this.app.activeInstrumentType = null;
+        this.app.onPreDraw            = null;
         this.app.onSongPause       = null;
         this.app.onSongRollback    = null;
         this.app.onSongResume      = null;

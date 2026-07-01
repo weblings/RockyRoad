@@ -105,6 +105,6 @@ export interface SongKeyboardNote extends ISongEvent {
 }
 
 export interface SongKeyboardNotes {
-    Sections: SongSection[];
+    Sections?: SongSection[];
     Notes: SongKeyboardNote[];
 }

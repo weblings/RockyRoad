@@ -461,30 +461,49 @@
       <div id="settings-scrim"></div>
       <div id="settings-panel">
         <h2>Settings</h2>
+        <!-- Hidden toggles kept in DOM so onToggle reads always succeed -->
+        <input type="checkbox" id="s-bold-text" style="display:none" />
         <div class="pre-toggles" style="margin-bottom: 20px;">
-          <label class="pre-toggle-row">
-            <span class="pre-toggle-label">Invert strings</span>
-            <span class="pre-toggle-switch">
-              <input type="checkbox" id="s-invert-strings" />
-              <span class="pre-toggle-knob"></span>
-            </span>
-          </label>
-          <!-- Bold text toggle hidden — fret text is always bold; option deferred -->
-          <input type="checkbox" id="s-bold-text" style="display:none" />
-          <label class="pre-toggle-row">
-            <span class="pre-toggle-label">Full 88-key range</span>
-            <span class="pre-toggle-switch">
-              <input type="checkbox" id="s-full-keyboard" />
-              <span class="pre-toggle-knob"></span>
-            </span>
-          </label>
-          <label class="pre-toggle-row">
-            <span class="pre-toggle-label">Top-down view</span>
-            <span class="pre-toggle-switch">
-              <input type="checkbox" id="s-keys-top-down" />
-              <span class="pre-toggle-knob"></span>
-            </span>
-          </label>
+          <div id="s-guitar-only">
+            <label class="pre-toggle-row">
+              <span class="pre-toggle-label">Invert strings</span>
+              <span class="pre-toggle-switch">
+                <input type="checkbox" id="s-invert-strings" />
+                <span class="pre-toggle-knob"></span>
+              </span>
+            </label>
+            <label class="pre-toggle-row">
+              <span class="pre-toggle-label">Lefty mode</span>
+              <span class="pre-toggle-switch">
+                <input type="checkbox" id="s-lefty-mode" />
+                <span class="pre-toggle-knob"></span>
+              </span>
+            </label>
+          </div>
+          <div id="s-keys-only">
+            <label class="pre-toggle-row">
+              <span class="pre-toggle-label">Full 88-key range</span>
+              <span class="pre-toggle-switch">
+                <input type="checkbox" id="s-full-keyboard" />
+                <span class="pre-toggle-knob"></span>
+              </span>
+            </label>
+            <label class="pre-toggle-row">
+              <span class="pre-toggle-label">Top-down view</span>
+              <span class="pre-toggle-switch">
+                <input type="checkbox" id="s-keys-top-down" />
+                <span class="pre-toggle-knob"></span>
+              </span>
+            </label>
+            <label class="pre-toggle-row">
+              <span class="pre-toggle-label">Right hand color</span>
+              <input type="color" id="s-keys-right-color" style="width:36px;height:28px;border:none;padding:2px;background:none;cursor:pointer;" />
+            </label>
+            <label class="pre-toggle-row">
+              <span class="pre-toggle-label">Left hand color</span>
+              <input type="color" id="s-keys-left-color" style="width:36px;height:28px;border:none;padding:2px;background:none;cursor:pointer;" />
+            </label>
+          </div>
         </div>
         <button id="settings-close">Continue</button>
       </div>

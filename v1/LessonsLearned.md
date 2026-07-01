@@ -149,6 +149,44 @@ This can look like a global adjustment that all buttons need.
 
 ---
 
+## `SongPlayer.play()` must work as a pure clock even without audio
+
+**Symptom:** Songs without `song.ogg` throw "File not found" and abort, rather than playing silently.
+
+**Root cause:** V1's original `play()` guarded on `if (!this.context || !this.buffer || this._playing) return` — if no buffer was ever loaded, `play()` was a no-op and the scene clock never advanced.
+
+**Fix:** Match XRProto's version — guard only on `this._playing`, then create an `AudioContext` unconditionally (`if (!this.context) this.context = new AudioContext()`), and only wire the `AudioBufferSourceNode` if `this.buffer` exists. The audio context's `currentTime` then serves as the clock regardless of whether audio loaded.
+
+---
+
+## `getKeyPosition` must use absolute chromatic position (`key % 12`), not relative (`(key - minKey) % 12`)
+
+**Symptom:** In 88-key mode (`minKey = 21 = A0`), white key lane dividers and note trails are shifted — keys after the first B appear one position too far right.
+
+**Root cause:** `(key - minKey) % 12` gives the semitone offset *within the range*, which is only correct when `minKey` is itself a C (a multiple of 12, e.g. 48). For minKey=21, the layout repeats from the wrong chromatic starting point.
+
+**Fix:** Use `key % 12` for `SCALE_WHITE_BLACK` and `SCALE_OFFSETS` lookups, computing the absolute white-key offset from C0 and subtracting the minKey offset: `(absOffset(key) - absOffset(minKey)) * 8`.
+
+---
+
+## `camera.setLookAt()` degenerates when looking straight down
+
+**Symptom:** Top-down camera produces a black screen or mangled view — the scene disappears when `topDown = true`.
+
+**Root cause:** `setLookAt` internally computes a right vector via cross product of forward and up. When forward is `(0,-1,0)` (straight down) and up is `(0,1,0)`, the cross product is zero — degenerate matrix.
+
+**Fix:** Bypass the wrapper and set `threeCamera` directly: `cam.up.set(0, 0, -1)` (puts future notes at the top), then `cam.lookAt(x, 0, z)`. This gives Three.js the non-degenerate up vector it needs.
+
+---
+
+## Check Project's version of a scene class before using v1's
+
+**Context:** `ThreeCP/Project/src/` is further along than `ThreeCP/v1/src/` for Keys. This session found Project's `KeysPlayerScene3D` had four things v1's was missing: top-down camera mode (`topDown` toggle), piano image mesh (`syncPianoMesh` + `piano.png`), per-hand note coloring, and the `key % 12` layout fix.
+
+**Rule:** Before working on a v1 scene class, check if a newer version exists in `ThreeCP/Project/src/` — if so, port it rather than building on the stale v1 base.
+
+---
+
 ## Static export page needs `width: 100vw`, not Figma's artboard pixel width
 
 **Symptom:** Seek bar doesn't fill the screen — the overlay is capped at the Figma artboard width (e.g. `1000px`).

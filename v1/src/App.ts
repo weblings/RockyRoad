@@ -14,6 +14,9 @@ export class App {
     // Set by ActiveSceneScreen when a song is active; cleared on unmount.
     activeScene: Scene3D | null = null;
 
+    // Set by ActiveSceneScreen so openSettings() can show/hide instrument-specific sections.
+    activeInstrumentType: string | null = null;
+
     // Called each frame before draw — ActiveSceneScreen uses this to inject currentSecond.
     onPreDraw: (() => void) | null = null;
 
@@ -65,17 +68,23 @@ export class App {
         // Settings panel toggles — save and live-update the active scene whenever changed.
         const onToggle = () => {
             const s = loadSettings();
-            s.invertStrings = (document.getElementById("s-invert-strings") as HTMLInputElement).checked;
-            s.boldText      = (document.getElementById("s-bold-text")      as HTMLInputElement).checked;
-            s.fullKeyboard  = (document.getElementById("s-full-keyboard")  as HTMLInputElement).checked;
-            s.keysTopDown   = (document.getElementById("s-keys-top-down")  as HTMLInputElement).checked;
+            s.invertStrings      = (document.getElementById("s-invert-strings")  as HTMLInputElement).checked;
+            s.boldText           = (document.getElementById("s-bold-text")        as HTMLInputElement).checked;
+            s.leftyMode          = (document.getElementById("s-lefty-mode")       as HTMLInputElement).checked;
+            s.fullKeyboard       = (document.getElementById("s-full-keyboard")    as HTMLInputElement).checked;
+            s.keysTopDown        = (document.getElementById("s-keys-top-down")    as HTMLInputElement).checked;
+            s.keysRightHandColor = (document.getElementById("s-keys-right-color") as HTMLInputElement).value;
+            s.keysLeftHandColor  = (document.getElementById("s-keys-left-color")  as HTMLInputElement).value;
             saveSettings(s);
             this.onSettingsChange?.(s);
         };
-        document.getElementById("s-invert-strings")!.addEventListener("change", onToggle);
-        document.getElementById("s-bold-text")!      .addEventListener("change", onToggle);
-        document.getElementById("s-full-keyboard")!  .addEventListener("change", onToggle);
-        document.getElementById("s-keys-top-down")!  .addEventListener("change", onToggle);
+        document.getElementById("s-invert-strings")!  .addEventListener("change", onToggle);
+        document.getElementById("s-bold-text")!        .addEventListener("change", onToggle);
+        document.getElementById("s-lefty-mode")!       .addEventListener("change", onToggle);
+        document.getElementById("s-full-keyboard")!    .addEventListener("change", onToggle);
+        document.getElementById("s-keys-top-down")!    .addEventListener("change", onToggle);
+        document.getElementById("s-keys-right-color")! .addEventListener("input",  onToggle);
+        document.getElementById("s-keys-left-color")!  .addEventListener("input",  onToggle);
 
         // DEBUG — press H to download the current screen HTML for inspection / Figma reference.
         // Remove before shipping.
@@ -125,12 +134,21 @@ export class App {
                 this.songPausedBySettings = true;
             }
         }
-        // Sync checkboxes to current persisted values each time the panel opens.
+        // Show only sections relevant to the active instrument.
+        const isKeys   = this.activeInstrumentType === 'Keys';
+        const isGuitar = this.activeInstrumentType !== null && !isKeys;
+        (document.getElementById("s-guitar-only") as HTMLElement).style.display = isGuitar ? '' : 'none';
+        (document.getElementById("s-keys-only")   as HTMLElement).style.display = isKeys   ? '' : 'none';
+
+        // Sync controls to current persisted values each time the panel opens.
         const s = loadSettings();
-        (document.getElementById("s-invert-strings") as HTMLInputElement).checked = s.invertStrings;
-        (document.getElementById("s-bold-text")      as HTMLInputElement).checked = s.boldText;
-        (document.getElementById("s-full-keyboard")  as HTMLInputElement).checked = s.fullKeyboard;
-        (document.getElementById("s-keys-top-down")  as HTMLInputElement).checked = s.keysTopDown;
+        (document.getElementById("s-invert-strings")  as HTMLInputElement).checked = s.invertStrings;
+        (document.getElementById("s-bold-text")        as HTMLInputElement).checked = s.boldText;
+        (document.getElementById("s-lefty-mode")       as HTMLInputElement).checked = s.leftyMode;
+        (document.getElementById("s-full-keyboard")    as HTMLInputElement).checked = s.fullKeyboard;
+        (document.getElementById("s-keys-top-down")    as HTMLInputElement).checked = s.keysTopDown;
+        (document.getElementById("s-keys-right-color") as HTMLInputElement).value   = s.keysRightHandColor;
+        (document.getElementById("s-keys-left-color")  as HTMLInputElement).value   = s.keysLeftHandColor;
         this.settingsOverlay.classList.remove("hidden");
     }
 
