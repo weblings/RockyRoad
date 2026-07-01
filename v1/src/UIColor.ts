@@ -5,6 +5,11 @@ export interface UIColor {
     a: number;
 }
 
+export function fromHex(hex: string, a = 1): UIColor {
+    const n = parseInt(hex.replace('#', ''), 16);
+    return { r: ((n >> 16) & 0xff) / 255, g: ((n >> 8) & 0xff) / 255, b: (n & 0xff) / 255, a };
+}
+
 export function makeColor(r: number, g: number, b: number, a = 1): UIColor {
     return { r, g, b, a };
 }

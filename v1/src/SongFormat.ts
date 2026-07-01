@@ -101,6 +101,7 @@ export interface SongKeyboardNote extends ISongEvent {
     TimeLength: number;
     Note: number;     // MIDI note number (21–108 for 88-key)
     Velocity: number; // 0–127
+    Hand?: 'left' | 'right'; // optional — absent means unknown, treated as right
 }
 
 export interface SongKeyboardNotes {

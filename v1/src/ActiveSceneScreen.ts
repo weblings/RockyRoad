@@ -1,8 +1,11 @@
 import * as THREE from "three";
 import type { App, IScreen } from "./App";
 import { FretPlayerScene3D } from "./FretPlayerScene3D";
+import { KeysPlayerScene3D } from "./KeysPlayerScene3D";
+import { Camera3D } from "./Camera3D";
+import { fromHex } from "./UIColor";
 import { SongPlayer, type ISongPlayer } from "./SongPlayer";
-import type { SongStructure, SongInstrumentNotes, SongInfo, SongSection } from "./SongFormat";
+import type { SongStructure, SongInstrumentNotes, SongKeyboardNotes, SongInfo, SongSection } from "./SongFormat";
 import type { SongIndexEntry, SongIndexPart, ISongLibrary } from "./SongIndex";
 import { loadSettings } from "./Settings";
 import { NoteDetector } from "./NoteDetector";
@@ -16,6 +19,10 @@ function formatTime(seconds: number): string {
 
 export class ActiveSceneScreen implements IScreen {
     private scene: FretPlayerScene3D | null = null;
+    private keysScene: KeysPlayerScene3D | null = null;
+    // Actual note range of the loaded chart — used when fullKeyboard is toggled off.
+    private keysNoteMin = 21;
+    private keysNoteMax = 108;
     private songPlayer: ISongPlayer | null = null;
     private container: HTMLElement | null = null;
     private audioUrl: string | null = null;
@@ -66,49 +73,70 @@ export class ActiveSceneScreen implements IScreen {
             return JSON.parse(await file.text()) as T;
         };
 
-        const [songStructure, songInfo, instrumentNotes] = await Promise.all([
+        const [songStructure, songInfo] = await Promise.all([
             readJson<SongStructure>('arrangement.json'),
             readJson<SongInfo>('song.json'),
-            readJson<SongInstrumentNotes>(`${this.part.name}.json`),
         ]);
-
-        const instrumentPart =
-            songInfo.InstrumentParts.find(p => p.InstrumentName === this.part.name) ??
-            songInfo.InstrumentParts[0];
 
         const settings = loadSettings();
 
-        this.scene = new FretPlayerScene3D(
-            this.app.renderer, this.texture, songStructure, instrumentNotes, instrumentPart,
-        );
-        this.scene.boldText      = settings.boldText;
-        this.scene.invertStrings = settings.invertStrings;
+        if (this.part.type === 'Keys') {
+            const keyboardNotes = await readJson<SongKeyboardNotes>(`${this.part.name}.json`);
+            this.sections = keyboardNotes.Sections ?? [];
+            // Store actual note range so fullKeyboard can be toggled live.
+            const midiNotes = keyboardNotes.Notes.map(n => n.Note);
+            this.keysNoteMin = Math.max(21,  Math.min(...midiNotes) - 1);
+            this.keysNoteMax = Math.min(108, Math.max(...midiNotes) + 1);
+            const size = this.app.renderer.getSize(new THREE.Vector2());
+            this.keysScene = new KeysPlayerScene3D(
+                this.app.renderer, new Camera3D(size.x, size.y), this.texture, songStructure, keyboardNotes,
+            );
+            this.keysScene.minKey = settings.fullKeyboard ? 21  : this.keysNoteMin;
+            this.keysScene.maxKey = settings.fullKeyboard ? 108 : this.keysNoteMax;
+            this.keysScene.syncHighwayBounds();
+            this.keysScene.topDown        = settings.keysTopDown;
+            this.keysScene.rightHandColor = fromHex(settings.keysRightHandColor);
+            this.keysScene.leftHandColor  = fromHex(settings.keysLeftHandColor);
+            if (settings.skipIntro) {
+                const skipTarget = keyboardNotes.Notes[0]?.TimeOffset ?? 0;
+                if (skipTarget > 0) this.keysScene.currentSecond = skipTarget;
+            }
+        } else {
+            const instrumentNotes = await readJson<SongInstrumentNotes>(`${this.part.name}.json`);
+            const instrumentPart =
+                songInfo.InstrumentParts.find(p => p.InstrumentName === this.part.name) ??
+                songInfo.InstrumentParts[0];
+            this.scene = new FretPlayerScene3D(
+                this.app.renderer, this.texture, songStructure, instrumentNotes, instrumentPart,
+            );
+            this.scene.boldText      = settings.boldText;
+            this.scene.invertStrings = settings.invertStrings;
+            this.sections = instrumentNotes.Sections?.length > 0
+                ? instrumentNotes.Sections
+                : (songStructure.Sections ?? []);
+            if (settings.skipIntro) {
+                const skipTarget = instrumentNotes.Notes[0]?.TimeOffset ?? 0;
+                if (skipTarget > 0) this.scene.currentSecond = skipTarget;
+            }
+        }
 
-        // Load audio via object URL, then revoke — AudioContext holds the decoded buffer.
-        const audioFile = await this.library.getSongFile(this.entry, 'song.ogg');
-        this.audioUrl = URL.createObjectURL(audioFile);
         const player = new SongPlayer();
-        await player.loadSong(this.audioUrl);
-        URL.revokeObjectURL(this.audioUrl);
-        this.audioUrl = null;
+        try {
+            const audioFile = await this.library.getSongFile(this.entry, 'song.ogg');
+            this.audioUrl = URL.createObjectURL(audioFile);
+            await player.loadSong(this.audioUrl);
+            URL.revokeObjectURL(this.audioUrl);
+            this.audioUrl = null;
+        } catch { /* no audio — player runs as a pure clock */ }
         this.songPlayer = player;
 
         this.totalDuration = player.duration > 0 ? player.duration : (songInfo.SongLengthSeconds ?? 0);
-        // Prefer instrument-level sections; fall back to arrangement-level.
-        this.sections = instrumentNotes.Sections?.length > 0
-            ? instrumentNotes.Sections
-            : (songStructure.Sections ?? []);
 
-        if (settings.skipIntro) {
-            const skipTarget = instrumentNotes.Notes[0]?.TimeOffset ?? 0;
-            if (skipTarget > 0) this.scene.currentSecond = skipTarget;
-        }
-
-        this.app.activeScene = this.scene;
+        this.app.activeScene = this.scene ?? this.keysScene;
         this.songPlayer.play();
 
         // Note detection — stringed instruments only.
-        if (this.part.tuningOffsets) {
+        if (this.part.tuningOffsets && this.scene) {
             const { notes, notesDetected } = this.scene.detectionState();
             this.noteDetector = new NoteDetector(
                 notes, this.part,
@@ -136,17 +164,12 @@ export class ActiveSceneScreen implements IScreen {
         // onSongRollback: fires immediately when a resume-with-countdown begins.
         // Starts the scroll-back animation and marks the grace period.
         this.app.onSongRollback = (seconds: number) => {
-            if (!this.scene || !this.songPlayer) return;
-            // Start animating scene.currentSecond back from where the user seeked to.
+            if ((!this.scene && !this.keysScene) || !this.songPlayer) return;
             this.rollbackFromTime = this.songPlayer.currentSecond;
             this.rollbackToTime   = seconds;
             this.rollbackStartMs  = performance.now();
-            // Mark notes before the seeked-to position as grace notes.
-            this.scene.gracePeriodEndTime = this.rollbackFromTime;
-            // Seek the audio player now so currentSecond reports the right position
-            // during the countdown (audio stays paused, position is just updated).
+            if (this.scene) this.scene.gracePeriodEndTime = this.rollbackFromTime;
             this.songPlayer.seekTo(seconds);
-            // Reset scoring so grace-period notes don't count against the player.
             this.noteDetector?.reset();
         };
         // onSongResume: fires after the countdown completes — audio only.
@@ -159,6 +182,14 @@ export class ActiveSceneScreen implements IScreen {
             if (this.scene) {
                 this.scene.boldText      = s.boldText;
                 this.scene.invertStrings = s.invertStrings;
+            }
+            if (this.keysScene) {
+                this.keysScene.minKey = s.fullKeyboard ? 21  : this.keysNoteMin;
+                this.keysScene.maxKey = s.fullKeyboard ? 108 : this.keysNoteMax;
+                this.keysScene.syncHighwayBounds();
+                this.keysScene.topDown        = s.keysTopDown;
+                this.keysScene.rightHandColor = fromHex(s.keysRightHandColor);
+                this.keysScene.leftHandColor  = fromHex(s.keysLeftHandColor);
             }
         };
 
@@ -258,7 +289,8 @@ export class ActiveSceneScreen implements IScreen {
             fillEl.style.width  = `${pct * 100}%`;
             thumbEl.style.left  = `calc(${pct * 100}% - 10px)`;
             timeEl.textContent  = formatTime(t);
-            if (this.scene) this.scene.currentSecond = t;
+            const activeScene = this.scene ?? this.keysScene;
+            if (activeScene) activeScene.currentSecond = t;
             return t;
         };
 
@@ -372,7 +404,8 @@ export class ActiveSceneScreen implements IScreen {
         // During the scroll-back animation, scene.currentSecond is driven by the
         // eased animation rather than the audio clock.
         this.app.onPreDraw = () => {
-            if (!this.scene || !this.songPlayer) return;
+            const activeScene = this.scene ?? this.keysScene;
+            if (!activeScene || !this.songPlayer) return;
 
             // Drive note detection every frame — NoteDetector handles miss sweep
             // and hit matching against the current song position.
@@ -388,11 +421,11 @@ export class ActiveSceneScreen implements IScreen {
                 // Ease-out cubic: decelerates as it reaches the target
                 const eased    = 1 - Math.pow(1 - progress, 3);
                 displayTime = this.rollbackFromTime + (this.rollbackToTime - this.rollbackFromTime) * eased;
-                this.scene.currentSecond = displayTime;
+                activeScene.currentSecond = displayTime;
                 if (progress >= 1) { this.rollbackFromTime = null; this.rollbackToTime = null; }
             } else {
                 displayTime = this.songPlayer.currentSecond;
-                this.scene.currentSecond = displayTime;
+                activeScene.currentSecond = displayTime;
             }
 
             if (!isScrubbing && dur > 0) {
@@ -415,6 +448,7 @@ export class ActiveSceneScreen implements IScreen {
         if (this.mockKeyHandler) { window.removeEventListener('keydown', this.mockKeyHandler); this.mockKeyHandler = null; }
         this.songPlayer?.pause();
         this.scene?.destroy();
+        this.keysScene?.destroy();
         if (this.ownsPitchDetector) this.pitchDetector?.destroy();
         this.pitchDetector = null;
         this.noteDetector  = null;
@@ -429,6 +463,7 @@ export class ActiveSceneScreen implements IScreen {
         this.app.onSettingsChange  = null;
         if (this.container) this.container.innerHTML = '';
         this.scene      = null;
+        this.keysScene  = null;
         this.songPlayer = null;
         this.container  = null;
     }

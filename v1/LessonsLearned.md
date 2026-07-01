@@ -108,6 +108,47 @@ Set `font-family: 'Inter', system-ui, sans-serif` on `body` so all screens inher
 
 ---
 
+## Custom seek drag requires `setPointerCapture`
+
+**Symptom:** Seek thumb "loses" the drag if the pointer moves fast and leaves the track element — `pointermove` and `pointerup` stop firing.
+
+**Root cause:** Without pointer capture, events are delivered to whichever element is under the pointer. The thumb/track are small — fast drags overshoot them instantly.
+
+**Fix:** Call `seekTrack.setPointerCapture(e.pointerId)` inside the `pointerdown` handler. All subsequent `pointermove` / `pointerup` events will be routed to `seekTrack` regardless of pointer position, for the lifetime of that gesture.
+
+```ts
+seekTrack.addEventListener('pointerdown', e => {
+    isScrubbing = true;
+    seekTrack.setPointerCapture(e.pointerId);
+    setScrubPos(getPct(e));
+});
+seekTrack.addEventListener('pointermove', e => { if (isScrubbing) setScrubPos(getPct(e)); });
+seekTrack.addEventListener('pointerup',   e => { if (isScrubbing) { /* commit */ isScrubbing = false; } });
+```
+
+---
+
+## Icon+text button gap is `6px` in v1
+
+**Context:** All nav/action buttons that combine an inline SVG icon with a text label (back, settings, tune, etc.) use `gap: 6px` in the v1 design system.
+
+**Fix:** Always set `gap: 6px` on icon+text flex buttons. The tempting round number `gap: 8px` is visually too wide — it was used mistakenly on the Tune button and corrected.
+
+---
+
+## XRProto `.icon-btn` centering fudge is class-scoped — does NOT apply to play button
+
+**Context:** `panel.css` defines:
+```css
+.xr-panel .button.icon-btn > svg { display: block; flex-shrink: 0; margin-left: -2px; }
+.xr-panel .button.icon-btn > span { position: relative; top: -0.5px; }
+```
+This can look like a global adjustment that all buttons need.
+
+**Reality:** The circular play/pause button is not an `.icon-btn`. It contains a single unicode glyph, uses plain `display: flex; align-items: center; justify-content: center`, and needs no offsets. Same in v1's `.active-play-btn`. The fudge only compensates for SVG optical alignment in icon+text rows.
+
+---
+
 ## Static export page needs `width: 100vw`, not Figma's artboard pixel width
 
 **Symptom:** Seek bar doesn't fill the screen — the overlay is capped at the Figma artboard width (e.g. `1000px`).
