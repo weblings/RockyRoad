@@ -106,47 +106,43 @@ export class TunerScreen implements IScreen {
         const autoAdvance = settings.tunerAutoAdvance ?? true;
         this.invertStrings = settings.invertStrings;
         this.inputGain = settings.inputGain ?? 1;
-        const skipLabel = this.contextExitLabel();
 
         container.innerHTML = `
             <div class="tuner-screen">
+                <div class="tuner-body">
+                    <div class="tuner-main">
 
-                <div class="tuner-bar">
-                    <div class="tuner-bar-left">
-                        <div class="tuner-title">Tune Up</div>
-                        <div class="tuner-song">${esc(this.entry.songName)}</div>
-                    </div>
-                    <div class="tuner-bar-controls">
-                        <label class="tuner-ctrl-label">Input
-                            <select class="tuner-select" id="tuner-input-select">
-                                <option value="">Default mic</option>
-                            </select>
-                        </label>
-                        <label class="tuner-ctrl-label tuner-gain-label">Gain
-                            <div class="tuner-gain-row">
+                        <div class="tuner-controls-row">
+                            <label class="tuner-ctrl-inline">
+                                <span class="tuner-ctrl-label-inline">Input</span>
+                                <select class="tuner-select" id="tuner-input-select">
+                                    <option value="">Default mic</option>
+                                </select>
+                            </label>
+                            <div class="tuner-ctrl-divider"></div>
+                            <label class="tuner-ctrl-inline">
+                                <span class="tuner-ctrl-label-inline">Gain</span>
                                 <input type="range" class="tuner-gain-slider" id="tuner-gain"
                                     min="1" max="24" step="0.5" value="${this.inputGain}" />
                                 <span id="tuner-gain-val">${this.inputGain}×</span>
-                            </div>
-                        </label>
-                        <button class="tuner-btn" id="tuner-restart">Restart</button>
-                        <button class="tuner-btn tuner-btn-skip" id="tuner-skip">Skip (I'm in tune)</button>
-                        <button class="tuner-btn tuner-btn-exit" id="tuner-back">${esc(skipLabel)}</button>
-                    </div>
-                </div>
-
-                <div class="tuner-body">
-                    <div class="tuner-canvas-wrap">
-                        <canvas id="tuner-canvas" width="960" height="540"></canvas>
-                        <div class="tuner-complete-overlay hidden" id="tuner-complete">
-                            <div class="tuner-check">✓</div>
-                            <div class="tuner-in-tune">In tune!</div>
-                            ${!autoAdvance ? `<button class="tuner-exit-btn" id="tuner-exit-complete">${esc(skipLabel)}</button>` : ''}
+                            </label>
+                            <div class="tuner-ctrl-divider"></div>
+                            <button class="tuner-btn" id="tuner-restart">Restart</button>
+                            <button class="tuner-btn tuner-btn-exit" id="tuner-back">Done</button>
                         </div>
-                        <div class="tuner-mic-wait hidden" id="tuner-mic-wait">Waiting for mic access…</div>
+
+                        <div class="tuner-canvas-wrap">
+                            <canvas id="tuner-canvas" width="960" height="540"></canvas>
+                            <div class="tuner-complete-overlay hidden" id="tuner-complete">
+                                <div class="tuner-check">✓</div>
+                                <div class="tuner-in-tune">In tune!</div>
+                                ${!autoAdvance ? `<button class="tuner-exit-btn" id="tuner-exit-complete">Done</button>` : ''}
+                            </div>
+                            <div class="tuner-mic-wait hidden" id="tuner-mic-wait">Waiting for mic access…</div>
+                        </div>
+
                     </div>
                 </div>
-
             </div>`;
 
         this.canvas = container.querySelector<HTMLCanvasElement>('#tuner-canvas')!;
@@ -166,7 +162,6 @@ export class TunerScreen implements IScreen {
 
         // Controls
         container.querySelector('#tuner-restart')?.addEventListener('click', () => this.restart());
-        container.querySelector('#tuner-skip')?.addEventListener('click', () => this.exit());
         container.querySelector('#tuner-back')!.addEventListener('click', () => this.exit());
         container.querySelector('#tuner-exit-complete')?.addEventListener('click', () => this.exit());
 
@@ -376,7 +371,9 @@ export class TunerScreen implements IScreen {
     // ── Exit ──────────────────────────────────────────────────────────────────
 
     private exit(): void {
-        this.app.lastTuningKey = JSON.stringify(this.offsets);
+        if (this.phase.tag === 'complete') {
+            this.app.lastTuningKey = JSON.stringify(this.offsets);
+        }
         cancelAnimationFrame(this.rafId);
 
         switch (this.context) {
@@ -401,14 +398,6 @@ export class TunerScreen implements IScreen {
                     this.app.navigate(new SongLibraryScreen(this.app, this.texture, this.library));
                 });
                 break;
-        }
-    }
-
-    private contextExitLabel(): string {
-        switch (this.context) {
-            case 'song-flow': return 'Play Song';
-            case 'mid-song':  return 'Resume Song';
-            case 'menu':      return 'Main Menu';
         }
     }
 

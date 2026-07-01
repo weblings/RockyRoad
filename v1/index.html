@@ -274,10 +274,12 @@
     }
     .pre-tune-btn {
       width: 100%; padding: 10px;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
       background: #333333; border: none; border-radius: 10px;
       color: #fff; font-size: 15px; cursor: pointer;
     }
     .pre-tune-btn:hover { background: #515151; }
+    .pre-tune-btn svg { display: block; flex-shrink: 0; }
     .pre-tune-btn.hidden { display: none; }
     .pre-play-btn {
       width: 100%; padding: 14px;
@@ -290,46 +292,44 @@
     .tuner-screen {
       position: absolute; inset: 0;
       background: #0a0a0a; color: #fff;
-      font-family: system-ui, sans-serif;
       display: flex; flex-direction: column;
     }
 
-    /* Top bar — mirrors the active scene bar style */
-    .tuner-bar {
-      display: flex; align-items: center; justify-content: space-between;
-      gap: 12px; padding: 10px 54px 10px 14px; /* right pad clears ⚙ button */
-      background: rgba(0,0,0,0.55); border-bottom: 1px solid #1e1e1e;
-      flex-shrink: 0; flex-wrap: wrap;
-    }
-    .tuner-bar-left { display: flex; flex-direction: column; gap: 1px; }
-    .tuner-title { font-size: 15px; font-weight: 700; }
-    .tuner-song { font-size: 12px; color: #666; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px; }
-    .tuner-bar-controls {
-      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-    }
-    .tuner-ctrl-label { font-size: 11px; color: #666; display: flex; flex-direction: column; gap: 3px; }
-    .tuner-select {
-      padding: 5px 8px; background: #1a1a1a; border: 1px solid #333;
-      border-radius: 6px; color: #fff; font-size: 13px;
-    }
-    .tuner-gain-label { min-width: 110px; }
-    .tuner-gain-row { display: flex; align-items: center; gap: 5px; }
-    .tuner-gain-slider { width: 70px; accent-color: #2a6eff; cursor: pointer; }
-    #tuner-gain-val { font-size: 12px; color: #aaa; min-width: 28px; }
-    .tuner-btn {
-      padding: 5px 12px; background: rgba(255,255,255,0.1);
-      border: none; border-radius: 6px; color: #ccc; font-size: 13px;
-      cursor: pointer; white-space: nowrap; line-height: 1.4;
-    }
-    .tuner-btn:hover { background: rgba(255,255,255,0.2); color: #fff; }
-    .tuner-btn-exit { background: #2a6eff; color: #fff; }
-    .tuner-btn-exit:hover { background: #1a5ee0; }
-
-    /* Canvas area — fills remaining space, centers the canvas */
+    /* Body fills the screen and centers everything */
     .tuner-body {
       flex: 1; display: flex; align-items: center; justify-content: center;
       padding: 16px;
     }
+
+    /* Vertical stack: controls row on top, canvas below */
+    .tuner-main {
+      display: flex; flex-direction: column; align-items: center; gap: 12px;
+    }
+
+    /* Inline controls row */
+    .tuner-controls-row {
+      display: flex; align-items: center; gap: 8px;
+    }
+    .tuner-ctrl-inline { display: flex; align-items: center; gap: 6px; }
+    .tuner-ctrl-label-inline { font-size: 12px; color: #8b8b8b; white-space: nowrap; }
+    .tuner-ctrl-divider { width: 1px; height: 20px; background: #333; flex-shrink: 0; }
+
+    .tuner-select {
+      padding: 8px 10px; background: #1a1a1a; border: 1px solid #333;
+      border-radius: 5px; color: #fff; font-size: 13px; font-family: inherit; cursor: pointer;
+    }
+    .tuner-gain-slider { width: 80px; accent-color: #8b8b8b; cursor: pointer; }
+    #tuner-gain-val { font-size: 12px; color: #c8c8c8; min-width: 28px; }
+
+    .tuner-btn {
+      padding: 8px 14px; background: #333333;
+      border: none; border-radius: 5px; color: #ffffff; font-size: 12px;
+      font-family: inherit; cursor: pointer; white-space: nowrap;
+    }
+    .tuner-btn:hover { background: #515151; }
+    .tuner-btn-exit { background: #dadada; color: #111111; }
+    .tuner-btn-exit:hover { background: #bebebe; }
+
     .tuner-canvas-wrap {
       position: relative;
       background: #111; border: 1px solid #222; border-radius: 10px;
