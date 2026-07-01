@@ -1,0 +1,82 @@
+/* Reposition (fine-tune) styles — shared panel structure lives in panel.css */
+
+.xr-panel .frame .content .controls {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 6px 0;
+}
+
+.xr-panel .frame .content .controls .section-row {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.xr-panel .frame .content .controls .section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-evenly;
+  gap: 4px;
+  background: #1a1a1a;
+  border-radius: 4px;
+  padding: 8px;
+}
+
+.xr-panel .frame .content .controls .section-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.xr-panel .frame .content .controls .section-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.xr-panel .frame .content .controls .section-title {
+  color: #e8e8e8;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.xr-panel .frame .content .controls .axis-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+}
+
+.xr-panel .frame .content .controls .axis-label {
+  color: #e8e8e8;
+  font-size: 11px;
+  font-weight: 400;
+  text-align: center;
+  width: 12px;
+}
+
+.xr-panel .frame .content .controls .value-display {
+  color: #e8e8e8;
+  font-size: 11px;
+  font-weight: 400;
+  text-align: center;
+  min-width: 40px;
+}
+
+/* Small secondary-dark buttons — override action button sizing from panel.css */
+.xr-panel .frame .content .controls .button.secondary-dark {
+  width: 22px;
+  height: 22px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 11px;
+  flex: 0 0 auto;
+}

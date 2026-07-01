@@ -1,0 +1,28 @@
+{
+  "servers": {
+    "iwsdk-dev-mcp": {
+      "command": "node",
+      "args": [
+        "D:\\Users\\Andrew\\Documents\\Coding\\MusicThing\\ChartPlayer\\ThreeCP\\Combined\\node_modules\\@iwsdk\\vite-plugin-dev\\dist\\mcp-server.js",
+        "--port",
+        "8081",
+        "--client-version",
+        "0.3.1"
+      ]
+    },
+    "iwsdk-rag-local": {
+      "command": "node",
+      "args": [
+        "D:\\Users\\Andrew\\Documents\\Coding\\MusicThing\\ChartPlayer\\ThreeCP\\Combined\\node_modules\\@felixtz\\iwsdk-rag-mcp\\dist\\index.js"
+      ]
+    },
+    "hzdb": {
+      "command": "npx",
+      "args": [
+        "@meta-quest/hzdb",
+        "mcp",
+        "server"
+      ]
+    }
+  }
+}
