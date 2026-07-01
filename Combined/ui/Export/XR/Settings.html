@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Settings</title>
+  <link rel="stylesheet" href="panel.css">
+  <link rel="stylesheet" href="Settings.css">
+</head>
+<body>
+  <div class="frame">
+    <div class="content">
+      <div class="header">
+        <button class="button primary-dark" type="button">
+          <span class="back-icon">←</span>
+          <span class="back-label">Play</span>
+        </button>
+      </div>
+      <div class="settings-body">
+        <div class="setting-row">
+          <p class="setting-title">Key Range</p>
+        </div>
+        <div class="toggle-group">
+          <button class="button primary-light" type="button">Note range</button>
+          <button class="button primary-dark" type="button">Full 88-key</button>
+        </div>
+        <div class="setting-row">
+          <p class="setting-title">Right Hand Color</p>
+        </div>
+        <div class="swatch-row">
+          <div class="color-swatch selected" style="background: #2E71D6;"></div>
+          <div class="color-swatch" style="background: #E33737;"></div>
+          <div class="color-swatch" style="background: #3DAA3D;"></div>
+          <div class="color-swatch" style="background: #9B59B6;"></div>
+          <div class="color-swatch" style="background: #E67E22;"></div>
+          <div class="color-swatch" style="background: #ffffff;"></div>
+        </div>
+        <div class="setting-row">
+          <p class="setting-title">Left Hand Color</p>
+        </div>
+        <div class="swatch-row">
+          <div class="color-swatch selected" style="background: #2E71D6;"></div>
+          <div class="color-swatch" style="background: #E33737;"></div>
+          <div class="color-swatch" style="background: #3DAA3D;"></div>
+          <div class="color-swatch" style="background: #9B59B6;"></div>
+          <div class="color-swatch" style="background: #E67E22;"></div>
+          <div class="color-swatch" style="background: #ffffff;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+<script>
+  document.querySelectorAll('.toggle-group').forEach(group => {
+    group.addEventListener('click', e => {
+      const btn = e.target.closest('.button');
+      if (!btn) return;
+      group.querySelectorAll('.button').forEach(b => {
+        b.classList.replace('primary-light', 'primary-dark');
+      });
+      btn.classList.replace('primary-dark', 'primary-light');
+    });
+  });
+
+  document.querySelectorAll('.swatch-row').forEach(row => {
+    row.addEventListener('click', e => {
+      const swatch = e.target.closest('.color-swatch');
+      if (!swatch) return;
+      row.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('selected'));
+      swatch.classList.add('selected');
+    });
+  });
+</script>
+</body>
+</html>

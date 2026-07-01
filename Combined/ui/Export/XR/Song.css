@@ -1,0 +1,66 @@
+/* Song-specific styles only — shared panel structure lives in panel.css */
+
+.frame .content .song-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #0a0a0a;
+}
+
+.frame .content .song-details {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.frame .content .song-info .row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 0 0 auto;
+}
+
+.frame .content .song-info .row .art-bg {
+  width: 64px;
+  height: 64px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  flex: 0 0 auto;
+  background: #242424;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.frame .content .song-info .row .art-bg .art-image {
+  align-self: stretch;
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.frame .content .song-info .song-title {
+  color: #ffffff;
+  font-size: 20px;
+  font-weight: 700;
+  text-align: center;
+  line-height: 20px;
+}
+
+.frame .content .song-info .artist-name {
+  color: #8c8c8c;
+  font-size: 14px;
+  font-weight: 400;
+  text-align: center;
+}
+
+.frame .content .song-info .album-name {
+  color: rgba(200, 200, 200, 0.533);
+  font-size: 14px;
+  font-weight: 400;
+  text-align: center;
+}

@@ -74,8 +74,8 @@ export class XRSongLibrary {
                                 ).join('')}
                             </div>
                         </div>
-                        <button class="button primary-dark icon-btn" id="exit-vr"
-                                style="margin-left:auto" type="button">Desktop</button>
+                        <button class="button primary-dark" id="exit-vr"
+                                style="margin-left:auto;padding:9px 14px;border-radius:6px;font-size:13px;font-family:inherit;white-space:nowrap" type="button">Exit VR</button>
                     </div>
                     <div class="filter-row">
                         <button id="filter-all" class="button ${this.filterKey === 'all' ? 'primary-light' : 'primary-dark'}" type="button">All</button>
