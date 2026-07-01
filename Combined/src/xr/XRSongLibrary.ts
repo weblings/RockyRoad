@@ -1,13 +1,5 @@
 import type { XrButton } from "./XRTypes";
-
-// ── Types ─────────────────────────────────────────────────────────────────────
-
-export interface SongManifestEntry {
-    folder: string;
-    title:  string;
-    artist: string;
-    parts:  { name: string; type: string }[];
-}
+import type { SourcedEntry } from "../shared/SongSource";
 
 // ── Sort options ──────────────────────────────────────────────────────────────
 
@@ -26,19 +18,19 @@ type SortValue = (typeof SORT_OPTIONS)[number]['value'];
 // ── XRSongLibrary ─────────────────────────────────────────────────────────────
 
 export class XRSongLibrary {
-    private entries: SongManifestEntry[];
+    private entries: SourcedEntry[];
     private sortKey: SortValue = 'title-asc';
     private filterKey: 'all' | 'lead' = 'all';
     private sortOpen = false;
 
-    constructor(entries: SongManifestEntry[]) {
+    constructor(entries: SourcedEntry[]) {
         this.entries = entries;
     }
 
     show(
         uiPanel: HTMLDivElement,
         xrButtons: XrButton[],
-        onSelect: (entry: SongManifestEntry) => void,
+        onSelect: (sourced: SourcedEntry) => void,
     ): void {
         xrButtons.length = 0;
         this._render(uiPanel, xrButtons, onSelect);
@@ -47,7 +39,7 @@ export class XRSongLibrary {
     private _render(
         uiPanel: HTMLDivElement,
         xrButtons: XrButton[],
-        onSelect: (entry: SongManifestEntry) => void,
+        onSelect: (sourced: SourcedEntry) => void,
     ): void {
         const rerender = (): void => {
             xrButtons.length = 0;
@@ -85,13 +77,13 @@ export class XRSongLibrary {
                 <div class="song-list">
                     ${displayEntries.length === 0
                         ? '<p style="color:#555;font-size:13px;padding:8px">No songs found.</p>'
-                        : displayEntries.map((e, i) => `
+                        : displayEntries.map((s, i) => `
                             <button class="song-entry" id="song-${i}" type="button">
                                 <div class="art-placeholder"></div>
                                 <div class="song-meta">
-                                    <p class="song-title">${esc(e.title)}</p>
+                                    <p class="song-title">${esc(s.entry.songName)}</p>
                                     <p class="song-album"></p>
-                                    <p class="song-artist">${esc(e.artist)}</p>
+                                    <p class="song-artist">${esc(s.entry.artistName)}</p>
                                 </div>
                             </button>`).join('')}
                 </div>
@@ -137,28 +129,28 @@ export class XRSongLibrary {
 
         // Song entry buttons.
         for (let i = 0; i < displayEntries.length; i++) {
-            const entry = displayEntries[i];
+            const sourced = displayEntries[i];
             const el = uiPanel.querySelector(`#song-${i}`) as HTMLButtonElement | null;
             if (!el) continue;
-            xrButtons.push({ el, onClick: () => onSelect(entry) });
+            xrButtons.push({ el, onClick: () => onSelect(sourced) });
         }
     }
 
-    private _getFiltered(): SongManifestEntry[] {
+    private _getFiltered(): SourcedEntry[] {
         const filtered = this.filterKey === 'lead'
-            ? this.entries.filter(e => e.parts.some(p => p.type === 'Keys'))
+            ? this.entries.filter(s => s.entry.parts.some(p => p.type === 'Keys'))
             : this.entries;
         return this._sorted(filtered);
     }
 
-    private _sorted(entries: SongManifestEntry[]): SongManifestEntry[] {
+    private _sorted(entries: SourcedEntry[]): SourcedEntry[] {
         const copy = [...entries];
         switch (this.sortKey) {
-            case 'title-asc':       copy.sort((a, b) => a.title.localeCompare(b.title));   break;
-            case 'title-desc':      copy.sort((a, b) => b.title.localeCompare(a.title));   break;
-            case 'artist-asc':      copy.sort((a, b) => a.artist.localeCompare(b.artist)); break;
-            case 'artist-desc':     copy.sort((a, b) => b.artist.localeCompare(a.artist)); break;
-            default:                copy.sort((a, b) => a.title.localeCompare(b.title));   break;
+            case 'title-asc':       copy.sort((a, b) => a.entry.songName.localeCompare(b.entry.songName));     break;
+            case 'title-desc':      copy.sort((a, b) => b.entry.songName.localeCompare(a.entry.songName));     break;
+            case 'artist-asc':      copy.sort((a, b) => a.entry.artistName.localeCompare(b.entry.artistName)); break;
+            case 'artist-desc':     copy.sort((a, b) => b.entry.artistName.localeCompare(a.entry.artistName)); break;
+            default:                copy.sort((a, b) => a.entry.songName.localeCompare(b.entry.songName));     break;
         }
         return copy;
     }

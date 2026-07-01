@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import type { App, IScreen } from "./App";
-import type { SongIndexEntry, SongIndexPart, ISongLibrary } from "../shared/SongIndex";
+import type { SongIndexEntry, SongIndexPart } from "../shared/SongIndex";
+import type { ISongSource } from "../shared/SongSource";
 import { ActiveSceneScreen } from "./ActiveSceneScreen";
 
 const PART_LABEL: Record<string, string> = {
@@ -15,16 +16,15 @@ function esc(s: string): string {
 export class PreSceneScreen implements IScreen {
     private app: App;
     private texture: THREE.Texture;
-    private library: ISongLibrary;
+    private source: ISongSource;
     private entry: SongIndexEntry;
     private selectedPart: SongIndexPart;
     private container: HTMLElement | null = null;
-    private artUrl: string | null = null;
 
-    constructor(app: App, texture: THREE.Texture, library: ISongLibrary, entry: SongIndexEntry) {
+    constructor(app: App, texture: THREE.Texture, source: ISongSource, entry: SongIndexEntry) {
         this.app = app;
         this.texture = texture;
-        this.library = library;
+        this.source = source;
         this.entry = entry;
         this.selectedPart = entry.parts.find(p => p.type !== 'Vocals') ?? entry.parts[0];
     }
@@ -70,9 +70,8 @@ export class PreSceneScreen implements IScreen {
 
         // Back to library
         container.querySelector('#pre-back')!.addEventListener('click', () => {
-            const library = this.library;
             import('./SongLibraryScreen').then(({ SongLibraryScreen }) => {
-                this.app.navigate(new SongLibraryScreen(this.app, this.texture, library));
+                this.app.navigate(new SongLibraryScreen(this.app, this.texture));
             });
         });
 
@@ -92,7 +91,7 @@ export class PreSceneScreen implements IScreen {
         container.querySelector('#pre-tune')!.addEventListener('click', () => {
             import('./TunerScreen').then(({ TunerScreen }) => {
                 this.app.navigate(new TunerScreen(
-                    this.app, this.texture, this.library, this.entry, this.selectedPart, 'song-flow',
+                    this.app, this.texture, this.source, this.entry, this.selectedPart, 'song-flow',
                 ));
             });
         });
@@ -102,27 +101,25 @@ export class PreSceneScreen implements IScreen {
             if (this.app.shouldAutoTune(this.selectedPart)) {
                 import('./TunerScreen').then(({ TunerScreen }) => {
                     this.app.navigate(new TunerScreen(
-                        this.app, this.texture, this.library, this.entry, this.selectedPart, 'song-flow',
+                        this.app, this.texture, this.source, this.entry, this.selectedPart, 'song-flow',
                     ));
                 });
             } else {
                 this.app.navigate(
-                    new ActiveSceneScreen(this.app, this.texture, this.library, this.entry, this.selectedPart),
+                    new ActiveSceneScreen(this.app, this.texture, this.source, this.entry, this.selectedPart),
                 );
             }
         });
 
-        // Album art — async, may resolve after mount returns
-        const url = await this.library.getAlbumArtUrl(this.entry);
-        if (url && this.container) {
-            this.artUrl = url;
+        // Album art
+        const artUrl = this.source.getAlbumArtUrl(this.entry);
+        if (artUrl && this.container) {
             const artEl = this.container.querySelector('#pre-art');
-            if (artEl) artEl.innerHTML = `<img src="${url}" alt="" />`;
+            if (artEl) artEl.innerHTML = `<img src="${artUrl}" alt="" onerror="this.style.display='none'" />`;
         }
     }
 
     unmount(): void {
-        if (this.artUrl) { URL.revokeObjectURL(this.artUrl); this.artUrl = null; }
         if (this.container) this.container.innerHTML = '';
         this.container = null;
     }

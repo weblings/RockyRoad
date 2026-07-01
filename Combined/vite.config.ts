@@ -24,6 +24,15 @@ export default defineConfig(({ mode }) => {
       host: "0.0.0.0",
       port: 8081,
       open: "desktop.html",
+      proxy: {
+        // song-server running at http://localhost:3001 (plain HTTP, no TLS needed in dev).
+        // Enter http://localhost:8081/remote-songs as the Library URL in the app.
+        '/remote-songs': {
+          target: 'http://localhost:3001',
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/remote-songs/, ''),
+        },
+      },
       fs: {
         allow: [
           ".",

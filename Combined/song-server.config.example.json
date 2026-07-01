@@ -1,0 +1,7 @@
+{
+    "songsDir": "D:/Users/YourName/Music/Songs",
+    "port": 3001,
+    "tls": false,
+    "certFile": "localhost.pem",
+    "keyFile": "localhost-key.pem"
+}

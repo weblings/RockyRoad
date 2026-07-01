@@ -5,7 +5,8 @@ import { KeysPlayerScene3D } from "../shared/KeysPlayerScene3D";
 import { fromHex } from "../shared/UIColor";
 import { SongPlayer, SilentPlayer, type ISongPlayer } from "../shared/SongPlayer";
 import type { SongStructure, SongInstrumentNotes, SongKeyboardNotes, SongInfo, SongSection } from "../shared/SongFormat";
-import type { SongIndexEntry, SongIndexPart, ISongLibrary } from "../shared/SongIndex";
+import type { SongIndexEntry, SongIndexPart } from "../shared/SongIndex";
+import type { ISongSource } from "../shared/SongSource";
 import { loadSettings } from "../shared/Settings";
 import { NoteDetector } from "../shared/NoteDetector";
 import type { PitchDetector } from "../shared/PitchDetector";
@@ -35,7 +36,7 @@ export class ActiveSceneScreen implements IScreen {
 
     private app: App;
     private texture: THREE.Texture;
-    private library: ISongLibrary;
+    private source: ISongSource;
     private entry: SongIndexEntry;
     private part: SongIndexPart;
     private mockKeyHandler: ((e: KeyboardEvent) => void) | null = null;
@@ -50,14 +51,14 @@ export class ActiveSceneScreen implements IScreen {
     constructor(
         app: App,
         texture: THREE.Texture,
-        library: ISongLibrary,
+        source: ISongSource,
         entry: SongIndexEntry,
         part: SongIndexPart,
         pitchDetector: PitchDetector | null = null,
     ) {
         this.app = app;
         this.texture = texture;
-        this.library = library;
+        this.source = source;
         this.entry = entry;
         this.part = part;
         this.pitchDetector = pitchDetector;
@@ -67,8 +68,9 @@ export class ActiveSceneScreen implements IScreen {
         this.container = container;
 
         const readJson = async <T>(filename: string): Promise<T> => {
-            const file = await this.library.getSongFile(this.entry, filename);
-            return JSON.parse(await file.text()) as T;
+            const resp = await fetch(this.source.getFileUrl(this.entry, filename));
+            if (!resp.ok) throw new Error(`Failed to load ${filename}: HTTP ${resp.status}`);
+            return resp.json() as Promise<T>;
         };
 
         const [songStructure, songInfo] = await Promise.all([
@@ -120,11 +122,9 @@ export class ActiveSceneScreen implements IScreen {
 
         let player: ISongPlayer;
         try {
-            const audioFile = await this.library.getSongFile(this.entry, 'song.ogg');
-            const audioUrl = URL.createObjectURL(audioFile);
+            const audioUrl = this.source.getFileUrl(this.entry, 'song.ogg');
             const songPlayer = new SongPlayer();
             await songPlayer.loadSong(audioUrl);
-            URL.revokeObjectURL(audioUrl);
             player = songPlayer;
         } catch {
             player = new SilentPlayer(songInfo.SongLengthSeconds ?? 0);
@@ -384,9 +384,8 @@ export class ActiveSceneScreen implements IScreen {
         // Back button
         container.querySelector('#active-back')!.addEventListener('click', e => {
             e.stopPropagation();
-            const library = this.library;
             import('./SongLibraryScreen').then(({ SongLibraryScreen }) => {
-                this.app.navigate(new SongLibraryScreen(this.app, this.texture, library));
+                this.app.navigate(new SongLibraryScreen(this.app, this.texture));
             });
         });
 

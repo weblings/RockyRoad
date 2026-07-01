@@ -1,5 +1,5 @@
 import type { XrButton } from "./XRTypes";
-import type { SongManifestEntry } from "./XRSongLibrary";
+import type { SourcedEntry } from "../shared/SongSource";
 
 // ── XRPreScene ────────────────────────────────────────────────────────────────
 
@@ -7,17 +7,19 @@ export class XRPreScene {
     show(
         uiPanel: HTMLDivElement,
         xrButtons: XrButton[],
-        entry: SongManifestEntry,
+        sourced: SourcedEntry,
         // Returns true if a saved calibration was found and applied.
         tryLoadCalibration: () => boolean,
         // Saved calibration exists — load song and go straight to active scene.
-        onPlay: (entry: SongManifestEntry, partName: string) => void,
+        onPlay: (sourced: SourcedEntry, partName: string) => void,
         // No saved calibration — load song first (highway visible), then full 3-step calibrate.
-        onCalibratePlay: (entry: SongManifestEntry, partName: string) => void,
+        onCalibratePlay: (sourced: SourcedEntry, partName: string) => void,
         // Saved calibration exists — load song then open fine-tune panel directly.
-        onReposition: (entry: SongManifestEntry, partName: string) => void,
+        onReposition: (sourced: SourcedEntry, partName: string) => void,
         onBack: () => void,
     ): void {
+        const { entry } = sourced;
+
         // Only show Keys parts — guitar/bass are not supported in XRProto v1.
         const keysParts = entry.parts.filter(p => p.type === 'Keys');
         const hasKeys   = keysParts.length > 0;
@@ -42,9 +44,9 @@ export class XRPreScene {
                             <div class="row">
                                 <div class="art-bg"><div class="art-image"></div></div>
                             </div>
-                            <p class="song-title">${esc(entry.title)}</p>
+                            <p class="song-title">${esc(entry.songName)}</p>
                             <div class="row">
-                                <div class="text-wrap"><p class="artist-name">${esc(entry.artist)}</p></div>
+                                <div class="text-wrap"><p class="artist-name">${esc(entry.artistName)}</p></div>
                             </div>
                         </div>
                     </div>
@@ -70,12 +72,12 @@ export class XRPreScene {
 
         const playEl = uiPanel.querySelector('#ps-play') as HTMLButtonElement;
         if (hasSavedCal) {
-            xrButtons.push({ el: playEl, onClick: () => onPlay(entry, partName) });
+            xrButtons.push({ el: playEl, onClick: () => onPlay(sourced, partName) });
 
             const recalEl = uiPanel.querySelector('#ps-recal') as HTMLButtonElement;
-            xrButtons.push({ el: recalEl, onClick: () => onReposition(entry, partName) });
+            xrButtons.push({ el: recalEl, onClick: () => onReposition(sourced, partName) });
         } else {
-            xrButtons.push({ el: playEl, onClick: () => onCalibratePlay(entry, partName) });
+            xrButtons.push({ el: playEl, onClick: () => onCalibratePlay(sourced, partName) });
         }
     }
 }

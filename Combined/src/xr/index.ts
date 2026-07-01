@@ -34,7 +34,8 @@ import { loadManifest } from "../shared/UIImage";
 import { KeysPlayerScene3D } from "../shared/KeysPlayerScene3D";
 import { SongPlayer } from "../shared/SongPlayer";
 import { CalibrationSystem } from "./CalibrationSystem";
-import { XRSongLibrary, type SongManifestEntry } from "./XRSongLibrary";
+import { XRSongLibrary } from "./XRSongLibrary";
+import { loadAllSources, type SourcedEntry } from "../shared/SongSource";
 import { XRPreScene } from "./XRPreScene";
 import { XRActiveScene } from "./XRActiveScene";
 import { XRSettingsScene } from "./XRSettingsScene";
@@ -48,7 +49,6 @@ import type { SongStructure, SongKeyboardNotes, SongSection, SongInfo } from "..
 const ATLAS_URL = "/UISheet0.png";
 
 const IMAGE_MANIFEST_URL = "/ImageManifest.json";
-const SONG_MANIFEST_URL  = "/songs/manifest.json";
 
 // ── Panel billboard ───────────────────────────────────────────────────────────
 let PANEL_BILLBOARD_LOW_OFFSET  = 0.375;
@@ -381,8 +381,8 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
             return r.json() as Promise<T>;
         });
 
-    const [songManifest] = await Promise.all([
-        fetchJson<SongManifestEntry[]>(SONG_MANIFEST_URL),
+    const [sourcedEntries] = await Promise.all([
+        loadAllSources(loadSettings().remoteServerUrl),
         loadManifest(IMAGE_MANIFEST_URL),
     ]);
 
@@ -520,13 +520,13 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         library.show(uiPanel, xrButtons, showPreScene);
     }
 
-    function showPreScene(entry: SongManifestEntry): void {
+    function showPreScene(sourced: SourcedEntry): void {
         clearXrButtons();
         resizePanel(400, 300);
         preScene.show(
             uiPanel,
             xrButtons,
-            entry,
+            sourced,
             () => (world.globals.tryLoadCalibration as (() => boolean) | undefined)?.() ?? false,
             playEntry,
             calibrateAndPlay,
@@ -536,7 +536,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     }
 
     async function loadSong(
-        entry: SongManifestEntry,
+        sourced: SourcedEntry,
         partName: string,
     ): Promise<{ songPlayer: SongPlayer; sections: SongSection[]; totalDuration: number; noteMin: number; noteMax: number } | null> {
         if (highwayEntity) {
@@ -546,17 +546,17 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         world.globals.highwayScene = undefined;
         world.globals.songPlayer   = undefined;
 
+        const { source, entry } = sourced;
         const part = entry.parts.find(p => p.name === partName);
         if (!part || part.type !== 'Keys') return null;
 
-        const SONG_BASE  = `/songs/${entry.folder}`;
         const songPlayer = new SongPlayer();
 
         const [songStructure, rawNotes, songInfo] = await Promise.all([
-            fetchJson<SongStructure>(`${SONG_BASE}/arrangement.json`),
-            fetchJson<SongKeyboardNotes>(`${SONG_BASE}/${partName}.json`),
-            fetchJson<SongInfo>(`${SONG_BASE}/song.json`),
-            songPlayer.loadSong(`${SONG_BASE}/song.ogg`).catch(() => {}),
+            fetchJson<SongStructure>(source.getFileUrl(entry, 'arrangement.json')),
+            fetchJson<SongKeyboardNotes>(source.getFileUrl(entry, `${partName}.json`)),
+            fetchJson<SongInfo>(source.getFileUrl(entry, 'song.json')),
+            songPlayer.loadSong(source.getFileUrl(entry, 'song.ogg')).catch(() => {}),
         ]) as [SongStructure, SongKeyboardNotes, SongInfo, void];
 
         const notes   = rawNotes.Notes;
@@ -594,7 +594,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         return { songPlayer, sections: rawNotes.Sections ?? [], totalDuration, noteMin, noteMax };
     }
 
-    async function playEntry(entry: SongManifestEntry, partName: string): Promise<void> {
+    async function playEntry(entry: SourcedEntry, partName: string): Promise<void> {
         clearXrButtons();
         uiPanel.innerHTML = `
             <div style="font-size:18px;padding:24px;text-align:center;
@@ -606,7 +606,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         showActiveScene(entry, songPlayer, sections, totalDuration, noteMin, noteMax);
     }
 
-    async function repositionEntry(entry: SongManifestEntry, partName: string): Promise<void> {
+    async function repositionEntry(entry: SourcedEntry, partName: string): Promise<void> {
         clearXrButtons();
         uiPanel.innerHTML = `
             <div style="font-size:18px;padding:24px;text-align:center;
@@ -621,7 +621,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         );
     }
 
-    async function calibrateAndPlay(entry: SongManifestEntry, partName: string): Promise<void> {
+    async function calibrateAndPlay(entry: SourcedEntry, partName: string): Promise<void> {
         clearXrButtons();
         uiPanel.innerHTML = `
             <div style="font-size:18px;padding:24px;text-align:center;
@@ -637,7 +637,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     }
 
     function showActiveScene(
-        entry: SongManifestEntry,
+        entry: SourcedEntry,
         songPlayer: SongPlayer,
         sections: SongSection[],
         totalDuration: number,
@@ -650,8 +650,8 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         activeScene.show(
             uiPanel,
             xrButtons,
-            entry.title,
-            entry.artist,
+            entry.entry.songName,
+            entry.entry.artistName,
             songPlayer,
             totalDuration,
             sections,
@@ -674,7 +674,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     }
 
     function showSettings(
-        entry: SongManifestEntry,
+        entry: SourcedEntry,
         songPlayer: SongPlayer,
         sections: SongSection[],
         totalDuration: number,
@@ -705,7 +705,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
 
     function resumeWithCountdown(
         pausedAt: number,
-        entry: SongManifestEntry,
+        entry: SourcedEntry,
         songPlayer: SongPlayer,
         sections: SongSection[],
         totalDuration: number,
@@ -733,7 +733,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
 
     // ── Screens ───────────────────────────────────────────────────────────────
 
-    const library       = new XRSongLibrary(songManifest);
+    const library       = new XRSongLibrary(sourcedEntries);
     const preScene      = new XRPreScene();
     const activeScene   = new XRActiveScene();
     const settingsScene = new XRSettingsScene();

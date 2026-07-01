@@ -91,6 +91,64 @@ Script tags inside each HTML must use absolute paths from project root: `src="/s
 
 ---
 
+## `compileUIKit` plugin crashes dev server if `ui/` directory is missing
+
+**Symptom:** `npm run dev` starts but neither `desktop.html` nor `xr.html` load; browser shows nothing at `/xr.html`.
+
+**Root cause:** `compileUIKit({ sourceDir: "ui" })` in `vite.config.ts` expects a `ui/` directory to exist at project root. If it's absent (as it was when Combined was first created), the plugin throws during Vite startup, silently preventing any page from being served.
+
+**Fix:** Copy the `ui/` directory from `XRProto/`. Also ensure `public/UISheet0.png`, `favicon.svg`, and `icons.svg` exist — they're not baked by a tool and must be manually copied from `Project/public/`.
+
+---
+
+## Bare port 8081 returns nothing without an `index.html`
+
+**Symptom:** Navigating to `https://localhost:8081` shows a blank 404. Users expect the app to open.
+
+**Root cause:** Combined has two entry points (`desktop.html`, `xr.html`) but no root `index.html`. Vite doesn't auto-redirect bare `/` requests to a named entry.
+
+**Fix:** Add a minimal `index.html` at the project root with `<meta http-equiv="refresh" content="0;url=desktop.html" />`.
+
+---
+
+## `SourcedEntry` — tag entries with their source at load time, not at use time
+
+**Why:** Once songs from multiple sources are merged into a flat list, there's no reliable way to look up which source an entry came from unless you stored it upfront. Trying to match by folder path at use time is fragile (two sources could have the same folder name).
+
+**Pattern:** `interface SourcedEntry { entry: SongIndexEntry; source: ISongSource }`. Build this array in `loadAllSources()` during the manifest phase. All downstream code receives `SourcedEntry` and calls `sourced.source.getFileUrl(sourced.entry, filename)` — no source lookup needed.
+
+---
+
+## URL-based sources eliminate `URL.createObjectURL` and async album art checks
+
+**Old pattern (file handles):** `getSongFile(entry, 'song.ogg')` returned a `File`; callers called `URL.createObjectURL(file)`, used the URL, then `URL.revokeObjectURL`. Album art existence had to be checked asynchronously via the file handle.
+
+**New pattern (URL sources):** `source.getFileUrl(entry, 'song.ogg')` returns a plain HTTP URL string. Pass it directly to `SongPlayer.loadSong()`. Album art: `source.getAlbumArtUrl(entry)` returns a URL synchronously; use `onerror="this.style.display='none'"` on the `<img>` to handle missing art — no pre-flight fetch needed.
+
+---
+
+## `Promise.allSettled` in `loadAllSources` keeps baked songs working when remote fails
+
+**Why:** Using `Promise.all` would cause the entire library load to reject if the remote server is down. With `Promise.allSettled`, each source is independent — a failing remote source logs a warning and the baked demo songs still appear.
+
+---
+
+## Vite proxy makes the song server plain HTTP (no TLS needed in dev)
+
+**Pattern:** Add to `vite.config.ts`:
+```ts
+proxy: {
+    '/remote-songs': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+        rewrite: path => path.replace(/^\/remote-songs/, ''),
+    },
+}
+```
+The browser (including Quest via Quest Link) hits `https://localhost:8081/remote-songs/manifest.json`. Vite proxies it to the plain HTTP song server. The song server needs no TLS cert and no CORS headers in this mode (same-origin from the browser's perspective). Enter `http://localhost:8081/remote-songs` as the Library URL in the app.
+
+---
+
 ## Import paths in Combined: no `.js` extensions, `../shared/` prefix
 
 **Symptom:** Module not found errors at dev-server startup.

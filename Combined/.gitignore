@@ -1,0 +1,3 @@
+node_modules/
+dist/
+song-server.config.json

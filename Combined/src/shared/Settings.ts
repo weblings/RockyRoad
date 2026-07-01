@@ -14,6 +14,7 @@ export interface Settings {
     keysTopDown: boolean;       // keys: top-down piano-roll camera (default off)
     keysRightHandColor: string; // hex color for right-hand notes
     keysLeftHandColor: string;  // hex color for left-hand notes
+    remoteServerUrl: string;    // base URL for the remote song server; empty = none
 }
 
 const DEFAULTS: Settings = {
@@ -27,6 +28,7 @@ const DEFAULTS: Settings = {
     keysTopDown: false,
     keysRightHandColor: '#2E71D6',
     keysLeftHandColor: '#E33737',
+    remoteServerUrl: '',
 };
 
 export function loadSettings(): Settings {

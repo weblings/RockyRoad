@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import type { App, IScreen } from "./App";
-import type { ISongLibrary, SongIndexEntry, SongIndexPart } from "../shared/SongIndex";
+import type { SongIndexEntry, SongIndexPart } from "../shared/SongIndex";
+import type { ISongSource } from "../shared/SongSource";
 import { STANDARD_BASE_NOTES } from "../shared/SongIndex";
 import { loadSettings, saveSettings } from "../shared/Settings";
 import type { PitchDetector } from "../shared/PitchDetector";
@@ -36,7 +37,7 @@ const COMPLETE_HOLD_MS = 1000;
 export class TunerScreen implements IScreen {
     private app: App;
     private texture: THREE.Texture;
-    private library: ISongLibrary;
+    private source: ISongSource;
     private entry: SongIndexEntry;
     private part: SongIndexPart;
     private context: TunerContext;
@@ -72,7 +73,7 @@ export class TunerScreen implements IScreen {
     constructor(
         app: App,
         texture: THREE.Texture,
-        library: ISongLibrary,
+        source: ISongSource,
         entry: SongIndexEntry,
         part: SongIndexPart,
         context: TunerContext,
@@ -80,7 +81,7 @@ export class TunerScreen implements IScreen {
     ) {
         this.app = app;
         this.texture = texture;
-        this.library = library;
+        this.source = source;
         this.entry = entry;
         this.part = part;
         this.context = context;
@@ -347,7 +348,7 @@ export class TunerScreen implements IScreen {
                 this.detector = null;
                 import('./ActiveSceneScreen').then(({ ActiveSceneScreen }) => {
                     this.app.navigate(new ActiveSceneScreen(
-                        this.app, this.texture, this.library, this.entry, this.part, det,
+                        this.app, this.texture, this.source, this.entry, this.part, det,
                     ));
                 });
                 break;
@@ -357,7 +358,7 @@ export class TunerScreen implements IScreen {
                 break;
             case 'menu':
                 import('./SongLibraryScreen').then(({ SongLibraryScreen }) => {
-                    this.app.navigate(new SongLibraryScreen(this.app, this.texture, this.library));
+                    this.app.navigate(new SongLibraryScreen(this.app, this.texture));
                 });
                 break;
         }
