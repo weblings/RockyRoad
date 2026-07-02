@@ -83,11 +83,27 @@ Script tags inside each HTML must use absolute paths from project root: `src="/s
 
 ---
 
-## `super-three@0.184.0` is the unified `three` package for both entry points
+## `super-three@0.181.0` is the unified `three` package for both entry points
 
 **Why this matters:** IWSDK's peer dependency is `super-three` (Meta's Three.js fork). Desktop Three.js must be the same module instance, or you get two `THREE` namespaces and mesh registration fails.
 
-**Fix:** `"three": "npm:super-three@0.184.0"` in `package.json`. Both `desktop.html` and `xr.html` bundles resolve `import * as THREE from 'three'` to the same package. Version `0.184.0` exists and is compatible with IWSDK.
+**Fix:** `"three": "npm:super-three@0.181.0"` in `package.json`. Both `desktop.html` and `xr.html` bundles resolve `import * as THREE from 'three'` to the same package.
+
+**Do not upgrade to 0.184.0** — see the entry below about deferred texture uploads.
+
+---
+
+## `super-three@0.184.0` breaks all CanvasTextures in XR multiview mode
+
+**Symptom:** Every CanvasTexture-based element invisible on Quest device: grab bar not visible, IWSDK ray cursor not visible, html2canvas panel disappears after any screen navigation. No errors in DevTools. Everything works fine in the browser emulator (IWER).
+
+**Root cause:** When merging XRProto into Combined, the package.json was written with `super-three@0.184.0` (the latest at the time) rather than the `0.181.0` version XRProto was using. The user never asked for Three.js to be upgraded.
+
+In WebXR multiview mode (Quest device), Three.js calls `textures.setDeferTextureUploads(true)` before rendering, which queues all CanvasTexture GPU uploads into a deferred list instead of uploading immediately. This list is supposed to be flushed by `textures.runDeferredUploads()` at frame-end. In r181 this call exists (line 17226 of `three.module.js`). In r184, `runDeferredUploads` is defined and exposed on the textures manager but **never called anywhere in the render loop**. The deferred queue accumulates and is never flushed — CanvasTextures never reach the GPU.
+
+The IWER emulator is not affected because it doesn't enable multiview (no `OCULUS_multiview` extension in browser), so texture uploads are not deferred.
+
+**Fix:** Pin to `"three": "npm:super-three@0.181.0"`. Do not upgrade unless the IWSDK itself upgrades and the deferred upload flush is confirmed to be restored in the new version.
 
 ---
 
