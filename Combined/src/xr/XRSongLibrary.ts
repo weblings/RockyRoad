@@ -77,15 +77,21 @@ export class XRSongLibrary {
                 <div class="song-list">
                     ${displayEntries.length === 0
                         ? '<p style="color:#555;font-size:13px;padding:8px">No songs found.</p>'
-                        : displayEntries.map((s, i) => `
+                        : displayEntries.map((s, i) => {
+                            const artUrl = s.source.getAlbumArtUrl(s.entry);
+                            const artEl = artUrl
+                                ? `<img class="song-art" src="${esc(artUrl)}" alt="" />`
+                                : `<div class="art-placeholder"></div>`;
+                            return `
                             <button class="song-entry" id="song-${i}" type="button">
-                                <div class="art-placeholder"></div>
+                                ${artEl}
                                 <div class="song-meta">
                                     <p class="song-title">${esc(s.entry.songName)}</p>
                                     <p class="song-album"></p>
                                     <p class="song-artist">${esc(s.entry.artistName)}</p>
                                 </div>
-                            </button>`).join('')}
+                            </button>`;
+                        }).join('')}
                 </div>
             </div>
         `;

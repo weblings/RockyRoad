@@ -51,10 +51,11 @@ if (!existsSync(songsDir)) {
 // ── Song scan ─────────────────────────────────────────────────────────────────
 
 interface ManifestEntry {
-    folder: string;
-    title:  string;
-    artist: string;
-    parts:  { name: string; type: string }[];
+    folder:  string;
+    title:   string;
+    artist:  string;
+    parts:   { name: string; type: string }[];
+    hasArt:  boolean;
 }
 
 function scanDir(dir: string, entries: ManifestEntry[]): void {
@@ -73,6 +74,7 @@ function scanDir(dir: string, entries: ManifestEntry[]): void {
                     name: String(p.InstrumentName ?? ''),
                     type: String(p.InstrumentType ?? ''),
                 })),
+                hasArt: existsSync(join(dir, 'albumart.png')),
             });
         } catch {
             console.warn(`[song-server] Skipping ${dir} — bad song.json`);

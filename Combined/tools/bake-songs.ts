@@ -8,7 +8,7 @@
  * Wired into: npm run dev / npm run build via package.json scripts.
  */
 
-import { readdirSync, readFileSync, statSync, writeFileSync } from "fs";
+import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "fs";
 import { dirname, join, resolve } from "path";
 import { fileURLToPath } from "url";
 
@@ -17,10 +17,11 @@ const songsDir  = resolve(__dirname, "../public/songs");
 const outPath   = resolve(__dirname, "../public/songs/manifest.json");
 
 interface SongManifestEntry {
-    folder: string;
-    title:  string;
-    artist: string;
-    parts:  { name: string; type: string }[];
+    folder:  string;
+    title:   string;
+    artist:  string;
+    parts:   { name: string; type: string }[];
+    hasArt:  boolean;
 }
 
 const entries: SongManifestEntry[] = [];
@@ -41,6 +42,7 @@ for (const name of readdirSync(songsDir)) {
                             name: String(p.InstrumentName ?? ""),
                             type: String(p.InstrumentType ?? ""),
                         })),
+            hasArt: existsSync(join(dir, "albumart.png")),
         });
     } catch {
         console.warn(`[bake-songs] Skipping ${name} — no valid song.json`);

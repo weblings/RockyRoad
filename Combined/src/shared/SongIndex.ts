@@ -9,6 +9,7 @@ export interface SongIndexEntry {
     albumName?: string;
     lengthSeconds: number;
     parts: SongIndexPart[];
+    hasArt?: boolean;
 }
 
 export interface SongIndexPart {

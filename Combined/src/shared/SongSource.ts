@@ -17,10 +17,11 @@ export interface SourcedEntry {
 // ── Manifest wire format (baked + remote server both emit this shape) ─────────
 
 interface ManifestEntry {
-    folder: string;
-    title:  string;
-    artist: string;
-    parts:  { name: string; type: string }[];
+    folder:  string;
+    title:   string;
+    artist:  string;
+    parts:   { name: string; type: string }[];
+    hasArt?: boolean;
 }
 
 function fromManifest(e: ManifestEntry): SongIndexEntry {
@@ -30,6 +31,7 @@ function fromManifest(e: ManifestEntry): SongIndexEntry {
         artistName:    e.artist,
         lengthSeconds: 0,
         parts: e.parts.map(p => ({ type: p.type, name: p.name, difficulty: 0 })),
+        hasArt: e.hasArt ?? false,
     };
 }
 
@@ -49,6 +51,7 @@ export class BakedSource implements ISongSource {
     }
 
     getAlbumArtUrl(entry: SongIndexEntry): string | null {
+        if (!entry.hasArt) return null;
         return `/songs/${encodeURI(entry.folderPath)}/albumart.png`;
     }
 }
@@ -75,6 +78,7 @@ export class RemoteSource implements ISongSource {
     }
 
     getAlbumArtUrl(entry: SongIndexEntry): string | null {
+        if (!entry.hasArt) return null;
         return `${this.base}/${encodeURI(entry.folderPath)}/albumart.png`;
     }
 }
