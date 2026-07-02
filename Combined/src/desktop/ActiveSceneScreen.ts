@@ -211,6 +211,8 @@ export class ActiveSceneScreen implements IScreen {
     private buildOverlay(container: HTMLElement): void {
         const dur = this.totalDuration;
         const durStr = formatTime(dur);
+        const PLAY_SVG  = `<svg width="14" height="14" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M10.6667 6.6548C10.6667 6.10764 11.2894 5.79346 11.7295 6.11862L24.377 15.4634C24.7377 15.7298 24.7377 16.2692 24.3771 16.5357L11.7295 25.8813C11.2895 26.2065 10.6667 25.8923 10.6667 25.3451L10.6667 6.6548Z" fill="currentColor"/></svg>`;
+        const PAUSE_SVG = `<svg width="14" height="14" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="7" y="6" width="6" height="20" rx="1" fill="currentColor"/><rect x="19" y="6" width="6" height="20" rx="1" fill="currentColor"/></svg>`;
 
         container.innerHTML = `
             <div id="active-overlay">
@@ -219,7 +221,7 @@ export class ActiveSceneScreen implements IScreen {
                         <svg width="14" height="14" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M13.0908 14.3334C12.972 14.3334 12.9125 14.1898 12.9965 14.1058L17.7021 9.40022C17.9625 9.13987 17.9625 8.71776 17.7021 8.45741L16.2879 7.04319C16.0275 6.78284 15.6054 6.78284 15.3451 7.04319L6.8598 15.5285C6.59945 15.7888 6.59945 16.2109 6.8598 16.4713L8.27401 17.8855L8.27536 17.8868L15.3453 24.9568C15.6057 25.2172 16.0278 25.2172 16.2881 24.9568L17.7024 23.5426C17.9627 23.2822 17.9627 22.8601 17.7024 22.5998L12.9969 17.8944C12.9129 17.8104 12.9724 17.6668 13.0912 17.6668L26 17.6668C26.3682 17.6668 26.6667 17.3683 26.6667 17.0001V15.0001C26.6667 14.6319 26.3682 14.3334 26 14.3334L13.0908 14.3334Z" fill="currentColor"/></svg>
                         <span>Library</span>
                     </button>
-                    <button class="active-play-btn" id="active-play" type="button">&#9654;</button>
+                    <button class="active-play-btn" id="active-play" type="button">${PLAY_SVG}</button>
                     <span class="active-time" id="active-time">0:00</span>
                     <div class="active-seek-wrap">
                         <div class="seek-track" id="active-seek">
@@ -428,7 +430,7 @@ export class ActiveSceneScreen implements IScreen {
             }
 
             const playing = this.songPlayer.isPlaying;
-            playBtn.textContent = playing ? '⏸' : '▶';
+            playBtn.innerHTML = playing ? PAUSE_SVG : PLAY_SVG;
 
             // Song just ended naturally — show bar so user can navigate away
             if (prevIsPlaying && !playing) showBar();
