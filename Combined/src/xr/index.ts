@@ -35,7 +35,7 @@ import { KeysPlayerScene3D } from "../shared/KeysPlayerScene3D";
 import { SongPlayer } from "../shared/SongPlayer";
 import { CalibrationSystem } from "./CalibrationSystem";
 import { XRSongLibrary } from "./XRSongLibrary";
-import { loadAllSources, type SourcedEntry } from "../shared/SongSource";
+import { loadAllSources, type SourcedEntry, type ISongSource } from "../shared/SongSource";
 import { XRPreScene } from "./XRPreScene";
 import { XRActiveScene } from "./XRActiveScene";
 import { XRSettingsScene } from "./XRSettingsScene";
@@ -62,7 +62,6 @@ class HighwaySystem extends createSystem({}) {
     private rayOrigin!: Vector3;
     private rayDir!: Vector3;
 
-    private lastPanelRender = -999;
     private panelRenderPending = false;
     private panelRenderGen = 0;
 
@@ -93,11 +92,10 @@ class HighwaySystem extends createSystem({}) {
         this.world.globals.invalidatePanelRender = (): void => {
             this.panelRenderGen++;
             this.panelRenderPending = false;
-            this.lastPanelRender = -999;
         };
     }
 
-    update(delta: number, time: number): void {
+    update(delta: number, _time: number): void {
         // ── Highway scene — only when a song is loaded ────────────────────────
         const scene = this.world.globals.highwayScene as KeysPlayerScene3D | undefined;
         if (scene) {
@@ -149,17 +147,15 @@ class HighwaySystem extends createSystem({}) {
             }
         }
 
-        // ── Panel: throttled html2canvas render (~10 fps) ─────────────────────
+        // ── Panel: html2canvas render — rate limited only by capture duration ────
         const uiPanel   = this.world.globals.uiPanel   as HTMLDivElement  | undefined;
         const panelTex  = this.world.globals.panelTex  as CanvasTexture   | undefined;
         const xrButtons = this.world.globals.xrButtons as XrButton[]      | undefined;
         const panelMesh = this.world.globals.panelMesh as Mesh            | undefined;
 
-        if (uiPanel && panelTex && !this.panelRenderPending
-                && time - this.lastPanelRender > 0.1) {
+        if (uiPanel && panelTex && !this.panelRenderPending) {
             (this.world.globals.updateActivePanel as (() => void) | undefined)?.();
             this.panelRenderPending = true;
-            this.lastPanelRender = time;
             const captureGen = this.panelRenderGen;
             html2canvas(uiPanel, { backgroundColor: null, logging: false }).then(canvas => {
                 if (this.panelRenderGen !== captureGen) {
@@ -252,11 +248,31 @@ class HighwaySystem extends createSystem({}) {
             return Math.max(0, Math.min((pixX - (r.left - panelRect.left)) / r.width, 1));
         };
 
+        const rayNormY = (
+            ray: (typeof hands)[number]['ray'],
+            el: HTMLElement,
+        ): number | null => {
+            if (!panelMesh || !uiPanel || !ray) return null;
+            ray.updateMatrixWorld();
+            panelMesh.updateMatrixWorld();
+            ray.getWorldPosition(this.rayOrigin);
+            this.rayDir.set(0, 0, -1).transformDirection(ray.matrixWorld);
+            this.raycaster.set(this.rayOrigin, this.rayDir);
+            const hits = this.raycaster.intersectObject(panelMesh);
+            if (hits.length === 0 || !hits[0].uv) return null;
+            const panelRect = uiPanel.getBoundingClientRect();
+            const pixY = (1 - hits[0].uv.y) * panelRect.height;
+            const r    = el.getBoundingClientRect();
+            return Math.max(0, Math.min((pixY - (r.top - panelRect.top)) / r.height, 1));
+        };
+
         // ── Active scrub: move or end ─────────────────────────────────────────
         if (this.scrubBtn !== null && this.scrubHandIdx >= 0) {
             const { pad, ray } = hands[this.scrubHandIdx];
             if (pad?.getButtonPressed(InputComponent.Trigger)) {
-                const nx = rayNormX(ray, this.scrubBtn.el);
+                const nx = this.scrubBtn.scrubVertical
+                    ? rayNormY(ray, this.scrubBtn.el)
+                    : rayNormX(ray, this.scrubBtn.el);
                 if (nx !== null && nx !== this.scrubLastX) {
                     this.scrubLastX = nx;
                     this.scrubBtn.onScrubMove?.(nx);
@@ -328,7 +344,9 @@ class HighwaySystem extends createSystem({}) {
                 if (pixX >= bx && pixX <= bx + r.width
                         && pixY >= by && pixY <= by + r.height) {
                     if (btn.onScrubStart) {
-                        this.scrubLastX   = Math.max(0, Math.min((pixX - bx) / r.width, 1));
+                        this.scrubLastX   = btn.scrubVertical
+                            ? Math.max(0, Math.min((pixY - by) / r.height, 1))
+                            : Math.max(0, Math.min((pixX - bx) / r.width, 1));
                         this.scrubHandIdx = i;
                         this.scrubBtn     = btn;
                         btn.onScrubStart();
@@ -381,10 +399,18 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
             return r.json() as Promise<T>;
         });
 
-    const [sourcedEntries] = await Promise.all([
+    const [realEntries] = await Promise.all([
         loadAllSources(loadSettings().remoteServerUrl),
         loadManifest(IMAGE_MANIFEST_URL),
     ]);
+
+    // TEMP: 30 fake songs for scroll testing — remove when done
+    const _fakeSource: ISongSource = { label: 'Test', getManifest: async () => [], getFileUrl: () => '', getAlbumArtUrl: () => null };
+    const _fakeSongs: SourcedEntry[] = Array.from({ length: 30 }, (_, i) => ({
+        entry: { folderPath: `fake/${i}`, songName: `Test Song ${String(i + 1).padStart(2, '0')}`, artistName: `Test Artist ${i + 1}`, lengthSeconds: 0, parts: [], hasArt: false },
+        source: _fakeSource,
+    }));
+    const sourcedEntries = [...realEntries, ..._fakeSongs];
 
     // ── Anchor ────────────────────────────────────────────────────────────────
     const anchor = new Object3D();

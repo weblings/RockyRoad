@@ -51,9 +51,7 @@ export class XRSongLibrary {
             this._render(uiPanel, xrButtons, onSelect, onInvalidate);
         };
 
-        // Real input lives in document.body at a proper on-screen position so the
-        // Quest IME initialises with the existing value on re-focus. Recreate on
-        // every render so the value is always current and the old listener is gone.
+        // Real input lives in document.body so the Quest IME initialises on focus.
         document.getElementById(SEARCH_INPUT_ID)?.remove();
         const searchReal = document.createElement('input');
         searchReal.type = 'text';
@@ -93,25 +91,84 @@ export class XRSongLibrary {
                         <button id="filter-lead" class="button ${this.filterKey === 'lead' ? 'primary-light' : 'primary-dark'}" type="button">Lead</button>
                     </div>
                 </div>
-                <div class="song-list" id="lib-song-list">
-                    ${this._songListHtml(displayEntries)}
+                <div class="song-list-area">
+                    <div class="song-list-viewport" id="lib-song-viewport">
+                        <div class="song-list-inner" id="lib-song-inner">
+                            ${this._songListHtml(displayEntries)}
+                        </div>
+                    </div>
+                    <div class="scroll-track" id="lib-scroll-track">
+                        <div class="scroll-bar"></div>
+                        <div class="scroll-thumb" id="lib-scroll-thumb"></div>
+                    </div>
                 </div>
             </div>
         `;
 
-        // Exit VR
+        // ── Scroll state ──────────────────────────────────────────────────────
+        // Mirrors the seek-bar pattern: translate the inner grid instead of
+        // using scrollTop so html2canvas captures the offset correctly.
+
+        const inner    = uiPanel.querySelector<HTMLElement>('#lib-song-inner')!;
+        const viewport = uiPanel.querySelector<HTMLElement>('#lib-song-viewport')!;
+        const thumb    = uiPanel.querySelector<HTMLElement>('#lib-scroll-thumb')!;
+        const track    = uiPanel.querySelector<HTMLElement>('#lib-scroll-track')!;
+
+        let scrollOffset = 0;
+        let maxOffset    = 0;
+
+        const updateThumb = (): void => {
+            const trackH = track.clientHeight;
+            const totalH = inner.offsetHeight;
+            const viewH  = viewport.clientHeight;
+            const thumbH = totalH > 0
+                ? Math.max(24, Math.round((viewH / totalH) * trackH))
+                : trackH;
+            const norm     = maxOffset > 0 ? scrollOffset / maxOffset : 0;
+            const thumbTop = Math.round(norm * (trackH - thumbH));
+            thumb.style.height = `${thumbH}px`;
+            thumb.style.top    = `${thumbTop}px`;
+        };
+
+        const recomputeMaxOffset = (): void => {
+            // Reading offsetHeight forces a synchronous reflow — correct after innerHTML changes.
+            maxOffset    = Math.max(0, inner.offsetHeight - viewport.clientHeight);
+            scrollOffset = Math.min(scrollOffset, maxOffset);
+            inner.style.transform = `translateY(-${scrollOffset}px)`;
+            updateThumb();
+        };
+
+        const applyScroll = (ny: number): void => {
+            scrollOffset = ny * maxOffset;
+            inner.style.transform = `translateY(-${scrollOffset}px)`;
+            updateThumb();
+            // Do NOT call onInvalidate() here: it cancels the in-flight html2canvas
+            // capture on every drag frame, so no captures ever complete during a scroll.
+            // The render loop picks up the new transform on its next cycle naturally.
+        };
+
+        xrButtons.push({
+            el: track,
+            scrubVertical: true,
+            onScrubStart: () => {},
+            onScrubMove:  (ny) => applyScroll(ny),
+            onScrubEnd:   (ny) => applyScroll(ny),
+        });
+
+        recomputeMaxOffset();
+
+        // ── Toolbar buttons ───────────────────────────────────────────────────
+
         xrButtons.push({
             el: uiPanel.querySelector('#exit-vr') as HTMLButtonElement,
             onClick: () => { location.href = 'desktop.html'; },
         });
 
-        // Sort trigger
         xrButtons.push({
             el: uiPanel.querySelector('#sort-trigger') as HTMLButtonElement,
             onClick: () => { this.sortOpen = !this.sortOpen; rerender(); },
         });
 
-        // Sort options
         for (const opt of SORT_OPTIONS) {
             const el = uiPanel.querySelector(`#sort-opt-${opt.value}`) as HTMLButtonElement | null;
             if (!el) continue;
@@ -122,7 +179,6 @@ export class XRSongLibrary {
             });
         }
 
-        // Filter chips
         xrButtons.push({
             el: uiPanel.querySelector('#filter-all') as HTMLButtonElement,
             onClick: () => { this.filterKey = 'all'; rerender(); },
@@ -132,7 +188,8 @@ export class XRSongLibrary {
             onClick: () => { this.filterKey = 'lead'; rerender(); },
         });
 
-        // Search: clicking the visual div focuses the body-level real input.
+        // ── Search ────────────────────────────────────────────────────────────
+
         const searchDisplay = uiPanel.querySelector<HTMLElement>('#lib-search-display')!;
         xrButtons.push({
             el: searchDisplay,
@@ -146,12 +203,15 @@ export class XRSongLibrary {
                 searchReal.value = '';
                 const textEl = searchDisplay.querySelector('span');
                 if (textEl) { textEl.textContent = 'Search…'; textEl.className = 'search-placeholder'; }
-                const songListEl = uiPanel.querySelector<HTMLElement>('#lib-song-list');
-                if (songListEl) {
+                const innerEl = uiPanel.querySelector<HTMLElement>('#lib-song-inner');
+                if (innerEl) {
                     const entries = this._getFiltered();
-                    songListEl.innerHTML = this._songListHtml(entries);
+                    innerEl.innerHTML = this._songListHtml(entries);
+                    scrollOffset = 0;
+                    innerEl.style.transform = 'translateY(0px)';
                     xrButtons.splice(songButtonOffset);
                     this._registerSongButtons(uiPanel, xrButtons, entries, onSelect);
+                    recomputeMaxOffset();
                 }
                 searchReal.focus();
             },
@@ -160,7 +220,7 @@ export class XRSongLibrary {
         const songButtonOffset = xrButtons.length;
         this._registerSongButtons(uiPanel, xrButtons, displayEntries, onSelect);
 
-        // Partial refresh on keystroke — updates the visual span and song list
+        // Partial refresh on keystroke — updates the visual span and song grid
         // without rebuilding the toolbar, so the real input keeps focus.
         searchReal.addEventListener('input', () => {
             this.searchQuery = searchReal.value;
@@ -169,12 +229,15 @@ export class XRSongLibrary {
                 textEl.textContent = this.searchQuery || 'Search…';
                 textEl.className   = this.searchQuery ? 'search-text' : 'search-placeholder';
             }
-            const songListEl = uiPanel.querySelector<HTMLElement>('#lib-song-list');
-            if (!songListEl) return;
+            const innerEl = uiPanel.querySelector<HTMLElement>('#lib-song-inner');
+            if (!innerEl) return;
             const entries = this._getFiltered();
-            songListEl.innerHTML = this._songListHtml(entries);
+            innerEl.innerHTML = this._songListHtml(entries);
+            scrollOffset = 0;
+            innerEl.style.transform = 'translateY(0px)';
             xrButtons.splice(songButtonOffset);
             this._registerSongButtons(uiPanel, xrButtons, entries, onSelect);
+            recomputeMaxOffset();
             onInvalidate();
         });
     }

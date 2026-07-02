@@ -153,22 +153,71 @@
   height: auto;
 }
 
+/* ─── Song list area (list + scroll buttons) ─── */
+
+.xr-panel .library-frame .song-list-area {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  overflow: hidden;
+}
+
+.xr-panel .library-frame .scroll-track {
+  width: 28px;
+  flex: 0 0 28px;
+  position: relative;
+  margin: 10px 10px 10px 4px;
+  cursor: pointer;
+}
+
+.xr-panel .library-frame .scroll-bar {
+  position: absolute;
+  left: 12px;
+  width: 4px;
+  top: 0;
+  bottom: 0;
+  background: #1a1a1a;
+  border-radius: 2px;
+}
+
+.xr-panel .library-frame .scroll-thumb {
+  position: absolute;
+  left: 8px;
+  width: 12px;
+  background: #515151;
+  border-radius: 6px;
+}
+
+.xr-panel .library-frame .scroll-track.xr-hover .scroll-thumb {
+  background: #7c7c7c;
+}
+
 /* ─── Song list ─── */
 
-.xr-panel .library-frame .song-list {
+/* Viewport clips the translated inner grid — no DOM scroll used here.
+   html2canvas doesn't capture scrollTop, so we drive position via
+   transform:translateY on the inner container instead (same pattern
+   as the seek-bar's seekFill/seekThumb in XRActiveScene). */
+
+.xr-panel .library-frame .song-list-viewport {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+
+.xr-panel .library-frame .song-list-inner {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   align-content: start;
   gap: 4px;
   padding: 10px;
-  flex: 1;
-  overflow-y: auto;
+  will-change: transform;
 }
 
 /* ─── Song entry (list item button) ─── */
 /* Uses its own color scheme — not a button variant from panel.css */
 
-.xr-panel .library-frame .song-list .song-entry {
+.xr-panel .library-frame .song-list-inner .song-entry {
   display: flex;
   flex-direction: row;
   align-items: flex-start;
@@ -183,16 +232,16 @@
   text-align: left;
 }
 
-.xr-panel .library-frame .song-list .song-entry:hover,
-.xr-panel .library-frame .song-list .song-entry.xr-hover {
+.xr-panel .library-frame .song-list-inner .song-entry:hover,
+.xr-panel .library-frame .song-list-inner .song-entry.xr-hover {
   background: #2e2e2e;
 }
 
-.xr-panel .library-frame .song-list .song-entry:active {
+.xr-panel .library-frame .song-list-inner .song-entry:active {
   background: #383838;
 }
 
-.xr-panel .library-frame .song-list .art-placeholder {
+.xr-panel .library-frame .song-list-inner .art-placeholder {
   width: 40px;
   height: 40px;
   flex: 0 0 auto;
@@ -200,7 +249,7 @@
   border-radius: 4px;
 }
 
-.xr-panel .library-frame .song-list .song-art {
+.xr-panel .library-frame .song-list-inner .song-art {
   width: 40px;
   height: 40px;
   flex: 0 0 auto;
@@ -208,7 +257,7 @@
   object-fit: cover;
 }
 
-.xr-panel .library-frame .song-list .song-meta {
+.xr-panel .library-frame .song-list-inner .song-meta {
   display: flex;
   flex-direction: column;
   padding: 0 0 0 8px;
@@ -216,7 +265,7 @@
   min-width: 0;
 }
 
-.xr-panel .library-frame .song-list .song-title {
+.xr-panel .library-frame .song-list-inner .song-title {
   color: #ffffff;
   font-size: 12px;
   font-weight: 700;
@@ -225,7 +274,7 @@
   white-space: nowrap;
 }
 
-.xr-panel .library-frame .song-list .song-album {
+.xr-panel .library-frame .song-list-inner .song-album {
   color: #c8c8c8;
   font-size: 10px;
   font-weight: 400;
@@ -234,7 +283,7 @@
   white-space: nowrap;
 }
 
-.xr-panel .library-frame .song-list .song-artist {
+.xr-panel .library-frame .song-list-inner .song-artist {
   color: rgba(140, 140, 140, 0.784);
   font-size: 10px;
   font-weight: 400;

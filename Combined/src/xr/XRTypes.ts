@@ -3,7 +3,9 @@ export interface XrButton {
     el: HTMLElement;
     onClick?: () => void;
     // Drag-to-scrub: trigger-down starts, held frames move, trigger-up ends.
-    onScrubStart?: () => void;
-    onScrubMove?:  (normalizedX: number) => void;
-    onScrubEnd?:   (normalizedX: number) => void;
+    // Set scrubVertical:true to track Y instead of X (e.g. a scrollbar).
+    onScrubStart?:   () => void;
+    onScrubMove?:    (normalized: number) => void;
+    onScrubEnd?:     (normalized: number) => void;
+    scrubVertical?:  boolean;
 }
