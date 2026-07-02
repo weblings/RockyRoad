@@ -1,0 +1,14 @@
+{
+  "SongName": "Home on the Range",
+  "ArtistName": "Traditional",
+  "SongLengthSeconds": 40.0,
+  "InstrumentParts": [
+    {
+      "InstrumentName": "lead",
+      "InstrumentType": "LeadGuitar",
+      "Tuning": { "StringSemitoneOffsets": [0, 0, 0, 0, 0, 0] },
+      "CapoFret": 0,
+      "SongDifficulty": 1
+    }
+  ]
+}

@@ -1,1 +1,14 @@
-[]
+[
+  {
+    "folder": "home-on-the-range",
+    "title": "Home on the Range",
+    "artist": "Traditional",
+    "parts": [
+      {
+        "name": "lead",
+        "type": "LeadGuitar"
+      }
+    ],
+    "hasArt": false
+  }
+]

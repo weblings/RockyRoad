@@ -203,6 +203,46 @@ Without this flag, every song entry would need either a pre-flight HEAD request 
 
 ---
 
+## html2canvas ignores `scrollTop` — use `transform: translateY()` for scrollable XR content
+
+**Symptom:** A song list with `overflow-y: auto` and `scrollTop` set via JS appears to never scroll in the XR panel. The captured texture always shows the list from the top, regardless of `scrollTop`.
+
+**Root cause:** html2canvas snapshots the DOM by re-rendering it to a canvas. It does not honour `scrollTop` on elements inside a `position: fixed` container — the snapshot always renders as if `scrollTop = 0`.
+
+**Fix:** Replace DOM scroll with CSS transform. Use a clipping viewport (`overflow: hidden`) containing an inner container, and drive position via `inner.style.transform = 'translateY(-Npx)'`. This is a style property that html2canvas reads and renders correctly — the same pattern the active scene's seek bar uses (`seekFill.style.width`, `seekThumb.style.left`).
+
+**Where this applies:** Any scrollable list or region inside the XR `uiPanel`. Do not use `overflow-y: auto/scroll` + `scrollTop` for content that must be visible in the panel texture.
+
+---
+
+## Calling `onInvalidate()` from a continuous drag handler causes zero renders
+
+**Symptom:** The XR panel never updates while the user drags the scrollbar, even though `onScrubMove` fires every frame and the DOM transform is being set.
+
+**Root cause:** `onInvalidate()` cancels any in-flight html2canvas capture (`panelRenderGen++`, `panelRenderPending = false`) and immediately starts a new one. If `onScrubMove` fires faster than html2canvas can complete (which it always does — drags fire at ~60fps, captures take 30–100ms), every capture is cancelled before it finishes. No frames ever complete.
+
+**Fix:** Do NOT call `onInvalidate()` from continuous drag handlers (`onScrubMove`, `applyScroll`). The render loop picks up DOM changes on its own next cycle after the current capture completes. Reserve `onInvalidate()` for discrete state changes (button clicks, search queries) where you want to discard a stale in-flight capture and restart immediately.
+
+---
+
+## The `time - lastPanelRender > 0.1` gate was an artificial 10fps cap
+
+**Symptom:** The XR panel re-renders at most 10 times per second regardless of html2canvas speed.
+
+**Root cause:** The render check had two independent throttles: `panelRenderPending` (prevents concurrent overlapping captures — correct) and `time - lastPanelRender > 0.1` (100ms floor between render starts — artificial). The time gate capped the rate at 10fps even if html2canvas completed in 20ms.
+
+**Fix:** Remove the time gate entirely. `panelRenderPending` alone is the correct throttle — it naturally limits renders to "as fast as html2canvas can complete." The achieved rate becomes the reciprocal of html2canvas capture time (~20–33fps for a 1000×525 panel on Quest).
+
+---
+
+## Library panel (1000×525) renders ~4.4× slower than other screens (400×300)
+
+html2canvas time scales linearly with pixel count. The library panel has 525,000 pixels vs 120,000 for the active/pre/settings screens. If other screens render in 30ms, the library takes ~130ms — capping its effective render rate at ~8fps before any other bottlenecks.
+
+If library panel performance is insufficient, options are: (a) `html2canvas(uiPanel, { scale: 0.5 })` — renders at half resolution, ~4× faster, slightly blurry; (b) reduce panel dimensions; (c) SVG foreignObject approach — uses the browser's native C++ renderer instead of html2canvas's JS reimplementation, potentially 10–50× faster, but requires all CSS to be inlined and album art images to be pre-fetched and base64-encoded.
+
+---
+
 ## Import paths in Combined: no `.js` extensions, `../shared/` prefix
 
 **Symptom:** Module not found errors at dev-server startup.
