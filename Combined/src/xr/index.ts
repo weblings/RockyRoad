@@ -517,10 +517,12 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         clearXrButtons();
         resizePanel(1000, 525);
         (world.globals.songPlayer as SongPlayer | undefined)?.pause();
-        library.show(uiPanel, xrButtons, showPreScene);
+        library.show(uiPanel, xrButtons, showPreScene,
+            () => (world.globals.invalidatePanelRender as (() => void) | undefined)?.());
     }
 
     function showPreScene(sourced: SourcedEntry): void {
+        document.getElementById('xr-lib-search-real')?.remove();
         clearXrButtons();
         resizePanel(400, 300);
         preScene.show(

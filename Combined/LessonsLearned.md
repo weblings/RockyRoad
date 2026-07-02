@@ -165,6 +165,44 @@ The browser (including Quest via Quest Link) hits `https://localhost:8081/remote
 
 ---
 
+## XR hover feedback requires `.xr-hover` CSS class alongside `:hover`
+
+**Symptom:** Interactive elements (sort trigger, song cards) show no visual response to ray hover in XR, even though they are correctly registered in `xrButtons` and `onClick` fires.
+
+**Root cause:** `HighwaySystem` signals hover by adding the `xr-hover` class to the element (`el.classList.add('xr-hover')`), never by triggering the CSS `:hover` pseudo-class. `:hover` is only activated by actual pointer/mouse events, which don't exist in XR. Any element using a custom CSS class (`.sort-trigger`, `.song-entry`, etc.) must explicitly handle `.xr-hover` in its rules.
+
+Elements that use `button.primary-dark` / `button.primary-light` from `panel.css` are already covered — that file pairs `:hover` and `.xr-hover` together. Custom CSS classes are not.
+
+**Fix:** For every interactive XR element that uses a custom style, pair the hover rule:
+```css
+.my-element:hover,
+.my-element.xr-hover { background: #515151; }
+```
+
+**Where this applies:** `library.css` — `.sort-trigger`, `.sort-option`, `.song-entry`. Any new screen with custom button styles needs the same pattern.
+
+---
+
+## `_` prefix does not suppress `noUnusedLocals` for private class members
+
+**Symptom:** `error TS6133: '_connectOpen' is declared but its value is never read.` — renaming a private field or method to `_foo` still triggers the error.
+
+**Root cause:** TypeScript's `noUnusedLocals` only treats the underscore prefix as a suppression signal for **function parameters** (e.g. `(_unused: string) => {}`). For private class fields and private methods, the prefix is ignored — they must actually be used or deleted.
+
+**Fix:** Delete dormant private members rather than trying to suppress the warning. If the code is worth keeping for future use, move it to a comment or a separate utility file that isn't compiled into the project.
+
+---
+
+## `hasArt` flag in manifest avoids HEAD requests for missing album art
+
+**Pattern:** When baking or serving the song manifest, compute `hasArt: existsSync(join(dir, 'albumart.png'))` per entry. `ISongSource.getAlbumArtUrl()` returns `null` synchronously when `!entry.hasArt`, so the caller never constructs an `<img>` that fires a 404 request.
+
+Without this flag, every song entry would need either a pre-flight HEAD request or a fallback `onerror` handler on every image element. The flag is cheap to compute at build/serve time and keeps the runtime path synchronous.
+
+**Where this is implemented:** `tools/bake-songs.ts`, `tools/song-server.ts` (both set `hasArt`), `SongSource.ts` (`getAlbumArtUrl` checks it), `XRSongLibrary.ts` and `XRPreScene.ts` (use the returned URL or render a placeholder div).
+
+---
+
 ## Import paths in Combined: no `.js` extensions, `../shared/` prefix
 
 **Symptom:** Module not found errors at dev-server startup.

@@ -51,6 +51,10 @@
   color: #999999;
 }
 
+.xr-panel .library-frame .toolbar .search-text {
+  color: #ffffff;
+}
+
 .xr-panel .library-frame .toolbar .sort-dropdown {
   position: relative;
   flex: 0 0 auto;
