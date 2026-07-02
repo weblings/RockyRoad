@@ -48,7 +48,6 @@ export class SongLibraryScreen implements IScreen {
     private songs: SourcedEntry[] = [];
     private state: LibraryState;
     private sortOpen = false;
-    private connectOpen = false;
 
     constructor(app: App, texture: THREE.Texture) {
         this.app = app;
@@ -81,9 +80,6 @@ export class SongLibraryScreen implements IScreen {
     }
 
     private renderLibrary(): void {
-        const settings = loadSettings();
-        const connected = !!settings.remoteServerUrl;
-
         const knownTypes = new Set(Object.values(INSTRUMENT_TYPE).filter(Boolean));
         const presentTypes = new Set<string>();
         for (const { entry } of this.songs)
@@ -129,16 +125,11 @@ export class SongLibraryScreen implements IScreen {
                                 <button class="lib-sort-option${sel('tuning-asc')}" data-sort="tuning-asc" type="button">Tuning A–Z</button>` : ''}
                             </div>
                         </div>
-                        <button id="lib-connect-toggle" class="lib-btn-icon${connected ? ' lib-btn-icon--active' : ''}"
-                                type="button" title="${connected ? 'Library connected — click to change' : 'Connect a library'}">
-                            ${connected ? '● Library' : '+ Library'}
-                        </button>
                         <button id="enter-vr" class="active-back-btn" style="display:none;margin-left:4px"
                                 type="button" onclick="location.href='xr.html'">
                             <span>Enter VR</span>
                         </button>
                     </div>
-                    ${this.connectOpen ? this.connectPanelHtml(settings.remoteServerUrl) : ''}
                     <div class="lib-filter-row">
                         <div id="lib-chips">
                             ${chips.map(f => `
@@ -207,13 +198,6 @@ export class SongLibraryScreen implements IScreen {
             });
         }
 
-        this.container!.querySelector('#lib-connect-toggle')!.addEventListener('click', () => {
-            this.connectOpen = !this.connectOpen;
-            this.renderLibrary();
-        });
-
-        if (this.connectOpen) this.wireConnectPanel();
-
         this.container!.querySelector('#lib-grid')!.addEventListener('click', e => {
             const card = (e.target as HTMLElement).closest<HTMLElement>('[data-song-idx]');
             if (!card) return;
@@ -221,51 +205,6 @@ export class SongLibraryScreen implements IScreen {
         });
 
         this.refreshCards();
-    }
-
-    // ── Connect panel ─────────────────────────────────────────────────────────
-
-    private connectPanelHtml(currentUrl: string): string {
-        return `
-            <div class="lib-connect-panel">
-                <p class="lib-connect-label">Library URL</p>
-                <div class="lib-connect-row">
-                    <input class="lib-connect-input" id="lib-connect-input" type="url"
-                        placeholder="http://your-server/songs  (local dev: /remote-songs)"
-                        value="${esc(currentUrl)}" />
-                    <button class="lib-btn-primary" id="lib-connect-save" type="button">Save</button>
-                    ${currentUrl ? `<button class="lib-btn-secondary" id="lib-connect-clear" type="button">Clear</button>` : ''}
-                </div>
-                <p class="lib-connect-hint">
-                    Start the song server with <code>npm run serve-songs</code>, then enter
-                    <code>http://localhost:8081/remote-songs</code> for local dev.
-                </p>
-            </div>`;
-    }
-
-    private wireConnectPanel(): void {
-        const input = this.container!.querySelector<HTMLInputElement>('#lib-connect-input')!;
-
-        this.container!.querySelector('#lib-connect-save')!.addEventListener('click', async () => {
-            const url = input.value.trim();
-            const s = loadSettings();
-            s.remoteServerUrl = url;
-            saveSettings(s);
-            this.connectOpen = false;
-            this.renderLoading();
-            this.songs = await loadAllSources(url);
-            this.renderLibrary();
-        });
-
-        this.container!.querySelector('#lib-connect-clear')?.addEventListener('click', async () => {
-            const s = loadSettings();
-            s.remoteServerUrl = '';
-            saveSettings(s);
-            this.connectOpen = false;
-            this.renderLoading();
-            this.songs = await loadAllSources('');
-            this.renderLibrary();
-        });
     }
 
     // ── Filtering + card rendering ────────────────────────────────────────────
