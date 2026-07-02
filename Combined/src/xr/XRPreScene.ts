@@ -30,6 +30,11 @@ export class XRPreScene {
         // Attempt to load saved calibration immediately.
         const hasSavedCal = hasKeys && tryLoadCalibration();
 
+        const artUrl = sourced.source.getAlbumArtUrl(sourced.entry);
+        const artHtml = artUrl
+            ? `<img class="art-image" src="${esc(artUrl)}" alt="" />`
+            : `<div class="art-image"></div>`;
+
         uiPanel.innerHTML = `
             <div class="frame">
                 <div class="content">
@@ -42,7 +47,7 @@ export class XRPreScene {
                     <div class="song-info">
                         <div class="song-details">
                             <div class="row">
-                                <div class="art-bg"><div class="art-image"></div></div>
+                                <div class="art-bg">${artHtml}</div>
                             </div>
                             <p class="song-title">${esc(entry.songName)}</p>
                             <div class="row">
