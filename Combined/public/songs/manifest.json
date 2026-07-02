@@ -10,5 +10,17 @@
       }
     ],
     "hasArt": false
+  },
+  {
+    "folder": "Mary Had a Little Lamb",
+    "title": "Mary Had a Little Lamb",
+    "artist": "Sarah Josepha Hale",
+    "parts": [
+      {
+        "name": "keys",
+        "type": "Keys"
+      }
+    ],
+    "hasArt": false
   }
 ]

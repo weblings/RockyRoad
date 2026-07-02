@@ -1,0 +1,186 @@
+{
+  "Notes": [
+    {
+      "TimeOffset": 0,
+      "TimeLength": 0.75,
+      "Note": 76,
+      "Velocity": 50,
+      "Hand": "right"
+    },
+    {
+      "TimeOffset": 1.125,
+      "TimeLength": 0.375,
+      "Note": 74,
+      "Velocity": 50,
+      "Hand": "right"
+    },
+    {
+      "TimeOffset": 1.5,
+      "TimeLength": 0.375,
+      "Note": 72,
+      "Velocity": 50,
+      "Hand": "right"
+    },
+    {
+      "TimeOffset": 2.25,
+      "TimeLength": 0.375,
+      "Note": 74,
+      "Velocity": 50,
+      "Hand": "right"
+    },
+    {
+      "TimeOffset": 3,
+      "TimeLength": 0.375,
+      "Note": 76,
+      "Velocity": 50,
+      "Hand": "right"
+    },
+    {
+      "TimeOffset": 3.75,
+      "TimeLength": 0.375,
+      "Note": 76,
+      "Velocity": 50,
+      "Hand": "right"
+    },
+    {
+      "TimeOffset": 4.5,
+      "TimeLength": 0.75,
+      "Note": 76,
+      "Velocity": 50,
+      "Hand": "right"
+    },
+    {
+      "TimeOffset": 5.625,
+      "TimeLength": 0.375,
+      "Note": 74,
+      "Velocity": 50,
+      "Hand": "right"
+    },
+    {
+      "TimeOffset": 6.375,
+      "TimeLength": 0.375,
+      "Note": 74,
+      "Velocity": 50,
+      "Hand": "right"
+    },
+    {
+      "TimeOffset": 7.125,
+      "TimeLength": 0.75,
+      "Note": 74,
+      "Velocity": 50,
+      "Hand": "right"
+    },
+    {
+      "TimeOffset": 8.25,
+      "TimeLength": 0.375,
+      "Note": 76,
+      "Velocity": 50,
+      "Hand": "right"
+    },
+    {
+      "TimeOffset": 9,
+      "TimeLength": 0.375,
+      "Note": 79,
+      "Velocity": 50,
+      "Hand": "right"
+    },
+    {
+      "TimeOffset": 9.75,
+      "TimeLength": 0.75,
+      "Note": 79,
+      "Velocity": 50,
+      "Hand": "right"
+    },
+    {
+      "TimeOffset": 10.875,
+      "TimeLength": 0.75,
+      "Note": 76,
+      "Velocity": 50,
+      "Hand": "right"
+    },
+    {
+      "TimeOffset": 12,
+      "TimeLength": 0.375,
+      "Note": 74,
+      "Velocity": 50,
+      "Hand": "right"
+    },
+    {
+      "TimeOffset": 12.375,
+      "TimeLength": 0.375,
+      "Note": 72,
+      "Velocity": 50,
+      "Hand": "right"
+    },
+    {
+      "TimeOffset": 13.125,
+      "TimeLength": 0.375,
+      "Note": 74,
+      "Velocity": 50,
+      "Hand": "right"
+    },
+    {
+      "TimeOffset": 13.875,
+      "TimeLength": 0.375,
+      "Note": 76,
+      "Velocity": 50,
+      "Hand": "right"
+    },
+    {
+      "TimeOffset": 14.625,
+      "TimeLength": 0.375,
+      "Note": 76,
+      "Velocity": 50,
+      "Hand": "right"
+    },
+    {
+      "TimeOffset": 15.375,
+      "TimeLength": 0.375,
+      "Note": 76,
+      "Velocity": 50,
+      "Hand": "right"
+    },
+    {
+      "TimeOffset": 16.125,
+      "TimeLength": 0.375,
+      "Note": 72,
+      "Velocity": 50,
+      "Hand": "right"
+    },
+    {
+      "TimeOffset": 16.875,
+      "TimeLength": 0.375,
+      "Note": 74,
+      "Velocity": 50,
+      "Hand": "right"
+    },
+    {
+      "TimeOffset": 17.625,
+      "TimeLength": 0.375,
+      "Note": 74,
+      "Velocity": 50,
+      "Hand": "right"
+    },
+    {
+      "TimeOffset": 18.375,
+      "TimeLength": 0.75,
+      "Note": 76,
+      "Velocity": 50,
+      "Hand": "right"
+    },
+    {
+      "TimeOffset": 19.125,
+      "TimeLength": 0.375,
+      "Note": 74,
+      "Velocity": 50,
+      "Hand": "right"
+    },
+    {
+      "TimeOffset": 19.5,
+      "TimeLength": 0.375,
+      "Note": 72,
+      "Velocity": 50,
+      "Hand": "right"
+    }
+  ]
+}

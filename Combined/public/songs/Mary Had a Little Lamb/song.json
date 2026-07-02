@@ -1,0 +1,11 @@
+{
+  "SongName": "Mary Had a Little Lamb",
+  "ArtistName": "Sarah Josepha Hale",
+  "SongLengthSeconds": 19.875,
+  "InstrumentParts": [
+    {
+      "InstrumentName": "keys",
+      "InstrumentType": "Keys"
+    }
+  ]
+}

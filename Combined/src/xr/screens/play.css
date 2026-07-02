@@ -100,6 +100,8 @@
   justify-content: center;
 }
 
+.xr-panel .frame .content .play-body .play-btn svg { width: 19px; height: 19px; }
+
 .xr-panel .frame .content .play-body .play-btn:hover,
 .xr-panel .frame .content .play-body .play-btn.xr-hover { background: #bebebe; }
 .xr-panel .frame .content .play-body .play-btn:active { background: #9c9c9c; }

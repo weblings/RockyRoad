@@ -2,6 +2,9 @@ import type { XrButton } from "./XRTypes";
 import type { SongPlayer } from "../shared/SongPlayer";
 import type { SongSection } from "../shared/SongFormat";
 
+const PLAY_SVG  = `<svg role="img" width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M10.6667 6.6548C10.6667 6.10764 11.2894 5.79346 11.7295 6.11862L24.377 15.4634C24.7377 15.7298 24.7377 16.2692 24.3771 16.5357L11.7295 25.8813C11.2895 26.2065 10.6667 25.8923 10.6667 25.3451L10.6667 6.6548Z" fill="currentColor"></path></svg>`;
+const PAUSE_SVG = `<svg role="img" width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M8.66667 6.66667C8.29848 6.66667 8 6.96514 8 7.33333V24.6667C8 25.0349 8.29848 25.3333 8.66667 25.3333H12.6667C13.0349 25.3333 13.3333 25.0349 13.3333 24.6667V7.33333C13.3333 6.96514 13.0349 6.66667 12.6667 6.66667H8.66667Z" fill="currentColor"></path><path d="M19.3333 6.66667C18.9651 6.66667 18.6667 6.96514 18.6667 7.33333V24.6667C18.6667 25.0349 18.9651 25.3333 19.3333 25.3333H23.3333C23.7015 25.3333 24 25.0349 24 24.6667V7.33333C24 6.96514 23.7015 6.66667 23.3333 6.66667H19.3333Z" fill="currentColor"></path></svg>`;
+
 // ── XRActiveScene ─────────────────────────────────────────────────────────────
 
 export class XRActiveScene {
@@ -41,7 +44,7 @@ export class XRActiveScene {
                 <div class="content">
                     <div class="play-header">
                         <button class="button primary-dark icon-btn" id="as-library" type="button">
-                            <svg width="14" height="14" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M13.0908 14.3334C12.972 14.3334 12.9125 14.1898 12.9965 14.1058L17.7021 9.40022C17.9625 9.13987 17.9625 8.71776 17.7021 8.45741L16.2879 7.04319C16.0275 6.78284 15.6054 6.78284 15.3451 7.04319L6.8598 15.5285C6.59945 15.7888 6.59945 16.2109 6.8598 16.4713L8.27401 17.8855L8.27536 17.8868L15.3453 24.9568C15.6057 25.2172 16.0278 25.2172 16.2881 24.9568L17.7024 23.5426C17.9627 23.2822 17.9627 22.8601 17.7024 22.5998L12.9969 17.8944C12.9129 17.8104 12.9724 17.6668 13.0912 17.6668L26 17.6668C26.3682 17.6668 26.6667 17.3683 26.6667 17.0001V15.0001C26.6667 14.6319 26.3682 14.3334 26 14.3334L13.0908 14.3334Z" fill="currentColor"/></svg>
+                            <svg width="10" height="10" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M13.0908 14.3334C12.972 14.3334 12.9125 14.1898 12.9965 14.1058L17.7021 9.40022C17.9625 9.13987 17.9625 8.71776 17.7021 8.45741L16.2879 7.04319C16.0275 6.78284 15.6054 6.78284 15.3451 7.04319L6.8598 15.5285C6.59945 15.7888 6.59945 16.2109 6.8598 16.4713L8.27401 17.8855L8.27536 17.8868L15.3453 24.9568C15.6057 25.2172 16.0278 25.2172 16.2881 24.9568L17.7024 23.5426C17.9627 23.2822 17.9627 22.8601 17.7024 22.5998L12.9969 17.8944C12.9129 17.8104 12.9724 17.6668 13.0912 17.6668L26 17.6668C26.3682 17.6668 26.6667 17.3683 26.6667 17.0001V15.0001C26.6667 14.6319 26.3682 14.3334 26 14.3334L13.0908 14.3334Z" fill="currentColor"/></svg>
                             <span>Library</span>
                         </button>
                         <button class="button primary-dark icon-btn" id="as-settings" type="button">
@@ -63,7 +66,7 @@ export class XRActiveScene {
                                 </div>
                             </div>
                             <button id="as-playpause" class="play-btn${songPlayer.isPlaying ? ' is-playing' : ''}" type="button">
-                                <img src="/ui/${songPlayer.isPlaying ? 'pause' : 'play'}.svg" width="24" height="24" style="display:block">
+                                ${songPlayer.isPlaying ? PAUSE_SVG : PLAY_SVG}
                             </button>
                         </div>
                         <div class="song-row">
@@ -119,8 +122,7 @@ export class XRActiveScene {
             if (nowPlaying !== wasPlaying) {
                 wasPlaying = nowPlaying;
                 playEl.className = `play-btn${nowPlaying ? ' is-playing' : ''}`;
-                const img = playEl.querySelector('img') as HTMLImageElement | null;
-                if (img) img.src = `/ui/${nowPlaying ? 'pause' : 'play'}.svg`;
+                playEl.innerHTML = nowPlaying ? PAUSE_SVG : PLAY_SVG;
             }
 
             const t   = Math.min(songPlayer.currentSecond, totalDuration > 0 ? totalDuration : Infinity);
