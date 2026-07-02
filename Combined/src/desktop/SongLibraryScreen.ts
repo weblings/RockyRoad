@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import type { App, IScreen } from "./App";
 import { loadAllSources, type SourcedEntry } from "../shared/SongSource";
-import { loadSettings, saveSettings } from "../shared/Settings";
+import { loadSettings } from "../shared/Settings";
 import { PreSceneScreen } from "./PreSceneScreen";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -125,10 +125,8 @@ export class SongLibraryScreen implements IScreen {
                                 <button class="lib-sort-option${sel('tuning-asc')}" data-sort="tuning-asc" type="button">Tuning A–Z</button>` : ''}
                             </div>
                         </div>
-                        <button id="enter-vr" class="active-back-btn" style="display:none;margin-left:4px"
-                                type="button" onclick="location.href='xr.html'">
-                            <span>Enter VR</span>
-                        </button>
+                        <button id="enter-vr" class="lib-sort-trigger" style="display:none"
+                                type="button" onclick="location.href='xr.html'">Enter VR</button>
                     </div>
                     <div class="lib-filter-row">
                         <div id="lib-chips">
