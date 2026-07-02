@@ -35,7 +35,7 @@ import { KeysPlayerScene3D } from "../shared/KeysPlayerScene3D";
 import { SongPlayer } from "../shared/SongPlayer";
 import { CalibrationSystem } from "./CalibrationSystem";
 import { XRSongLibrary } from "./XRSongLibrary";
-import { loadAllSources, type SourcedEntry, type ISongSource } from "../shared/SongSource";
+import { loadAllSources, type SourcedEntry } from "../shared/SongSource";
 import { XRPreScene } from "./XRPreScene";
 import { XRActiveScene } from "./XRActiveScene";
 import { XRSettingsScene } from "./XRSettingsScene";
@@ -399,18 +399,10 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
             return r.json() as Promise<T>;
         });
 
-    const [realEntries] = await Promise.all([
+    const [sourcedEntries] = await Promise.all([
         loadAllSources(loadSettings().remoteServerUrl),
         loadManifest(IMAGE_MANIFEST_URL),
     ]);
-
-    // TEMP: 30 fake songs for scroll testing — remove when done
-    const _fakeSource: ISongSource = { label: 'Test', getManifest: async () => [], getFileUrl: () => '', getAlbumArtUrl: () => null };
-    const _fakeSongs: SourcedEntry[] = Array.from({ length: 30 }, (_, i) => ({
-        entry: { folderPath: `fake/${i}`, songName: `Test Song ${String(i + 1).padStart(2, '0')}`, artistName: `Test Artist ${i + 1}`, lengthSeconds: 0, parts: [], hasArt: false },
-        source: _fakeSource,
-    }));
-    const sourcedEntries = [...realEntries, ..._fakeSongs];
 
     // ── Anchor ────────────────────────────────────────────────────────────────
     const anchor = new Object3D();

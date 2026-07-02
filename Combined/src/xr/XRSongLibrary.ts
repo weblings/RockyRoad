@@ -118,13 +118,18 @@ export class XRSongLibrary {
         let maxOffset    = 0;
 
         const updateThumb = (): void => {
+            if (maxOffset <= 0) {
+                track.style.display = 'none';
+                return;
+            }
+            track.style.display = '';
             const trackH = track.clientHeight;
             const totalH = inner.offsetHeight;
             const viewH  = viewport.clientHeight;
             const thumbH = totalH > 0
                 ? Math.max(24, Math.round((viewH / totalH) * trackH))
                 : trackH;
-            const norm     = maxOffset > 0 ? scrollOffset / maxOffset : 0;
+            const norm     = scrollOffset / maxOffset;
             const thumbTop = Math.round(norm * (trackH - thumbH));
             thumb.style.height = `${thumbH}px`;
             thumb.style.top    = `${thumbTop}px`;
@@ -147,15 +152,17 @@ export class XRSongLibrary {
             // The render loop picks up the new transform on its next cycle naturally.
         };
 
-        xrButtons.push({
-            el: track,
-            scrubVertical: true,
-            onScrubStart: () => {},
-            onScrubMove:  (ny) => applyScroll(ny),
-            onScrubEnd:   (ny) => applyScroll(ny),
-        });
-
         recomputeMaxOffset();
+
+        if (maxOffset > 0) {
+            xrButtons.push({
+                el: track,
+                scrubVertical: true,
+                onScrubStart: () => {},
+                onScrubMove:  (ny) => applyScroll(ny),
+                onScrubEnd:   (ny) => applyScroll(ny),
+            });
+        }
 
         // ── Toolbar buttons ───────────────────────────────────────────────────
 
