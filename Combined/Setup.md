@@ -100,7 +100,21 @@ talks to `song-server` directly, not through the Vite proxy:
 
 ---
 
-## Quest Link (real device)
+### Visit Website on Headset
+
+Should work for any computer OS and for any headset that has a WebXR compatible browser
+
+1. Ensure computer that will run the server and the headset are on the same wifi
+2. Launch the dev server with the "device" flag (shown in Dev Server step above)
+3. On the headset, open your WebXR-compatible browser and vist one of the local addresses the terminal listed when you started the dev server
+4. If you are served the desktop website, click the "Enter VR" button
+5. When you are served the WebXR version of the website, the browser UI should offer an option to start an immersive session
+
+---
+
+## Quest Link
+
+Only relevant if your headset is a Meta Quest and your computer is running Windows
 
 1. Meta Quest Link app → Settings → General → **Set Meta Quest Link as Active OpenXR Runtime**
 2. Headset must be in Link mode (blue indicator visible inside headset)
@@ -113,8 +127,8 @@ talks to `song-server` directly, not through the Vite proxy:
 ## Machine-specific paths
 
 `vite.config.ts` has `server.fs.allow` entries for DLC/song directories outside the
-project root — the checked-in file has Windows paths (`D:/Users/...`); update these
-to your local absolute paths on Ubuntu (e.g. `/home/andrew/.../dlc`).
+project root — the checked-in file has Windows paths (`C:/Users/...`); update these
+to your local absolute paths on Ubuntu (e.g. `/home/%USER%/.../dlc`).
 
 `.mcp.json`, `.cursor/mcp.json`, and `.codex/config.toml` are auto-managed by
 IWSDK's dev tooling (IWER) and contain machine-specific `node_modules` paths —
