@@ -1,7 +1,8 @@
 # ChartPlayer — Combined (Web / WebXR client)
 
-A TypeScript/Vite client for [ChartPlayer](../../README.md) that renders the note-highway
-gameplay in a browser and, via WebXR, standalone on a Meta Quest. It reads the same
+A distiled version of [ChartPlayer](https://github.com/mikeoliphant/ChartPlayer) into Typescript, ThreeJS, and WebXR to run natively in browser and on XR headsets.
+
+It reads the same
 [OpenSongChart](https://github.com/mikeoliphant/OpenSongChart)-format songs as the
 VST/Jack app documented at the repo root.
 
