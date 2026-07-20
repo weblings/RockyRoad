@@ -692,6 +692,7 @@ export class FretPlayerScene3D extends ChartScene3D {
     }
 
     private getSlideFret(note: SongNote, refTime: number): number {
+        if (note.TimeLength <= 0) return note.SlideFret ?? note.Fret;
         const t = clamp((refTime - note.TimeOffset) / note.TimeLength, 0, 1);
         return lerp(note.Fret, note.SlideFret ?? note.Fret, t);
     }

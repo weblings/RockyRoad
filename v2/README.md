@@ -51,10 +51,11 @@ from one to the other is a full page load back to that mode's library screen.
   HTTPS
 
 **Asset pipeline** (`npm run bake`, wired into `dev`/`build`)
-- `tools/bake-manifest.ts` converts the sibling C# project `ChartPlayerShared`'s
-  `ImageManifest.xml` sprite-sheet metadata into `public/ImageManifest.json`
 - `tools/bake-songs.ts` scans `public/songs/` and writes `public/songs/manifest.json`,
   consumed by both the desktop and XR song browsers
+- `public/ImageManifest.json` (sprite-sheet metadata for `public/UISheet0.png`) is
+  checked in directly rather than generated — there's no longer a C# source project
+  to bake it from, so it's hand-maintained if the sprite sheet ever changes
 
 **Song data**
 - Two small demo songs ship in `public/songs/` for a working app out of the box
@@ -68,7 +69,7 @@ from one to the other is a full page load back to that mode's library screen.
 v2/
   desktop.html, xr.html   entry points
   vite.config.ts          two-entry build, dev proxy, mkcert
-  tools/                  bake-manifest, bake-songs, song-server
+  tools/                  bake-songs, song-server
   public/songs/           bundled demo songs + baked manifest.json
   ui/                     .uikitml XR panel sources
   src/

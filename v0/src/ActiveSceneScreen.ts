@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import type { App, IScreen } from "./App";
 import { FretPlayerScene3D } from "./FretPlayerScene3D";
-import { SongPlayer, type ISongPlayer } from "./SongPlayer";
+import { SongPlayer, SilentPlayer, type ISongPlayer } from "./SongPlayer";
 import type { SongStructure, SongInstrumentNotes, SongInfo, SongSection } from "./SongFormat";
 import type { SongIndexEntry, SongIndexPart, ISongLibrary } from "./SongIndex";
 import { loadSettings } from "./Settings";
@@ -85,12 +85,18 @@ export class ActiveSceneScreen implements IScreen {
         this.scene.invertStrings = settings.invertStrings;
 
         // Load audio via object URL, then revoke — AudioContext holds the decoded buffer.
-        const audioFile = await this.library.getSongFile(this.entry, 'song.ogg');
-        this.audioUrl = URL.createObjectURL(audioFile);
-        const player = new SongPlayer();
-        await player.loadSong(this.audioUrl);
-        URL.revokeObjectURL(this.audioUrl);
-        this.audioUrl = null;
+        let player: ISongPlayer;
+        try {
+            const audioFile = await this.library.getSongFile(this.entry, 'song.ogg');
+            this.audioUrl = URL.createObjectURL(audioFile);
+            const songPlayer = new SongPlayer();
+            await songPlayer.loadSong(this.audioUrl);
+            URL.revokeObjectURL(this.audioUrl);
+            this.audioUrl = null;
+            player = songPlayer;
+        } catch {
+            player = new SilentPlayer(songInfo.SongLengthSeconds ?? 0);
+        }
         this.songPlayer = player;
 
         this.totalDuration = player.duration > 0 ? player.duration : (songInfo.SongLengthSeconds ?? 0);

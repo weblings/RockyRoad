@@ -6,12 +6,10 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview",
-    "bake": "tsx tools/bake-manifest.ts"
+    "preview": "vite preview"
   },
   "devDependencies": {
     "@types/wicg-file-system-access": "^2023.10.7",
-    "tsx": "^4.21.0",
     "typescript": "~5.9.3",
     "vite": "^8.0.0"
   },

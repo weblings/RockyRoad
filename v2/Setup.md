@@ -15,10 +15,10 @@ cd ThreeCP/v2
 npm install   # first run also downloads ~100MB Playwright/Chromium for the XR emulator
 ```
 
-`npm run bake` (asset baking — sprite manifest + song manifest) runs automatically
-before `dev`/`build`, so no separate step is needed there. It reads
-`ChartPlayerShared/Content/Textures/ImageManifest.xml` from the sibling project in
-this repo, which is already present after a normal clone.
+`npm run bake` (asset baking — song manifest) runs automatically before `dev`/`build`,
+so no separate step is needed there. Sprite-sheet metadata (`public/ImageManifest.json`)
+is checked in directly rather than baked — there's no longer a C# source project to
+generate it from.
 
 ---
 
