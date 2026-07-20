@@ -781,5 +781,5 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     });
 
 }).catch((err: unknown) => {
-    console.error('[Combined XR] World.create or bootstrap failed:', err);
+    console.error('[v2 XR] World.create or bootstrap failed:', err);
 });

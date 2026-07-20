@@ -1,4 +1,4 @@
-# Setup — ThreeCP/Combined
+# Setup — ThreeCP/v2
 
 Environment setup for the desktop + WebXR client. For what this project is and how
 it's put together, see [`README.md`](README.md).
@@ -11,7 +11,7 @@ repo-root [`Setup.md`](../../Setup.md) for those steps.
 ## Install
 
 ```bash
-cd ThreeCP/Combined
+cd ThreeCP/v2
 npm install   # first run also downloads ~100MB Playwright/Chromium for the XR emulator
 ```
 

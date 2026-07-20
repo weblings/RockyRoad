@@ -1,4 +1,4 @@
-# ChartPlayer — Combined (Web / WebXR client)
+# ChartPlayer — v2 (Web / WebXR client)
 
 A distiled version of [ChartPlayer](https://github.com/mikeoliphant/ChartPlayer) into Typescript, ThreeJS, and WebXR to run natively in browser and on XR headsets.
 
@@ -6,9 +6,9 @@ It reads the same
 [OpenSongChart](https://github.com/mikeoliphant/OpenSongChart)-format songs as the
 VST/Jack app documented at the repo root.
 
-"Combined" refers to this project merging what used to be two separate prototypes
-(`ThreeCP/Project`, a flat browser app, and `ThreeCP/XRProto`, a Quest-only WebXR app)
-into a single Vite build with two entry points. See
+This project (originally named "Combined") merges what used to be two separate
+prototypes (`ThreeCP/Project`, a flat browser app, and `ThreeCP/XRProto`, a
+Quest-only WebXR app) into a single Vite build with two entry points. See
 [`../Analysis/CombinedProjectPlan.md`](../Analysis/CombinedProjectPlan.md) for the
 merge rationale if you're curious why the source is organized the way it is.
 
@@ -65,7 +65,7 @@ from one to the other is a full page load back to that mode's library screen.
 ## Directory layout
 
 ```
-Combined/
+v2/
   desktop.html, xr.html   entry points
   vite.config.ts          two-entry build, dev proxy, mkcert
   tools/                  bake-manifest, bake-songs, song-server
