@@ -327,6 +327,10 @@ export class CalibrationSystem extends createSystem({}) {
         return this.world.globals.guitarGrabBarHit as THREE.Object3D | undefined;
     }
 
+    private guitarScaleNode(): THREE.Object3D | undefined {
+        return this.world.globals.guitarScaleNode as THREE.Object3D | undefined;
+    }
+
     private setGuitarBarVisible(visible: boolean): void {
         const bar = this.guitarBar();
         if (bar) bar.visible = visible;
@@ -348,12 +352,17 @@ export class CalibrationSystem extends createSystem({}) {
         head.updateMatrixWorld();
         const headPos = new THREE.Vector3();
         head.getWorldPosition(headPos);
+        // Object3D.getWorldDirection() returns the object's +Z world axis; heads/
+        // cameras look down -Z, so negate to get the actual look direction.
         const forward = new THREE.Vector3();
-        head.getWorldDirection(forward);
+        head.getWorldDirection(forward).negate();
 
         bar.position.copy(headPos).addScaledVector(forward, GUITAR_PLACEMENT_DISTANCE);
         bar.rotation.set(0, Math.atan2(headPos.x - bar.position.x, headPos.z - bar.position.z), 0);
-        bar.scale.setScalar(GUITAR_SCALE_DEFAULT);
+        // Scale lives on guitarScaleNode, not the bar itself — the bar (and its
+        // visual pill) must stay a constant physical size, same as the menu bar.
+        const scaleNode = this.guitarScaleNode();
+        if (scaleNode) scaleNode.scale.setScalar(GUITAR_SCALE_DEFAULT);
     }
 
     private showGuitarFineTunePanel(): void {
@@ -398,7 +407,7 @@ export class CalibrationSystem extends createSystem({}) {
         const data = {
             pos:   [bar.position.x, bar.position.y, bar.position.z],
             quat:  [bar.quaternion.x, bar.quaternion.y, bar.quaternion.z, bar.quaternion.w],
-            scale: bar.scale.x,
+            scale: this.guitarScaleNode()?.scale.x ?? GUITAR_SCALE_DEFAULT,
         };
         try {
             localStorage.setItem(GUITAR_CAL_STORAGE_KEY, JSON.stringify(data));
@@ -416,7 +425,7 @@ export class CalibrationSystem extends createSystem({}) {
             const d = JSON.parse(raw) as { pos: number[]; quat: number[]; scale: number };
             bar.position.set(d.pos[0], d.pos[1], d.pos[2]);
             bar.quaternion.set(d.quat[0], d.quat[1], d.quat[2], d.quat[3]);
-            bar.scale.setScalar(d.scale);
+            this.guitarScaleNode()?.scale.setScalar(d.scale);
             return true;
         } catch {
             return false;

@@ -585,9 +585,18 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         persistent: true,
     });
 
+    // Carries the calibrated content scale (real-world meters per fret-position
+    // unit) — kept separate from guitarGrabBarHit so the handle itself (and its
+    // visual pill) always stays the same physical size, regardless of scale.
+    const guitarScaleNode = new Object3D();
+    const guitarScaleEntity = world.createTransformEntity(guitarScaleNode, {
+        parent: guitarGrabBarEntity,
+        persistent: true,
+    });
+
     const guitarContentNode = new Object3D();
     const guitarContentEntity = world.createTransformEntity(guitarContentNode, {
-        parent: guitarGrabBarEntity,
+        parent: guitarScaleEntity,
         persistent: true,
     });
 
@@ -599,6 +608,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     world.globals.xrButtons        = xrButtons;
     world.globals.grabBarHit        = grabBarHit;
     world.globals.guitarGrabBarHit  = guitarGrabBarHit;
+    world.globals.guitarScaleNode   = guitarScaleNode;
     world.globals.guitarContentNode = guitarContentNode;
 
     function resizePanel(w: number, h: number): void {
