@@ -33,6 +33,18 @@ const CAL_STORAGE_KEY = 'xr-calibration';
 
 const PINCH_THRESHOLD_SQ = 0.020 * 0.020; // 20 mm
 
+// Guitar/Bass — no physical instrument to size-match against, so scale is a fixed
+// default rather than derived from a two-point touch. Reuses the piano's per-unit
+// scale so a full 24-fret neck (getFretPosition(24) = 225 units) lands at a
+// real-guitar-plausible ~0.65m.
+const GUITAR_SCALE_DEFAULT = PIANO_SCALE_88;
+
+const GUITAR_CAL_STORAGE_KEY = 'xr-guitar-calibration';
+
+// How far in front of the head (along raw, unflattened camera-forward) the
+// guitar volume is auto-placed on first calibration.
+const GUITAR_PLACEMENT_DISTANCE = 1.0;
+
 // ── CalibrationSystem ─────────────────────────────────────────────────────────
 
 export class CalibrationSystem extends createSystem({}) {
@@ -73,6 +85,10 @@ export class CalibrationSystem extends createSystem({}) {
 
     init(): void {
         this.world.globals.startCalibration = (onComplete: () => void): void => {
+            if (this.isGuitarActive()) {
+                this.startGuitarCalibration(onComplete);
+                return;
+            }
             this._onComplete = onComplete;
             this.clearFtButtons();
             this.state = 'prompt_left';
@@ -80,13 +96,24 @@ export class CalibrationSystem extends createSystem({}) {
             this.updatePanel();
         };
 
-        this.world.globals.tryLoadCalibration = (): boolean => {
+        this.world.globals.tryLoadCalibration = (instrumentType: string): boolean => {
+            if (instrumentType !== 'Keys') {
+                if (!this.loadGuitarCalibration()) return false;
+                this.setGuitarBarVisible(true);
+                return true;
+            }
             if (!this.loadCalibration()) return false;
             this.reapply();
             return true;
         };
 
         this.world.globals.recalibrate = (onComplete: () => void): void => {
+            if (this.isGuitarActive()) {
+                this._onComplete = onComplete;
+                this.setGuitarBarVisible(true);
+                this.showGuitarFineTunePanel();
+                return;
+            }
             this._onComplete = onComplete;
             this.state = 'done';
             this.showFineTunePanel();
@@ -94,6 +121,12 @@ export class CalibrationSystem extends createSystem({}) {
         };
 
         this.world.globals.showCalibrationFineTune = (onComplete: () => void): void => {
+            if (this.isGuitarActive()) {
+                this._onComplete = onComplete;
+                this.setGuitarBarVisible(true);
+                this.showGuitarFineTunePanel();
+                return;
+            }
             this._onComplete = onComplete;
             this.state = 'done';
             this.showFineTunePanel();
@@ -279,6 +312,115 @@ export class CalibrationSystem extends createSystem({}) {
         this._ftPZ = -0.05;
         this._ftRY = 0;
         this._ftS  = 1;
+    }
+
+    // ── Guitar/Bass calibration ─────────────────────────────────────────────────
+    // No physical instrument to touch-calibrate against, so placement is instant:
+    // drop the volume one meter along raw camera-forward, facing back toward the
+    // player, then let the grab bar (see HighwaySystem) handle repositioning.
+
+    private isGuitarActive(): boolean {
+        return (this.world.globals.currentPartType as string | undefined) !== 'Keys';
+    }
+
+    private guitarBar(): THREE.Object3D | undefined {
+        return this.world.globals.guitarGrabBarHit as THREE.Object3D | undefined;
+    }
+
+    private setGuitarBarVisible(visible: boolean): void {
+        const bar = this.guitarBar();
+        if (bar) bar.visible = visible;
+    }
+
+    private startGuitarCalibration(onComplete: () => void): void {
+        this._onComplete = onComplete;
+        this.clearFtButtons();
+        this.placeGuitarBar();
+        this.setGuitarBarVisible(true);
+        this.showGuitarFineTunePanel();
+    }
+
+    private placeGuitarBar(): void {
+        const bar = this.guitarBar();
+        if (!bar) return;
+
+        const head = this.player.head as unknown as THREE.Object3D;
+        head.updateMatrixWorld();
+        const headPos = new THREE.Vector3();
+        head.getWorldPosition(headPos);
+        const forward = new THREE.Vector3();
+        head.getWorldDirection(forward);
+
+        bar.position.copy(headPos).addScaledVector(forward, GUITAR_PLACEMENT_DISTANCE);
+        bar.rotation.set(0, Math.atan2(headPos.x - bar.position.x, headPos.z - bar.position.z), 0);
+        bar.scale.setScalar(GUITAR_SCALE_DEFAULT);
+    }
+
+    private showGuitarFineTunePanel(): void {
+        const uiPanel = this.world.globals.uiPanel as HTMLDivElement | undefined;
+        if (!uiPanel) return;
+
+        this.clearFtButtons();
+        (this.world.globals.resizePanel as ((w: number, h: number) => void) | undefined)?.(400, 300);
+
+        uiPanel.innerHTML = `
+            <div class="frame">
+                <div class="content" style="justify-content:center;align-items:center;">
+                    <p style="font-size:15px;line-height:1.7;color:#e8e8e8;text-align:center;padding:24px">
+                        🎸 Grab the bar below the fretboard<br>to reposition it.
+                    </p>
+                </div>
+                <div class="actions">
+                    <button id="ft-guitar-done" class="button primary-light icon-btn" type="button"><span>Done</span></button>
+                </div>
+            </div>
+        `;
+
+        const el = uiPanel.querySelector('#ft-guitar-done') as HTMLButtonElement | null;
+        if (!el) return;
+
+        const entry: XrButton = {
+            el,
+            onClick: () => {
+                this.saveGuitarCalibration();
+                this._onComplete?.();
+                this._onComplete = null;
+            },
+        };
+        this._ftButtons.push(entry);
+        const xrButtons = this.world.globals.xrButtons as XrButton[] | undefined;
+        if (xrButtons) xrButtons.push(entry);
+    }
+
+    private saveGuitarCalibration(): void {
+        const bar = this.guitarBar();
+        if (!bar) return;
+        const data = {
+            pos:   [bar.position.x, bar.position.y, bar.position.z],
+            quat:  [bar.quaternion.x, bar.quaternion.y, bar.quaternion.z, bar.quaternion.w],
+            scale: bar.scale.x,
+        };
+        try {
+            localStorage.setItem(GUITAR_CAL_STORAGE_KEY, JSON.stringify(data));
+        } catch {
+            console.warn('[Calib] Could not save guitar calibration to localStorage.');
+        }
+    }
+
+    private loadGuitarCalibration(): boolean {
+        const bar = this.guitarBar();
+        if (!bar) return false;
+        try {
+            const raw = localStorage.getItem(GUITAR_CAL_STORAGE_KEY);
+            if (!raw) return false;
+            const d = JSON.parse(raw) as { pos: number[]; quat: number[]; scale: number };
+            bar.position.set(d.pos[0], d.pos[1], d.pos[2]);
+            bar.quaternion.set(d.quat[0], d.quat[1], d.quat[2], d.quat[3]);
+            bar.scale.setScalar(d.scale);
+            return true;
+        } catch {
+            return false;
+        }
     }
 
     private saveCalibration(): void {

@@ -19,7 +19,12 @@ export class FretCamera extends Camera3D {
     readonly focusDist = 600;
 
     private targetCameraDistance = 75;
-    private positionFret = 3;
+    private _positionFret = 3;
+
+    // Smoothed fret-window center — same value the desktop camera pans/zooms to
+    // frame. In XR there's no virtual camera to move, so this drives a content
+    // offset instead (see FretPlayerScene3D.contentOffsetX).
+    get positionFret(): number { return this._positionFret; }
 
     // Call every frame with the fret window computed during note drawing.
     // focusY = 0 in local-Z mode (now-line always at Z=0).
@@ -36,7 +41,7 @@ export class FretCamera extends Camera3D {
 
             // 0.02/frame → frame-rate independent
             const rate02 = 1 - Math.pow(0.98, dt * 60);
-            this.positionFret = lerp(this.positionFret, clamp(targetPositionFret, 3.5, 24) - 1, rate02);
+            this._positionFret = lerp(this._positionFret, clamp(targetPositionFret, 3.5, 24) - 1, rate02);
         }
 
         // 0.01/frame → frame-rate independent

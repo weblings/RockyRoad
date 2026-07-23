@@ -32,6 +32,7 @@ Scene3D.xrMode = true;
 
 import { loadManifest } from "../shared/UIImage";
 import { KeysPlayerScene3D } from "../shared/KeysPlayerScene3D";
+import { FretPlayerScene3D } from "../shared/FretPlayerScene3D";
 import { SongPlayer } from "../shared/SongPlayer";
 import { CalibrationSystem } from "./CalibrationSystem";
 import { XRSongLibrary } from "./XRSongLibrary";
@@ -42,7 +43,9 @@ import { XRSettingsScene } from "./XRSettingsScene";
 import { loadSettings, type Settings } from "../shared/Settings";
 import { fromHex } from "../shared/UIColor";
 import type { XrButton } from "./XRTypes";
-import type { SongStructure, SongKeyboardNotes, SongSection, SongInfo } from "../shared/SongFormat";
+import type {
+    SongStructure, SongKeyboardNotes, SongInstrumentNotes, SongSection, SongInfo,
+} from "../shared/SongFormat";
 
 // ── Asset paths ───────────────────────────────────────────────────────────────
 
@@ -82,12 +85,20 @@ class HighwaySystem extends createSystem({}) {
     private pitchAnimProgress = 1;
     private pitchAnimFrom     = 0;
 
+    // Guitar/Bass highway grab bar — position via IWSDK DistanceGrabbable,
+    // yaw-only billboard while grabbed (no pitch snap — the volume always
+    // stays upright with the ground plane).
+    private guitarIsGrabbed       = false;
+    private guitarGrabbingHandIdx = -1;
+    private guitarBarPos!: Vector3;
+
     init(): void {
-        this.raycaster = new Raycaster();
-        this.rayOrigin = new Vector3();
-        this.rayDir    = new Vector3();
-        this.panelPos  = new Vector3();
-        this.headPos   = new Vector3();
+        this.raycaster    = new Raycaster();
+        this.rayOrigin    = new Vector3();
+        this.rayDir       = new Vector3();
+        this.panelPos     = new Vector3();
+        this.headPos      = new Vector3();
+        this.guitarBarPos = new Vector3();
 
         this.world.globals.invalidatePanelRender = (): void => {
             this.panelRenderGen++;
@@ -97,7 +108,7 @@ class HighwaySystem extends createSystem({}) {
 
     update(delta: number, _time: number): void {
         // ── Highway scene — only when a song is loaded ────────────────────────
-        const scene = this.world.globals.highwayScene as KeysPlayerScene3D | undefined;
+        const scene = this.world.globals.highwayScene as KeysPlayerScene3D | FretPlayerScene3D | undefined;
         if (scene) {
             type RollbackState = { from: number; to: number; startMs: number };
             const rollback = this.world.globals.rollbackState as RollbackState | undefined;
@@ -116,6 +127,14 @@ class HighwaySystem extends createSystem({}) {
                 }
             }
             scene.draw(delta);
+
+            // Guitar volume "scrolls": the fret window FretCamera would pan a
+            // desktop camera to is instead applied as a content offset, since the
+            // HMD owns the real camera in XR. See FretPlayerScene3D.contentOffsetX.
+            if (scene instanceof FretPlayerScene3D) {
+                const guitarContentNode = this.world.globals.guitarContentNode as Object3D | undefined;
+                if (guitarContentNode) guitarContentNode.position.x = scene.contentOffsetX;
+            }
         }
 
         // ── Countdown overlay ─────────────────────────────────────────────────
@@ -227,6 +246,43 @@ class HighwaySystem extends createSystem({}) {
                 const eased = 1 - Math.pow(2, -10 * this.pitchAnimProgress);
                 this.pitchCurrent     = this.pitchAnimFrom + (this.pitchTarget - this.pitchAnimFrom) * eased;
                 grabBarHit.rotation.x = this.pitchCurrent;
+            }
+        }
+
+        // ── Guitar highway grab bar: grab + yaw-only billboard (no pitch snap — ──
+        // the volume always stays upright with the ground plane) ────────────────
+        const guitarGrabBarHit = this.world.globals.guitarGrabBarHit as Mesh | undefined;
+        if (guitarGrabBarHit && guitarGrabBarHit.visible) {
+            if (!this.guitarIsGrabbed) {
+                for (let i = 0; i < hands.length; i++) {
+                    const { pad, ray } = hands[i];
+                    if (!pad?.getButtonDown(InputComponent.Trigger) || !ray) continue;
+                    ray.updateMatrixWorld();
+                    ray.getWorldPosition(this.rayOrigin);
+                    this.rayDir.set(0, 0, -1).transformDirection(ray.matrixWorld);
+                    this.raycaster.set(this.rayOrigin, this.rayDir);
+                    if (this.raycaster.intersectObject(guitarGrabBarHit).length > 0) {
+                        this.guitarIsGrabbed       = true;
+                        this.guitarGrabbingHandIdx = i;
+                        (this.input.multiPointers[i === 0 ? 'left' : 'right'] as unknown as { ray: { visual: { enabled: boolean } } }).ray.visual.enabled = false;
+                        break;
+                    }
+                }
+            } else if (this.guitarGrabbingHandIdx >= 0) {
+                if (hands[this.guitarGrabbingHandIdx].pad?.getButtonUp(InputComponent.Trigger)) {
+                    (this.input.multiPointers[this.guitarGrabbingHandIdx === 0 ? 'left' : 'right'] as unknown as { ray: { visual: { enabled: boolean } } }).ray.visual.enabled = true;
+                    this.guitarIsGrabbed       = false;
+                    this.guitarGrabbingHandIdx = -1;
+                }
+            }
+
+            if (this.guitarIsGrabbed) {
+                guitarGrabBarHit.getWorldPosition(this.guitarBarPos);
+                this.player.head.getWorldPosition(this.headPos);
+                guitarGrabBarHit.rotation.y = Math.atan2(
+                    this.headPos.x - this.guitarBarPos.x,
+                    this.headPos.z - this.guitarBarPos.z,
+                );
             }
         }
 
@@ -497,13 +553,53 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     });
     panelMeshEntity.addComponent(RayInteractable);
 
+    // ── Guitar/Bass highway grab bar + content-scroll node ──────────────────────
+    // Sits "beneath" the fret volume. Grabbing it repositions the whole volume
+    // (position handled by IWSDK DistanceGrabbable; yaw billboard is custom, see
+    // HighwaySystem.update()). guitarContentNode is the scroll node that
+    // FretPlayerScene3D's positionFret offsets each frame — see FretPlayerScene3D.
+
+    const guitarGrabBarHit = new Mesh(
+        new PlaneGeometry(0.2, 0.04),
+        new MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false }),
+    );
+    guitarGrabBarHit.rotation.order = 'YXZ';
+    guitarGrabBarHit.visible = false;
+    const guitarGrabBarEntity = world.createTransformEntity(guitarGrabBarHit, {
+        parent: world.sceneEntity,
+        persistent: true,
+    });
+    guitarGrabBarEntity.addComponent(RayInteractable);
+    guitarGrabBarEntity.addComponent(DistanceGrabbable, {
+        rotate: false,
+        scale:  false,
+        movementMode: MovementMode.MoveAtSource,
+    });
+
+    const guitarGrabBarVisual = new Mesh(
+        new PlaneGeometry(0.08, 0.008),
+        new MeshBasicMaterial({ map: new CanvasTexture(grabBarCanvas), transparent: true }),
+    );
+    world.createTransformEntity(guitarGrabBarVisual, {
+        parent: guitarGrabBarEntity,
+        persistent: true,
+    });
+
+    const guitarContentNode = new Object3D();
+    const guitarContentEntity = world.createTransformEntity(guitarContentNode, {
+        parent: guitarGrabBarEntity,
+        persistent: true,
+    });
+
     const xrButtons: XrButton[] = [];
 
-    world.globals.uiPanel    = uiPanel;
-    world.globals.panelMesh  = panelMesh;
-    world.globals.panelTex   = panelTex;
-    world.globals.xrButtons  = xrButtons;
-    world.globals.grabBarHit = grabBarHit;
+    world.globals.uiPanel          = uiPanel;
+    world.globals.panelMesh        = panelMesh;
+    world.globals.panelTex         = panelTex;
+    world.globals.xrButtons        = xrButtons;
+    world.globals.grabBarHit        = grabBarHit;
+    world.globals.guitarGrabBarHit  = guitarGrabBarHit;
+    world.globals.guitarContentNode = guitarContentNode;
 
     function resizePanel(w: number, h: number): void {
         uiPanel.style.width  = `${w}px`;
@@ -547,7 +643,8 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
             uiPanel,
             xrButtons,
             sourced,
-            () => (world.globals.tryLoadCalibration as (() => boolean) | undefined)?.() ?? false,
+            (instrumentType: string) =>
+                (world.globals.tryLoadCalibration as ((t: string) => boolean) | undefined)?.(instrumentType) ?? false,
             playEntry,
             calibrateAndPlay,
             repositionEntry,
@@ -568,40 +665,84 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
 
         const { source, entry } = sourced;
         const part = entry.parts.find(p => p.name === partName);
-        if (!part || part.type !== 'Keys') return null;
+        if (!part) return null;
+
+        world.globals.currentPartType = part.type;
 
         const songPlayer = new SongPlayer();
+        const saved = loadSettings();
 
-        const [songStructure, rawNotes, songInfo] = await Promise.all([
+        if (part.type === 'Keys') {
+            guitarGrabBarHit.visible = false;
+
+            const [songStructure, rawNotes, songInfo] = await Promise.all([
+                fetchJson<SongStructure>(source.getFileUrl(entry, 'arrangement.json')),
+                fetchJson<SongKeyboardNotes>(source.getFileUrl(entry, `${partName}.json`)),
+                fetchJson<SongInfo>(source.getFileUrl(entry, 'song.json')),
+                songPlayer.loadSong(source.getFileUrl(entry, 'song.ogg')).catch(() => {}),
+            ]) as [SongStructure, SongKeyboardNotes, SongInfo, void];
+
+            const notes   = rawNotes.Notes;
+            const noteMin = notes.length > 0
+                ? Math.max(21,  Math.min(...notes.map(n => n.Note)) - 1)
+                : 21;
+            const noteMax = notes.length > 0
+                ? Math.min(108, Math.max(...notes.map(n => n.Note)) + 1)
+                : 108;
+
+            const scene = new KeysPlayerScene3D(world.renderer, texture, songStructure, rawNotes);
+
+            scene.minKey = saved.fullKeyboard ? 21 : noteMin;
+            scene.maxKey = saved.fullKeyboard ? 108 : noteMax;
+            scene.syncHighwayBounds();
+            scene.rightHandColor = fromHex(saved.keysRightHandColor);
+            scene.leftHandColor  = fromHex(saved.keysLeftHandColor);
+
+            const firstNoteTime = rawNotes.Notes[0]?.TimeOffset ?? 0;
+            if (firstNoteTime > 0) songPlayer.seekTo(firstNoteTime);
+            scene.currentSecond = songPlayer.currentSecond;
+
+            highwayEntity = world.createTransformEntity(scene.mesh, {
+                parent: anchorEntity,
+                persistent: true,
+            });
+            world.globals.highwayScene = scene;
+            world.globals.songPlayer   = songPlayer;
+
+            const totalDuration = songPlayer.duration > 0
+                ? songPlayer.duration
+                : (songInfo.SongLengthSeconds ?? 0);
+
+            return { songPlayer, sections: rawNotes.Sections ?? [], totalDuration, noteMin, noteMax };
+        }
+
+        // ── Guitar / Bass ────────────────────────────────────────────────────────
+        guitarGrabBarHit.visible = false; // CalibrationSystem makes it visible once placed
+
+        const [songStructure, instrumentNotes, songInfo] = await Promise.all([
             fetchJson<SongStructure>(source.getFileUrl(entry, 'arrangement.json')),
-            fetchJson<SongKeyboardNotes>(source.getFileUrl(entry, `${partName}.json`)),
+            fetchJson<SongInstrumentNotes>(source.getFileUrl(entry, `${partName}.json`)),
             fetchJson<SongInfo>(source.getFileUrl(entry, 'song.json')),
             songPlayer.loadSong(source.getFileUrl(entry, 'song.ogg')).catch(() => {}),
-        ]) as [SongStructure, SongKeyboardNotes, SongInfo, void];
+        ]) as [SongStructure, SongInstrumentNotes, SongInfo, void];
 
-        const notes   = rawNotes.Notes;
-        const noteMin = notes.length > 0
-            ? Math.max(21,  Math.min(...notes.map(n => n.Note)) - 1)
-            : 21;
-        const noteMax = notes.length > 0
-            ? Math.min(108, Math.max(...notes.map(n => n.Note)) + 1)
-            : 108;
+        const instrumentPart =
+            songInfo.InstrumentParts.find(p => p.InstrumentName === part.name) ??
+            songInfo.InstrumentParts[0];
 
-        const scene = new KeysPlayerScene3D(world.renderer, texture, songStructure, rawNotes);
+        const scene = new FretPlayerScene3D(
+            world.renderer, texture, songStructure, instrumentNotes, instrumentPart,
+        );
+        scene.boldText      = saved.boldText;
+        scene.invertStrings = saved.invertStrings;
+        scene.leftyMode     = saved.leftyMode;
 
-        const saved = loadSettings();
-        scene.minKey = saved.fullKeyboard ? 21 : noteMin;
-        scene.maxKey = saved.fullKeyboard ? 108 : noteMax;
-        scene.syncHighwayBounds();
-        scene.rightHandColor = fromHex(saved.keysRightHandColor);
-        scene.leftHandColor  = fromHex(saved.keysLeftHandColor);
-
-        const firstNoteTime = rawNotes.Notes[0]?.TimeOffset ?? 0;
+        const firstNoteTime = instrumentNotes.Notes[0]?.TimeOffset ?? 0;
         if (firstNoteTime > 0) songPlayer.seekTo(firstNoteTime);
         scene.currentSecond = songPlayer.currentSecond;
 
         highwayEntity = world.createTransformEntity(scene.mesh, {
-            parent: anchorEntity,
+            parent: guitarContentEntity,
             persistent: true,
         });
         world.globals.highwayScene = scene;
@@ -611,7 +752,11 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
             ? songPlayer.duration
             : (songInfo.SongLengthSeconds ?? 0);
 
-        return { songPlayer, sections: rawNotes.Sections ?? [], totalDuration, noteMin, noteMax };
+        const sections = instrumentNotes.Sections?.length > 0
+            ? instrumentNotes.Sections
+            : (songStructure.Sections ?? []);
+
+        return { songPlayer, sections, totalDuration, noteMin: 21, noteMax: 108 };
     }
 
     async function playEntry(entry: SourcedEntry, partName: string): Promise<void> {
@@ -710,13 +855,17 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
             noteMin,
             noteMax,
             (s: Settings) => {
-                const scene = world.globals.highwayScene as KeysPlayerScene3D | undefined;
-                if (scene) {
+                const scene = world.globals.highwayScene;
+                if (scene instanceof KeysPlayerScene3D) {
                     scene.minKey = s.fullKeyboard ? 21 : noteMin;
                     scene.maxKey = s.fullKeyboard ? 108 : noteMax;
                     scene.syncHighwayBounds();
                     scene.rightHandColor = fromHex(s.keysRightHandColor);
                     scene.leftHandColor  = fromHex(s.keysLeftHandColor);
+                } else if (scene instanceof FretPlayerScene3D) {
+                    scene.boldText      = s.boldText;
+                    scene.invertStrings = s.invertStrings;
+                    scene.leftyMode     = s.leftyMode;
                 }
                 showActiveScene(entry, songPlayer, sections, totalDuration, noteMin, noteMax);
             },

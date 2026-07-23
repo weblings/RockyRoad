@@ -1,11 +1,11 @@
 # --- IWER managed (do not edit) ---
 [mcp_servers.iwsdk-dev-mcp]
 command = "node"
-args = ["/home/andrew/Documents/MusicThing/ThreeCP/v2/node_modules/@iwsdk/vite-plugin-dev/dist/mcp-server.js", "--port", "8081", "--client-version", "0.3.1"]
+args = ["D:\\Users\\Andrew\\Documents\\Coding\\MusicThing\\ChartPlayer\\ThreeCP\\v2\\node_modules\\@iwsdk\\vite-plugin-dev\\dist\\mcp-server.js", "--port", "8081", "--client-version", "0.3.1"]
 
 [mcp_servers.iwsdk-rag-local]
 command = "node"
-args = ["/home/andrew/Documents/MusicThing/ThreeCP/v2/node_modules/@felixtz/iwsdk-rag-mcp/dist/index.js"]
+args = ["D:\\Users\\Andrew\\Documents\\Coding\\MusicThing\\ChartPlayer\\ThreeCP\\v2\\node_modules\\@felixtz\\iwsdk-rag-mcp\\dist\\index.js"]
 
 [mcp_servers.hzdb]
 command = "npx"

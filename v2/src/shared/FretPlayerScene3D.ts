@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { ChartScene3D, getStartNote } from "./ChartScene3D";
+import { Scene3D } from "./Scene3D";
 import { FretCamera, getFretPosition } from "./FretCamera";
 import { getImage } from "./UIImage";
 import type { UIImage } from "./UIImage";
@@ -13,6 +14,11 @@ type TechFlag = typeof ESongNoteTechnique[keyof typeof ESongNoteTechnique];
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const NUM_FRETS = 24;
+
+// Half-width (in frets) of the fixed AR volume, used only in XR mode to cull
+// frets/notes that have scrolled outside it (see contentOffsetX). Desktop has
+// no equivalent — its camera frustum clips naturally.
+const VOLUME_HALF_WIDTH = getFretPosition(9);
 
 // 7 colors cycling for string assignment (offset=1 for standard guitar/bass)
 const STRING_COLORS: UIColor[] = [
@@ -223,6 +229,22 @@ export class FretPlayerScene3D extends ChartScene3D {
         camera.updateProjectionMatrix();
     }
 
+    // XR content-scroll offset: instead of panning a virtual camera (there is none
+    // in XR — the HMD owns it), translate the highway content by this amount so
+    // the fret window FretCamera would otherwise frame stays centered in the
+    // fixed AR volume. Consumed by xr/index.ts's HighwaySystem each frame.
+    get contentOffsetX(): number {
+        return -getFretPosition(this.fretCamera.positionFret);
+    }
+
+    // True if the given fret is currently within the fixed AR volume (enable/
+    // disable culling — no fade for v1, see project notes). Always true outside
+    // XR mode, where desktop's camera frustum clips naturally instead.
+    private inVolumeFret(fret: number): boolean {
+        if (!Scene3D.xrMode) return true;
+        return Math.abs(getFretPosition(fret) + this.contentOffsetX) <= VOLUME_HALF_WIDTH;
+    }
+
     // ─── Mock detection ───────────────────────────────────────────────────────
 
     private evaluateMockDetection(): void {
@@ -275,6 +297,7 @@ export class FretPlayerScene3D extends ChartScene3D {
 
         // ── 1. Fret timeline background strips (one per fret) ─────────────────
         for (let fret = 0; fret < NUM_FRETS; fret++) {
+            if (!this.inVolumeFret(fret)) continue;
             this.drawFretTimeLine(fret, 0, this.startTime, this.endTime, WHITE_HALF);
         }
 
@@ -360,12 +383,14 @@ export class FretPlayerScene3D extends ChartScene3D {
 
         // ── 8. Fret vertical lines + fret number labels at the "now" face ────
         for (let fret = 1; fret < NUM_FRETS; fret++) {
+            if (!this.inVolumeFret(fret - 1)) continue;
             this.drawFretVerticalLine(fret - 1, this.startTime, this.getStringHeight(0), this.getStringHeight(this.numStrings - 1), WHITE_HALF, 0.03);
         }
         // Cast breaks CFA narrowing: TSC narrows firstNote to null after the
         // explicit reset at step 2, unaware that drawSingleNote reassigns it.
         const handBase = (this.firstNote as SongNote | null)?.HandFret ?? -1;
         for (let fret = 1; fret <= NUM_FRETS; fret++) {
+            if (!this.inVolumeFret(fret - 0.5)) continue;
             const inHandRange = handBase >= 0 && fret >= handBase && fret < handBase + 4;
             const labelColor: UIColor = this.boldText || inHandRange
                 ? LABEL_WHITE
@@ -412,6 +437,9 @@ export class FretPlayerScene3D extends ChartScene3D {
     // ─── Note draw dispatch ───────────────────────────────────────────────────
 
     private drawNote(note: SongNote): void {
+        const testFret = hasTech(note, ESongNoteTechnique.Chord) ? note.HandFret : note.Fret;
+        if (!this.inVolumeFret(testFret)) return;
+
         if (hasTech(note, ESongNoteTechnique.Chord)) {
             if (!hasTech(note, ESongNoteTechnique.ChordNote)) {
                 const chord = this.getChord(note.ChordID);
