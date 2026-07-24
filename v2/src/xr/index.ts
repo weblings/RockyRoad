@@ -476,21 +476,21 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     });
     world.globals.anchor = anchor;
 
-    // ── Countdown overlay ─────────────────────────────────────────────────────
-    const countdownCanvas = document.createElement('canvas');
-    countdownCanvas.width  = 512;
-    countdownCanvas.height = 512;
-    const countdownTex  = new CanvasTexture(countdownCanvas);
-    const countdownMesh = new Mesh(
+    // ── Countdown overlay (Keys) ──────────────────────────────────────────────
+    // world.globals.countdown{Mesh,Canvas,Tex} are generic — HighwaySystem just
+    // draws into whichever the active loadSong() branch points them at. Guitar's
+    // own countdown mesh is created below, once guitarGrabBarEntity exists.
+    const keysCountdownCanvas = document.createElement('canvas');
+    keysCountdownCanvas.width  = 512;
+    keysCountdownCanvas.height = 512;
+    const keysCountdownTex  = new CanvasTexture(keysCountdownCanvas);
+    const keysCountdownMesh = new Mesh(
         new PlaneGeometry(50, 50),
-        new MeshBasicMaterial({ map: countdownTex, transparent: true }),
+        new MeshBasicMaterial({ map: keysCountdownTex, transparent: true }),
     );
-    countdownMesh.position.set(204, 125, -100);
-    countdownMesh.visible = false;
-    world.createTransformEntity(countdownMesh, { parent: anchorEntity, persistent: true });
-    world.globals.countdownMesh   = countdownMesh;
-    world.globals.countdownCanvas = countdownCanvas;
-    world.globals.countdownTex    = countdownTex;
+    keysCountdownMesh.position.set(204, 125, -100);
+    keysCountdownMesh.visible = false;
+    world.createTransformEntity(keysCountdownMesh, { parent: anchorEntity, persistent: true });
 
     // ── UI panel ──────────────────────────────────────────────────────────────
     const uiPanel = document.createElement("div");
@@ -615,6 +615,22 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         persistent: true,
     });
 
+    // ── Countdown overlay (Guitar) ──────────────────────────────────────────
+    // Parented directly to the bar (unscaled — real-world meters), so it
+    // inherits the volume's calibrated position/yaw automatically ("shares its
+    // pose") without any extra per-frame sync code.
+    const guitarCountdownCanvas = document.createElement('canvas');
+    guitarCountdownCanvas.width  = 512;
+    guitarCountdownCanvas.height = 512;
+    const guitarCountdownTex  = new CanvasTexture(guitarCountdownCanvas);
+    const guitarCountdownMesh = new Mesh(
+        new PlaneGeometry(0.15, 0.15),
+        new MeshBasicMaterial({ map: guitarCountdownTex, transparent: true }),
+    );
+    guitarCountdownMesh.position.set(0, 0.18, 0); // a bit above the highway's ~0.1m top edge
+    guitarCountdownMesh.visible = false;
+    world.createTransformEntity(guitarCountdownMesh, { parent: guitarGrabBarEntity, persistent: true });
+
     const xrButtons: XrButton[] = [];
 
     world.globals.uiPanel          = uiPanel;
@@ -708,6 +724,10 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
 
         if (part.type === 'Keys') {
             guitarGrabBarHit.visible = false;
+            guitarCountdownMesh.visible = false;
+            world.globals.countdownMesh   = keysCountdownMesh;
+            world.globals.countdownCanvas = keysCountdownCanvas;
+            world.globals.countdownTex    = keysCountdownTex;
 
             const [songStructure, rawNotes, songInfo] = await Promise.all([
                 fetchJson<SongStructure>(source.getFileUrl(entry, 'arrangement.json')),
@@ -751,6 +771,11 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         }
 
         // ── Guitar / Bass ────────────────────────────────────────────────────────
+        keysCountdownMesh.visible = false;
+        world.globals.countdownMesh   = guitarCountdownMesh;
+        world.globals.countdownCanvas = guitarCountdownCanvas;
+        world.globals.countdownTex    = guitarCountdownTex;
+
         const [songStructure, instrumentNotes, songInfo] = await Promise.all([
             fetchJson<SongStructure>(source.getFileUrl(entry, 'arrangement.json')),
             fetchJson<SongInstrumentNotes>(source.getFileUrl(entry, `${partName}.json`)),
