@@ -58,6 +58,12 @@ let PANEL_BILLBOARD_LOW_OFFSET  = 0.375;
 let PANEL_BILLBOARD_HIGH_OFFSET = 0.375;
 let PANEL_PITCH_TWEEN_SECS      = 0.5;
 
+// Fixed real-world gap between the guitar grab bar and the highway content above
+// it. The panel's own bar-to-content gap (panelMesh.position.y = 0.169) is
+// measured to the panel's center, and the panel is tall (0.3m) — its actual
+// visible gap to the bar is much smaller than 0.169. Eyeballed it to be an eighth.
+const GUITAR_BAR_VERTICAL_OFFSET = 0.169 / 8;
+
 // ── IWSDK HighwaySystem ───────────────────────────────────────────────────────
 
 class HighwaySystem extends createSystem({}) {
@@ -585,12 +591,21 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         persistent: true,
     });
 
+    // Fixed real-world gap so the highway sits above the bar rather than around
+    // it — same role as the panel's panelMesh.position.y offset.
+    const guitarContentOffsetNode = new Object3D();
+    guitarContentOffsetNode.position.set(0, GUITAR_BAR_VERTICAL_OFFSET, 0);
+    const guitarContentOffsetEntity = world.createTransformEntity(guitarContentOffsetNode, {
+        parent: guitarGrabBarEntity,
+        persistent: true,
+    });
+
     // Carries the calibrated content scale (real-world meters per fret-position
     // unit) — kept separate from guitarGrabBarHit so the handle itself (and its
     // visual pill) always stays the same physical size, regardless of scale.
     const guitarScaleNode = new Object3D();
     const guitarScaleEntity = world.createTransformEntity(guitarScaleNode, {
-        parent: guitarGrabBarEntity,
+        parent: guitarContentOffsetEntity,
         persistent: true,
     });
 
