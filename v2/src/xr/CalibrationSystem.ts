@@ -37,7 +37,11 @@ const PINCH_THRESHOLD_SQ = 0.020 * 0.020; // 20 mm
 // default rather than derived from a two-point touch. Reuses the piano's per-unit
 // scale so a full 24-fret neck (getFretPosition(24) = 225 units) lands at a
 // real-guitar-plausible ~0.65m.
-const GUITAR_SCALE_DEFAULT = PIANO_SCALE_88;
+// GUITAR_SCALE_BASE is exported so xr/index.ts can compensate the grab bar's
+// vertical offset for GUITAR_HIGHWAY_SCALE_MULTIPLIER — see GUITAR_BAR_VERTICAL_OFFSET there.
+export const GUITAR_SCALE_BASE = PIANO_SCALE_88;
+const GUITAR_HIGHWAY_SCALE_MULTIPLIER = 1.5;
+export const GUITAR_SCALE_DEFAULT = GUITAR_SCALE_BASE * GUITAR_HIGHWAY_SCALE_MULTIPLIER;
 
 const GUITAR_CAL_STORAGE_KEY = 'xr-guitar-calibration';
 

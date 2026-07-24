@@ -34,7 +34,7 @@ import { loadManifest } from "../shared/UIImage";
 import { KeysPlayerScene3D } from "../shared/KeysPlayerScene3D";
 import { FretPlayerScene3D } from "../shared/FretPlayerScene3D";
 import { SongPlayer } from "../shared/SongPlayer";
-import { CalibrationSystem } from "./CalibrationSystem";
+import { CalibrationSystem, GUITAR_SCALE_BASE, GUITAR_SCALE_DEFAULT } from "./CalibrationSystem";
 import { XRSongLibrary } from "./XRSongLibrary";
 import { loadAllSources, type SourcedEntry } from "../shared/SongSource";
 import { XRPreScene } from "./XRPreScene";
@@ -62,7 +62,17 @@ let PANEL_PITCH_TWEEN_SECS      = 0.5;
 // it. The panel's own bar-to-content gap (panelMesh.position.y = 0.169) is
 // measured to the panel's center, and the panel is tall (0.3m) — its actual
 // visible gap to the bar is much smaller than 0.169. Eyeballed it to be an eighth.
-const GUITAR_BAR_VERTICAL_OFFSET = 0.169 / 8;
+//
+// This offset lives outside guitarScaleNode (applied before scale), but the
+// highway's own visible bottom edge — the lowest string line, at
+// FretPlayerScene3D.getStringHeight(0) = 3 game units above the content
+// origin — lives inside it. So GUITAR_HIGHWAY_SCALE_MULTIPLIER growing the
+// highway also grows that scaled portion of the gap; subtract the extra
+// scaled distance here so the total physical gap stays what it was at
+// GUITAR_SCALE_BASE.
+const GUITAR_LOWEST_STRING_UNITS = 3;
+const GUITAR_BAR_VERTICAL_OFFSET = 0.169 / 8
+    - GUITAR_LOWEST_STRING_UNITS * (GUITAR_SCALE_DEFAULT - GUITAR_SCALE_BASE);
 
 // Experiment: pause the (expensive) html2canvas panel re-render once the panel
 // hasn't been hovered for this long, and resume the moment it's hovered again.
@@ -215,6 +225,17 @@ class HighwaySystem extends createSystem({}) {
                     ctx.fillRect(0, 0, dst.width, dst.height);
                     panelTex.needsUpdate = true;
                 }
+                // Forced every frame, not just on the blank transition: IWSDK's own
+                // InputSystem resets visual.model.visible = isPrimary every frame for
+                // connected input sources, unconditionally. A one-shot toggleVisual(false)
+                // gets silently overwritten the next frame — joint poses stop updating
+                // (toggleVisual also flips the adapter's `enabled` flag, which gates
+                // BaseHandVisual.update()'s bone writes) but the model stays visible,
+                // rendering a frozen last pose instead of actually disappearing.
+                const leftHandVisual  = this.input.visualAdapters.hand.left.visual;
+                const rightHandVisual = this.input.visualAdapters.hand.right.visual;
+                if (leftHandVisual)  leftHandVisual.model.visible = false;
+                if (rightHandVisual) rightHandVisual.model.visible = false;
             } else {
                 this.panelBlanked = false;
                 if (!this.panelRenderPending) {
