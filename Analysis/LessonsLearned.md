@@ -167,3 +167,15 @@ Two related facts, confirmed by reading `node_modules/@iwsdk/core/dist/ecs/{enti
 **Root cause:** The XR panel (`uiPanel`) is a real DOM tree, but it's never actually interacted with directly — it's rasterized via `html2canvas` onto a `CanvasTexture` displayed on a 3D plane. All "clicks" are synthetic: a hand-ray raycast hit against the plane, mapped back to pixel coordinates, checked against registered elements' `getBoundingClientRect()`, and dispatched through a manual `xrButtons: XrButton[]` registry (`{el, onClick}`) — never real browser events.
 
 **Fix:** Any interactive control in an XR panel must be a clickable element (typically a `<button>`) registered via `xrButtons.push({el, onClick})`, not a native form control relying on `change`/`input` events. The established pattern for booleans here is an On/Off button pair with active-state styling (see `toggleRowHtml()` in `XRSettingsScene.ts`).
+
+---
+
+## IWSDK: `visual.model.visible` is reset every frame by InputSystem — a one-shot hide doesn't stick
+
+**Symptom:** Hiding the tracked-hand visual (`XRHandVisualAdapter.toggleVisual(false)`) when the XR panel goes idle appeared to work at the API level (no errors, `enabled` flag flipped correctly) but the hand kept rendering — frozen in its last pose instead of disappearing.
+
+**Root cause:** `toggleVisual()`'s `enabled` flag correctly gates `BaseHandVisual.update()`'s per-frame joint-bone writes (`node_modules/@iwsdk/xr-input/dist/visual/impl/base-impl.js`) — that's why the pose froze. But IWSDK's own `XRInputManager` (`xr-input-manager.js`) unconditionally sets `visualAdapter.visual.model.visible = inputSourceData.isPrimary` for every connected input source on *every frame*, regardless of what any external caller set `.visible` to. A one-shot `toggleVisual(false)` gets silently overwritten the very next frame.
+
+**Fix:** Don't rely on a one-shot toggle for anything that needs to stay hidden across frames while IWSDK's own systems are still running. Instead, force `visual.model.visible = false` every frame for the duration of the hidden state (in `HighwaySystem.update()`, guarded by the same idle condition). No explicit re-show call is needed — stop forcing it false and IWSDK's own per-frame reset naturally makes it visible again with a live (non-frozen) pose, since joint updates were never actually stopped.
+
+**Diagnosis note:** The bug looked like "hiding doesn't work" but was actually two separate effects overlapping (pose freeze + visibility not sticking) that only made sense once `xr-input-manager.js` and `base-impl.js` were read directly — the `enabled`-gates-updates and `.visible`-gets-reset-every-frame behaviors live in different files and aren't documented together anywhere.
