@@ -18,12 +18,13 @@ export class XRSettingsScene {
         xrButtons: XrButton[],
         noteMin: number,
         noteMax: number,
+        isGuitar: boolean,
         onDone: (s: Settings) => void,
     ): void {
         const s = { ...loadSettings() };
         const rerender = () => {
             xrButtons.length = 0;
-            this._render(uiPanel, xrButtons, s, noteMin, noteMax, onDone, rerender);
+            this._render(uiPanel, xrButtons, s, noteMin, noteMax, isGuitar, onDone, rerender);
         };
         rerender();
     }
@@ -34,6 +35,7 @@ export class XRSettingsScene {
         s: Settings,
         _noteMin: number,
         _noteMax: number,
+        isGuitar: boolean,
         onDone: (s: Settings) => void,
         rerender: () => void,
     ): void {
@@ -47,25 +49,7 @@ export class XRSettingsScene {
                         </button>
                     </div>
                     <div class="settings-body">
-                        <div class="setting-row">
-                            <p class="setting-title">Key Range</p>
-                        </div>
-                        <div class="toggle-group">
-                            <button id="ss-note-range" class="button ${s.fullKeyboard ? 'primary-dark' : 'primary-light'}" type="button">Note range</button>
-                            <button id="ss-full-88" class="button ${s.fullKeyboard ? 'primary-light' : 'primary-dark'}" type="button">Full 88-key</button>
-                        </div>
-                        <div class="setting-row">
-                            <p class="setting-title">Right Hand Color</p>
-                        </div>
-                        <div class="swatch-row">
-                            ${COLOR_PRESETS.map((c, i) => swatchHtml(c.hex, i, s.keysRightHandColor === c.hex, 'rh')).join('')}
-                        </div>
-                        <div class="setting-row">
-                            <p class="setting-title">Left Hand Color</p>
-                        </div>
-                        <div class="swatch-row">
-                            ${COLOR_PRESETS.map((c, i) => swatchHtml(c.hex, i, s.keysLeftHandColor === c.hex, 'lh')).join('')}
-                        </div>
+                        ${isGuitar ? this._guitarSectionHtml(s) : this._keysSectionHtml(s)}
                     </div>
                 </div>
             </div>
@@ -79,29 +63,96 @@ export class XRSettingsScene {
             },
         });
 
-        xrButtons.push({
-            el: uiPanel.querySelector('#ss-note-range') as HTMLButtonElement,
-            onClick: () => { s.fullKeyboard = false; rerender(); },
-        });
-        xrButtons.push({
-            el: uiPanel.querySelector('#ss-full-88') as HTMLButtonElement,
-            onClick: () => { s.fullKeyboard = true; rerender(); },
-        });
-
-        COLOR_PRESETS.forEach((c, i) => {
+        if (isGuitar) {
+            this._registerToggle(uiPanel, xrButtons, 'ss-invert', v => { s.invertStrings = v; rerender(); });
+            this._registerToggle(uiPanel, xrButtons, 'ss-lefty',  v => { s.leftyMode     = v; rerender(); });
+            // XR-specific setting — points at noteNumbersXR, not noteNumbersDesktop.
+            this._registerToggle(uiPanel, xrButtons, 'ss-notenum', v => { s.noteNumbersXR = v; rerender(); });
+        } else {
             xrButtons.push({
-                el: uiPanel.querySelector(`#ss-rh-${i}`) as HTMLElement,
-                onClick: () => { s.keysRightHandColor = c.hex; rerender(); },
+                el: uiPanel.querySelector('#ss-note-range') as HTMLButtonElement,
+                onClick: () => { s.fullKeyboard = false; rerender(); },
             });
-        });
-
-        COLOR_PRESETS.forEach((c, i) => {
             xrButtons.push({
-                el: uiPanel.querySelector(`#ss-lh-${i}`) as HTMLElement,
-                onClick: () => { s.keysLeftHandColor = c.hex; rerender(); },
+                el: uiPanel.querySelector('#ss-full-88') as HTMLButtonElement,
+                onClick: () => { s.fullKeyboard = true; rerender(); },
             });
+
+            COLOR_PRESETS.forEach((c, i) => {
+                xrButtons.push({
+                    el: uiPanel.querySelector(`#ss-rh-${i}`) as HTMLElement,
+                    onClick: () => { s.keysRightHandColor = c.hex; rerender(); },
+                });
+            });
+
+            COLOR_PRESETS.forEach((c, i) => {
+                xrButtons.push({
+                    el: uiPanel.querySelector(`#ss-lh-${i}`) as HTMLElement,
+                    onClick: () => { s.keysLeftHandColor = c.hex; rerender(); },
+                });
+            });
+        }
+    }
+
+    private _keysSectionHtml(s: Settings): string {
+        return `
+            <div class="setting-row">
+                <p class="setting-title">Key Range</p>
+            </div>
+            <div class="toggle-group">
+                <button id="ss-note-range" class="button ${s.fullKeyboard ? 'primary-dark' : 'primary-light'}" type="button">Note range</button>
+                <button id="ss-full-88" class="button ${s.fullKeyboard ? 'primary-light' : 'primary-dark'}" type="button">Full 88-key</button>
+            </div>
+            <div class="setting-row">
+                <p class="setting-title">Right Hand Color</p>
+            </div>
+            <div class="swatch-row">
+                ${COLOR_PRESETS.map((c, i) => swatchHtml(c.hex, i, s.keysRightHandColor === c.hex, 'rh')).join('')}
+            </div>
+            <div class="setting-row">
+                <p class="setting-title">Left Hand Color</p>
+            </div>
+            <div class="swatch-row">
+                ${COLOR_PRESETS.map((c, i) => swatchHtml(c.hex, i, s.keysLeftHandColor === c.hex, 'lh')).join('')}
+            </div>
+        `;
+    }
+
+    private _guitarSectionHtml(s: Settings): string {
+        return `
+            ${toggleRowHtml('ss-invert',  'Invert Strings', s.invertStrings)}
+            ${toggleRowHtml('ss-lefty',   'Lefty Mode',     s.leftyMode)}
+            ${toggleRowHtml('ss-notenum', 'Note Numbers',   s.noteNumbersXR)}
+        `;
+    }
+
+    private _registerToggle(
+        uiPanel: HTMLDivElement,
+        xrButtons: XrButton[],
+        id: string,
+        onSet: (v: boolean) => void,
+    ): void {
+        xrButtons.push({
+            el: uiPanel.querySelector(`#${id}-off`) as HTMLButtonElement,
+            onClick: () => onSet(false),
+        });
+        xrButtons.push({
+            el: uiPanel.querySelector(`#${id}-on`) as HTMLButtonElement,
+            onClick: () => onSet(true),
         });
     }
+}
+
+function toggleRowHtml(id: string, label: string, value: boolean): string {
+    return `
+        <div class="setting-row">
+            <p class="setting-title">${label}</p>
+        </div>
+        <div class="toggle-group">
+            <button id="${id}-off" class="button ${!value ? 'primary-light' : 'primary-dark'}" type="button">Off</button>
+            <button id="${id}-on" class="button ${value ? 'primary-light' : 'primary-dark'}" type="button">On</button>
+        </div>
+    `;
 }
 
 function swatchHtml(hex: string, i: number, selected: boolean, hand: string): string {

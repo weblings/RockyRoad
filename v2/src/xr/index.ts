@@ -894,6 +894,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
             xrButtons,
             noteMin,
             noteMax,
+            world.globals.highwayScene instanceof FretPlayerScene3D,
             (s: Settings) => {
                 const scene = world.globals.highwayScene;
                 if (scene instanceof KeysPlayerScene3D) {
