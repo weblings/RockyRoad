@@ -63,6 +63,7 @@ export class TextBatch {
         color: UIColor,
         imageScale: number,
         rightAlign = false,
+        scaleOverride?: number,
     ): void {
         if (this.used >= this.pool.length) return; // pool exhausted — silent drop
 
@@ -77,7 +78,10 @@ export class TextBatch {
         spr.material = mat;
         spr.position.copy(position);
 
-        const worldHeight = imageScale * TEXT_WORLD_UNITS_PER_SCALE * this.sizeMultiplier;
+        // scaleOverride lets a call site pick its own world-space size independent
+        // of the instance's raster resolution (fontSizePx/canvasHeight stay fixed
+        // to this.sizeMultiplier — only the on-screen scale changes, so nothing blurs).
+        const worldHeight = imageScale * TEXT_WORLD_UNITS_PER_SCALE * (scaleOverride ?? this.sizeMultiplier);
         const tex = mat.map as THREE.CanvasTexture;
         const aspect = tex.image.width / this.canvasHeight;
         spr.scale.set(worldHeight * aspect, worldHeight, 1);

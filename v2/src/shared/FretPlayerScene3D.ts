@@ -45,6 +45,15 @@ const WHITE_HALF = makeColor(1, 1, 1, 0.5);
 // Off-white for text labels — slightly softer than pure white (#E8E8E8)
 const LABEL_WHITE: UIColor = { r: 232 / 255, g: 232 / 255, b: 232 / 255, a: 1 };
 
+// XR-only: flat grey for the now-face fret-number ruler, distinct from the
+// white used by note-attached labels (fret/finger numbers, chord names).
+const LABEL_GREY: UIColor = { r: 0.4, g: 0.4, b: 0.4, a: 1 };
+
+// XR-only world-space scale overrides (see TextBatch.drawText's scaleOverride).
+// Desktop is unaffected — these are only passed when Scene3D.xrMode is true.
+const XR_FRET_RULER_SCALE = 2.25;
+const XR_NOTE_LABEL_SCALE = 2;
+
 // ─── Technique helpers ────────────────────────────────────────────────────────
 
 // Build name→value lookup once from the ESongNoteTechnique const object
@@ -409,11 +418,15 @@ export class FretPlayerScene3D extends ChartScene3D {
         const handBase = (this.firstNote as SongNote | null)?.HandFret ?? -1;
         for (let fret = 1; fret <= NUM_FRETS; fret++) {
             if (!this.inVolumeFret(fret - 0.5)) continue;
-            const inHandRange = handBase >= 0 && fret >= handBase && fret < handBase + 4;
-            const labelColor: UIColor = this.boldText || inHandRange
-                ? LABEL_WHITE
-                : { r: 1, g: 1, b: 1, a: 64 / 255 };
-            this.drawVerticalText(fret.toString(), fret - 0.5, 0, this.currentTime, labelColor, 0.08);
+            if (Scene3D.xrMode) {
+                this.drawVerticalText(fret.toString(), fret - 0.5, 0, this.currentTime, LABEL_GREY, 0.08, false, XR_FRET_RULER_SCALE);
+            } else {
+                const inHandRange = handBase >= 0 && fret >= handBase && fret < handBase + 4;
+                const labelColor: UIColor = this.boldText || inHandRange
+                    ? LABEL_WHITE
+                    : { r: 1, g: 1, b: 1, a: 64 / 255 };
+                this.drawVerticalText(fret.toString(), fret - 0.5, 0, this.currentTime, labelColor, 0.08);
+            }
         }
 
         // ── 8.5. Hit / miss flash ─────────────────────────────────────────────
@@ -470,7 +483,7 @@ export class FretPlayerScene3D extends ChartScene3D {
             // Fret-number label on single notes — gated by showNoteNumbers. Chords
             // still get labeled via drawChordOutline/drawChordNotesFull below.
             if (this.showNoteNumbers && note.TimeOffset > this.currentTime && note.Fret > 0 && this.nonRepeatNotes.has(note.TimeOffset)) {
-                this.drawVerticalText(note.Fret.toString(), note.Fret - 0.5, 0, note.TimeOffset, LABEL_WHITE, 0.12);
+                this.drawVerticalText(note.Fret.toString(), note.Fret - 0.5, 0, note.TimeOffset, LABEL_WHITE, 0.12, false, Scene3D.xrMode ? XR_NOTE_LABEL_SCALE : undefined);
             }
             this.drawSingleNote(note, false, false);
         }
@@ -648,7 +661,7 @@ export class FretPlayerScene3D extends ChartScene3D {
             if (drawCurrent) {
                 this.drawVerticalImageCentered(getImage("FingerOutline"), drawFret - 0.5, this.currentTime, this.getNoteHeadHeight(chordNote), { r: 1, g: 1, b: 1, a: 1 }, 0.05);
                 if (this.showNoteNumbers && chord.Fingers[str] > 0) {
-                    this.drawVerticalText(chord.Fingers[str].toString(), drawFret - 0.5, this.getNoteHeadHeight(chordNote), this.currentTime, LABEL_WHITE, 0.05);
+                    this.drawVerticalText(chord.Fingers[str].toString(), drawFret - 0.5, this.getNoteHeadHeight(chordNote), this.currentTime, LABEL_WHITE, 0.05, false, Scene3D.xrMode ? XR_NOTE_LABEL_SCALE : undefined);
                 }
             }
 
@@ -656,7 +669,7 @@ export class FretPlayerScene3D extends ChartScene3D {
                 this.drawSingleNote(chordNote, false, isGhost);
 
                 if (this.showNoteNumbers && this.nonRepeatNotes.has(note.TimeOffset) && note.TimeOffset > this.currentTime && chordNote.Fret > 0) {
-                    this.drawVerticalText(chordNote.Fret.toString(), chordNote.Fret - 0.5, 0, note.TimeOffset, LABEL_WHITE, 0.12);
+                    this.drawVerticalText(chordNote.Fret.toString(), chordNote.Fret - 0.5, 0, note.TimeOffset, LABEL_WHITE, 0.12, false, Scene3D.xrMode ? XR_NOTE_LABEL_SCALE : undefined);
                 }
             }
         }
@@ -807,11 +820,12 @@ export class FretPlayerScene3D extends ChartScene3D {
         color: UIColor,
         imageScale: number,
         rightAlign = false,
+        scaleOverride?: number,
     ): void {
         const x = getFretPosition(fretCenter);
         const y = verticalCenter;
         const z = this.toZ(timeCenter);
-        this.drawText(text, new THREE.Vector3(x, y, z), color, imageScale, rightAlign);
+        this.drawText(text, new THREE.Vector3(x, y, z), color, imageScale, rightAlign, scaleOverride);
     }
 
     // ─── Drawing primitives ───────────────────────────────────────────────────

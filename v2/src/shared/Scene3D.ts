@@ -117,8 +117,9 @@ export class Scene3D {
         color: UIColor,
         imageScale: number,
         rightAlign = false,
+        scaleOverride?: number,
     ): void {
-        this.textBatch?.drawText(text, position, color, imageScale, rightAlign);
+        this.textBatch?.drawText(text, position, color, imageScale, rightAlign, scaleOverride);
     }
 
     // --- DrawQuad: full image UVs ---
