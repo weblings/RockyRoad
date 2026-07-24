@@ -15,10 +15,17 @@ type TechFlag = typeof ESongNoteTechnique[keyof typeof ESongNoteTechnique];
 
 const NUM_FRETS = 24;
 
-// Half-width (in frets) of the fixed AR volume, used only in XR mode to cull
-// frets/notes that have scrolled outside it (see contentOffsetX). Desktop has
-// no equivalent — its camera frustum clips naturally.
-const VOLUME_HALF_WIDTH = getFretPosition(9);
+// Half-width of the fixed AR volume, used only in XR mode to cull frets/notes
+// that have scrolled outside it (see contentOffsetX). Desktop has no equivalent
+// — its camera frustum clips naturally.
+//
+// getFretPosition() is non-linear (fret spacing shrinks logarithmically up the
+// neck), so this is NOT "N frets" of radius — getFretPosition(9) ≈ 121.6, which
+// doubled (243.2) is wider than the entire 24-fret neck (getFretPosition(24) =
+// 225), making the cull a no-op regardless of where the volume is centered.
+// getFretPosition(5) ≈ 75 gives a ~150-unit window, about two-thirds of the
+// neck — still an approximate starting point pending an in-headset check.
+const VOLUME_HALF_WIDTH = getFretPosition(5);
 
 // 7 colors cycling for string assignment (offset=1 for standard guitar/bass)
 const STRING_COLORS: UIColor[] = [

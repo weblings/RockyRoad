@@ -83,8 +83,11 @@ export class Scene3D {
             this.textBatch  = new TextBatch(scene);
             scene.add(this.quadBatch.mesh);
         } else {
+            // No THREE.Scene in XR — IWSDK owns the scene graph. quadBatch.mesh is
+            // already mounted into it by the caller (xr/index.ts), and text sprites
+            // in the same local coordinate space, so parent the pool there instead.
             this.threeScene = null;
-            this.textBatch  = null;
+            this.textBatch  = new TextBatch(this.quadBatch.mesh);
         }
     }
 

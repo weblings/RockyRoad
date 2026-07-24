@@ -18,7 +18,9 @@ export class TextBatch {
     // Fret numbers (0-24) and common chord names are reused every frame at zero cost.
     private readonly matCache = new Map<string, THREE.SpriteMaterial>();
 
-    constructor(scene: THREE.Scene) {
+    // Desktop passes the THREE.Scene; XR passes quadBatch.mesh (already mounted
+    // into IWSDK's own scene graph) — Scene extends Object3D, so either works.
+    constructor(parent: THREE.Object3D) {
         this.pool = [];
         for (let i = 0; i < POOL_SIZE; i++) {
             const spr = new THREE.Sprite(
@@ -27,7 +29,15 @@ export class TextBatch {
             );
             spr.visible = false;
             spr.frustumCulled = false;
-            scene.add(spr);
+            // Purely decorative, never interactive. IWSDK's pointer-ray system
+            // walks the whole scene graph every frame regardless of RayInteractable
+            // tagging, and THREE.Sprite.raycast() requires Raycaster.camera to be
+            // set externally — which IWSDK's own raycaster doesn't do — causing a
+            // console-spamming warning and an eventual uncaught TypeError
+            // ("Cannot read properties of null (reading 'matrixWorld')") every
+            // frame once any Sprite exists in the XR scene graph. No-op it out.
+            spr.raycast = () => {};
+            parent.add(spr);
             this.pool.push(spr);
         }
     }
