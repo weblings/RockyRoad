@@ -652,10 +652,24 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         xrButtons.length = 0;
     }
 
+    // Disposes the mounted highway mesh and hides whichever grab bar owns it.
+    // guitarGrabBarHit's own visual pill is a persistent sibling, not part of
+    // highwayEntity, so disposing the mesh alone would leave it floating visible.
+    function disposeHighway(): void {
+        if (highwayEntity) {
+            highwayEntity.dispose();
+            highwayEntity = null;
+        }
+        world.globals.highwayScene = undefined;
+        world.globals.songPlayer   = undefined;
+        guitarGrabBarHit.visible   = false;
+    }
+
     function showLibrary(): void {
         clearXrButtons();
         resizePanel(1000, 525);
         (world.globals.songPlayer as SongPlayer | undefined)?.pause();
+        disposeHighway();
         library.show(uiPanel, xrButtons, showPreScene,
             () => (world.globals.invalidatePanelRender as (() => void) | undefined)?.());
     }
@@ -681,12 +695,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         sourced: SourcedEntry,
         partName: string,
     ): Promise<{ songPlayer: SongPlayer; sections: SongSection[]; totalDuration: number; noteMin: number; noteMax: number } | null> {
-        if (highwayEntity) {
-            highwayEntity.dispose();
-            highwayEntity = null;
-        }
-        world.globals.highwayScene = undefined;
-        world.globals.songPlayer   = undefined;
+        disposeHighway();
 
         const { source, entry } = sourced;
         const part = entry.parts.find(p => p.name === partName);
@@ -742,8 +751,6 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         }
 
         // ── Guitar / Bass ────────────────────────────────────────────────────────
-        guitarGrabBarHit.visible = false; // CalibrationSystem makes it visible once placed
-
         const [songStructure, instrumentNotes, songInfo] = await Promise.all([
             fetchJson<SongStructure>(source.getFileUrl(entry, 'arrangement.json')),
             fetchJson<SongInstrumentNotes>(source.getFileUrl(entry, `${partName}.json`)),
@@ -772,6 +779,12 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         });
         world.globals.highwayScene = scene;
         world.globals.songPlayer   = songPlayer;
+
+        // Placement is instant/synchronous (unlike Keys' multi-step pointing
+        // flow), so there's no in-between state to hide — show it as soon as
+        // it's mounted, regardless of which caller runs next (direct Play,
+        // Reposition, or first-time calibrate).
+        guitarGrabBarHit.visible = true;
 
         const totalDuration = songPlayer.duration > 0
             ? songPlayer.duration
