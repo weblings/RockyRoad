@@ -71,6 +71,7 @@ export class App {
             s.invertStrings      = (document.getElementById("s-invert-strings")  as HTMLInputElement).checked;
             s.boldText           = (document.getElementById("s-bold-text")        as HTMLInputElement).checked;
             s.leftyMode          = (document.getElementById("s-lefty-mode")       as HTMLInputElement).checked;
+            s.noteNumbersDesktop = (document.getElementById("s-note-numbers")     as HTMLInputElement).checked;
             s.fullKeyboard       = (document.getElementById("s-full-keyboard")    as HTMLInputElement).checked;
             s.keysTopDown        = (document.getElementById("s-keys-top-down")    as HTMLInputElement).checked;
             s.keysRightHandColor = (document.getElementById("s-keys-right-color") as HTMLInputElement).value;
@@ -81,6 +82,7 @@ export class App {
         document.getElementById("s-invert-strings")!  .addEventListener("change", onToggle);
         document.getElementById("s-bold-text")!        .addEventListener("change", onToggle);
         document.getElementById("s-lefty-mode")!       .addEventListener("change", onToggle);
+        document.getElementById("s-note-numbers")!     .addEventListener("change", onToggle);
         document.getElementById("s-full-keyboard")!    .addEventListener("change", onToggle);
         document.getElementById("s-keys-top-down")!    .addEventListener("change", onToggle);
         document.getElementById("s-keys-right-color")! .addEventListener("input",  onToggle);
@@ -145,6 +147,7 @@ export class App {
         (document.getElementById("s-invert-strings")  as HTMLInputElement).checked = s.invertStrings;
         (document.getElementById("s-bold-text")        as HTMLInputElement).checked = s.boldText;
         (document.getElementById("s-lefty-mode")       as HTMLInputElement).checked = s.leftyMode;
+        (document.getElementById("s-note-numbers")     as HTMLInputElement).checked = s.noteNumbersDesktop;
         (document.getElementById("s-full-keyboard")    as HTMLInputElement).checked = s.fullKeyboard;
         (document.getElementById("s-keys-top-down")    as HTMLInputElement).checked = s.keysTopDown;
         (document.getElementById("s-keys-right-color") as HTMLInputElement).value   = s.keysRightHandColor;

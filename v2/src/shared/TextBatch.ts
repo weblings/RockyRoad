@@ -18,9 +18,19 @@ export class TextBatch {
     // Fret numbers (0-24) and common chord names are reused every frame at zero cost.
     private readonly matCache = new Map<string, THREE.SpriteMaterial>();
 
+    private readonly sizeMultiplier: number;
+    private readonly canvasHeight: number;
+    private readonly fontSizePx: number;
+
     // Desktop passes the THREE.Scene; XR passes quadBatch.mesh (already mounted
     // into IWSDK's own scene graph) — Scene extends Object3D, so either works.
-    constructor(parent: THREE.Object3D) {
+    // sizeMultiplier scales both world size and the source canvas resolution
+    // together, so text stays crisp instead of just stretching a small texture.
+    constructor(parent: THREE.Object3D, sizeMultiplier = 1) {
+        this.sizeMultiplier = sizeMultiplier;
+        this.canvasHeight   = CANVAS_HEIGHT * sizeMultiplier;
+        this.fontSizePx     = FONT_SIZE_PX * sizeMultiplier;
+
         this.pool = [];
         for (let i = 0; i < POOL_SIZE; i++) {
             const spr = new THREE.Sprite(
@@ -67,9 +77,9 @@ export class TextBatch {
         spr.material = mat;
         spr.position.copy(position);
 
-        const worldHeight = imageScale * TEXT_WORLD_UNITS_PER_SCALE;
+        const worldHeight = imageScale * TEXT_WORLD_UNITS_PER_SCALE * this.sizeMultiplier;
         const tex = mat.map as THREE.CanvasTexture;
-        const aspect = tex.image.width / CANVAS_HEIGHT;
+        const aspect = tex.image.width / this.canvasHeight;
         spr.scale.set(worldHeight * aspect, worldHeight, 1);
 
         // center is in [0,1] UV space: (0.5,0.5)=centred, (1.0,0.5)=right-edge at position
@@ -81,14 +91,15 @@ export class TextBatch {
         // canvas.width must be set before drawing; setting it resets the context state.
         // So: create canvas → measure text width → resize → re-set font → draw.
         const canvas = document.createElement("canvas");
-        canvas.height = CANVAS_HEIGHT;
+        canvas.height = this.canvasHeight;
 
         const ctx = canvas.getContext("2d")!;
-        const font = `bold ${FONT_SIZE_PX}px sans-serif`;
+        const font = `bold ${this.fontSizePx}px sans-serif`;
         ctx.font = font;
         const textWidth = ctx.measureText(text).width;
 
-        canvas.width = Math.ceil(textWidth) + 16; // 8 px padding each side
+        const padding = 8 * this.sizeMultiplier;
+        canvas.width = Math.ceil(textWidth) + padding * 2;
 
         // Re-apply font after canvas resize (resize wipes context state)
         ctx.font = font;
@@ -97,12 +108,12 @@ export class TextBatch {
 
         // Dark stroke for legibility against any highway background
         ctx.strokeStyle = "rgba(0,0,0,0.85)";
-        ctx.lineWidth = 6;
+        ctx.lineWidth = 6 * this.sizeMultiplier;
         ctx.lineJoin = "round";
-        ctx.strokeText(text, 8, CANVAS_HEIGHT / 2);
+        ctx.strokeText(text, padding, this.canvasHeight / 2);
 
         ctx.fillStyle = `rgb(${Math.round(color.r * 255)},${Math.round(color.g * 255)},${Math.round(color.b * 255)})`;
-        ctx.fillText(text, 8, CANVAS_HEIGHT / 2);
+        ctx.fillText(text, padding, this.canvasHeight / 2);
 
         const texture = new THREE.CanvasTexture(canvas);
         return new THREE.SpriteMaterial({

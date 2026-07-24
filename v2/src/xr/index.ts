@@ -765,9 +765,11 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         const scene = new FretPlayerScene3D(
             world.renderer, texture, songStructure, instrumentNotes, instrumentPart,
         );
-        scene.boldText      = saved.boldText;
-        scene.invertStrings = saved.invertStrings;
-        scene.leftyMode     = saved.leftyMode;
+        scene.boldText           = saved.boldText;
+        scene.invertStrings      = saved.invertStrings;
+        scene.leftyMode          = saved.leftyMode;
+        scene.noteNumbersDesktop = saved.noteNumbersDesktop;
+        scene.noteNumbersXR      = saved.noteNumbersXR;
 
         const firstNoteTime = instrumentNotes.Notes[0]?.TimeOffset ?? 0;
         if (firstNoteTime > 0) songPlayer.seekTo(firstNoteTime);
@@ -901,9 +903,11 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
                     scene.rightHandColor = fromHex(s.keysRightHandColor);
                     scene.leftHandColor  = fromHex(s.keysLeftHandColor);
                 } else if (scene instanceof FretPlayerScene3D) {
-                    scene.boldText      = s.boldText;
-                    scene.invertStrings = s.invertStrings;
-                    scene.leftyMode     = s.leftyMode;
+                    scene.boldText           = s.boldText;
+                    scene.invertStrings      = s.invertStrings;
+                    scene.leftyMode          = s.leftyMode;
+                    scene.noteNumbersDesktop = s.noteNumbersDesktop;
+                    scene.noteNumbersXR      = s.noteNumbersXR;
                 }
                 showActiveScene(entry, songPlayer, sections, totalDuration, noteMin, noteMax);
             },

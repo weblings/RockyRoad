@@ -93,6 +93,17 @@ export class FretPlayerScene3D extends ChartScene3D {
     // Mirror the fretboard horizontally — delegates to FretCamera's mirrorLeftRight.
     set leftyMode(v: boolean) { this.fretCamera.mirrorLeftRight = v; }
 
+    // Fret-number labels drawn on/under notes — set from Settings.noteNumbersDesktop
+    // / Settings.noteNumbersXR by the caller; showNoteNumbers below picks whichever
+    // applies to the mode actually running (desktop's camera-frustum-clipped view
+    // reads fine with these on; XR's small close-up volume reads as clutter).
+    noteNumbersDesktop = false;
+    noteNumbersXR = false;
+
+    private get showNoteNumbers(): boolean {
+        return Scene3D.xrMode ? this.noteNumbersXR : this.noteNumbersDesktop;
+    }
+
     // When non-null, notes whose TimeOffset < gracePeriodEndTime are drawn as grace notes
     // (desaturated, low alpha) and skipped for scoring. Auto-clears when currentTime reaches it.
     gracePeriodEndTime: number | null = null;
@@ -456,7 +467,9 @@ export class FretPlayerScene3D extends ChartScene3D {
                 this.drawChordOutline(note, false);
             }
         } else {
-            if (note.TimeOffset > this.currentTime && note.Fret > 0 && this.nonRepeatNotes.has(note.TimeOffset)) {
+            // Fret-number label on single notes — gated by showNoteNumbers. Chords
+            // still get labeled via drawChordOutline/drawChordNotesFull below.
+            if (this.showNoteNumbers && note.TimeOffset > this.currentTime && note.Fret > 0 && this.nonRepeatNotes.has(note.TimeOffset)) {
                 this.drawVerticalText(note.Fret.toString(), note.Fret - 0.5, 0, note.TimeOffset, LABEL_WHITE, 0.12);
             }
             this.drawSingleNote(note, false, false);
@@ -629,9 +642,12 @@ export class FretPlayerScene3D extends ChartScene3D {
                 drawFret = this.getSlideFret(chordNote, this.currentTime);
             }
 
+            // Finger/fret-number labels drawn on the notes themselves are gated by
+            // showNoteNumbers — the chord name to the side (drawChordOutline) is
+            // separate and always available regardless of this setting.
             if (drawCurrent) {
                 this.drawVerticalImageCentered(getImage("FingerOutline"), drawFret - 0.5, this.currentTime, this.getNoteHeadHeight(chordNote), { r: 1, g: 1, b: 1, a: 1 }, 0.05);
-                if (chord.Fingers[str] > 0) {
+                if (this.showNoteNumbers && chord.Fingers[str] > 0) {
                     this.drawVerticalText(chord.Fingers[str].toString(), drawFret - 0.5, this.getNoteHeadHeight(chordNote), this.currentTime, LABEL_WHITE, 0.05);
                 }
             }
@@ -639,7 +655,7 @@ export class FretPlayerScene3D extends ChartScene3D {
             if (!drawCurrent) {
                 this.drawSingleNote(chordNote, false, isGhost);
 
-                if (this.nonRepeatNotes.has(note.TimeOffset) && note.TimeOffset > this.currentTime && chordNote.Fret > 0) {
+                if (this.showNoteNumbers && this.nonRepeatNotes.has(note.TimeOffset) && note.TimeOffset > this.currentTime && chordNote.Fret > 0) {
                     this.drawVerticalText(chordNote.Fret.toString(), chordNote.Fret - 0.5, 0, note.TimeOffset, LABEL_WHITE, 0.12);
                 }
             }

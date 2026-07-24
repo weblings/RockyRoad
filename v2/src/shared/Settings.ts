@@ -8,6 +8,8 @@ export interface Settings {
     boldText: boolean;          // high-contrast #E8E8E8 labels (default on)
     invertStrings: boolean;     // flip string order vertically
     leftyMode: boolean;         // mirror the fretboard horizontally
+    noteNumbersDesktop: boolean; // desktop: show fret-number labels on/under notes (default on)
+    noteNumbersXR: boolean;      // xr: show fret-number labels on/under notes (default off — clutter in the small volume)
     tunerAutoAdvance: boolean;  // auto-proceed after "In tune!" (default on)
     inputGain: number;          // mic gain multiplier 1–8 (default 1)
     fullKeyboard: boolean;      // keys: always show full 88-key range (default on)
@@ -22,6 +24,8 @@ const DEFAULTS: Settings = {
     boldText: true,
     invertStrings: false,
     leftyMode: false,
+    noteNumbersDesktop: false,
+    noteNumbersXR: false,
     tunerAutoAdvance: true,
     inputGain: 1,
     fullKeyboard: true,

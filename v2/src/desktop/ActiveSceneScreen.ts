@@ -108,9 +108,11 @@ export class ActiveSceneScreen implements IScreen {
             this.scene = new FretPlayerScene3D(
                 this.app.renderer, this.texture, songStructure, instrumentNotes, instrumentPart,
             );
-            this.scene.boldText      = settings.boldText;
-            this.scene.invertStrings = settings.invertStrings;
-            this.scene.leftyMode     = settings.leftyMode;
+            this.scene.boldText           = settings.boldText;
+            this.scene.invertStrings      = settings.invertStrings;
+            this.scene.leftyMode          = settings.leftyMode;
+            this.scene.noteNumbersDesktop = settings.noteNumbersDesktop;
+            this.scene.noteNumbersXR      = settings.noteNumbersXR;
             this.sections = instrumentNotes.Sections?.length > 0
                 ? instrumentNotes.Sections
                 : (songStructure.Sections ?? []);
@@ -182,9 +184,11 @@ export class ActiveSceneScreen implements IScreen {
         };
         this.app.onSettingsChange = (s) => {
             if (this.scene) {
-                this.scene.boldText      = s.boldText;
-                this.scene.invertStrings = s.invertStrings;
-                this.scene.leftyMode     = s.leftyMode;
+                this.scene.boldText           = s.boldText;
+                this.scene.invertStrings      = s.invertStrings;
+                this.scene.leftyMode          = s.leftyMode;
+                this.scene.noteNumbersDesktop = s.noteNumbersDesktop;
+                this.scene.noteNumbersXR      = s.noteNumbersXR;
             }
             if (this.keysScene) {
                 this.keysScene.minKey = s.fullKeyboard ? 21  : this.keysNoteMin;
