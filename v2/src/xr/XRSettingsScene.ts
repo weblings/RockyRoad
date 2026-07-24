@@ -63,6 +63,9 @@ export class XRSettingsScene {
             },
         });
 
+        // Shared across both sections — same underlying setting either way.
+        this._registerToggle(uiPanel, xrButtons, 'ss-perftimeout', v => { s.perfMenuTimeout = v; rerender(); });
+
         if (isGuitar) {
             this._registerToggle(uiPanel, xrButtons, 'ss-invert', v => { s.invertStrings = v; rerender(); });
             this._registerToggle(uiPanel, xrButtons, 'ss-lefty',  v => { s.leftyMode     = v; rerender(); });
@@ -115,6 +118,7 @@ export class XRSettingsScene {
             <div class="swatch-row">
                 ${COLOR_PRESETS.map((c, i) => swatchHtml(c.hex, i, s.keysLeftHandColor === c.hex, 'lh')).join('')}
             </div>
+            ${toggleRowHtml('ss-perftimeout', '(Perf) Menu Timeout', s.perfMenuTimeout)}
         `;
     }
 
@@ -123,6 +127,7 @@ export class XRSettingsScene {
             ${toggleRowHtml('ss-invert',  'Invert Strings', s.invertStrings)}
             ${toggleRowHtml('ss-lefty',   'Lefty Mode',     s.leftyMode)}
             ${toggleRowHtml('ss-notenum', 'Note Numbers',   s.noteNumbersXR)}
+            ${toggleRowHtml('ss-perftimeout', '(Perf) Menu Timeout', s.perfMenuTimeout)}
         `;
     }
 

@@ -64,6 +64,10 @@ let PANEL_PITCH_TWEEN_SECS      = 0.5;
 // visible gap to the bar is much smaller than 0.169. Eyeballed it to be an eighth.
 const GUITAR_BAR_VERTICAL_OFFSET = 0.169 / 8;
 
+// Experiment: pause the (expensive) html2canvas panel re-render once the panel
+// hasn't been hovered for this long, and resume the moment it's hovered again.
+const PANEL_RENDER_IDLE_TIMEOUT_MS = 3000;
+
 // ── IWSDK HighwaySystem ───────────────────────────────────────────────────────
 
 class HighwaySystem extends createSystem({}) {
@@ -98,6 +102,13 @@ class HighwaySystem extends createSystem({}) {
     private guitarGrabbingHandIdx = -1;
     private guitarBarPos!: Vector3;
 
+    // Last time the panel was hovered (or its content was force-invalidated,
+    // e.g. on screen navigation) — drives the html2canvas idle-pause experiment.
+    private lastPanelHoverMs = 0;
+    // True once the idle dim-out has been drawn, so it's only drawn once per
+    // idle period rather than every frame.
+    private panelBlanked = false;
+
     init(): void {
         this.raycaster    = new Raycaster();
         this.rayOrigin    = new Vector3();
@@ -105,10 +116,14 @@ class HighwaySystem extends createSystem({}) {
         this.panelPos     = new Vector3();
         this.headPos      = new Vector3();
         this.guitarBarPos = new Vector3();
+        this.lastPanelHoverMs = performance.now();
 
         this.world.globals.invalidatePanelRender = (): void => {
             this.panelRenderGen++;
             this.panelRenderPending = false;
+            // Force a fresh render even without a recent hover — screen
+            // navigation replaces the panel's content and must show immediately.
+            this.lastPanelHoverMs = performance.now();
         };
     }
 
@@ -172,26 +187,52 @@ class HighwaySystem extends createSystem({}) {
             }
         }
 
-        // ── Panel: html2canvas render — rate limited only by capture duration ────
+        // ── Panel: html2canvas render — rate limited by capture duration, and ────
+        // paused entirely once idle (no hover) past PANEL_RENDER_IDLE_TIMEOUT_MS.
         const uiPanel   = this.world.globals.uiPanel   as HTMLDivElement  | undefined;
         const panelTex  = this.world.globals.panelTex  as CanvasTexture   | undefined;
         const xrButtons = this.world.globals.xrButtons as XrButton[]      | undefined;
         const panelMesh = this.world.globals.panelMesh as Mesh            | undefined;
 
-        if (uiPanel && panelTex && !this.panelRenderPending) {
-            (this.world.globals.updateActivePanel as (() => void) | undefined)?.();
-            this.panelRenderPending = true;
-            const captureGen = this.panelRenderGen;
-            html2canvas(uiPanel, { backgroundColor: null, logging: false }).then(canvas => {
-                if (this.panelRenderGen !== captureGen) {
-                    this.panelRenderPending = false;
-                    return;
+        // Only in the highway scene (a song is loaded) — Library/PreScene never
+        // idle-pause — and only when the "(Perf) Menu Timeout" setting is on.
+        const inHighwayScene         = this.world.globals.highwayScene !== undefined;
+        const perfMenuTimeoutEnabled = (this.world.globals.perfMenuTimeoutEnabled as boolean | undefined) ?? true;
+        const panelIdle = inHighwayScene && perfMenuTimeoutEnabled
+            && performance.now() - this.lastPanelHoverMs > PANEL_RENDER_IDLE_TIMEOUT_MS;
+
+        if (uiPanel && panelTex) {
+            if (panelIdle) {
+                // Dim to a flat, half-transparent version of the panel's own
+                // background (#0a0a0a, see panel.css) instead of leaving the last
+                // captured frame frozen — makes the paused state visually obvious.
+                if (!this.panelBlanked) {
+                    this.panelBlanked = true;
+                    const dst = panelTex.image as HTMLCanvasElement;
+                    const ctx = dst.getContext("2d")!;
+                    ctx.clearRect(0, 0, dst.width, dst.height);
+                    ctx.fillStyle = 'rgba(10, 10, 10, 0.5)';
+                    ctx.fillRect(0, 0, dst.width, dst.height);
+                    panelTex.needsUpdate = true;
                 }
-                const dst = panelTex.image as HTMLCanvasElement;
-                dst.getContext("2d")!.drawImage(canvas, 0, 0, dst.width, dst.height);
-                panelTex.needsUpdate = true;
-                this.panelRenderPending = false;
-            }).catch(() => { this.panelRenderPending = false; });
+            } else {
+                this.panelBlanked = false;
+                if (!this.panelRenderPending) {
+                    (this.world.globals.updateActivePanel as (() => void) | undefined)?.();
+                    this.panelRenderPending = true;
+                    const captureGen = this.panelRenderGen;
+                    html2canvas(uiPanel, { backgroundColor: null, logging: false }).then(canvas => {
+                        this.panelRenderPending = false;
+                        if (this.panelRenderGen !== captureGen) return;
+                        // Went idle while this capture was in flight — don't clobber
+                        // the blank overlay with stale (pre-idle) content.
+                        if (performance.now() - this.lastPanelHoverMs > PANEL_RENDER_IDLE_TIMEOUT_MS) return;
+                        const dst = panelTex.image as HTMLCanvasElement;
+                        dst.getContext("2d")!.drawImage(canvas, 0, 0, dst.width, dst.height);
+                        panelTex.needsUpdate = true;
+                    }).catch(() => { this.panelRenderPending = false; });
+                }
+            }
         }
 
         // ── Ray hit-test: scrub drag and button clicks ────────────────────────
@@ -330,6 +371,7 @@ class HighwaySystem extends createSystem({}) {
 
         // ── Active scrub: move or end ─────────────────────────────────────────
         if (this.scrubBtn !== null && this.scrubHandIdx >= 0) {
+            this.lastPanelHoverMs = performance.now();
             const { pad, ray } = hands[this.scrubHandIdx];
             if (pad?.getButtonPressed(InputComponent.Trigger)) {
                 const nx = this.scrubBtn.scrubVertical
@@ -359,6 +401,7 @@ class HighwaySystem extends createSystem({}) {
                 this.raycaster.set(this.rayOrigin, this.rayDir);
                 const hits = this.raycaster.intersectObject(panelMesh);
                 if (hits.length === 0 || !hits[0].uv) continue;
+                this.lastPanelHoverMs = performance.now();
                 const panelRect = uiPanel.getBoundingClientRect();
                 const pixX = hits[0].uv.x * panelRect.width;
                 const pixY = (1 - hits[0].uv.y) * panelRect.height;
@@ -721,6 +764,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
 
         const songPlayer = new SongPlayer();
         const saved = loadSettings();
+        world.globals.perfMenuTimeoutEnabled = saved.perfMenuTimeout;
 
         if (part.type === 'Keys') {
             guitarGrabBarHit.visible = false;
@@ -921,6 +965,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
             noteMax,
             world.globals.highwayScene instanceof FretPlayerScene3D,
             (s: Settings) => {
+                world.globals.perfMenuTimeoutEnabled = s.perfMenuTimeout;
                 const scene = world.globals.highwayScene;
                 if (scene instanceof KeysPlayerScene3D) {
                     scene.minKey = s.fullKeyboard ? 21 : noteMin;
