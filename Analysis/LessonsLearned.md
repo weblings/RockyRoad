@@ -96,3 +96,74 @@ The app tab appears in the list. Click **inspect** for full DevTools — console
 **Root cause:** Some charts ship JSON-only with no audio file. `SongPlayer` requires a decoded audio buffer before `play()` does anything, so time never advances.
 
 **Fix:** `SongPlayer.play()` now works as a pure timer even with no audio — it creates an `AudioContext` for timekeeping whether or not a buffer was loaded. Audio playback is conditional on the buffer existing. Charts without `.ogg` now scroll correctly.
+
+---
+
+## Three.js: `Object3D.getWorldDirection()` returns +Z, not -Z
+
+**Symptom:** XR guitar volume auto-placement landed exactly behind the player instead of in front of them, with no errors.
+
+**Root cause:** `getWorldDirection()` returns the object's **local +Z axis** in world space (confirmed in `node_modules/three/src/core/Object3D.js`: `target.set(e[8], e[9], e[10])` — the matrix's third column). Cameras/heads look down **-Z** by convention, so this is the *backward* direction for anything camera-like, not forward.
+
+**Fix:** Negate the result when you actually want a look/forward direction: `head.getWorldDirection(forward).negate();`.
+
+---
+
+## IWSDK: any `THREE.Sprite` in the XR scene graph crashes the pointer system
+
+**Symptom:** Enabling XR text (via pooled `THREE.Sprite`s) "totally cratered" frame rate. Nothing in the rendering cost model explained it — a device console dump was needed to actually find the cause.
+
+**Root cause:** IWSDK's built-in hand/controller pointer-ray system walks the *entire* scene graph every frame looking for hit targets — not just objects explicitly tagged `RayInteractable`. `THREE.Sprite.raycast()` (see `node_modules/three/src/objects/Sprite.js`) requires `Raycaster.camera` to be set externally before it can compute the billboard-facing quad for hit-testing. IWSDK's internal raycaster never sets it, so every Sprite in the tree throws a `"Raycaster.camera" needs to be set` console warning every frame, and periodically an uncaught `TypeError: Cannot read properties of null (reading 'matrixWorld')` — inside `world.update()`/`render()`, i.e. the main loop, every frame.
+
+**Fix:** No-op the raycast method on any purely-decorative sprite: `sprite.raycast = () => {};`. Applies to any pooled/dynamic Sprite added to the XR scene graph (`TextBatch.ts`'s constructor does this).
+
+**Diagnosis note:** Two prior hypotheses (a GPU resource leak on scene reload, a stale fret-scroll offset) were checked against source first and ruled out — the actual cause only showed up in the raw browser console (`chrome://inspect`, see the entry above). Worth reaching for real console output earlier when a regression doesn't match the code's apparent cost on paper.
+
+---
+
+## FretPlayerScene3D: `getFretPosition()` is non-linear — don't reason about it in "N frets"
+
+**Symptom:** An XR culling window sized as `getFretPosition(9)` (intended: "~9 frets of half-width") turned out to be wider than the *entire* 24-fret neck, silently making the culling a no-op.
+
+**Root cause:** Fret spacing is equal-tempered — `getFretPosition(fret) = 300 * (1 - 2^(-fret/12))` — and compresses logarithmically toward the body. `getFretPosition(9) ≈ 121.6` while `getFretPosition(24) = 225` (the full neck); the "9-fret" value alone is already more than half the total span.
+
+**Fix:** When sizing anything in fret-position units, sanity-check the number against `getFretPosition(24) = 225` (the full neck span) rather than assuming it scales linearly with fret count.
+
+---
+
+## QuadBatch re-uploads its full buffer capacity every frame (known, not yet fixed)
+
+**Symptom:** Suspected but unconfirmed contributor to frame dips in both Keys and Guitar highways.
+
+**Root cause:** `QuadBatch.flush()` sets `needsUpdate = true` on the position/color/uv `BufferAttribute`s with no `addUpdateRange()` call. On the installed Three.js (0.181.0), a blanket `needsUpdate = true` uploads the *entire* attribute array, not just the actively-used portion — so every frame re-uploads all 43,688 quads' worth of buffer (~6MB across position/color/uv) regardless of how many quads (`numQuads`) are actually in use this frame. `setDrawRange` already correctly limits what's *rendered*; it does nothing for what's *uploaded*.
+
+**Fix (not yet applied):** Call `positionAttr.addUpdateRange(0, numQuads * 3)` (and the equivalent for color/uv) before setting `needsUpdate = true`, so only the used portion re-uploads. Worth doing before chasing further XR performance work — likely a bigger win than anything draw-call-count related.
+
+---
+
+## Gating async work by a live state flag: the callback needs to re-check too, not just the call site
+
+**Symptom:** An idle-timeout blank overlay for the XR panel (drawn after 3s unhovered) appeared to have no visible effect — it drew correctly, then was immediately undone.
+
+**Root cause:** An `html2canvas` capture already in flight when the panel crossed into "idle" still resolved normally, and its `.then()` callback unconditionally overwrote the canvas with the (stale, pre-idle) captured content. The callback only checked for screen-navigation invalidation (`panelRenderGen`), not for whether the state had changed *while the async call was in flight*.
+
+**Fix:** Re-check the live condition inside the `.then()` callback itself, not just before kicking off the async call: `if (performance.now() - this.lastPanelHoverMs > TIMEOUT) return;` before applying the result.
+
+---
+
+## IWSDK: `Entity.dispose()` recursively frees GPU resources; `createTransformEntity` uses real `Object3D.add()` underneath
+
+Two related facts, confirmed by reading `node_modules/@iwsdk/core/dist/ecs/{entity,world}.js` and `dist/transform/transform.js`, worth having settled rather than re-investigated next time:
+
+- **`entity.dispose()`** (not `.destroy()`) sets an internal `_disposeResources` flag before destroying, which triggers `world.disposeObject3DResources()` — a full `object.traverse()` that disposes geometry/materials/textures on the *entire* subtree, not just the entity's own object. Reloading a highway via `highwayEntity.dispose()` correctly frees children parented onto it (e.g. a Sprite pool) — this is not a leak source.
+- **`createTransformEntity`** ultimately does a genuine `parentObject.add(object)` — it's a real Three.js scene graph under the ECS layer, not a parallel structure. Any plain `Object3D` `.add()`-ed as a child of an already-mounted entity's object (e.g. `quadBatch.mesh`) renders correctly via normal Three.js traversal, without needing to be its own registered entity. This is how XR text rendering reuses `TextBatch`'s sprite pool — parented directly to `quadBatch.mesh` rather than needing a separate entity per sprite.
+
+---
+
+## XR settings/menu panels are html2canvas-rendered images, not live DOM — no native checkbox/change events
+
+**Symptom:** Naively porting a desktop settings toggle (`<input type="checkbox">` + `change` listener) to the XR settings panel would silently do nothing.
+
+**Root cause:** The XR panel (`uiPanel`) is a real DOM tree, but it's never actually interacted with directly — it's rasterized via `html2canvas` onto a `CanvasTexture` displayed on a 3D plane. All "clicks" are synthetic: a hand-ray raycast hit against the plane, mapped back to pixel coordinates, checked against registered elements' `getBoundingClientRect()`, and dispatched through a manual `xrButtons: XrButton[]` registry (`{el, onClick}`) — never real browser events.
+
+**Fix:** Any interactive control in an XR panel must be a clickable element (typically a `<button>`) registered via `xrButtons.push({el, onClick})`, not a native form control relying on `change`/`input` events. The established pattern for booleans here is an On/Off button pair with active-state styling (see `toggleRowHtml()` in `XRSettingsScene.ts`).
