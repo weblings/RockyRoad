@@ -162,35 +162,8 @@
   overflow: hidden;
 }
 
-.xr-panel .library-frame .scroll-track {
-  width: 28px;
-  flex: 0 0 28px;
-  position: relative;
-  margin: 10px 10px 10px 4px;
-  cursor: pointer;
-}
-
-.xr-panel .library-frame .scroll-bar {
-  position: absolute;
-  left: 12px;
-  width: 4px;
-  top: 0;
-  bottom: 0;
-  background: #1a1a1a;
-  border-radius: 2px;
-}
-
-.xr-panel .library-frame .scroll-thumb {
-  position: absolute;
-  left: 8px;
-  width: 12px;
-  background: #515151;
-  border-radius: 6px;
-}
-
-.xr-panel .library-frame .scroll-track.xr-hover .scroll-thumb {
-  background: #7c7c7c;
-}
+/* Scroll-track/bar/thumb chrome now lives in panel.css (.xr-panel .scroll-track
+   etc.) — generic, shared with XRSettingsScene's settings-area. */
 
 /* ─── Song list ─── */
 

@@ -1,5 +1,6 @@
 import type { XrButton } from "./XRTypes";
 import type { SourcedEntry } from "../shared/SongSource";
+import { setupScrollList } from "./XRScrollList";
 
 // ── Sort options ──────────────────────────────────────────────────────────────
 
@@ -106,63 +107,13 @@ export class XRSongLibrary {
         `;
 
         // ── Scroll state ──────────────────────────────────────────────────────
-        // Mirrors the seek-bar pattern: translate the inner grid instead of
-        // using scrollTop so html2canvas captures the offset correctly.
 
         const inner    = uiPanel.querySelector<HTMLElement>('#lib-song-inner')!;
         const viewport = uiPanel.querySelector<HTMLElement>('#lib-song-viewport')!;
         const thumb    = uiPanel.querySelector<HTMLElement>('#lib-scroll-thumb')!;
         const track    = uiPanel.querySelector<HTMLElement>('#lib-scroll-track')!;
 
-        let scrollOffset = 0;
-        let maxOffset    = 0;
-
-        const updateThumb = (): void => {
-            if (maxOffset <= 0) {
-                track.style.display = 'none';
-                return;
-            }
-            track.style.display = '';
-            const trackH = track.clientHeight;
-            const totalH = inner.offsetHeight;
-            const viewH  = viewport.clientHeight;
-            const thumbH = totalH > 0
-                ? Math.max(24, Math.round((viewH / totalH) * trackH))
-                : trackH;
-            const norm     = scrollOffset / maxOffset;
-            const thumbTop = Math.round(norm * (trackH - thumbH));
-            thumb.style.height = `${thumbH}px`;
-            thumb.style.top    = `${thumbTop}px`;
-        };
-
-        const recomputeMaxOffset = (): void => {
-            // Reading offsetHeight forces a synchronous reflow — correct after innerHTML changes.
-            maxOffset    = Math.max(0, inner.offsetHeight - viewport.clientHeight);
-            scrollOffset = Math.min(scrollOffset, maxOffset);
-            inner.style.transform = `translateY(-${scrollOffset}px)`;
-            updateThumb();
-        };
-
-        const applyScroll = (ny: number): void => {
-            scrollOffset = ny * maxOffset;
-            inner.style.transform = `translateY(-${scrollOffset}px)`;
-            updateThumb();
-            // Do NOT call onInvalidate() here: it cancels the in-flight html2canvas
-            // capture on every drag frame, so no captures ever complete during a scroll.
-            // The render loop picks up the new transform on its next cycle naturally.
-        };
-
-        recomputeMaxOffset();
-
-        if (maxOffset > 0) {
-            xrButtons.push({
-                el: track,
-                scrubVertical: true,
-                onScrubStart: () => {},
-                onScrubMove:  (ny) => applyScroll(ny),
-                onScrubEnd:   (ny) => applyScroll(ny),
-            });
-        }
+        const scrollList = setupScrollList({ viewport, inner, track, thumb }, xrButtons);
 
         // ── Toolbar buttons ───────────────────────────────────────────────────
 
@@ -214,11 +165,9 @@ export class XRSongLibrary {
                 if (innerEl) {
                     const entries = this._getFiltered();
                     innerEl.innerHTML = this._songListHtml(entries);
-                    scrollOffset = 0;
-                    innerEl.style.transform = 'translateY(0px)';
                     xrButtons.splice(songButtonOffset);
                     this._registerSongButtons(uiPanel, xrButtons, entries, onSelect);
-                    recomputeMaxOffset();
+                    scrollList.recompute(true);
                 }
                 searchReal.focus();
             },
@@ -240,11 +189,9 @@ export class XRSongLibrary {
             if (!innerEl) return;
             const entries = this._getFiltered();
             innerEl.innerHTML = this._songListHtml(entries);
-            scrollOffset = 0;
-            innerEl.style.transform = 'translateY(0px)';
             xrButtons.splice(songButtonOffset);
             this._registerSongButtons(uiPanel, xrButtons, entries, onSelect);
-            recomputeMaxOffset();
+            scrollList.recompute(true);
             onInvalidate();
         });
     }

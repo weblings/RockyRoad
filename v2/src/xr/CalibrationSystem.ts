@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { createSystem, InputComponent } from "@iwsdk/core";
 import type { XrButton } from "./XRTypes";
+import { loadSettings } from "../shared/Settings";
 
 // ── CalibrationPointer interface ──────────────────────────────────────────────
 
@@ -33,15 +34,23 @@ const CAL_STORAGE_KEY = 'xr-calibration';
 
 const PINCH_THRESHOLD_SQ = 0.020 * 0.020; // 20 mm
 
-// Guitar/Bass — no physical instrument to size-match against, so scale is a fixed
-// default rather than derived from a two-point touch. Reuses the piano's per-unit
-// scale so a full 24-fret neck (getFretPosition(24) = 225 units) lands at a
-// real-guitar-plausible ~0.65m.
-// GUITAR_SCALE_BASE is exported so xr/index.ts can compensate the grab bar's
-// vertical offset for GUITAR_HIGHWAY_SCALE_MULTIPLIER — see GUITAR_BAR_VERTICAL_OFFSET there.
-export const GUITAR_SCALE_BASE = PIANO_SCALE_88;
-const GUITAR_HIGHWAY_SCALE_MULTIPLIER = 1.5;
-export const GUITAR_SCALE_DEFAULT = GUITAR_SCALE_BASE * GUITAR_HIGHWAY_SCALE_MULTIPLIER;
+// Guitar/Bass — no physical instrument to size-match against, so scale is a
+// settings-driven multiplier (Settings.guitarHighwayScale, see
+// applyGuitarHighwayScale) rather than derived from a two-point touch. Reuses
+// the piano's per-unit scale as the 1x reference so a full 24-fret neck
+// (getFretPosition(24) = 225 units) lands at a real-guitar-plausible ~0.65m.
+const GUITAR_SCALE_BASE = PIANO_SCALE_88;
+
+// Fixed real-world gap between the guitar grab bar and the highway content
+// above it, at a 1x (GUITAR_SCALE_BASE) highway size. The panel's own
+// bar-to-content gap (panelMesh.position.y = 0.169) is measured to the panel's
+// center, and the panel is tall (0.3m) — its actual visible gap to the bar is
+// much smaller than 0.169. Eyeballed it to be an eighth.
+const GUITAR_BASE_OFFSET = 0.169 / 8;
+
+// FretPlayerScene3D.getStringHeight(0) — game units from the content node's
+// origin up to the lowest string line, the highway's visible bottom edge.
+const GUITAR_LOWEST_STRING_UNITS = 3;
 
 const GUITAR_CAL_STORAGE_KEY = 'xr-guitar-calibration';
 
@@ -135,6 +144,10 @@ export class CalibrationSystem extends createSystem({}) {
             this.state = 'done';
             this.showFineTunePanel();
             this.reapply();
+        };
+
+        this.world.globals.setGuitarHighwayScale = (multiplier: number): void => {
+            this.applyGuitarHighwayScale(multiplier);
         };
     }
 
@@ -335,6 +348,27 @@ export class CalibrationSystem extends createSystem({}) {
         return this.world.globals.guitarScaleNode as THREE.Object3D | undefined;
     }
 
+    private guitarContentOffsetNode(): THREE.Object3D | undefined {
+        return this.world.globals.guitarContentOffsetNode as THREE.Object3D | undefined;
+    }
+
+    // Applies a highway-size multiplier (Settings.guitarHighwayScale) to both the
+    // content scale and the grab-bar vertical offset. The offset lives outside
+    // guitarScaleNode (so the bar itself doesn't scale), but the highway's own
+    // visible bottom edge lives inside the scaled subtree — growing the
+    // multiplier grows that scaled portion of the gap too. Compensate by
+    // shrinking the fixed portion so the total physical gap stays what it is
+    // at multiplier=1 (GUITAR_BASE_OFFSET).
+    private applyGuitarHighwayScale(multiplier: number): void {
+        const scaleNode  = this.guitarScaleNode();
+        const offsetNode = this.guitarContentOffsetNode();
+        if (scaleNode) scaleNode.scale.setScalar(GUITAR_SCALE_BASE * multiplier);
+        if (offsetNode) {
+            offsetNode.position.y = GUITAR_BASE_OFFSET
+                - GUITAR_LOWEST_STRING_UNITS * GUITAR_SCALE_BASE * (multiplier - 1);
+        }
+    }
+
     private setGuitarBarVisible(visible: boolean): void {
         const bar = this.guitarBar();
         if (bar) bar.visible = visible;
@@ -365,8 +399,7 @@ export class CalibrationSystem extends createSystem({}) {
         bar.rotation.set(0, Math.atan2(headPos.x - bar.position.x, headPos.z - bar.position.z), 0);
         // Scale lives on guitarScaleNode, not the bar itself — the bar (and its
         // visual pill) must stay a constant physical size, same as the menu bar.
-        const scaleNode = this.guitarScaleNode();
-        if (scaleNode) scaleNode.scale.setScalar(GUITAR_SCALE_DEFAULT);
+        this.applyGuitarHighwayScale(loadSettings().guitarHighwayScale);
     }
 
     private showGuitarFineTunePanel(): void {
@@ -409,9 +442,8 @@ export class CalibrationSystem extends createSystem({}) {
         const bar = this.guitarBar();
         if (!bar) return;
         const data = {
-            pos:   [bar.position.x, bar.position.y, bar.position.z],
-            quat:  [bar.quaternion.x, bar.quaternion.y, bar.quaternion.z, bar.quaternion.w],
-            scale: this.guitarScaleNode()?.scale.x ?? GUITAR_SCALE_DEFAULT,
+            pos:  [bar.position.x, bar.position.y, bar.position.z],
+            quat: [bar.quaternion.x, bar.quaternion.y, bar.quaternion.z, bar.quaternion.w],
         };
         try {
             localStorage.setItem(GUITAR_CAL_STORAGE_KEY, JSON.stringify(data));
@@ -426,10 +458,12 @@ export class CalibrationSystem extends createSystem({}) {
         try {
             const raw = localStorage.getItem(GUITAR_CAL_STORAGE_KEY);
             if (!raw) return false;
-            const d = JSON.parse(raw) as { pos: number[]; quat: number[]; scale: number };
+            const d = JSON.parse(raw) as { pos: number[]; quat: number[] };
             bar.position.set(d.pos[0], d.pos[1], d.pos[2]);
             bar.quaternion.set(d.quat[0], d.quat[1], d.quat[2], d.quat[3]);
-            this.guitarScaleNode()?.scale.setScalar(d.scale);
+            // Scale is settings-driven (Settings.guitarHighwayScale), not part of
+            // saved position/rotation calibration data.
+            this.applyGuitarHighwayScale(loadSettings().guitarHighwayScale);
             return true;
         } catch {
             return false;

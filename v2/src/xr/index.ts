@@ -34,7 +34,7 @@ import { loadManifest } from "../shared/UIImage";
 import { KeysPlayerScene3D } from "../shared/KeysPlayerScene3D";
 import { FretPlayerScene3D } from "../shared/FretPlayerScene3D";
 import { SongPlayer } from "../shared/SongPlayer";
-import { CalibrationSystem, GUITAR_SCALE_BASE, GUITAR_SCALE_DEFAULT } from "./CalibrationSystem";
+import { CalibrationSystem } from "./CalibrationSystem";
 import { XRSongLibrary } from "./XRSongLibrary";
 import { loadAllSources, type SourcedEntry } from "../shared/SongSource";
 import { XRPreScene } from "./XRPreScene";
@@ -57,22 +57,6 @@ const IMAGE_MANIFEST_URL = "/ImageManifest.json";
 let PANEL_BILLBOARD_LOW_OFFSET  = 0.375;
 let PANEL_BILLBOARD_HIGH_OFFSET = 0.375;
 let PANEL_PITCH_TWEEN_SECS      = 0.5;
-
-// Fixed real-world gap between the guitar grab bar and the highway content above
-// it. The panel's own bar-to-content gap (panelMesh.position.y = 0.169) is
-// measured to the panel's center, and the panel is tall (0.3m) — its actual
-// visible gap to the bar is much smaller than 0.169. Eyeballed it to be an eighth.
-//
-// This offset lives outside guitarScaleNode (applied before scale), but the
-// highway's own visible bottom edge — the lowest string line, at
-// FretPlayerScene3D.getStringHeight(0) = 3 game units above the content
-// origin — lives inside it. So GUITAR_HIGHWAY_SCALE_MULTIPLIER growing the
-// highway also grows that scaled portion of the gap; subtract the extra
-// scaled distance here so the total physical gap stays what it was at
-// GUITAR_SCALE_BASE.
-const GUITAR_LOWEST_STRING_UNITS = 3;
-const GUITAR_BAR_VERTICAL_OFFSET = 0.169 / 8
-    - GUITAR_LOWEST_STRING_UNITS * (GUITAR_SCALE_DEFAULT - GUITAR_SCALE_BASE);
 
 // Experiment: pause the (expensive) html2canvas panel re-render once the panel
 // hasn't been hovered for this long, and resume the moment it's hovered again.
@@ -656,9 +640,11 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     });
 
     // Fixed real-world gap so the highway sits above the bar rather than around
-    // it — same role as the panel's panelMesh.position.y offset.
+    // it — same role as the panel's panelMesh.position.y offset. Position is set
+    // by CalibrationSystem.applyGuitarHighwayScale() once calibration runs
+    // (compensates for Settings.guitarHighwayScale so the gap stays constant
+    // regardless of highway size — see that method for the math).
     const guitarContentOffsetNode = new Object3D();
-    guitarContentOffsetNode.position.set(0, GUITAR_BAR_VERTICAL_OFFSET, 0);
     const guitarContentOffsetEntity = world.createTransformEntity(guitarContentOffsetNode, {
         parent: guitarGrabBarEntity,
         persistent: true,
@@ -701,10 +687,11 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     world.globals.panelMesh        = panelMesh;
     world.globals.panelTex         = panelTex;
     world.globals.xrButtons        = xrButtons;
-    world.globals.grabBarHit        = grabBarHit;
-    world.globals.guitarGrabBarHit  = guitarGrabBarHit;
-    world.globals.guitarScaleNode   = guitarScaleNode;
-    world.globals.guitarContentNode = guitarContentNode;
+    world.globals.grabBarHit              = grabBarHit;
+    world.globals.guitarGrabBarHit        = guitarGrabBarHit;
+    world.globals.guitarScaleNode         = guitarScaleNode;
+    world.globals.guitarContentOffsetNode = guitarContentOffsetNode;
+    world.globals.guitarContentNode       = guitarContentNode;
 
     function resizePanel(w: number, h: number): void {
         uiPanel.style.width  = `${w}px`;
@@ -1001,6 +988,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
                     scene.leftyMode          = s.leftyMode;
                     scene.noteNumbersDesktop = s.noteNumbersDesktop;
                     scene.noteNumbersXR      = s.noteNumbersXR;
+                    (world.globals.setGuitarHighwayScale as ((m: number) => void) | undefined)?.(s.guitarHighwayScale);
                 }
                 showActiveScene(entry, songPlayer, sections, totalDuration, noteMin, noteMax);
             },

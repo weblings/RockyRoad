@@ -11,6 +11,7 @@ export interface Settings {
     noteNumbersDesktop: boolean; // desktop: show fret-number labels on/under notes (default on)
     noteNumbersXR: boolean;      // xr: show fret-number labels on/under notes (default off — clutter in the small volume)
     perfMenuTimeout: boolean;   // xr: pause html2canvas panel re-render when idle in the highway scene (default on)
+    guitarHighwayScale: number; // xr guitar: highway size multiplier, 0.25–3 in 0.25 steps (default 1.75)
     tunerAutoAdvance: boolean;  // auto-proceed after "In tune!" (default on)
     inputGain: number;          // mic gain multiplier 1–8 (default 1)
     fullKeyboard: boolean;      // keys: always show full 88-key range (default on)
@@ -28,6 +29,7 @@ const DEFAULTS: Settings = {
     noteNumbersDesktop: false,
     noteNumbersXR: false,
     perfMenuTimeout: true,
+    guitarHighwayScale: 1.75,
     tunerAutoAdvance: true,
     inputGain: 1,
     fullKeyboard: true,

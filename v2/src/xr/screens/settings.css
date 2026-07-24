@@ -1,12 +1,30 @@
 /* Settings styles — shared panel structure lives in panel.css */
 
-.xr-panel .frame .content .settings-body {
+/* settings-area/settings-viewport mirror library's song-list-area/song-list-
+   viewport: a fixed-height clipped viewport with a scroll-track sidebar (see
+   panel.css), so rows that don't fit the 300px panel are reachable instead of
+   silently clipped. settings-body is the translated "inner" — sized to its
+   content, not stretched, so its offsetHeight reflects the real content height. */
+
+.xr-panel .frame .content .settings-area {
   flex: 1;
   display: flex;
+  flex-direction: row;
+  overflow: hidden;
+}
+
+.xr-panel .frame .content .settings-viewport {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+
+.xr-panel .frame .content .settings-body {
+  display: flex;
   flex-direction: column;
-  justify-content: center;
   gap: 8px;
   padding: 10px 12px;
+  will-change: transform;
 }
 
 .xr-panel .frame .content .settings-body .setting-row {

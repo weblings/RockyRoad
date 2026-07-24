@@ -1,7 +1,15 @@
 import type { XrButton } from "./XRTypes";
 import { loadSettings, saveSettings, type Settings } from "../shared/Settings";
+import { setupScrollList } from "./XRScrollList";
 
 // ── XRSettingsScene ────────────────────────────────────────────────────────────
+
+const GUITAR_HIGHWAY_SCALE_MIN  = 0.25;
+const GUITAR_HIGHWAY_SCALE_MAX  = 3;
+const GUITAR_HIGHWAY_SCALE_STEP = 0.25;
+
+const highwaySizeLabel = (v: number) =>
+    (Math.round(v * 100) / 100).toString().replace(/\.?0+$/, '') + '×';
 
 const COLOR_PRESETS: { hex: string }[] = [
     { hex: '#2E71D6' },
@@ -13,6 +21,10 @@ const COLOR_PRESETS: { hex: string }[] = [
 ];
 
 export class XRSettingsScene {
+    // Persists across rerenders (every toggle/stepper click rebuilds the DOM
+    // from scratch, which would otherwise reset scroll to the top on each click).
+    private _scrollOffset = 0;
+
     show(
         uiPanel: HTMLDivElement,
         xrButtons: XrButton[],
@@ -48,8 +60,16 @@ export class XRSettingsScene {
                             <span>Play</span>
                         </button>
                     </div>
-                    <div class="settings-body">
-                        ${isGuitar ? this._guitarSectionHtml(s) : this._keysSectionHtml(s)}
+                    <div class="settings-area">
+                        <div class="settings-viewport" id="ss-viewport">
+                            <div class="settings-body" id="ss-body">
+                                ${isGuitar ? this._guitarSectionHtml(s) : this._keysSectionHtml(s)}
+                            </div>
+                        </div>
+                        <div class="scroll-track" id="ss-scroll-track">
+                            <div class="scroll-bar"></div>
+                            <div class="scroll-thumb" id="ss-scroll-thumb"></div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -63,6 +83,15 @@ export class XRSettingsScene {
             },
         });
 
+        setupScrollList({
+            viewport: uiPanel.querySelector<HTMLElement>('#ss-viewport')!,
+            inner:    uiPanel.querySelector<HTMLElement>('#ss-body')!,
+            track:    uiPanel.querySelector<HTMLElement>('#ss-scroll-track')!,
+            thumb:    uiPanel.querySelector<HTMLElement>('#ss-scroll-thumb')!,
+            initialOffset:  this._scrollOffset,
+            onOffsetChange: (o) => { this._scrollOffset = o; },
+        }, xrButtons);
+
         // Shared across both sections — same underlying setting either way.
         this._registerToggle(uiPanel, xrButtons, 'ss-perftimeout', v => { s.perfMenuTimeout = v; rerender(); });
 
@@ -71,6 +100,22 @@ export class XRSettingsScene {
             this._registerToggle(uiPanel, xrButtons, 'ss-lefty',  v => { s.leftyMode     = v; rerender(); });
             // XR-specific setting — points at noteNumbersXR, not noteNumbersDesktop.
             this._registerToggle(uiPanel, xrButtons, 'ss-notenum', v => { s.noteNumbersXR = v; rerender(); });
+            xrButtons.push({
+                el: uiPanel.querySelector('#ss-hwsize-dec') as HTMLButtonElement,
+                onClick: () => {
+                    s.guitarHighwayScale = Math.max(GUITAR_HIGHWAY_SCALE_MIN,
+                        Math.round((s.guitarHighwayScale - GUITAR_HIGHWAY_SCALE_STEP) / GUITAR_HIGHWAY_SCALE_STEP) * GUITAR_HIGHWAY_SCALE_STEP);
+                    rerender();
+                },
+            });
+            xrButtons.push({
+                el: uiPanel.querySelector('#ss-hwsize-inc') as HTMLButtonElement,
+                onClick: () => {
+                    s.guitarHighwayScale = Math.min(GUITAR_HIGHWAY_SCALE_MAX,
+                        Math.round((s.guitarHighwayScale + GUITAR_HIGHWAY_SCALE_STEP) / GUITAR_HIGHWAY_SCALE_STEP) * GUITAR_HIGHWAY_SCALE_STEP);
+                    rerender();
+                },
+            });
         } else {
             xrButtons.push({
                 el: uiPanel.querySelector('#ss-note-range') as HTMLButtonElement,
@@ -127,6 +172,14 @@ export class XRSettingsScene {
             ${toggleRowHtml('ss-invert',  'Invert Strings', s.invertStrings)}
             ${toggleRowHtml('ss-lefty',   'Lefty Mode',     s.leftyMode)}
             ${toggleRowHtml('ss-notenum', 'Note Numbers',   s.noteNumbersXR)}
+            <div class="setting-row">
+                <p class="setting-title">Highway Size</p>
+            </div>
+            <div class="speed-row">
+                <button id="ss-hwsize-dec" class="button secondary-dark speed-btn" type="button">−</button>
+                <span id="ss-hwsize-val" class="speed-value">${highwaySizeLabel(s.guitarHighwayScale)}</span>
+                <button id="ss-hwsize-inc" class="button secondary-dark speed-btn" type="button">+</button>
+            </div>
             ${toggleRowHtml('ss-perftimeout', '(Perf) Menu Timeout', s.perfMenuTimeout)}
         `;
     }

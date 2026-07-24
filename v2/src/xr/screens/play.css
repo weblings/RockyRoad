@@ -167,8 +167,9 @@
 
 .xr-panel .frame .content .play-body .stats-row .text-secondary { margin-right: 6px; }
 
-/* Speed control */
-.xr-panel .frame .content .play-body .speed-control {
+/* Speed control — also reused by XRSettingsScene's guitar highway-size stepper,
+   so these are scoped to .content rather than .play-body specifically. */
+.xr-panel .frame .content .speed-control {
   flex: 0 0 auto;
   display: flex;
   flex-direction: column;
@@ -176,20 +177,20 @@
   gap: 4px;
 }
 
-.xr-panel .frame .content .play-body .speed-label {
+.xr-panel .frame .content .speed-label {
   color: #e8e8e8;
   font-size: 12px;
   font-weight: 700;
 }
 
-.xr-panel .frame .content .play-body .speed-row {
+.xr-panel .frame .content .speed-row {
   display: flex;
   flex-direction: row;
   align-items: center;
   gap: 4px;
 }
 
-.xr-panel .frame .content .play-body .speed-btn {
+.xr-panel .frame .content .speed-btn {
   width: 22px;
   height: 22px;
   border-radius: 4px;
@@ -197,7 +198,7 @@
   padding: 0;
 }
 
-.xr-panel .frame .content .play-body .speed-value {
+.xr-panel .frame .content .speed-value {
   color: #e8e8e8;
   font-size: 12px;
   font-weight: 700;
