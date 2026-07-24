@@ -13,6 +13,7 @@ export class XRActiveScene {
         xrButtons: XrButton[],
         songTitle: string,
         songArtist: string,
+        artUrl: string | null,
         songPlayer: SongPlayer,
         totalDuration: number,
         sections: SongSection[],
@@ -70,7 +71,7 @@ export class XRActiveScene {
                             </button>
                         </div>
                         <div class="song-row">
-                            <div class="art-thumb"></div>
+                            <div class="art-thumb"${artUrl ? ` style="background-image:url('${esc(artUrl)}');background-size:cover;background-position:center;"` : ''}></div>
                             <div class="song-meta">
                                 <p class="song-title">${esc(songTitle)}</p>
                                 <p class="song-subtitle">${esc(songArtist)}</p>
@@ -94,7 +95,7 @@ export class XRActiveScene {
 
         const rerender = () => {
             this.show(
-                uiPanel, xrButtons, songTitle, songArtist, songPlayer,
+                uiPanel, xrButtons, songTitle, songArtist, artUrl, songPlayer,
                 totalDuration, sections, startCalibration,
                 onResumeWithCountdown, onSettings, registerPanelUpdate, onBack,
             );

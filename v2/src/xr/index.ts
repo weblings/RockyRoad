@@ -926,6 +926,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
             xrButtons,
             entry.entry.songName,
             entry.entry.artistName,
+            entry.source.getAlbumArtUrl(entry.entry),
             songPlayer,
             totalDuration,
             sections,
