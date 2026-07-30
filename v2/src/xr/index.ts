@@ -728,6 +728,42 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     }
     setSettingsPanelInteractive(false);
 
+    // ── Song/PreScene uikit panel (next screen-by-screen migration step after
+    // Settings) ───────────────────────────────────────────────────────────────
+    // Same slot/pattern as settingsPanelObj above — dedicated, always-mounted
+    // entity per screen (decided over a shared/swappable single entity; see the
+    // migration plan notes) rather than something novel.
+    const preScenePanelObj = new Object3D();
+    preScenePanelObj.position.set(0, 0.169, 0);
+    preScenePanelObj.visible = false;
+    const preScenePanelEntity = world.createTransformEntity(preScenePanelObj, {
+        parent: grabBarEntity,
+        persistent: true,
+    });
+    preScenePanelEntity.addComponent(PanelUI, {
+        config: '/ui/song.json',
+        maxWidth: 0.4,
+        maxHeight: 0.3,
+    });
+    world.globals.preScenePanelObj    = preScenePanelObj;
+    world.globals.preScenePanelEntity = preScenePanelEntity;
+
+    function setPreScenePanelInteractive(enabled: boolean): void {
+        if (enabled) {
+            if (!preScenePanelEntity.hasComponent(RayInteractable)) {
+                preScenePanelEntity.addComponent(RayInteractable);
+            }
+        } else {
+            if (preScenePanelEntity.hasComponent(RayInteractable)) {
+                preScenePanelEntity.removeComponent(RayInteractable);
+            }
+        }
+        const doc = preScenePanelEntity.getValue(PanelDocument, 'document') as
+            { rootElement: { setProperties: (p: Record<string, unknown>) => void } } | null;
+        doc?.rootElement.setProperties({ pointerEvents: enabled ? 'auto' : 'none' });
+    }
+    setPreScenePanelInteractive(false);
+
     // ── Guitar/Bass highway grab bar + content-scroll node ──────────────────────
     // Sits "beneath" the fret volume. Grabbing it repositions the whole volume
     // (position handled by IWSDK DistanceGrabbable; yaw billboard is custom, see
@@ -856,6 +892,9 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     function showLibrary(): void {
         clearXrButtons();
         resizePanel(1000, 525);
+        panelMesh.visible        = true;
+        preScenePanelObj.visible = false;
+        setPreScenePanelInteractive(false);
         (world.globals.songPlayer as SongPlayer | undefined)?.pause();
         disposeHighway();
         library.show(uiPanel, xrButtons, showPreScene,
@@ -865,10 +904,11 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     function showPreScene(sourced: SourcedEntry): void {
         document.getElementById('xr-lib-search-real')?.remove();
         clearXrButtons();
-        resizePanel(400, 300);
+        panelMesh.visible        = false;
+        preScenePanelObj.visible = true;
+        setPreScenePanelInteractive(true);
         preScene.show(
-            uiPanel,
-            xrButtons,
+            preScenePanelEntity,
             sourced,
             (instrumentType: string) =>
                 (world.globals.tryLoadCalibration as ((t: string) => boolean) | undefined)?.(instrumentType) ?? false,
@@ -1052,6 +1092,8 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         panelMesh.visible        = true;
         settingsPanelObj.visible = false;
         setSettingsPanelInteractive(false);
+        preScenePanelObj.visible = false;
+        setPreScenePanelInteractive(false);
         world.globals.updateActivePanel = undefined;
         activeScene.show(
             uiPanel,
