@@ -329,6 +329,30 @@ render itself — is nested inside that gating. Anything genuinely screen-agnost
 potentially others added later) needs to be pulled out to run unconditionally, not just the obvious
 html2canvas capture call.
 
+**Confirmed a second time, with a sharper version of the same mistake:** an idle-timeout feature
+(dim the panel + hide hand-tracking visuals after 3s of no panel interaction, gated on
+`panelMesh?.visible && inHighwayScene`) went completely dead once Song/Play also migrated off
+html2canvas — but not just "sometimes wrong": `panelMesh?.visible` (only true during Library) and
+`inHighwayScene` (always false during Library, since `disposeHighway()` runs before `showLibrary()`)
+became **mutually exclusive**, so the condition could never be true again, for any screen, at all.
+The specific thing worth checking for next time: after a migration, look for any condition
+combining "is the old html2canvas panel visible" with something else that's *only ever true on a
+different screen* — that combination isn't just fragile, it can silently become impossible outright.
+
+---
+
+## `Hovered` — a free, already-computed "is anything pointing at this" signal, worth reusing broadly
+
+**Finding:** `@iwsdk/core`'s `state-tags.d.ts` exports `Hovered`, a transient tag `InputSystem`
+automatically adds/removes on any `RayInteractable` entity while a ray *or* hand pinch intersects
+it — the same mechanism already driving click routing, not something built for this. Checking
+`entity.hasComponent(Hovered)` is a handful of component lookups, not a new raycast, so it's a
+performant way to answer "is a hand/controller currently pointing at this thing" for purposes
+unrelated to clicking — e.g. this project uses it to know when to un-hide hand-tracking visuals
+while a song is playing (`HighwaySystem.update()` in `src/xr/index.ts`). Worth reaching for
+whenever a feature needs "is the user interacting with panel X right now" without wanting to pay
+for or duplicate raycasting that IWSDK's own input pipeline already does every frame regardless.
+
 ---
 
 ## Pointer-drag math: neither `.uv` nor `.localPoint` on the event can be trusted blindly — always `stableElement.worldToLocal(event.point)`
@@ -398,6 +422,28 @@ point* rather than snapping its center to the exact cursor position, and only co
 value on pointer-up (previewing the intermediate value visually without touching the underlying
 state until release). See `_wireSeekDrag()`/`_applyProgress()`/`_scrubFraction` in
 `src/xr/XRActiveScene.ts`.
+
+**Two more UX refinements worth building in from the start for any scrubber, not just bolting on
+after the fact:**
+
+1. **Distinguish a quick tap from an actual drag by elapsed time, not just presence/absence of
+   movement.** A pointer-down immediately followed by pointer-up (no real hold — under ~200ms is a
+   reasonable threshold) reads as "tap to seek here," and should jump straight to the tapped
+   position. Left to the plain grab-offset logic above, a quick tap instead computes an offset
+   from wherever the playhead *already was* and, since nothing moved, commits that same
+   pre-existing position back — a silent no-op that looks like the tap didn't register at all.
+   Track a `pointerDownTime`, and on pointer-up branch on `Date.now()/performance.now() -
+   pointerDownTime < threshold`: quick tap → use the raw current pointer position as the target;
+   real drag → use the accumulated offset-adjusted `_scrubFraction` as before.
+2. **Actually move the underlying value during the drag, not just its visual preview.** The
+   grab-offset pattern above intentionally defers committing to the real state until pointer-up —
+   but for something like a seek bar, only updating the on-screen fill/thumb/time while dragging
+   (leaving the actual paused playhead frozen at the pre-drag position until release) means the
+   user gets no feedback about *where they're about to land* until they let go. Call the real
+   `seekTo()`-equivalent on every `onPointerMove` too, in addition to the visual preview — the
+   paused player (and anything else synced to its position, e.g. a 3D highway view) then scrubs
+   live with the drag, which is what lets the user actually *see/hear* where release will land
+   instead of guessing from the bar's position alone.
 
 ---
 

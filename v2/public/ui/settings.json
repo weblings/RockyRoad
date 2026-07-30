@@ -258,51 +258,6 @@
                   "class": "swatch-row"
                 },
                 "dataUid": "uid-21"
-              },
-              {
-                "sourceTag": "span",
-                "type": "custom",
-                "children": [
-                  "(Perf) Menu Timeout"
-                ],
-                "properties": {
-                  "class": "setting-title"
-                },
-                "dataUid": "uid-28"
-              },
-              {
-                "type": "container",
-                "sourceTag": "div",
-                "children": [
-                  {
-                    "sourceTag": "button",
-                    "type": "custom",
-                    "children": [
-                      "Off"
-                    ],
-                    "properties": {
-                      "id": "ss-perftimeout-off-keys",
-                      "class": "toggle-btn toggle-inactive"
-                    },
-                    "dataUid": "uid-30"
-                  },
-                  {
-                    "sourceTag": "button",
-                    "type": "custom",
-                    "children": [
-                      "On"
-                    ],
-                    "properties": {
-                      "id": "ss-perftimeout-on-keys",
-                      "class": "toggle-btn toggle-active"
-                    },
-                    "dataUid": "uid-31"
-                  }
-                ],
-                "properties": {
-                  "class": "toggle-group"
-                },
-                "dataUid": "uid-29"
               }
             ],
             "properties": {
@@ -324,7 +279,7 @@
                 "properties": {
                   "class": "setting-title"
                 },
-                "dataUid": "uid-33"
+                "dataUid": "uid-29"
               },
               {
                 "type": "container",
@@ -340,7 +295,7 @@
                       "id": "ss-invert-off",
                       "class": "toggle-btn toggle-active"
                     },
-                    "dataUid": "uid-35"
+                    "dataUid": "uid-31"
                   },
                   {
                     "sourceTag": "button",
@@ -350,6 +305,51 @@
                     ],
                     "properties": {
                       "id": "ss-invert-on",
+                      "class": "toggle-btn toggle-inactive"
+                    },
+                    "dataUid": "uid-32"
+                  }
+                ],
+                "properties": {
+                  "class": "toggle-group"
+                },
+                "dataUid": "uid-30"
+              },
+              {
+                "sourceTag": "span",
+                "type": "custom",
+                "children": [
+                  "Lefty Mode"
+                ],
+                "properties": {
+                  "class": "setting-title"
+                },
+                "dataUid": "uid-33"
+              },
+              {
+                "type": "container",
+                "sourceTag": "div",
+                "children": [
+                  {
+                    "sourceTag": "button",
+                    "type": "custom",
+                    "children": [
+                      "Off"
+                    ],
+                    "properties": {
+                      "id": "ss-lefty-off",
+                      "class": "toggle-btn toggle-active"
+                    },
+                    "dataUid": "uid-35"
+                  },
+                  {
+                    "sourceTag": "button",
+                    "type": "custom",
+                    "children": [
+                      "On"
+                    ],
+                    "properties": {
+                      "id": "ss-lefty-on",
                       "class": "toggle-btn toggle-inactive"
                     },
                     "dataUid": "uid-36"
@@ -364,7 +364,7 @@
                 "sourceTag": "span",
                 "type": "custom",
                 "children": [
-                  "Lefty Mode"
+                  "Note Numbers"
                 ],
                 "properties": {
                   "class": "setting-title"
@@ -382,7 +382,7 @@
                       "Off"
                     ],
                     "properties": {
-                      "id": "ss-lefty-off",
+                      "id": "ss-notenum-off",
                       "class": "toggle-btn toggle-active"
                     },
                     "dataUid": "uid-39"
@@ -394,7 +394,7 @@
                       "On"
                     ],
                     "properties": {
-                      "id": "ss-lefty-on",
+                      "id": "ss-notenum-on",
                       "class": "toggle-btn toggle-inactive"
                     },
                     "dataUid": "uid-40"
@@ -409,57 +409,12 @@
                 "sourceTag": "span",
                 "type": "custom",
                 "children": [
-                  "Note Numbers"
-                ],
-                "properties": {
-                  "class": "setting-title"
-                },
-                "dataUid": "uid-41"
-              },
-              {
-                "type": "container",
-                "sourceTag": "div",
-                "children": [
-                  {
-                    "sourceTag": "button",
-                    "type": "custom",
-                    "children": [
-                      "Off"
-                    ],
-                    "properties": {
-                      "id": "ss-notenum-off",
-                      "class": "toggle-btn toggle-active"
-                    },
-                    "dataUid": "uid-43"
-                  },
-                  {
-                    "sourceTag": "button",
-                    "type": "custom",
-                    "children": [
-                      "On"
-                    ],
-                    "properties": {
-                      "id": "ss-notenum-on",
-                      "class": "toggle-btn toggle-inactive"
-                    },
-                    "dataUid": "uid-44"
-                  }
-                ],
-                "properties": {
-                  "class": "toggle-group"
-                },
-                "dataUid": "uid-42"
-              },
-              {
-                "sourceTag": "span",
-                "type": "custom",
-                "children": [
                   "Highway Size"
                 ],
                 "properties": {
                   "class": "setting-title"
                 },
-                "dataUid": "uid-45"
+                "dataUid": "uid-41"
               },
               {
                 "type": "container",
@@ -475,7 +430,7 @@
                       "id": "ss-hwsize-dec",
                       "class": "stepper-btn"
                     },
-                    "dataUid": "uid-47"
+                    "dataUid": "uid-43"
                   },
                   {
                     "sourceTag": "span",
@@ -487,7 +442,7 @@
                       "id": "ss-hwsize-val",
                       "class": "stepper-val"
                     },
-                    "dataUid": "uid-48"
+                    "dataUid": "uid-44"
                   },
                   {
                     "sourceTag": "button",
@@ -499,65 +454,20 @@
                       "id": "ss-hwsize-inc",
                       "class": "stepper-btn"
                     },
-                    "dataUid": "uid-49"
+                    "dataUid": "uid-45"
                   }
                 ],
                 "properties": {
                   "class": "stepper-row"
                 },
-                "dataUid": "uid-46"
-              },
-              {
-                "sourceTag": "span",
-                "type": "custom",
-                "children": [
-                  "(Perf) Menu Timeout"
-                ],
-                "properties": {
-                  "class": "setting-title"
-                },
-                "dataUid": "uid-50"
-              },
-              {
-                "type": "container",
-                "sourceTag": "div",
-                "children": [
-                  {
-                    "sourceTag": "button",
-                    "type": "custom",
-                    "children": [
-                      "Off"
-                    ],
-                    "properties": {
-                      "id": "ss-perftimeout-off-guitar",
-                      "class": "toggle-btn toggle-inactive"
-                    },
-                    "dataUid": "uid-52"
-                  },
-                  {
-                    "sourceTag": "button",
-                    "type": "custom",
-                    "children": [
-                      "On"
-                    ],
-                    "properties": {
-                      "id": "ss-perftimeout-on-guitar",
-                      "class": "toggle-btn toggle-active"
-                    },
-                    "dataUid": "uid-53"
-                  }
-                ],
-                "properties": {
-                  "class": "toggle-group"
-                },
-                "dataUid": "uid-51"
+                "dataUid": "uid-42"
               }
             ],
             "properties": {
               "id": "ss-guitar-section",
               "class": "section"
             },
-            "dataUid": "uid-32"
+            "dataUid": "uid-28"
           }
         ],
         "properties": {
@@ -1068,7 +978,7 @@
         "column": 0
       },
       "end": {
-        "line": 331,
+        "line": 318,
         "column": 6
       }
     },
@@ -1118,7 +1028,7 @@
         "column": 2
       },
       "end": {
-        "line": 330,
+        "line": 317,
         "column": 8
       }
     },
@@ -1128,7 +1038,7 @@
         "column": 4
       },
       "end": {
-        "line": 294,
+        "line": 287,
         "column": 10
       }
     },
@@ -1334,147 +1244,147 @@
     },
     "uid-28": {
       "start": {
-        "line": 288,
-        "column": 6
+        "line": 290,
+        "column": 4
       },
       "end": {
-        "line": 288,
-        "column": 60
+        "line": 315,
+        "column": 10
       }
     },
     "uid-29": {
       "start": {
-        "line": 289,
+        "line": 291,
         "column": 6
       },
       "end": {
-        "line": 292,
-        "column": 12
+        "line": 291,
+        "column": 55
       }
     },
     "uid-30": {
       "start": {
-        "line": 290,
-        "column": 8
+        "line": 292,
+        "column": 6
       },
       "end": {
-        "line": 290,
-        "column": 92
+        "line": 295,
+        "column": 12
       }
     },
     "uid-31": {
       "start": {
-        "line": 291,
+        "line": 293,
         "column": 8
       },
       "end": {
-        "line": 291,
-        "column": 88
+        "line": 293,
+        "column": 80
       }
     },
     "uid-32": {
       "start": {
-        "line": 297,
-        "column": 4
+        "line": 294,
+        "column": 8
       },
       "end": {
-        "line": 328,
-        "column": 10
+        "line": 294,
+        "column": 80
       }
     },
     "uid-33": {
       "start": {
-        "line": 298,
+        "line": 297,
         "column": 6
       },
       "end": {
-        "line": 298,
-        "column": 55
+        "line": 297,
+        "column": 51
       }
     },
     "uid-34": {
       "start": {
-        "line": 299,
+        "line": 298,
         "column": 6
       },
       "end": {
-        "line": 302,
+        "line": 301,
         "column": 12
       }
     },
     "uid-35": {
       "start": {
-        "line": 300,
+        "line": 299,
         "column": 8
       },
       "end": {
-        "line": 300,
-        "column": 80
+        "line": 299,
+        "column": 79
       }
     },
     "uid-36": {
       "start": {
-        "line": 301,
+        "line": 300,
         "column": 8
       },
       "end": {
-        "line": 301,
-        "column": 80
+        "line": 300,
+        "column": 79
       }
     },
     "uid-37": {
       "start": {
-        "line": 304,
+        "line": 303,
         "column": 6
       },
       "end": {
-        "line": 304,
-        "column": 51
+        "line": 303,
+        "column": 53
       }
     },
     "uid-38": {
       "start": {
-        "line": 305,
+        "line": 304,
         "column": 6
       },
       "end": {
-        "line": 308,
+        "line": 307,
         "column": 12
       }
     },
     "uid-39": {
       "start": {
-        "line": 306,
+        "line": 305,
         "column": 8
       },
       "end": {
-        "line": 306,
-        "column": 79
+        "line": 305,
+        "column": 81
       }
     },
     "uid-40": {
       "start": {
-        "line": 307,
+        "line": 306,
         "column": 8
       },
       "end": {
-        "line": 307,
-        "column": 79
+        "line": 306,
+        "column": 81
       }
     },
     "uid-41": {
       "start": {
-        "line": 310,
+        "line": 309,
         "column": 6
       },
       "end": {
-        "line": 310,
+        "line": 309,
         "column": 53
       }
     },
     "uid-42": {
       "start": {
-        "line": 311,
+        "line": 310,
         "column": 6
       },
       "end": {
@@ -1484,112 +1394,32 @@
     },
     "uid-43": {
       "start": {
-        "line": 312,
+        "line": 311,
         "column": 8
       },
       "end": {
-        "line": 312,
-        "column": 81
+        "line": 311,
+        "column": 65
       }
     },
     "uid-44": {
       "start": {
-        "line": 313,
+        "line": 312,
         "column": 8
       },
       "end": {
-        "line": 313,
-        "column": 81
+        "line": 312,
+        "column": 65
       }
     },
     "uid-45": {
       "start": {
-        "line": 316,
-        "column": 6
-      },
-      "end": {
-        "line": 316,
-        "column": 53
-      }
-    },
-    "uid-46": {
-      "start": {
-        "line": 317,
-        "column": 6
-      },
-      "end": {
-        "line": 321,
-        "column": 12
-      }
-    },
-    "uid-47": {
-      "start": {
-        "line": 318,
+        "line": 313,
         "column": 8
       },
       "end": {
-        "line": 318,
+        "line": 313,
         "column": 65
-      }
-    },
-    "uid-48": {
-      "start": {
-        "line": 319,
-        "column": 8
-      },
-      "end": {
-        "line": 319,
-        "column": 65
-      }
-    },
-    "uid-49": {
-      "start": {
-        "line": 320,
-        "column": 8
-      },
-      "end": {
-        "line": 320,
-        "column": 65
-      }
-    },
-    "uid-50": {
-      "start": {
-        "line": 323,
-        "column": 6
-      },
-      "end": {
-        "line": 323,
-        "column": 60
-      }
-    },
-    "uid-51": {
-      "start": {
-        "line": 324,
-        "column": 6
-      },
-      "end": {
-        "line": 327,
-        "column": 12
-      }
-    },
-    "uid-52": {
-      "start": {
-        "line": 325,
-        "column": 8
-      },
-      "end": {
-        "line": 325,
-        "column": 94
-      }
-    },
-    "uid-53": {
-      "start": {
-        "line": 326,
-        "column": 8
-      },
-      "end": {
-        "line": 326,
-        "column": 90
       }
     }
   }

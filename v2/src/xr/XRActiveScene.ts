@@ -319,6 +319,13 @@ export class XRActiveScene {
                 const target = Math.max(0, Math.min(pf - scrubOffset, 1));
                 this._scrubFraction = target;
                 this._applyProgress(target, totalDuration);
+                // Actually move the (paused) playhead too, not just the visual
+                // preview — lets the user scrub through the song/highway to
+                // find the right spot before releasing, same as a normal
+                // media scrubber. Final commit on pointer-up still happens
+                // (rather than relying on this), since a quick tap has no
+                // move events to have done it here.
+                songPlayer.seekTo(target * totalDuration);
             },
             onPointerUp: (e: WorldPointerEvent) => {
                 if (!scrubbing) return;

@@ -285,13 +285,6 @@
         <button id="ss-lh-4" class="swatch swatch-4"></button>
         <button id="ss-lh-5" class="swatch swatch-5"></button>
       </div>
-
-      <span class="setting-title">(Perf) Menu Timeout</span>
-      <div class="toggle-group">
-        <button id="ss-perftimeout-off-keys" class="toggle-btn toggle-inactive">Off</button>
-        <button id="ss-perftimeout-on-keys" class="toggle-btn toggle-active">On</button>
-      </div>
-
     </div>
 
     <!-- Guitar section — visibility toggled at runtime based on isGuitar -->
@@ -319,12 +312,6 @@
         <button id="ss-hwsize-dec" class="stepper-btn">-</button>
         <span id="ss-hwsize-val" class="stepper-val">1.75x</span>
         <button id="ss-hwsize-inc" class="stepper-btn">+</button>
-      </div>
-
-      <span class="setting-title">(Perf) Menu Timeout</span>
-      <div class="toggle-group">
-        <button id="ss-perftimeout-off-guitar" class="toggle-btn toggle-inactive">Off</button>
-        <button id="ss-perftimeout-on-guitar" class="toggle-btn toggle-active">On</button>
       </div>
     </div>
 

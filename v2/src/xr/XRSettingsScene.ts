@@ -72,12 +72,6 @@ export class XRSettingsScene {
             onDone(s);
         });
 
-        // Shared across both sections — same underlying setting either way, but
-        // distinct ids per section since both live in the document at once.
-        const perfSuffix = isGuitar ? 'guitar' : 'keys';
-        this._setToggle(doc, `ss-perftimeout-off-${perfSuffix}`, `ss-perftimeout-on-${perfSuffix}`,
-            s.perfMenuTimeout, v => { s.perfMenuTimeout = v; rerender(); });
-
         if (isGuitar) {
             this._setToggle(doc, 'ss-invert-off',  'ss-invert-on',  s.invertStrings, v => { s.invertStrings = v; rerender(); });
             this._setToggle(doc, 'ss-lefty-off',   'ss-lefty-on',   s.leftyMode,     v => { s.leftyMode = v; rerender(); });
