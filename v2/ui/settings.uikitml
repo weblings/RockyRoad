@@ -190,11 +190,17 @@
     border-color: transparent;
     cursor: pointer;
   }
-  .swatch:hover { border-color: #666666; }
+  /* Ring colors match .toggle-active's state family (base/hover/active), same
+     as .stepper-btn does, so all "light" interactive states look consistent
+     across the panel. */
+  .swatch:hover  { border-color: #bebebe; }
+  .swatch:active { border-color: #9c9c9c; }
 
   .swatch-selected {
     border-color: #dadada;
   }
+  .swatch-selected:hover  { border-color: #bebebe; }
+  .swatch-selected:active { border-color: #9c9c9c; }
 
   .swatch-0 { background-color: #2E71D6; }
   .swatch-1 { background-color: #E33737; }
