@@ -196,3 +196,73 @@ first time it scrolls into view). If a future screen hits unexplained layout cor
 unrelated element that correlates with "how much new text just appeared," this is the first thing
 to suspect — consider whether the new content can be introduced incrementally (e.g. paginated/
 virtualized row creation) rather than all at once, to spread out the glyph-load burst.
+
+**Repro is flaky across reloads — don't trust a single "seems fixed" report.** Because the trigger
+is specifically *never-before-rendered* glyphs, whether a given reload reproduces the bug depends
+on whatever's already sitting in the glyph/font-atlas cache from earlier in the browser session —
+a fresh cold start reliably repros it, but a reload soon after (with the same characters already
+cached from the previous load) can look fine even with the buggy content still present. This
+session burned several round-trips on unrelated CSS edits (padding values, a classList warning
+fix) that appeared to "fix" or "reintroduce" the bug purely by coincidental timing with cache
+state, before the real cause (the filler text itself) was isolated. If a fix for this class of bug
+needs confirming, retest with a genuinely cold browser start, and ideally more than once.
+
+---
+
+## `overflow: scroll` alone isn't enough — children need `flex-shrink: 0`, and the scrollbar needs explicit width/color
+
+**Symptom 1:** Setting `overflow: scroll` on a fixed-height container with more content than fits
+doesn't produce a scrollable overflow — instead all the content visibly compresses/squishes to fit
+within the container's bounds, as if `overflow` had no effect at all.
+
+**Root cause:** Real CSS engines special-case this: a flex item's automatic minimum size resets to
+0 once its own `overflow` isn't `visible`, which is what lets *it* overflow its parent instead of
+being forced to shrink. This Yoga port doesn't extend that special-casing down to the *children*
+of the scroll container — `node_modules/@pmndrs/uikit/dist/flex/node.js`'s `updateMeasurements()`
+only uses `overflow` to compute the scrollbar's range (`maxScrollPosition`) after the fact; it
+doesn't stop Yoga's normal flex-shrink pass (default `flex-shrink: 1`, same initial value as real
+CSS) from compressing children to fit *first*.
+
+**Fix:** Give the scroll container's direct child(ren) `flex-shrink: 0` explicitly. That's what
+lets them keep their natural size and overflow the container, which is what `.body`'s
+`overflow: scroll` then has something to actually scroll through.
+
+**Symptom 2:** The first time a container's content actually overflows and a scrollbar appears, it
+renders as a large, pale/white bar taking up a big chunk of the panel — much wider than a normal
+scrollbar should be.
+
+**Root cause:** `@pmndrs/uikit`'s default `scrollbarWidth` is `10`
+(`node_modules/@pmndrs/uikit/dist/properties/defaults.js`) — in the *same raw unit scale* as
+everything else you author in `.uikitml` (i.e. `10` = 10cm if you're using a 1-unit-=-1cm scale),
+not a sensible small pixel default. There's also no default `scrollbarColor` at all.
+
+**Fix:** Always set both explicitly on any element with `overflow: scroll`:
+```css
+scrollbar-width: 0.3;       /* tune to taste — default 10 is roughly 30x too wide at 1cm scale */
+scrollbar-color: #4a4a4a;
+```
+
+---
+
+## `classList.remove()` warns (loudly, every render) if the class isn't currently present
+
+**Symptom:** Console spam on every re-render: `Class 'toggle-active' not found in the classList` /
+`Class 'toggle-inactive' not found in the classList`, for classes that obviously *do* exist and
+are used correctly elsewhere. Purely cosmetic — doesn't break anything — but it's noisy enough to
+obscure real errors when debugging something else at the same time.
+
+**Root cause:** A common toggle-button re-render pattern is to unconditionally call
+`classList.remove('state-a', 'state-b')` before adding whichever one currently applies — cheap and
+simple in real DOM (`classList.remove` on an absent class is a silent no-op there). In
+`@pmndrs/uikit`, `ClassList.remove()` (`node_modules/@pmndrs/uikit/dist/components/classes.js`)
+explicitly `console.warn`s if the class isn't in the element's current list, since each element
+only ever has *one* of the two states at a time — the absent one triggers a warning every time.
+
+**Fix:** Guard with `classList.contains()` before calling `remove()`/`add()`:
+```ts
+if (el.classList.contains(removeClass)) el.classList.remove(removeClass);
+if (!el.classList.contains(addClass))   el.classList.add(addClass);
+```
+See `_setActiveClass()`/`_setSwatch()` in `src/xr/XRSettingsScene.ts` for the working pattern —
+reuse it for any future toggle/selected-state UI (Library's filter chips, Song's difficulty
+selector, etc.) rather than porting the naive unconditional-remove pattern from HTML/CSS code.
