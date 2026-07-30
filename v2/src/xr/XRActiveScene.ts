@@ -1,16 +1,95 @@
-import type { XrButton } from "./XRTypes";
+import type { Entity, UIKitDocument } from "@iwsdk/core";
+import { PanelDocument, UIKit } from "@iwsdk/core";
+import type { Vector3 } from "three";
 import type { SongPlayer } from "../shared/SongPlayer";
 import type { SongSection } from "../shared/SongFormat";
 
-const PLAY_SVG  = `<svg role="img" width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M10.6667 6.6548C10.6667 6.10764 11.2894 5.79346 11.7295 6.11862L24.377 15.4634C24.7377 15.7298 24.7377 16.2692 24.3771 16.5357L11.7295 25.8813C11.2895 26.2065 10.6667 25.8923 10.6667 25.3451L10.6667 6.6548Z" fill="currentColor"></path></svg>`;
-const PAUSE_SVG = `<svg role="img" width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M8.66667 6.66667C8.29848 6.66667 8 6.96514 8 7.33333V24.6667C8 25.0349 8.29848 25.3333 8.66667 25.3333H12.6667C13.0349 25.3333 13.3333 25.0349 13.3333 24.6667V7.33333C13.3333 6.96514 13.0349 6.66667 12.6667 6.66667H8.66667Z" fill="currentColor"></path><path d="M19.3333 6.66667C18.9651 6.66667 18.6667 6.96514 18.6667 7.33333V24.6667C18.6667 25.0349 18.9651 25.3333 19.3333 25.3333H23.3333C23.7015 25.3333 24 25.0349 24 24.6667V7.33333C24 6.96514 23.7015 6.66667 23.3333 6.66667H19.3333Z" fill="currentColor"></path></svg>`;
-
 // ── XRActiveScene ─────────────────────────────────────────────────────────────
+// uikit-based (see ui/play.uikitml) — migrated off html2canvas following the
+// same pattern as XRSettingsScene.ts/XRPreScene.ts. Unlike those two, this
+// screen also has content that updates every frame while showing (play/pause
+// state, seek position, elapsed time) — handled by a separate per-frame
+// method wired through the same registerPanelUpdate hook the old DOM-based
+// version used, rather than the click-triggered _render()/rerender() path.
+
+// uikit's own PointerEvent type lives in @pmndrs/pointer-events, not a direct
+// dependency of this project (only transitive via @iwsdk/core) — this local
+// shape covers the fields the seek-drag handlers need. setPointerCapture/
+// releasePointerCapture are real methods @pmndrs/pointer-events attaches to
+// interactive Object3Ds (node_modules/@pmndrs/pointer-events/dist/pointer.d.ts) —
+// capturing on pointerdown is what makes onPointerMove/onPointerUp keep firing
+// even once the ray/hand drags outside the seek track's actual bounds,
+// instead of only while directly hovering it.
+//
+// Deliberately NOT using event.localPoint here, even though it's tempting —
+// it's relative to whichever sub-element the ray/hand actually hit first
+// (the thumb, the fill bar, a section tick, or the track itself all sit at
+// different positions *within* the track), so the reference frame silently
+// changes depending on what you happened to grab. @pmndrs/uikit's own
+// scrollbar-drag code (node_modules/@pmndrs/uikit/dist/scroll.js's
+// setupScrollHandlers) doesn't trust it for the same reason — it explicitly
+// calls `container.worldToLocal(event.point.clone())` against the known,
+// stable container instead. This file does the same against `track`
+// specifically (captured once in _wireSeekDrag), not whatever `event.object`
+// happened to be. `event.point` is world-space (unambiguous regardless of
+// what was hit), confirmed via @pmndrs/pointer-events/dist/event.d.ts.
+//
+// What's still true from the earlier investigation: this local space is
+// normalized to the element's own size and centered at its middle, not raw
+// absolute units — confirmed by scroll.js's getIntersectedScrollbarIndex,
+// which does `point.x *= size[0]` to convert this same local coordinate into
+// absolute cm units, and by computeScrollbarTransformation's use of
+// `size[i] * 0.5` as the edge boundary. So a local x of 0 is the track's
+// center, ±0.5 its edges — `localPoint.x + 0.5` is the 0-1 fraction along
+// its width, no division by size needed.
+type WorldPointerEvent = {
+    point?: Vector3;
+    pointerId: number;
+    currentTarget?: {
+        setPointerCapture?(pointerId: number): void;
+        releasePointerCapture?(pointerId: number): void;
+    };
+};
+
+const MAX_TITLE_CHARS    = 26;
+const MAX_SUBTITLE_CHARS = 30;
+
+function truncate(s: string, max: number): string {
+    return s.length > max ? s.slice(0, max - 1) + '…' : s;
+}
+
+function formatTime(seconds: number): string {
+    const m = Math.floor(seconds / 60);
+    const s = Math.floor(seconds % 60);
+    return `${m}:${s.toString().padStart(2, '0')}`;
+}
 
 export class XRActiveScene {
+    // Resolved once (the panel entity/document are created once and persist —
+    // see playPanelEntity in index.ts), then reused across every show().
+    private _doc: UIKitDocument | null = null;
+
+    // Cached per-frame-update element refs, re-resolved each show() (the
+    // underlying songPlayer/totalDuration change per song, so this can't be
+    // resolved once at construction time).
+    private _playIcon:  ReturnType<UIKitDocument['getElementById']> = null;
+    private _pauseIcon: ReturnType<UIKitDocument['getElementById']> = null;
+    private _seekFill:  ReturnType<UIKitDocument['getElementById']> = null;
+    private _seekThumb: ReturnType<UIKitDocument['getElementById']> = null;
+    private _timeEl:    ReturnType<UIKitDocument['getElementById']> = null;
+
+    private _sectionTicks: InstanceType<typeof UIKit.Container>[] = [];
+
+    // Non-null only while actively dragging the seek bar — the fraction (0-1)
+    // the drag handlers want fill/thumb/time to show right now, previewed
+    // without touching songPlayer until pointer-up commits it. While this is
+    // set, _perFrameUpdate defers to it instead of the real (frozen, since
+    // scrubbing pauses playback) songPlayer.currentSecond, so the two don't
+    // fight over the same elements every frame.
+    private _scrubFraction: number | null = null;
+
     show(
-        uiPanel: HTMLDivElement,
-        xrButtons: XrButton[],
+        panelEntity: Entity,
         songTitle: string,
         songArtist: string,
         artUrl: string | null,
@@ -22,197 +101,225 @@ export class XRActiveScene {
         // Pause + 3s rollback + 3-2-1 countdown, then resume.
         onResumeWithCountdown: (pausedAt: number) => void,
         onSettings: () => void,
-        // Register a callback HighwaySystem calls before each html2canvas render.
+        // Register a callback HighwaySystem calls every frame before each render.
         registerPanelUpdate: (cb: () => void) => void,
         onBack: () => void,
     ): void {
-        const speedLabel = (r: number) =>
-            (Math.round(r * 100) / 100).toString().replace(/\.?0+$/, '') + '×';
-
-        const sectionTicks = totalDuration > 0
-            ? sections
-                .filter(s => s.StartTime != null && s.StartTime > 0)
-                .map(s => {
-                    const pct = Math.min((s.StartTime! / totalDuration) * 100, 100);
-                    return `<div style="position:absolute;left:${pct}%;top:0;width:2px;height:100%;` +
-                           `background:#ccc;opacity:0.4;pointer-events:none"></div>`;
-                })
-                .join('')
-            : '';
-
-        uiPanel.innerHTML = `
-            <div class="frame">
-                <div class="content">
-                    <div class="play-header">
-                        <button class="button primary-dark icon-btn" id="as-library" type="button">
-                            <svg width="10" height="10" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M13.0908 14.3334C12.972 14.3334 12.9125 14.1898 12.9965 14.1058L17.7021 9.40022C17.9625 9.13987 17.9625 8.71776 17.7021 8.45741L16.2879 7.04319C16.0275 6.78284 15.6054 6.78284 15.3451 7.04319L6.8598 15.5285C6.59945 15.7888 6.59945 16.2109 6.8598 16.4713L8.27401 17.8855L8.27536 17.8868L15.3453 24.9568C15.6057 25.2172 16.0278 25.2172 16.2881 24.9568L17.7024 23.5426C17.9627 23.2822 17.9627 22.8601 17.7024 22.5998L12.9969 17.8944C12.9129 17.8104 12.9724 17.6668 13.0912 17.6668L26 17.6668C26.3682 17.6668 26.6667 17.3683 26.6667 17.0001V15.0001C26.6667 14.6319 26.3682 14.3334 26 14.3334L13.0908 14.3334Z" fill="currentColor"/></svg>
-                            <span>Library</span>
-                        </button>
-                        <button class="button primary-dark icon-btn" id="as-settings" type="button">
-                            <svg width="14" height="14" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M13.5722 5.33333C13.2429 5.33333 12.9629 5.57382 12.9132 5.89938L12.4063 9.21916C12.4 9.26058 12.3746 9.29655 12.3378 9.31672C12.2387 9.37118 12.1409 9.42779 12.0444 9.48648C12.0086 9.5083 11.9646 9.51242 11.9255 9.49718L8.79572 8.27692C8.48896 8.15732 8.14083 8.27958 7.9762 8.56472L5.5491 12.7686C5.38444 13.0538 5.45271 13.4165 5.70981 13.6223L8.33308 15.7225C8.3658 15.7487 8.38422 15.7887 8.38331 15.8306C8.38209 15.8867 8.38148 15.9429 8.38148 15.9993C8.38148 16.0558 8.3821 16.1121 8.38332 16.1684C8.38423 16.2102 8.36582 16.2503 8.33313 16.2765L5.7103 18.3778C5.45334 18.5836 5.38515 18.9462 5.54978 19.2314L7.97688 23.4352C8.14155 23.7205 8.48981 23.8427 8.79661 23.723L11.926 22.5016C11.9651 22.4864 12.009 22.4905 12.0449 22.5123C12.1412 22.5709 12.2388 22.6274 12.3378 22.6818C12.3745 22.7019 12.4 22.7379 12.4063 22.7793L12.9132 26.0993C12.9629 26.4249 13.2429 26.6654 13.5722 26.6654H18.4264C18.7556 26.6654 19.0356 26.425 19.0854 26.0995L19.5933 22.7801C19.5997 22.7386 19.6252 22.7027 19.6619 22.6825C19.7614 22.6279 19.8596 22.5711 19.9564 22.5121C19.9923 22.4903 20.0362 22.4862 20.0754 22.5015L23.2035 23.7223C23.5103 23.842 23.8585 23.7198 24.0232 23.4346L26.4503 19.2307C26.6149 18.9456 26.5467 18.583 26.2898 18.3771L23.6679 16.2766C23.6352 16.2504 23.6168 16.2104 23.6177 16.1685C23.619 16.1122 23.6196 16.0558 23.6196 15.9993C23.6196 15.9429 23.619 15.8866 23.6177 15.8305C23.6168 15.7886 23.6353 15.7486 23.668 15.7224L26.2903 13.623C26.5474 13.4172 26.6156 13.0544 26.451 12.7692L24.0239 8.56537C23.8592 8.28023 23.5111 8.15797 23.2043 8.27757L20.0758 9.49734C20.0367 9.51258 19.9927 9.50846 19.9569 9.48664C19.8599 9.42762 19.7616 9.37071 19.6618 9.31596C19.6251 9.2958 19.5997 9.25984 19.5933 9.21843L19.0854 5.89915C19.0356 5.57369 18.7556 5.33333 18.4264 5.33333H13.5722ZM16.0001 20.2854C18.3672 20.2854 20.2862 18.3664 20.2862 15.9993C20.2862 13.6322 18.3672 11.7132 16.0001 11.7132C13.6329 11.7132 11.714 13.6322 11.714 15.9993C11.714 18.3664 13.6329 20.2854 16.0001 20.2854Z" fill="currentColor"/></svg>
-                            <span>Settings</span>
-                        </button>
-                    </div>
-                    <div class="play-body">
-                        <div class="progress-row">
-                            <div class="progress-area">
-                                <div class="times">
-                                    <span id="as-time" class="time-elapsed">0:00</span>
-                                    <span class="time-total">${formatTime(totalDuration)}</span>
-                                </div>
-                                <div id="as-seek-track" class="seek-track">
-                                    <div id="as-seek-fill" class="seek-fill"></div>
-                                    ${sectionTicks}
-                                    <div id="as-seek-thumb" class="seek-thumb"></div>
-                                </div>
-                            </div>
-                            <button id="as-playpause" class="play-btn${songPlayer.isPlaying ? ' is-playing' : ''}" type="button">
-                                ${songPlayer.isPlaying ? PAUSE_SVG : PLAY_SVG}
-                            </button>
-                        </div>
-                        <div class="song-row">
-                            <div class="art-thumb"${artUrl ? ` style="background-image:url('${esc(artUrl)}');background-size:cover;background-position:center;"` : ''}></div>
-                            <div class="song-meta">
-                                <p class="song-title">${esc(songTitle)}</p>
-                                <p class="song-subtitle">${esc(songArtist)}</p>
-                            </div>
-                            <div class="speed-control">
-                                <span class="speed-label">Speed</span>
-                                <div class="speed-row">
-                                    <button id="as-speed-dec" class="button secondary-dark speed-btn" type="button">−</button>
-                                    <span id="as-speed-val" class="speed-value">${speedLabel(songPlayer.playbackRate)}</span>
-                                    <button id="as-speed-inc" class="button secondary-dark speed-btn" type="button">+</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="actions">
-                    <button class="button primary-dark icon-btn" id="as-reposition" type="button"><svg width="14" height="14" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M22.1969 4.98846C21.7569 4.66331 21.1341 4.97748 21.1341 5.52465V7.20266C21.1341 7.27629 21.0744 7.33599 21.0008 7.33599H11.1341C8.18859 7.33599 5.80078 9.72381 5.80078 12.6693V14.6693C5.80078 15.0375 6.09925 15.336 6.46744 15.336H8.20078C8.56897 15.336 8.86744 15.0375 8.86744 14.6693V13.0691C8.86744 11.5963 10.0613 10.4024 11.5341 10.4024H21.0008C21.0744 10.4024 21.1341 10.4621 21.1341 10.5357V12.215C21.1341 12.7621 21.7569 13.0763 22.197 12.7511L26.7242 9.40583C27.0849 9.13934 27.0849 8.59995 26.7242 8.33347L22.1969 4.98846Z" fill="currentColor"/><path d="M16 18.0001C17.1046 18.0001 18 17.1046 18 16.0001C18 14.8955 17.1046 14.0001 16 14.0001C14.8954 14.0001 14 14.8955 14 16.0001C14 17.1046 14.8954 18.0001 16 18.0001Z" fill="currentColor"/><path d="M20.8652 24.6641H10.9986C10.9249 24.6641 10.8652 24.7238 10.8652 24.7975V26.4755C10.8652 27.0226 10.2425 27.3368 9.80241 27.0116L5.27514 23.6666C4.91448 23.4002 4.91447 22.8608 5.27512 22.5943L9.80239 19.249C10.2425 18.9238 10.8652 19.238 10.8652 19.7851V21.4644C10.8652 21.538 10.9249 21.5977 10.9986 21.5977H20.4652C21.938 21.5977 23.1319 20.4038 23.1319 18.931V17.3308C23.1319 16.9626 23.4304 16.6641 23.7986 16.6641H25.5319C25.9001 16.6641 26.1986 16.9626 26.1986 17.3308V19.3308C26.1986 22.2763 23.8108 24.6641 20.8652 24.6641Z" fill="currentColor"/></svg><span>Reposition</span></button>
-                </div>
-            </div>
-        `;
-
-        const rerender = () => {
-            this.show(
-                uiPanel, xrButtons, songTitle, songArtist, artUrl, songPlayer,
-                totalDuration, sections, startCalibration,
-                onResumeWithCountdown, onSettings, registerPanelUpdate, onBack,
+        const proceed = (doc: UIKitDocument) => {
+            this._doc = doc;
+            this._render(
+                doc, songTitle, songArtist, artUrl, songPlayer, totalDuration, sections,
+                startCalibration, onResumeWithCountdown, onSettings, registerPanelUpdate, onBack,
             );
         };
 
-        const libraryEl   = uiPanel.querySelector('#as-library')    as HTMLButtonElement;
-        const settingsEl  = uiPanel.querySelector('#as-settings')   as HTMLButtonElement;
-        const playEl      = uiPanel.querySelector('#as-playpause')  as HTMLButtonElement;
-        const reposEl     = uiPanel.querySelector('#as-reposition') as HTMLButtonElement;
-        const sdwnEl      = uiPanel.querySelector('#as-speed-dec')  as HTMLButtonElement;
-        const supEl       = uiPanel.querySelector('#as-speed-inc')  as HTMLButtonElement;
-        const seekTrack   = uiPanel.querySelector('#as-seek-track') as HTMLDivElement;
-        const seekFill    = uiPanel.querySelector('#as-seek-fill')  as HTMLDivElement;
-        const seekThumb   = uiPanel.querySelector('#as-seek-thumb') as HTMLDivElement;
-        const timeEl      = uiPanel.querySelector('#as-time')       as HTMLSpanElement;
+        if (this._doc) { proceed(this._doc); return; }
 
-        let wasPlaying = songPlayer.isPlaying;
-        registerPanelUpdate(() => {
-            if (songPlayer.isPlaying && totalDuration > 0 && songPlayer.currentSecond >= totalDuration) {
+        const poll = () => {
+            const doc = panelEntity.getValue(PanelDocument, 'document') as UIKitDocument | null;
+            if (doc) { proceed(doc); return; }
+            setTimeout(poll, 100);
+        };
+        poll();
+    }
+
+    private _render(
+        doc: UIKitDocument,
+        songTitle: string,
+        songArtist: string,
+        artUrl: string | null,
+        songPlayer: SongPlayer,
+        totalDuration: number,
+        sections: SongSection[],
+        startCalibration: (done: () => void) => void,
+        onResumeWithCountdown: (pausedAt: number) => void,
+        onSettings: () => void,
+        registerPanelUpdate: (cb: () => void) => void,
+        onBack: () => void,
+    ): void {
+        const rerender = () => this._render(
+            doc, songTitle, songArtist, artUrl, songPlayer, totalDuration, sections,
+            startCalibration, onResumeWithCountdown, onSettings, registerPanelUpdate, onBack,
+        );
+
+        doc.getElementById('as-song-title')?.setProperties({ text: truncate(songTitle, MAX_TITLE_CHARS) });
+        doc.getElementById('as-song-subtitle')?.setProperties({ text: truncate(songArtist, MAX_SUBTITLE_CHARS) });
+        doc.getElementById('as-time-total')?.setProperties({ text: formatTime(totalDuration) });
+
+        const artEl = doc.getElementById('as-art-img');
+        if (artUrl) artEl?.setProperties({ display: 'flex', src: artUrl });
+        else        artEl?.setProperties({ display: 'none' });
+
+        doc.getElementById('as-speed-val')?.setProperties({ text: speedLabel(songPlayer.playbackRate) });
+
+        this._buildSectionTicks(doc, sections, totalDuration);
+
+        this._setClick(doc, 'as-library', onBack);
+        this._setClick(doc, 'as-settings', () => {
+            if (songPlayer.isPlaying) songPlayer.pause();
+            onSettings();
+        });
+        this._setClick(doc, 'as-reposition', () => {
+            if (songPlayer.isPlaying) songPlayer.pause();
+            startCalibration(() => rerender());
+        });
+        this._setClick(doc, 'as-speed-dec', () => {
+            songPlayer.playbackRate = Math.max(0.1, Math.round((songPlayer.playbackRate - 0.1) * 10) / 10);
+            rerender();
+        });
+        this._setClick(doc, 'as-speed-inc', () => {
+            songPlayer.playbackRate = Math.min(2.0, Math.round((songPlayer.playbackRate + 0.1) * 10) / 10);
+            rerender();
+        });
+        this._setClick(doc, 'as-playpause', () => {
+            if (songPlayer.isPlaying) {
                 songPlayer.pause();
-                songPlayer.seekTo(totalDuration);
+                rerender();
+            } else {
+                onResumeWithCountdown(songPlayer.currentSecond);
             }
-
-            const nowPlaying = songPlayer.isPlaying;
-            if (nowPlaying !== wasPlaying) {
-                wasPlaying = nowPlaying;
-                playEl.className = `play-btn${nowPlaying ? ' is-playing' : ''}`;
-                playEl.innerHTML = nowPlaying ? PAUSE_SVG : PLAY_SVG;
-            }
-
-            const t   = Math.min(songPlayer.currentSecond, totalDuration > 0 ? totalDuration : Infinity);
-            const pct = totalDuration > 0 ? Math.min(t / totalDuration * 100, 100) : 0;
-            seekFill.style.width = `${pct}%`;
-            timeEl.textContent   = formatTime(t);
-            const trackW = seekTrack.offsetWidth || (seekTrack.getBoundingClientRect().width) || 356;
-            seekThumb.style.left = `${Math.max(0, Math.min(Math.round(pct / 100 * trackW) - 10, trackW - 20))}px`;
         });
 
-        xrButtons.push({
-            el: playEl,
-            onClick: () => {
-                if (songPlayer.isPlaying) {
-                    songPlayer.pause();
-                    rerender();
-                } else {
-                    onResumeWithCountdown(songPlayer.currentSecond);
-                }
-            },
-        });
+        this._wireSeekDrag(doc, songPlayer, totalDuration, onResumeWithCountdown, rerender);
 
+        // Cache per-frame-update refs and register the update loop. Re-registering
+        // on every _render() is fine — registerPanelUpdate just replaces whatever
+        // callback was previously stored (see world.globals.updateActivePanel in
+        // src/xr/index.ts), it doesn't accumulate listeners.
+        this._playIcon  = doc.getElementById('as-play-icon');
+        this._pauseIcon = doc.getElementById('as-pause-icon');
+        this._seekFill  = doc.getElementById('as-seek-fill');
+        this._seekThumb = doc.getElementById('as-seek-thumb');
+        this._timeEl    = doc.getElementById('as-time');
+        this._setPlayPauseIcon(songPlayer.isPlaying);
+
+        registerPanelUpdate(() => this._perFrameUpdate(songPlayer, totalDuration));
+    }
+
+    private _perFrameUpdate(songPlayer: SongPlayer, totalDuration: number): void {
+        if (songPlayer.isPlaying && totalDuration > 0 && songPlayer.currentSecond >= totalDuration) {
+            songPlayer.pause();
+            songPlayer.seekTo(totalDuration);
+        }
+
+        this._setPlayPauseIcon(songPlayer.isPlaying);
+
+        // While scrubbing, _wireSeekDrag's handlers own fill/thumb/time.
+        if (this._scrubFraction != null) return;
+
+        const t        = Math.min(songPlayer.currentSecond, totalDuration > 0 ? totalDuration : Infinity);
+        const fraction = totalDuration > 0 ? Math.min(t / totalDuration, 1) : 0;
+        this._applyProgress(fraction, totalDuration);
+    }
+
+    // Shared by normal playback (_perFrameUpdate) and drag preview (_wireSeekDrag)
+    // so both draw the seek bar the same way from a single 0-1 fraction.
+    private _applyProgress(fraction: number, totalDuration: number): void {
+        const pct = Math.max(0, Math.min(fraction, 1)) * 100;
+        this._seekFill?.setProperties({ width: `${pct}%` });
+        this._seekThumb?.setProperties({ positionLeft: `${pct}%` });
+        this._timeEl?.setProperties({ text: formatTime(fraction * totalDuration) });
+    }
+
+    private _setPlayPauseIcon(isPlaying: boolean): void {
+        this._playIcon?.setProperties({ display: isPlaying ? 'none' : 'flex' });
+        this._pauseIcon?.setProperties({ display: isPlaying ? 'flex' : 'none' });
+    }
+
+    private _buildSectionTicks(doc: UIKitDocument, sections: SongSection[], totalDuration: number): void {
+        const track = doc.getElementById('as-seek-track');
+        if (!track) return;
+
+        for (const tick of this._sectionTicks) track.remove(tick);
+        this._sectionTicks = [];
+
+        if (totalDuration <= 0) return;
+
+        for (const s of sections) {
+            if (s.StartTime == null || s.StartTime <= 0) continue;
+            const pct = Math.min((s.StartTime / totalDuration) * 100, 100);
+            const tick = new UIKit.Container({ positionLeft: `${pct}%` }, ['section-tick']);
+            track.add(tick);
+            this._sectionTicks.push(tick);
+        }
+    }
+
+    private _wireSeekDrag(
+        doc: UIKitDocument,
+        songPlayer: SongPlayer,
+        totalDuration: number,
+        onResumeWithCountdown: (pausedAt: number) => void,
+        rerender: () => void,
+    ): void {
+        const track = doc.getElementById('as-seek-track');
+        if (!track) return;
+
+        let scrubbing = false;
         let scrubWasPlaying = false;
-        xrButtons.push({
-            el: seekTrack,
-            onScrubStart: () => {
+        // How far off the thumb's own center you actually grabbed, so the
+        // thumb keeps that same relative offset from the interactor while
+        // dragging instead of snapping its center to the exact grab point.
+        let scrubOffset = 0;
+
+        // See the comment above WorldPointerEvent for why this goes through
+        // track.worldToLocal(event.point) rather than event.localPoint, and
+        // why "+ 0.5" — this is the established uikit drag-math pattern
+        // (mirroring scroll.js), not a guess.
+        const pointerFraction = (e: WorldPointerEvent): number | null => {
+            if (!e.point) return null;
+            const local = track.worldToLocal(e.point.clone());
+            return Math.max(0, Math.min(local.x + 0.5, 1));
+        };
+
+        track.setProperties({
+            onPointerDown: (e: WorldPointerEvent) => {
+                const pf = pointerFraction(e);
+                if (pf == null) return;
+
+                scrubbing = true;
                 scrubWasPlaying = songPlayer.isPlaying;
                 if (scrubWasPlaying) songPlayer.pause();
+                // Capture so move/up keep firing even once the interactor
+                // drags outside the track's own bounds — without this, drag
+                // input only arrives while directly hovering the track.
+                e.currentTarget?.setPointerCapture?.(e.pointerId);
+
+                const thumbFraction = totalDuration > 0 ? songPlayer.currentSecond / totalDuration : 0;
+                scrubOffset = pf - thumbFraction;
+                this._scrubFraction = thumbFraction;
+                this._applyProgress(thumbFraction, totalDuration);
             },
-            onScrubMove: (normalizedX: number) => {
-                songPlayer.seekTo(Math.max(0, Math.min(normalizedX * totalDuration, totalDuration)));
+            onPointerMove: (e: WorldPointerEvent) => {
+                if (!scrubbing) return;
+                const pf = pointerFraction(e);
+                if (pf == null) return;
+                const target = Math.max(0, Math.min(pf - scrubOffset, 1));
+                this._scrubFraction = target;
+                this._applyProgress(target, totalDuration);
             },
-            onScrubEnd: (normalizedX: number) => {
-                const t = Math.max(0, Math.min(normalizedX * totalDuration, totalDuration));
-                songPlayer.seekTo(t);
+            onPointerUp: (e: WorldPointerEvent) => {
+                if (!scrubbing) return;
+                scrubbing = false;
+                e.currentTarget?.releasePointerCapture?.(e.pointerId);
+
+                const target = this._scrubFraction ?? 0;
+                this._scrubFraction = null;
+                songPlayer.seekTo(target * totalDuration);
+
                 if (scrubWasPlaying) {
-                    onResumeWithCountdown(t);
+                    onResumeWithCountdown(songPlayer.currentSecond);
                 } else {
                     rerender();
                 }
             },
         });
+    }
 
-        xrButtons.push({
-            el: sdwnEl,
-            onClick: () => {
-                songPlayer.playbackRate = Math.max(0.1, Math.round((songPlayer.playbackRate - 0.1) * 10) / 10);
-                rerender();
-            },
-        });
-
-        xrButtons.push({
-            el: supEl,
-            onClick: () => {
-                songPlayer.playbackRate = Math.min(2.0, Math.round((songPlayer.playbackRate + 0.1) * 10) / 10);
-                rerender();
-            },
-        });
-
-        xrButtons.push({
-            el: reposEl,
-            onClick: () => {
-                if (songPlayer.isPlaying) songPlayer.pause();
-                startCalibration(() => rerender());
-            },
-        });
-
-        xrButtons.push({
-            el: settingsEl,
-            onClick: () => {
-                if (songPlayer.isPlaying) songPlayer.pause();
-                onSettings();
-            },
-        });
-
-        xrButtons.push({ el: libraryEl, onClick: onBack });
+    private _setClick(doc: UIKitDocument, id: string, onClick: () => void): void {
+        doc.getElementById(id)?.setProperties({ onClick });
     }
 }
 
-function formatTime(seconds: number): string {
-    const m = Math.floor(seconds / 60);
-    const s = Math.floor(seconds % 60);
-    return `${m}:${s.toString().padStart(2, '0')}`;
-}
-
-function esc(s: string): string {
-    return s
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
+function speedLabel(r: number): string {
+    return (Math.round(r * 100) / 100).toString().replace(/\.?0+$/, '') + '×';
 }

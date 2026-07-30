@@ -222,6 +222,15 @@ class HighwaySystem extends createSystem({}) {
             }
         }
 
+        // Fires every frame regardless of which panel is currently showing — the
+        // uikit-based Play HUD (XRActiveScene) relies on this for its live seek/
+        // time/play-pause-icon updates, and doesn't use panelMesh/html2canvas at
+        // all, so this can't live inside the panelMesh?.visible-gated block below
+        // (it used to, back when this call only ever served the html2canvas Play
+        // HUD — that coupling was incidental, not intentional, and left this
+        // callback dead for the whole time the migrated uikit panel is visible).
+        (this.world.globals.updateActivePanel as (() => void) | undefined)?.();
+
         // ── Panel: html2canvas render — rate limited by capture duration, and ────
         // paused entirely once idle (no hover) past PANEL_RENDER_IDLE_TIMEOUT_MS.
         const uiPanel   = this.world.globals.uiPanel   as HTMLDivElement  | undefined;
@@ -264,7 +273,6 @@ class HighwaySystem extends createSystem({}) {
             } else {
                 this.panelBlanked = false;
                 if (!this.panelRenderPending) {
-                    (this.world.globals.updateActivePanel as (() => void) | undefined)?.();
                     this.panelRenderPending = true;
                     const captureGen = this.panelRenderGen;
                     html2canvas(uiPanel, { backgroundColor: null, logging: false }).then(canvas => {
@@ -764,6 +772,39 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     }
     setPreScenePanelInteractive(false);
 
+    // ── Play HUD uikit panel (third screen-by-screen migration step) ────────────
+    // Same slot/pattern as settingsPanelObj/preScenePanelObj above.
+    const playPanelObj = new Object3D();
+    playPanelObj.position.set(0, 0.169, 0);
+    playPanelObj.visible = false;
+    const playPanelEntity = world.createTransformEntity(playPanelObj, {
+        parent: grabBarEntity,
+        persistent: true,
+    });
+    playPanelEntity.addComponent(PanelUI, {
+        config: '/ui/play.json',
+        maxWidth: 0.4,
+        maxHeight: 0.3,
+    });
+    world.globals.playPanelObj    = playPanelObj;
+    world.globals.playPanelEntity = playPanelEntity;
+
+    function setPlayPanelInteractive(enabled: boolean): void {
+        if (enabled) {
+            if (!playPanelEntity.hasComponent(RayInteractable)) {
+                playPanelEntity.addComponent(RayInteractable);
+            }
+        } else {
+            if (playPanelEntity.hasComponent(RayInteractable)) {
+                playPanelEntity.removeComponent(RayInteractable);
+            }
+        }
+        const doc = playPanelEntity.getValue(PanelDocument, 'document') as
+            { rootElement: { setProperties: (p: Record<string, unknown>) => void } } | null;
+        doc?.rootElement.setProperties({ pointerEvents: enabled ? 'auto' : 'none' });
+    }
+    setPlayPanelInteractive(false);
+
     // ── Guitar/Bass highway grab bar + content-scroll node ──────────────────────
     // Sits "beneath" the fret volume. Grabbing it repositions the whole volume
     // (position handled by IWSDK DistanceGrabbable; yaw billboard is custom, see
@@ -895,6 +936,8 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         panelMesh.visible        = true;
         preScenePanelObj.visible = false;
         setPreScenePanelInteractive(false);
+        playPanelObj.visible     = false;
+        setPlayPanelInteractive(false);
         (world.globals.songPlayer as SongPlayer | undefined)?.pause();
         disposeHighway();
         library.show(uiPanel, xrButtons, showPreScene,
@@ -1088,16 +1131,16 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         noteMax: number,
     ): void {
         clearXrButtons();
-        resizePanel(400, 300);
-        panelMesh.visible        = true;
+        panelMesh.visible        = false;
         settingsPanelObj.visible = false;
         setSettingsPanelInteractive(false);
         preScenePanelObj.visible = false;
         setPreScenePanelInteractive(false);
+        playPanelObj.visible     = true;
+        setPlayPanelInteractive(true);
         world.globals.updateActivePanel = undefined;
         activeScene.show(
-            uiPanel,
-            xrButtons,
+            playPanelEntity,
             entry.entry.songName,
             entry.entry.artistName,
             entry.source.getAlbumArtUrl(entry.entry),
@@ -1134,6 +1177,8 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         panelMesh.visible        = false;
         settingsPanelObj.visible = true;
         setSettingsPanelInteractive(true);
+        playPanelObj.visible     = false;
+        setPlayPanelInteractive(false);
         world.globals.updateActivePanel = undefined;
         settingsScene.show(
             settingsPanelEntity,
