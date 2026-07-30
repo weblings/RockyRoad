@@ -154,3 +154,45 @@ confirmed to work the same way here.
 Zero pipeline work needed. However, only four weights are available: `light`(300), `medium`(500),
 `semi-bold`(600), `bold`(700) — there's no plain `normal`/400. Pick `medium` as the default body
 text weight.
+
+---
+
+## A burst of brand-new text on one element can corrupt an unrelated element's layout elsewhere in the same document
+
+**Symptom:** A completely unrelated, unchanged element (a header/back-button, in a different
+subtree from the content that changed) started rendering at the wrong size — stretched to ~full
+panel width, wrong height — but *only* when a specific, larger/more-text-heavy section of the
+document was the one currently visible (toggled via `display`). Confirmed via `element.size.value`
+(see below) that the back-button's own CSS/markup never changed; the same static element measured
+`[5.5, 2.5]` normally and `[39, 1.6]` when the bug triggered. A related, milder symptom hit at the
+same time: `overflow: scroll`'s scroll range (`element.maxScrollPosition.value`) was also
+measuring wrong — scroll worked briefly then stopped, and the scrollbar itself wasn't draggable.
+
+**Root cause (best working theory, not confirmed against library source beyond behavior):**
+`inter` glyphs are lazy-loaded per-character, asynchronously, the first time any given character
+is rendered anywhere in the document (`@pmndrs/msdfonts`). Adding a chunk of static filler content
+with several brand-new, never-before-rendered strings (unique digits/words not used elsewhere in
+the doc) to test scrolling caused a burst of many concurrent async glyph-load-triggered remeasure
+passes. Yoga's native layout engine doesn't appear to be safe against overlapping/reentrant
+`calculateLayout()` calls — a large enough burst of simultaneous remeasures from one subtree can
+scribble a wrong computed size into a completely unrelated node elsewhere in the same document.
+Both symptoms (header stretch, scroll-range corruption) disappeared immediately and completely
+once the filler content (the burst source) was removed — no CSS change was needed or made.
+
+**How to diagnose this class of bug:** there's no thrown exception or console error — Yoga just
+silently produces wrong numbers. Add temporary instrumentation instead: give the suspect elements
+an `id`, then read `element.size.value` (and `element.scrollable.value` /
+`element.maxScrollPosition.value` for scroll containers) directly — these are public signals on
+every `Component` (`node_modules/@pmndrs/uikit/dist/components/component.js`). Log them a few
+hundred ms after the render/state change that supposedly triggers the bug (layout settles
+asynchronously, so logging synchronously in the same tick shows stale/undefined values), and
+compare the numbers between a "working" and "broken" state to confirm it's a real miscomputation
+rather than a CSS issue.
+
+**How to avoid next time:** be wary of adding a large amount of brand-new, never-before-rendered
+text to a document all at once (a big static content dump, or — more relevant going forward — the
+Library screen's unbounded, server-driven song list, where every new song title is new text the
+first time it scrolls into view). If a future screen hits unexplained layout corruption in an
+unrelated element that correlates with "how much new text just appeared," this is the first thing
+to suspect — consider whether the new content can be introduced incrementally (e.g. paginated/
+virtualized row creation) rather than all at once, to spread out the glyph-load burst.

@@ -286,28 +286,6 @@
         <button id="ss-perftimeout-on-keys" class="toggle-btn toggle-active">On</button>
       </div>
 
-      <!-- Scroll test filler — not wired to any Settings state, remove once
-           vertical scrolling is confirmed working in-headset. -->
-      <span class="setting-title">Scroll Test 1</span>
-      <div class="toggle-group">
-        <button class="toggle-btn toggle-active">Option A</button>
-        <button class="toggle-btn toggle-inactive">Option B</button>
-      </div>
-      <span class="setting-title">Scroll Test 2</span>
-      <div class="toggle-group">
-        <button class="toggle-btn toggle-active">Option A</button>
-        <button class="toggle-btn toggle-inactive">Option B</button>
-      </div>
-      <span class="setting-title">Scroll Test 3</span>
-      <div class="toggle-group">
-        <button class="toggle-btn toggle-active">Option A</button>
-        <button class="toggle-btn toggle-inactive">Option B</button>
-      </div>
-      <span class="setting-title">Scroll Test 4</span>
-      <div class="toggle-group">
-        <button class="toggle-btn toggle-active">Option A</button>
-        <button class="toggle-btn toggle-inactive">Option B</button>
-      </div>
     </div>
 
     <!-- Guitar section — visibility toggled at runtime based on isGuitar -->
