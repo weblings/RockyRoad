@@ -49,6 +49,14 @@
     text-align: center;
     cursor: pointer;
   }
+
+  #xr-button:hover {
+    background-color: #4488ff;
+  }
+
+  #xr-button:active {
+    background-color: #ff4444;
+  }
 </style>
 <div class="panel-container">
   <span class="heading"> Hello, Immersive Web! </span>

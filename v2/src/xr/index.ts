@@ -17,6 +17,8 @@ import {
     MeshBasicMaterial,
     MovementMode,
     Object3D,
+    PanelDocument,
+    PanelUI,
     PlaneGeometry,
     Raycaster,
     RayInteractable,
@@ -46,6 +48,45 @@ import type { XrButton } from "./XRTypes";
 import type {
     SongStructure, SongKeyboardNotes, SongInstrumentNotes, SongSection, SongInfo,
 } from "../shared/SongFormat";
+
+// ── In-headset debug console (permanent dev tooling, flagged) ───────────────
+// Mirrors console.log/warn/error + uncaught errors onto a canvas plane in the
+// scene so they're readable in-headset without chrome://inspect/USB, which
+// has proven unreliable. Plain CanvasTexture, not uikit — deliberately
+// independent of anything it might be used to debug. See
+// ThreeCP/Analysis/UikitLessonsLearned.md and LessonsLearned.md's
+// "Debugging JS console from Quest Browser on PC" entry.
+const DEBUG_CONSOLE_ENABLED = true;
+
+const debugLines: string[] = [];
+const DEBUG_MAX_LINES = 22;
+let debugRedraw: (() => void) | null = null;
+
+function pushDebugLine(prefix: string, args: unknown[]): void {
+    const text = prefix + args.map(a => {
+        if (typeof a === 'string') return a;
+        if (a instanceof Error) return `${a.name}: ${a.message}`;
+        try { return JSON.stringify(a); } catch { return String(a); }
+    }).join(' ');
+    for (const line of text.match(/.{1,54}/g) ?? [text]) debugLines.push(line);
+    while (debugLines.length > DEBUG_MAX_LINES) debugLines.shift();
+    debugRedraw?.();
+}
+
+if (DEBUG_CONSOLE_ENABLED) {
+    const _origLog   = console.log.bind(console);
+    const _origWarn  = console.warn.bind(console);
+    const _origError = console.error.bind(console);
+    console.log   = (...args: unknown[]) => { _origLog(...args);   pushDebugLine('',    args); };
+    console.warn  = (...args: unknown[]) => { _origWarn(...args);  pushDebugLine('[W] ', args); };
+    console.error = (...args: unknown[]) => { _origError(...args); pushDebugLine('[E] ', args); };
+    window.addEventListener('error', (e) => {
+        pushDebugLine('[ERR] ', [e.message, `${e.filename}:${e.lineno}`]);
+    });
+    window.addEventListener('unhandledrejection', (e) => {
+        pushDebugLine('[REJ] ', [String(e.reason)]);
+    });
+}
 
 // ── Asset paths ───────────────────────────────────────────────────────────────
 
@@ -195,7 +236,7 @@ class HighwaySystem extends createSystem({}) {
         const panelIdle = inHighwayScene && perfMenuTimeoutEnabled
             && performance.now() - this.lastPanelHoverMs > PANEL_RENDER_IDLE_TIMEOUT_MS;
 
-        if (uiPanel && panelTex) {
+        if (uiPanel && panelTex && panelMesh?.visible) {
             if (panelIdle) {
                 // Dim to a flat, half-transparent version of the panel's own
                 // background (#0a0a0a, see panel.css) instead of leaving the last
@@ -524,6 +565,33 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     });
     world.globals.anchor = anchor;
 
+    // ── In-headset debug console mesh — fixed world position (not parented to ──
+    // the grab bar) so it's always in the same, predictable spot regardless of
+    // where the panel has been moved. See pushDebugLine() above.
+    if (DEBUG_CONSOLE_ENABLED) {
+        const debugCanvas = document.createElement('canvas');
+        debugCanvas.width  = 640;
+        debugCanvas.height = 480;
+        const debugCtx = debugCanvas.getContext('2d')!;
+        const debugTex = new CanvasTexture(debugCanvas);
+        const debugMesh = new Mesh(
+            new PlaneGeometry(0.5, 0.375),
+            new MeshBasicMaterial({ map: debugTex, transparent: true }),
+        );
+        debugMesh.position.set(0.25, 1.55, -0.6);
+        world.createTransformEntity(debugMesh, { parent: world.sceneEntity, persistent: true });
+        debugRedraw = () => {
+            debugCtx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+            debugCtx.fillRect(0, 0, debugCanvas.width, debugCanvas.height);
+            debugCtx.font = '16px monospace';
+            debugCtx.fillStyle = '#00ff66';
+            debugCtx.textBaseline = 'top';
+            debugLines.forEach((line, i) => debugCtx.fillText(line, 6, 6 + i * 20));
+            debugTex.needsUpdate = true;
+        };
+        debugRedraw();
+    }
+
     // ── Countdown overlay (Keys) ──────────────────────────────────────────────
     // world.globals.countdown{Mesh,Canvas,Tex} are generic — HighwaySystem just
     // draws into whichever the active loadSong() branch points them at. Guitar's
@@ -606,6 +674,59 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         persistent: true,
     });
     panelMeshEntity.addComponent(RayInteractable);
+
+    // ── Settings uikit panel (Phase B of the html2canvas → uikit migration) ─────
+    // Same slot as panelMesh (child of grabBarEntity, same local offset/size),
+    // toggled visible instead of it while the Settings screen is showing — see
+    // showSettings()/showActiveScene() below. Created once, persistent; content
+    // is static (see ui/settings.uikitml) and wired/updated via setProperties()
+    // rather than recreated per-open.
+    const settingsPanelObj = new Object3D();
+    settingsPanelObj.position.set(0, 0.169, 0);
+    settingsPanelObj.visible = false;
+    // pointer-events also starts at 'none' by default in ui/settings.uikitml
+    // itself — visible=false alone doesn't reliably stop uikit's own
+    // click/hover dispatch from hitting this panel while it's meant to be
+    // hidden (confirmed via testing), so interactivity is gated separately.
+    const settingsPanelEntity = world.createTransformEntity(settingsPanelObj, {
+        parent: grabBarEntity,
+        persistent: true,
+    });
+    // RayInteractable is NOT added here — it starts absent (panel starts
+    // hidden) and gets added/removed by setSettingsPanelInteractive() below,
+    // so the panel is fully excluded from IWSDK's rayDescendants list (the
+    // ray-cursor targets) while hidden, not just visually hidden.
+    settingsPanelEntity.addComponent(PanelUI, {
+        config: '/ui/settings.json',
+        maxWidth: 0.4,
+        maxHeight: 0.3,
+    });
+    world.globals.settingsPanelObj    = settingsPanelObj;
+    world.globals.settingsPanelEntity = settingsPanelEntity;
+
+    // Two separate gates, both needed (confirmed via testing — pointerEvents
+    // alone still let the ray cursor snap to/stop at the hidden panel):
+    // - RayInteractable add/remove: excludes the panel from IWSDK's
+    //   InputSystem raycast-target list entirely, so the ray cursor passes
+    //   through to whatever's actually behind it (e.g. panelMesh's Library
+    //   button) instead of stopping here.
+    // - pointerEvents: gates uikit's own internal click/hover dispatch,
+    //   independent of the above.
+    function setSettingsPanelInteractive(enabled: boolean): void {
+        if (enabled) {
+            if (!settingsPanelEntity.hasComponent(RayInteractable)) {
+                settingsPanelEntity.addComponent(RayInteractable);
+            }
+        } else {
+            if (settingsPanelEntity.hasComponent(RayInteractable)) {
+                settingsPanelEntity.removeComponent(RayInteractable);
+            }
+        }
+        const doc = settingsPanelEntity.getValue(PanelDocument, 'document') as
+            { rootElement: { setProperties: (p: Record<string, unknown>) => void } } | null;
+        doc?.rootElement.setProperties({ pointerEvents: enabled ? 'auto' : 'none' });
+    }
+    setSettingsPanelInteractive(false);
 
     // ── Guitar/Bass highway grab bar + content-scroll node ──────────────────────
     // Sits "beneath" the fret volume. Grabbing it repositions the whole volume
@@ -928,6 +1049,9 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     ): void {
         clearXrButtons();
         resizePanel(400, 300);
+        panelMesh.visible        = true;
+        settingsPanelObj.visible = false;
+        setSettingsPanelInteractive(false);
         world.globals.updateActivePanel = undefined;
         activeScene.show(
             uiPanel,
@@ -965,11 +1089,12 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         noteMax: number,
     ): void {
         clearXrButtons();
-        resizePanel(400, 300);
+        panelMesh.visible        = false;
+        settingsPanelObj.visible = true;
+        setSettingsPanelInteractive(true);
         world.globals.updateActivePanel = undefined;
         settingsScene.show(
-            uiPanel,
-            xrButtons,
+            settingsPanelEntity,
             noteMin,
             noteMax,
             world.globals.highwayScene instanceof FretPlayerScene3D,

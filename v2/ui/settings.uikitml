@@ -1,0 +1,296 @@
+<style>
+  /* Scale: 1 unit = 1cm, matching panelMesh's real 0.4m x 0.3m plane (40 x 30
+     units) so panel-authored proportions line up with the physical panel
+     size set via PanelUI's maxWidth/maxHeight in src/xr/index.ts. Colors and
+     spacing translated 1:1 (px / 10) from src/xr/panel.css + settings.css —
+     those are the live source of truth this file is derived from, not
+     ui/Export/. Tag vocabulary (div/span/button, :hover/:active) matches
+     ui/welcome.uikitml exactly, since that's the only syntax confirmed
+     working in this project (Phase A spike) — Container/Text tags shown in
+     the compiler's own README are unverified here, so avoided. */
+
+  /* pointer-events defaults to none — the panel is created once at startup
+     and stays mounted/loaded even while the Settings screen isn't showing
+     (see settingsPanelObj in index.ts). Explicitly flipped to auto/none in
+     showSettings()/showActiveScene() so it can't intercept clicks meant for
+     whatever else occupies this panel slot when hidden. */
+  .panel {
+    width: 40;
+    height: 30;
+    display: flex;
+    flex-direction: column;
+    background-color: #0a0a0a;
+    border-radius: 1.2;
+    font-family: inter;
+    font-weight: medium;
+    pointer-events: none;
+  }
+
+  .header {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap-row: 1;
+    gap-column: 1;
+    padding-top: 1;
+    padding-right: 1;
+    padding-bottom: 0;
+    padding-left: 1;
+  }
+
+  .back-btn {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap-row: 0.2;
+    gap-column: 0.2;
+    background-color: #333333;
+    color: #ffffff;
+    padding: 0.8;
+    border-radius: 0.5;
+    font-size: 1.2;
+    cursor: pointer;
+  }
+
+  /* Matches panel.css's .icon-btn > svg — pulls the icon back toward the
+     button edge (not an evenly-spaced gap; icon and label are tuned
+     independently). */
+  .back-icon {
+    width: 1;
+    height: 1;
+    margin-left: -0.1;
+  }
+
+  /* Matches panel.css's .icon-btn > span — small optical vertical nudge. */
+  .back-label {
+    position-type: relative;
+    margin-left: 0.4;
+    position-top: -0.05;
+  }
+  .back-btn:hover  { background-color: #515151; }
+  .back-btn:active { background-color: #7c7c7c; }
+
+  .body {
+    display: flex;
+    flex-direction: column;
+    gap-row: 0.8;
+    gap-column: 0.8;
+    padding-top: 1;
+    padding-bottom: 1;
+    padding-left: 1.2;
+    padding-right: 1.2;
+    flex-grow: 1;
+    overflow: scroll;
+  }
+
+  .section {
+    display: flex;
+    flex-direction: column;
+    gap-row: 0.8;
+    gap-column: 0.8;
+  }
+
+  .setting-title {
+    color: #ffffff;
+    font-size: 1.2;
+    font-weight: bold;
+  }
+
+  .toggle-group {
+    display: flex;
+    flex-direction: row;
+    gap-row: 0.4;
+    gap-column: 0.4;
+  }
+
+  /* Base .button centering is display:flex + align-items:center +
+     justify-content:center in panel.css, not text-align — that also
+     vertically centers, which text-align alone doesn't.
+     height is unset here deliberately (matches original's height:auto) —
+     it's derived purely from padding + font-size/line-height. font-size has
+     no defined source in settings.css/panel.css (no font-size on
+     .toggle-group .button, and .button never resets font:inherit), so on
+     the real app this is just Chromium's default form-control font-size
+     (~13.3px) — used that instead of an arbitrary guess, since it directly
+     drives the auto-computed button height via line-height. */
+  .toggle-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-grow: 1;
+    flex-shrink: 1;
+    flex-basis: 0;
+    padding-top: 0.6;
+    padding-bottom: 0.6;
+    padding-left: 0.8;
+    padding-right: 0.8;
+    border-radius: 0.5;
+    font-size: 1.33;
+    cursor: pointer;
+  }
+
+  /* "active" here means visually-selected (matches primary-light in panel.css),
+     not the CSS :active/press pseudo-class. */
+  .toggle-active {
+    background-color: #dadada;
+    color: #111111;
+  }
+  .toggle-active:hover  { background-color: #bebebe; }
+  .toggle-active:active { background-color: #9c9c9c; }
+
+  .toggle-inactive {
+    background-color: #333333;
+    color: #ffffff;
+  }
+  .toggle-inactive:hover  { background-color: #515151; }
+  .toggle-inactive:active { background-color: #7c7c7c; }
+
+  .swatch-row {
+    display: flex;
+    flex-direction: row;
+    gap-row: 0.6;
+    gap-column: 0.6;
+  }
+
+  .swatch {
+    width: 3;
+    height: 3;
+    border-radius: 1.5;
+    border-width: 0.3;
+    border-color: transparent;
+    cursor: pointer;
+  }
+  .swatch:hover { border-color: #666666; }
+
+  .swatch-selected {
+    border-color: #dadada;
+  }
+
+  .swatch-0 { background-color: #2E71D6; }
+  .swatch-1 { background-color: #E33737; }
+  .swatch-2 { background-color: #3DAA3D; }
+  .swatch-3 { background-color: #9B59B6; }
+  .swatch-4 { background-color: #E67E22; }
+  .swatch-5 { background-color: #E8E8E8; }
+
+  /* Matches src/xr/screens/play.css's .speed-row/.speed-btn/.speed-value —
+     the guitar highway-scale stepper reuses that styling per the original
+     XRSettingsScene.ts comment. */
+  .stepper-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap-row: 0.4;
+    gap-column: 0.4;
+  }
+
+  /* Colors intentionally match .toggle-active (the light buttons) rather
+     than play.css's secondary-dark, per explicit request — a style choice,
+     not a fidelity fix. */
+  .stepper-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #dadada;
+    color: #111111;
+    font-weight: bold;
+    width: 2.2;
+    height: 2.2;
+    border-radius: 0.4;
+    font-size: 1.1;
+    cursor: pointer;
+  }
+  .stepper-btn:hover  { background-color: #bebebe; }
+  .stepper-btn:active { background-color: #9c9c9c; }
+
+  .stepper-val {
+    color: #e8e8e8;
+    font-size: 1.2;
+    font-weight: bold;
+    min-width: 3.8;
+    text-align: center;
+  }
+</style>
+
+<div class="panel">
+  <div class="header">
+    <button id="ss-back" class="back-btn">
+      <img src="/back-arrow.svg" class="back-icon" />
+      <span class="back-label">Play</span>
+    </button>
+  </div>
+
+  <div class="body" id="ss-body">
+
+    <!-- Keys section — visibility toggled at runtime based on isGuitar -->
+    <div id="ss-keys-section" class="section">
+      <span class="setting-title">Key Range</span>
+      <div class="toggle-group">
+        <button id="ss-note-range" class="toggle-btn toggle-active">Note range</button>
+        <button id="ss-full-88" class="toggle-btn toggle-inactive">Full 88-key</button>
+      </div>
+
+      <span class="setting-title">Right Hand Color</span>
+      <div class="swatch-row">
+        <button id="ss-rh-0" class="swatch swatch-0 swatch-selected"></button>
+        <button id="ss-rh-1" class="swatch swatch-1"></button>
+        <button id="ss-rh-2" class="swatch swatch-2"></button>
+        <button id="ss-rh-3" class="swatch swatch-3"></button>
+        <button id="ss-rh-4" class="swatch swatch-4"></button>
+        <button id="ss-rh-5" class="swatch swatch-5"></button>
+      </div>
+
+      <span class="setting-title">Left Hand Color</span>
+      <div class="swatch-row">
+        <button id="ss-lh-0" class="swatch swatch-0"></button>
+        <button id="ss-lh-1" class="swatch swatch-1 swatch-selected"></button>
+        <button id="ss-lh-2" class="swatch swatch-2"></button>
+        <button id="ss-lh-3" class="swatch swatch-3"></button>
+        <button id="ss-lh-4" class="swatch swatch-4"></button>
+        <button id="ss-lh-5" class="swatch swatch-5"></button>
+      </div>
+
+      <span class="setting-title">(Perf) Menu Timeout</span>
+      <div class="toggle-group">
+        <button id="ss-perftimeout-off-keys" class="toggle-btn toggle-inactive">Off</button>
+        <button id="ss-perftimeout-on-keys" class="toggle-btn toggle-active">On</button>
+      </div>
+    </div>
+
+    <!-- Guitar section — visibility toggled at runtime based on isGuitar -->
+    <div id="ss-guitar-section" class="section">
+      <span class="setting-title">Invert Strings</span>
+      <div class="toggle-group">
+        <button id="ss-invert-off" class="toggle-btn toggle-active">Off</button>
+        <button id="ss-invert-on" class="toggle-btn toggle-inactive">On</button>
+      </div>
+
+      <span class="setting-title">Lefty Mode</span>
+      <div class="toggle-group">
+        <button id="ss-lefty-off" class="toggle-btn toggle-active">Off</button>
+        <button id="ss-lefty-on" class="toggle-btn toggle-inactive">On</button>
+      </div>
+
+      <span class="setting-title">Note Numbers</span>
+      <div class="toggle-group">
+        <button id="ss-notenum-off" class="toggle-btn toggle-active">Off</button>
+        <button id="ss-notenum-on" class="toggle-btn toggle-inactive">On</button>
+      </div>
+
+      <span class="setting-title">Highway Size</span>
+      <div class="stepper-row">
+        <button id="ss-hwsize-dec" class="stepper-btn">-</button>
+        <span id="ss-hwsize-val" class="stepper-val">1.75x</span>
+        <button id="ss-hwsize-inc" class="stepper-btn">+</button>
+      </div>
+
+      <span class="setting-title">(Perf) Menu Timeout</span>
+      <div class="toggle-group">
+        <button id="ss-perftimeout-off-guitar" class="toggle-btn toggle-inactive">Off</button>
+        <button id="ss-perftimeout-on-guitar" class="toggle-btn toggle-active">On</button>
+      </div>
+    </div>
+
+  </div>
+</div>

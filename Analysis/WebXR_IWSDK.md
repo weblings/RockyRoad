@@ -492,6 +492,25 @@ Steps:
 
 ---
 
+### Phase 7 — uikit `PanelUI` spike *(Phase A of the html2canvas → uikit migration plan, 2026-07-30)*
+
+**Goal:** confirm IWSDK's native `PanelUI`/`@pmndrs/uikit` spatial UI (the alternative to html2canvas explored as a fix for its perf cost and poor fit for the dynamic library-screen list) actually renders in the live v2 XR scene, and that a button inside it responds to both a controller ray and a hand-tracking pinch.
+
+**STATUS: ✅ COMPLETE**
+
+Findings:
+- **Zero-config `PanelUI` entity renders but is NOT ray-interactive by default.** `world.createEntity().addComponent(PanelUI, { config, maxWidth, maxHeight })` alone renders the panel (text visible, default `inter` MSDF font resolved with no extra config, as expected), but pointing a controller ray or hand-pinch ray at it showed no cursor/ray-line snap and pinching did nothing.
+- **`RayInteractable` fixes it — same requirement as the html2canvas panel in Phase 6.** Adding `entity.addComponent(RayInteractable)` (identical to what `panelMesh` and both grab bars already need) made the ray snap/cursor work immediately. This is a consistent IWSDK-wide rule, not something specific to either UI approach: nothing is a raycast target without `RayInteractable`.
+- **Both controller ray and hand-tracking pinch work identically once `RayInteractable` is present** — confirmed live in-headset (not via emulator), matching the earlier assumption that this project's input layer treats them uniformly.
+- **Hover/active visual state works natively via CSS pseudo-classes in `.uikitml`** — added `#xr-button:hover { background-color: ... }` and `#xr-button:active { background-color: ... }` to `ui/welcome.uikitml`; the file-watcher hot-recompiled it and both states rendered correctly in-headset (hover = ray resting on it, active = pinch/trigger held while pointing at it) for both input types. No programmatic wiring needed for hover/active feedback — the compiler's `:hover`/`:active` support (confirmed present as literal tokens in `@pmndrs/uikitml`'s compiled interpreter) is sufficient.
+- **Click handlers are wired programmatically, not through `.uikitml`.** `.uikitml` compiles to static JSON (properties only, no function references), so `onClick` can't be authored in the markup. Pattern confirmed structurally: poll `entity.getValue(PanelDocument, 'document')` (elics's `getValue(Component, key)` accessor, not a `getComponent()` wrapper) until non-null once `PanelUISystem` finishes loading the JSON asynchronously, then `document.getElementById('xr-button')?.setProperties({ onClick: () => ... })` — `Component.setProperties()` is the documented way to extend a live component's properties after creation (`@pmndrs/uikit`'s `Component` extends `THREE.Mesh` and owns its own `raycast()`/properties signal, separate from IWSDK's ECS-level `Hovered`/`Pressed` tags).
+- **Remote/on-device console logging was unreliable this session** (chrome://inspect over USB wasn't cooperating), so the actual pass/fail confirmation for both ray types was done visually via the hover/active color-change test above rather than by reading `console.log` output — worth keeping in mind as a faster verification method for future in-headset spikes generally, not just this one.
+
+**Pass:** confirmed — `PanelUI` + `RayInteractable` responds correctly to both a controller ray and a hand pinch, with no other XR-specific wiring beyond what every other interactive object in this codebase already needs.
+**Consequence for the migration plan:** Phase B (Settings screen pilot) can proceed as planned — click routing for uikit-migrated screens is: add `RayInteractable` to the panel entity (same as today), then wire real `onClick` handlers per-button via `setProperties()` once the `PanelDocument` is ready, replacing the manual `Raycaster`/`getBoundingClientRect()`/`xrButtons` machinery entirely for migrated screens.
+
+---
+
 ### After Phase 6
 
 If all phases pass, the migration is de-risked. Begin porting screens one at a time into the `XRProto/` world, starting with `PreSceneScreen` (simplest HTML, least state) and ending with `SongLibraryScreen` (most complex). The `App.ts` screen router becomes an IWSDK system with a `currentScreen` signal.

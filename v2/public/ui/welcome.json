@@ -86,7 +86,13 @@
         "fontSize": "2.5",
         "fontWeight": "medium",
         "textAlign": "center",
-        "cursor": "pointer"
+        "cursor": "pointer",
+        "hover": {
+          "backgroundColor": "#4488ff"
+        },
+        "active": {
+          "backgroundColor": "#ff4444"
+        }
       }
     }
   },
@@ -133,41 +139,41 @@
     },
     "uid-1": {
       "start": {
-        "line": 52,
+        "line": 60,
         "column": 0
       },
       "end": {
-        "line": 56,
+        "line": 64,
         "column": 6
       }
     },
     "uid-2": {
       "start": {
-        "line": 53,
+        "line": 61,
         "column": 2
       },
       "end": {
-        "line": 53,
+        "line": 61,
         "column": 54
       }
     },
     "uid-3": {
       "start": {
-        "line": 54,
+        "line": 62,
         "column": 2
       },
       "end": {
-        "line": 54,
+        "line": 62,
         "column": 169
       }
     },
     "uid-4": {
       "start": {
-        "line": 55,
+        "line": 63,
         "column": 2
       },
       "end": {
-        "line": 55,
+        "line": 63,
         "column": 42
       }
     }

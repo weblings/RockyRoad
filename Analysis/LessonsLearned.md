@@ -2,6 +2,9 @@
 
 Gotchas, non-obvious findings, and hard-won decisions that aren't obvious from reading the code or planning docs. Add here whenever something costs more than 30 minutes to diagnose.
 
+**uikit / uikitml migration**: a large, self-contained set of gotchas from the `PanelUI`/
+`@pmndrs/uikit`/`.uikitml` migration lives in a separate doc — see `UikitLessonsLearned.md`.
+
 ---
 
 ## XRProto: `/@fs/` cross-drive paths fail on Windows
@@ -76,6 +79,13 @@ The app tab appears in the list. Click **inspect** for full DevTools — console
 `C:\Program Files\Unity\Hub\Editor\6000.0.30f1\Editor\Data\PlaybackEngines\AndroidPlayer\SDK\platform-tools\adb.exe`
 
 **Note:** `adb logcat -s chromium` shows XR session lifecycle events but NOT `console.log` output from JS. Use `chrome://inspect` instead.
+
+**Fallback when USB/chrome://inspect isn't cooperating:** a plain `CanvasTexture` plane in the
+scene, positioned at a fixed world location, with `console.log`/`warn`/`error` and
+`window.onerror`/`unhandledrejection` monkey-patched to also draw each line onto it. Zero
+external dependency, works regardless of remote-debugging state. Used successfully in the
+uikit migration session to find a runtime error that USB debugging couldn't surface reliably —
+see `UikitLessonsLearned.md`.
 
 ---
 
