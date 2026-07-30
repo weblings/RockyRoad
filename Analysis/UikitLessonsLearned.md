@@ -266,3 +266,173 @@ if (!el.classList.contains(addClass))   el.classList.add(addClass);
 See `_setActiveClass()`/`_setSwatch()` in `src/xr/XRSettingsScene.ts` for the working pattern —
 reuse it for any future toggle/selected-state UI (Library's filter chips, Song's difficulty
 selector, etc.) rather than porting the naive unconditional-remove pattern from HTML/CSS code.
+
+---
+
+## No separate "missing image" placeholder element needed — just hide the `<img>`
+
+**Finding (from Song/PreScene's album art):** when there's no image to show (e.g. a song with no
+album art), don't author a second placeholder `<div>` and toggle between it and the `<img>`. Just
+set `display: 'none'` on the `<img>` itself and let its parent container's own background color
+show through — that's usually visually identical to a dedicated placeholder anyway, with half the
+markup and no extra display-toggle bookkeeping. Set the real `src` and flip `display: 'flex'` back
+on once a URL is available. See `XRPreScene.ts`'s `_render()` for the working pattern.
+
+---
+
+## uikit has no native `disabled` attribute — fake it with a class
+
+**Finding (from Song/PreScene's Play button):** there's no equivalent of HTML's `disabled` on
+uikit buttons. The working substitute is a `.disabled` class combining `pointer-events: none`
+(blocks clicks) with a dimmed `opacity` (signals the state visually), toggled via
+`classList.add`/`remove` the same contains()-guarded way as any other state class (see the
+`classList.remove()` warning entry above). See `.disabled` in `ui/song.uikitml` and
+`_setDisabled()` in `XRPreScene.ts`.
+
+---
+
+## `border-radius` only accepts numeric/pixel values — CSS's `50%` silently doesn't work
+
+**Symptom:** A circular element (`width`/`height` equal, `border-radius: 50%` to make a circle —
+the standard CSS trick) doesn't render as a circle.
+
+**Root cause:** uikit's own `.uikitml` compiler warns about this directly (rare — most gotchas in
+this doc fail silently): `Property "borderRadius" with value "50%" may not be supported. Border
+radius properties only support pixel values (use "10px" or "10")`. Percentages aren't accepted for
+any `border-*-radius` property, unlike `width`/`height`/`padding`/etc., which do take percentages.
+
+**Fix:** Use half of the element's own (fixed) `width`/`height` as a literal number instead of
+`50%` — e.g. a `width: 4; height: 4;` circular button needs `border-radius: 2;`, not
+`border-radius: 50%;`. Only works cleanly when width/height are fixed, known values (which is true
+for icon buttons/thumbs/dots — the only things that tend to need a true circle).
+
+---
+
+## Per-frame update hooks can end up silently dead when a screen migrates off html2canvas
+
+**Symptom:** A callback registered to run every frame (e.g. live seek-bar position, elapsed time)
+never fires at all for a uikit-migrated screen — not "wrong values," genuinely never called, with
+no error anywhere.
+
+**Root cause:** in this project specifically, the per-frame update hook
+(`world.globals.updateActivePanel`, set via `registerPanelUpdate()`) was originally called from
+inside `HighwaySystem.update()`'s html2canvas capture-throttle block, itself gated on
+`panelMesh?.visible`. That gating made sense back when the call only ever served the html2canvas
+Play HUD — but it was **incidental coupling**, not an intentional design decision that the update
+hook should depend on html2canvas. Once the screen migrates to a `PanelUI` entity, `panelMesh` is
+permanently hidden while that screen shows, so the hook silently never fires.
+
+**How to avoid next time:** when migrating any screen off html2canvas, grep for every place that
+reads `panelMesh`/`uiPanel`/`xrButtons` in the shared per-frame update code (`HighwaySystem.update()`
+in `src/xr/index.ts`) and check whether anything *else* important — not just the html2canvas
+render itself — is nested inside that gating. Anything genuinely screen-agnostic (this update hook,
+potentially others added later) needs to be pulled out to run unconditionally, not just the obvious
+html2canvas capture call.
+
+---
+
+## Pointer-drag math: neither `.uv` nor `.localPoint` on the event can be trusted blindly — always `stableElement.worldToLocal(event.point)`
+
+**Symptom (two-stage bug, same underlying cause):** a seek-bar drag interaction (1) didn't track
+the interactor's position at all when read via `event.uv.x`, then (2) after switching to
+`event.localPoint.x`, moved but not smoothly/consistently with the interactor's actual movement.
+
+**Root cause, stage 1 (`.uv`):** unclear/unconfirmed — possibly related to how uikit's instanced
+panel rendering interacts with `@pmndrs/pointer-events`' generic ray-plane UV recomputation during
+pointer capture continuation (`intersectPointerCapture` in
+`node_modules/@pmndrs/pointer-events/dist/intersections/ray.js` re-derives `.uv` via a
+`getClosestUV()` call against the intersected mesh's raw geometry, which may not account for
+per-instance transforms correctly). Not fully root-caused — moving off `.uv` entirely turned out
+to be the right call regardless.
+
+**Root cause, stage 2 (`.localPoint`):** confirmed. `event.localPoint` is computed relative to
+`intersection.object` — whichever sub-element the ray/hand *actually hit first*. A seek track has
+several children at different positions within it (the fill bar, the thumb, section-tick marks),
+so depending on exactly what the interactor lands on, `.localPoint`'s reference frame silently
+shifts between them. `@pmndrs/uikit`'s own scrollbar-drag code
+(`node_modules/@pmndrs/uikit/dist/scroll.js`'s `setupScrollHandlers`) never uses the event's own
+`.localPoint` for this exact reason — it explicitly calls `container.worldToLocal(event.point.clone())`
+against the *known, stable* container element every time.
+
+**Fix:** capture a reference to the stable element once (e.g. the track itself, not whatever the
+event says it hit) and always call `.worldToLocal(event.point.clone())` on *that* reference:
+```ts
+const track = doc.getElementById('as-seek-track');
+const pointerFraction = (e) => {
+    if (!e.point) return null;
+    const local = track.worldToLocal(e.point.clone());
+    return Math.max(0, Math.min(local.x + 0.5, 1)); // see below for the +0.5
+};
+```
+`event.point` (world-space) is unambiguous regardless of what was actually hit — it's only the
+*local* conversion that needs to be pinned to a specific, known element rather than trusted from
+the event.
+
+**Also confirmed along the way — uikit's local coordinate space is normalized and centered:** a
+local x of `0` is the element's own center, `±0.5` its edges (not raw absolute units, and not a
+`0..1` range with a corner origin). Confirmed via `scroll.js`'s `getIntersectedScrollbarIndex`,
+which does `point.x *= size[0]` to convert this same local coordinate into absolute units, and
+`computeScrollbarTransformation`'s use of `size[i] * 0.5` as the edge boundary. So `localX + 0.5`
+is the 0-1 fraction across an element's width — no division by size needed for that specific case.
+
+---
+
+## `setPointerCapture`/`releasePointerCapture` work for XR ray/hand drag — confirmed pattern for "grab and drag past the element's bounds"
+
+**Finding:** `@pmndrs/pointer-events` implements real pointer capture, same semantics as the
+browser Pointer Events API (`node_modules/@pmndrs/pointer-events/dist/pointer.d.ts`). Calling
+`event.currentTarget.setPointerCapture(event.pointerId)` on pointer-down makes `onPointerMove`/
+`onPointerUp` keep firing on that same element even once the ray/hand moves outside its actual
+bounds — without it, drag input only arrives while directly hovering the element, which feels
+broken for anything wider than a few cm (a seek bar, a slider). Confirmed working with both
+controller ray and hand-tracking pinch. Release the capture on pointer-up
+(`releasePointerCapture`). This is the standard "basic XR drag interaction" building block —
+there's no separate slider/scrubber component in this project's dependencies (checked both
+`@iwsdk/*` and `@pmndrs/*` in `node_modules`, nothing named Slider/Scrub/Range), so this
+capture + `worldToLocal` combination *is* the primitive to build one from.
+
+**Related pattern, worth reusing for any future grab-and-drag UI:** capture a *grab offset* on
+pointer-down (the difference between where you actually grabbed and the thing's current position),
+apply that offset throughout the drag so the element keeps its position *relative to your grab
+point* rather than snapping its center to the exact cursor position, and only commit the final
+value on pointer-up (previewing the intermediate value visually without touching the underlying
+state until release). See `_wireSeekDrag()`/`_applyProgress()`/`_scrubFraction` in
+`src/xr/XRActiveScene.ts`.
+
+---
+
+## `overflow: hidden` did not visibly clip an absolutely-positioned sibling's children the way expected — unresolved, reverted
+
+**Symptom:** Tried wrapping a track's fill-bar + dynamically-placed tick marks in a separate
+`overflow: hidden` container (matching the track's own `border-radius`) so ticks landing near
+either end would crop to the track's rounded shape instead of poking out past the curve, with the
+track's thumb kept as an unclipped sibling outside that wrapper (so it could still overhang the
+top edge). In-headset, this did not produce the expected clipping — reverted.
+
+**Status:** not root-caused. Didn't get to dig into *why* before reverting (the wrapper approach
+was replaced with a pragmatic percentage-based skip — don't generate a tick within the first/last
+~3% of the track's width at all — see `_buildSectionTicks()` in `XRActiveScene.ts`). Worth
+investigating properly before relying on `overflow: hidden` for clipping purposes elsewhere (e.g.
+Library thumbnails, any rounded-corner container with absolutely-positioned children) — possible
+angles for next time: whether `overflow: hidden` needs the clipped children to be genuine
+*layout* children (not just visually-nested via absolute positioning) to participate in uikit's
+clipping-rect system, or whether `.clippingRect` (seen referenced in `container.js`) needs some
+additional setup this simple markup-only approach didn't provide.
+
+---
+
+## Missing-glyph character set keeps growing — assume any non-ASCII typographic character is unsupported until tested
+
+**Finding:** confirmed missing from uikit's pre-built Inter MSDF glyph subset so far: `‹`, `−`
+(minus sign, U+2212, not a hyphen), `×` (multiplication sign, U+00D7, not the letter x) — renders
+as a missing-glyph tofu/placeholder box, not an error. Preemptively also swapped out `…`
+(horizontal ellipsis, U+2026) for three literal ASCII periods before it could cause the same
+symptom, on the assumption that "special typographic character, not present in a hand-picked
+pre-built glyph subset" is the general risk category, not something specific to those three
+already-discovered characters.
+
+**How to apply:** default to plain ASCII substitutes for anything that isn't a letter/digit/basic
+punctuation the first time you write text content for a `.uikitml` screen (`x` not `×`, `-` not
+`−`, `...` not `…`), rather than writing the "correct" typographic character and finding out via a
+white-square bug report. If a genuinely special character is needed and no ASCII substitute reads
+naturally, test it deliberately before shipping rather than assuming it's covered.
