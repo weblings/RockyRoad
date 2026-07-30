@@ -581,8 +581,8 @@
     },
     "play-pause-icon": {
       "content": {
-        "width": "1.9",
-        "height": "1.9"
+        "width": "1",
+        "height": "1"
       }
     },
     "song-row": {

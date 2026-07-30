@@ -55,7 +55,12 @@ const MAX_TITLE_CHARS    = 26;
 const MAX_SUBTITLE_CHARS = 30;
 
 function truncate(s: string, max: number): string {
-    return s.length > max ? s.slice(0, max - 1) + '…' : s;
+    // Three ASCII periods, not '…' (U+2026) — same missing-glyph risk as '×'
+    // (see speedLabel below and UikitLessonsLearned.md) — uikit's pre-built
+    // Inter MSDF atlas doesn't cover every typographic character, only a
+    // known-tested subset, so special characters are guilty until proven
+    // innocent rather than assumed safe.
+    return s.length > max ? s.slice(0, max - 3) + '...' : s;
 }
 
 function formatTime(seconds: number): string {
@@ -238,6 +243,16 @@ export class XRActiveScene {
         for (const s of sections) {
             if (s.StartTime == null || s.StartTime <= 0) continue;
             const pct = Math.min((s.StartTime / totalDuration) * 100, 100);
+            // Hacky but simple: skip ticks landing within the track's rounded-
+            // end regions — a straight-edged tick there pokes out past the
+            // curve since nothing clips to .seek-track's border-radius (an
+            // overflow:hidden clip wrapper was tried and reverted; this direct
+            // percentage-based skip is the fallback). ~2.3% is roughly
+            // border-radius(0.7) / the track's actual rendered width at this
+            // layout's proportions — approximate, not computed from the real
+            // measured width, so nudge this if it looks off in headset.
+            const EDGE_SKIP_PCT = 3;
+            if (pct < EDGE_SKIP_PCT || pct > 100 - EDGE_SKIP_PCT) continue;
             const tick = new UIKit.Container({ positionLeft: `${pct}%` }, ['section-tick']);
             track.add(tick);
             this._sectionTicks.push(tick);
@@ -321,5 +336,9 @@ export class XRActiveScene {
 }
 
 function speedLabel(r: number): string {
-    return (Math.round(r * 100) / 100).toString().replace(/\.?0+$/, '') + '×';
+    // Plain ASCII 'x', not '×' (U+00D7) — the multiplication sign isn't in
+    // uikit's pre-built Inter MSDF glyph subset and renders as a missing-
+    // glyph tofu box (same fix already applied to XRSettingsScene.ts's
+    // highwaySizeLabel for the guitar highway-scale stepper).
+    return (Math.round(r * 100) / 100).toString().replace(/\.?0+$/, '') + 'x';
 }

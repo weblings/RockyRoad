@@ -201,8 +201,8 @@
   .play-btn:active { background-color: #9c9c9c; }
 
   .play-pause-icon {
-    width: 1.9;
-    height: 1.9;
+    width: 1;
+    height: 1;
   }
 
   .song-row {
