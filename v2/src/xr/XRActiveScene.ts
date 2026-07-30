@@ -275,6 +275,13 @@ export class XRActiveScene {
         // thumb keeps that same relative offset from the interactor while
         // dragging instead of snapping its center to the exact grab point.
         let scrubOffset = 0;
+        let pointerDownTime = 0;
+
+        // A quick pinch (down immediately followed by up, no real hold/drag
+        // in between) reads as a tap-to-seek — jump straight to wherever was
+        // raycasted, ignoring the grab-offset math below (which only makes
+        // sense once something's actually been dragged).
+        const QUICK_TAP_MS = 200;
 
         // See the comment above WorldPointerEvent for why this goes through
         // track.worldToLocal(event.point) rather than event.localPoint, and
@@ -292,6 +299,7 @@ export class XRActiveScene {
                 if (pf == null) return;
 
                 scrubbing = true;
+                pointerDownTime = performance.now();
                 scrubWasPlaying = songPlayer.isPlaying;
                 if (scrubWasPlaying) songPlayer.pause();
                 // Capture so move/up keep firing even once the interactor
@@ -317,7 +325,10 @@ export class XRActiveScene {
                 scrubbing = false;
                 e.currentTarget?.releasePointerCapture?.(e.pointerId);
 
-                const target = this._scrubFraction ?? 0;
+                const isQuickTap = performance.now() - pointerDownTime < QUICK_TAP_MS;
+                const target = isQuickTap
+                    ? pointerFraction(e) ?? this._scrubFraction ?? 0
+                    : this._scrubFraction ?? 0;
                 this._scrubFraction = null;
                 songPlayer.seekTo(target * totalDuration);
 
