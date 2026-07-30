@@ -127,18 +127,31 @@ export class XRSettingsScene {
     ): void {
         const offEl = doc.getElementById(offId);
         const onEl  = doc.getElementById(onId);
-        offEl?.classList.remove('toggle-active', 'toggle-inactive');
-        offEl?.classList.add(!value ? 'toggle-active' : 'toggle-inactive');
+        this._setActiveClass(offEl, !value);
         offEl?.setProperties({ onClick: () => onSet(false) });
-        onEl?.classList.remove('toggle-active', 'toggle-inactive');
-        onEl?.classList.add(value ? 'toggle-active' : 'toggle-inactive');
+        this._setActiveClass(onEl, value);
         onEl?.setProperties({ onClick: () => onSet(true) });
+    }
+
+    // classList.remove() warns ("Class '...' not found in the classList") if the
+    // element doesn't currently have that class — guard with contains() first,
+    // since these run on every re-render and each element only ever has one of
+    // the two states at a time.
+    private _setActiveClass(el: ReturnType<UIKitDocument['getElementById']>, active: boolean): void {
+        if (!el) return;
+        const addClass = active ? 'toggle-active' : 'toggle-inactive';
+        const removeClass = active ? 'toggle-inactive' : 'toggle-active';
+        if (el.classList.contains(removeClass)) el.classList.remove(removeClass);
+        if (!el.classList.contains(addClass)) el.classList.add(addClass);
     }
 
     private _setSwatch(doc: UIKitDocument, id: string, selected: boolean, onClick: () => void): void {
         const el = doc.getElementById(id);
-        if (selected) el?.classList.add('swatch-selected');
-        else el?.classList.remove('swatch-selected');
+        if (selected) {
+            if (!el?.classList.contains('swatch-selected')) el?.classList.add('swatch-selected');
+        } else {
+            if (el?.classList.contains('swatch-selected')) el?.classList.remove('swatch-selected');
+        }
         el?.setProperties({ onClick });
     }
 }

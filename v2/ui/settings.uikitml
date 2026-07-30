@@ -55,7 +55,15 @@
 
   /* Matches panel.css's .icon-btn > svg — pulls the icon back toward the
      button edge (not an evenly-spaced gap; icon and label are tuned
-     independently). */
+     independently). Tested raw inline <svg> here 2026-07-30 (per user
+     request) — it DOES compile and the icon geometry does render, but the
+     outer tag's viewBox attribute leaks into uikit's own strict property
+     schema as an unrecognized key, and appears to corrupt this element's
+     OTHER real properties (width/height/margin-left from this class) as a
+     side effect — observed as the back button ballooning to full panel
+     width. Reverted to <img src="....svg">, which has no such conflict
+     since an <img> tag has no SVG-only attrs to leak. See
+     UikitLessonsLearned.md. */
   .back-icon {
     width: 1;
     height: 1;
@@ -82,11 +90,32 @@
     padding-right: 1.2;
     flex-grow: 1;
     overflow: scroll;
+    /* uikit's default scrollbarWidth is 10 (same raw unit scale as our
+       authored CSS, i.e. 10cm here) — a quarter of the panel's own 40-unit
+       width — with no default scrollbarColor, rendering as a big pale bar.
+       Pin both explicitly. */
+    scrollbar-width: 0.9;
+    scrollbar-color: #4a4a4a;
   }
 
+  /* flex-shrink:0 is required here, not optional. Yoga's default
+     flex-shrink is 1 (same initial value as CSS), so without this,
+     .section would compress to fit whatever height .body has left instead
+     of overflowing it — which is what .body's overflow:scroll needs in
+     order to have something to scroll. Real browser CSS engines special-
+     case this (an item's automatic min-size resets to 0 once its own
+     overflow isn't visible, letting *other* shrinkable items give way
+     first) but this Yoga port doesn't extend that special-casing to force
+     content to keep its natural size; overflow:scroll here only computes
+     the scrollbar's range (see maxContentHeight in node_modules/@pmndrs/
+     uikit/dist/flex/node.js's updateMeasurements) — it doesn't stop Yoga's
+     normal shrink pass from running first. This one flex-shrink:0 is what
+     makes .body's scroll actually have overflow content to scroll through,
+     instead of every row silently compressing to fit. */
   .section {
     display: flex;
     flex-direction: column;
+    flex-shrink: 0;
     gap-row: 0.8;
     gap-column: 0.8;
   }
@@ -255,6 +284,29 @@
       <div class="toggle-group">
         <button id="ss-perftimeout-off-keys" class="toggle-btn toggle-inactive">Off</button>
         <button id="ss-perftimeout-on-keys" class="toggle-btn toggle-active">On</button>
+      </div>
+
+      <!-- Scroll test filler — not wired to any Settings state, remove once
+           vertical scrolling is confirmed working in-headset. -->
+      <span class="setting-title">Scroll Test 1</span>
+      <div class="toggle-group">
+        <button class="toggle-btn toggle-active">Option A</button>
+        <button class="toggle-btn toggle-inactive">Option B</button>
+      </div>
+      <span class="setting-title">Scroll Test 2</span>
+      <div class="toggle-group">
+        <button class="toggle-btn toggle-active">Option A</button>
+        <button class="toggle-btn toggle-inactive">Option B</button>
+      </div>
+      <span class="setting-title">Scroll Test 3</span>
+      <div class="toggle-group">
+        <button class="toggle-btn toggle-active">Option A</button>
+        <button class="toggle-btn toggle-inactive">Option B</button>
+      </div>
+      <span class="setting-title">Scroll Test 4</span>
+      <div class="toggle-group">
+        <button class="toggle-btn toggle-active">Option A</button>
+        <button class="toggle-btn toggle-inactive">Option B</button>
       </div>
     </div>
 
