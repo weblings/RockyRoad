@@ -1,6 +1,6 @@
 import * as THREE from "three";
-import { createSystem, InputComponent } from "@iwsdk/core";
-import type { XrButton } from "./XRTypes";
+import { createSystem, InputComponent, PanelDocument } from "@iwsdk/core";
+import type { Entity, UIKitDocument } from "@iwsdk/core";
 import { loadSettings } from "../shared/Settings";
 
 // ── CalibrationPointer interface ──────────────────────────────────────────────
@@ -59,6 +59,10 @@ const GUITAR_CAL_STORAGE_KEY = 'xr-guitar-calibration';
 const GUITAR_PLACEMENT_DISTANCE = 1.0;
 
 // ── CalibrationSystem ─────────────────────────────────────────────────────────
+// uikit-based (see ui/calibration.uikitml) — last screen-by-screen migration
+// step off html2canvas. Same idiom as XRSettingsScene.ts/XRSongLibrary.ts:
+// poll for the PanelDocument once (see _withDoc()), then wire onClick/
+// setProperties per element instead of building an innerHTML string.
 
 export class CalibrationSystem extends createSystem({}) {
     private state: CalibrationState = 'idle';
@@ -88,13 +92,7 @@ export class CalibrationSystem extends createSystem({}) {
 
     private _hasControllers = true;
 
-    private _ftButtons: XrButton[] = [];
-    private _spPX:   HTMLElement | null = null;
-    private _spPY:   HTMLElement | null = null;
-    private _spPZ:   HTMLElement | null = null;
-    private _spRY:   HTMLElement | null = null;
-    private _spS:    HTMLElement | null = null;
-    private _spIncr: HTMLElement | null = null;
+    private _doc: UIKitDocument | null = null;
 
     init(): void {
         this.world.globals.startCalibration = (onComplete: () => void): void => {
@@ -103,7 +101,6 @@ export class CalibrationSystem extends createSystem({}) {
                 return;
             }
             this._onComplete = onComplete;
-            this.clearFtButtons();
             this.state = 'prompt_left';
             this.setHighwayVisible(false);
             this.updatePanel();
@@ -120,14 +117,33 @@ export class CalibrationSystem extends createSystem({}) {
             return true;
         };
 
+        // Guitar/Bass has no physical instrument to touch-calibrate against —
+        // placement is always the same camera-forward drop placeGuitarBar()
+        // already uses for first-time calibration. Per explicit request,
+        // Reposition-from-Play-HUD (both of these globals — recalibrate is the
+        // Play HUD action button, showCalibrationFineTune is also reached via
+        // PreScene's Reposition button — share identical guitar handling)
+        // reuses that same placement instantly and returns control right away
+        // instead of showing a confirm screen, so Play HUD never has to hide.
         this.world.globals.recalibrate = (onComplete: () => void): void => {
             if (this.isGuitarActive()) {
-                this._onComplete = onComplete;
+                this.placeGuitarBar();
                 this.setGuitarBarVisible(true);
-                this.showGuitarFineTunePanel();
+                this.saveGuitarCalibration();
+                onComplete();
                 return;
             }
-            this._onComplete = onComplete;
+            // Unlike showCalibrationFineTune below, this is only ever reached
+            // from Play HUD's Reposition button (see index.ts), and its
+            // `onComplete` is just XRActiveScene's own rerender() — not a
+            // full showActiveScene() call — so nothing else will ever turn
+            // playPanelObj back on after _showPanel() hides it. Restore it
+            // explicitly as part of completion here instead.
+            this._onComplete = () => {
+                const obj = this.world.globals.playPanelObj as THREE.Object3D | undefined;
+                if (obj) obj.visible = true;
+                onComplete();
+            };
             this.state = 'done';
             this.showFineTunePanel();
             this.reapply();
@@ -135,9 +151,10 @@ export class CalibrationSystem extends createSystem({}) {
 
         this.world.globals.showCalibrationFineTune = (onComplete: () => void): void => {
             if (this.isGuitarActive()) {
-                this._onComplete = onComplete;
+                this.placeGuitarBar();
                 this.setGuitarBarVisible(true);
-                this.showGuitarFineTunePanel();
+                this.saveGuitarCalibration();
+                onComplete();
                 return;
             }
             this._onComplete = onComplete;
@@ -374,12 +391,14 @@ export class CalibrationSystem extends createSystem({}) {
         if (bar) bar.visible = visible;
     }
 
+    // Instant, same as recalibrate()/showCalibrationFineTune()'s guitar
+    // branch — no confirm screen, just place the bar and let the highway
+    // show up. No panel involved, so nothing to hide/restore.
     private startGuitarCalibration(onComplete: () => void): void {
-        this._onComplete = onComplete;
-        this.clearFtButtons();
         this.placeGuitarBar();
         this.setGuitarBarVisible(true);
-        this.showGuitarFineTunePanel();
+        this.saveGuitarCalibration();
+        onComplete();
     }
 
     private placeGuitarBar(): void {
@@ -400,42 +419,6 @@ export class CalibrationSystem extends createSystem({}) {
         // Scale lives on guitarScaleNode, not the bar itself — the bar (and its
         // visual pill) must stay a constant physical size, same as the menu bar.
         this.applyGuitarHighwayScale(loadSettings().guitarHighwayScale);
-    }
-
-    private showGuitarFineTunePanel(): void {
-        const uiPanel = this.world.globals.uiPanel as HTMLDivElement | undefined;
-        if (!uiPanel) return;
-
-        this.clearFtButtons();
-        (this.world.globals.resizePanel as ((w: number, h: number) => void) | undefined)?.(400, 300);
-
-        uiPanel.innerHTML = `
-            <div class="frame">
-                <div class="content" style="justify-content:center;align-items:center;">
-                    <p style="font-size:15px;line-height:1.7;color:#e8e8e8;text-align:center;padding:24px">
-                        🎸 Grab the bar below the fretboard<br>to reposition it.
-                    </p>
-                </div>
-                <div class="actions">
-                    <button id="ft-guitar-done" class="button primary-light icon-btn" type="button"><span>Done</span></button>
-                </div>
-            </div>
-        `;
-
-        const el = uiPanel.querySelector('#ft-guitar-done') as HTMLButtonElement | null;
-        if (!el) return;
-
-        const entry: XrButton = {
-            el,
-            onClick: () => {
-                this.saveGuitarCalibration();
-                this._onComplete?.();
-                this._onComplete = null;
-            },
-        };
-        this._ftButtons.push(entry);
-        const xrButtons = this.world.globals.xrButtons as XrButton[] | undefined;
-        if (xrButtons) xrButtons.push(entry);
     }
 
     private saveGuitarCalibration(): void {
@@ -505,154 +488,58 @@ export class CalibrationSystem extends createSystem({}) {
     }
 
     private showFineTunePanel(): void {
-        const uiPanel = this.world.globals.uiPanel as HTMLDivElement | undefined;
-        if (!uiPanel) return;
-
-        this.clearFtButtons();
-
-        (this.world.globals.resizePanel as ((w: number, h: number) => void) | undefined)?.(400, 300);
+        this._showPanel();
 
         if (this._fullRepositionInProgress) {
-            const ctrl = !this.hasHandInputSources();
-            const stepMsg = this.state === 'prompt_left'
-                ? (ctrl
-                    ? '🎹 Step 1 of 2<br><br>Rest your <b>LEFT controller</b><br>on the <b>leftmost key</b><br>and pull the left trigger.'
-                    : '🎹 Step 1 of 2<br><br>Touch the <b>leftmost key</b><br>with your <b>left index finger</b><br>and pinch to confirm.')
-                : (ctrl
-                    ? '🎹 Step 2 of 2<br><br>Rest your <b>RIGHT controller</b><br>on the <b>rightmost key</b><br>and pull the right trigger.'
-                    : '🎹 Step 2 of 2<br><br>Touch the <b>rightmost key</b><br>with your <b>right index finger</b><br>and pinch to confirm.');
-
-            uiPanel.innerHTML = `
-                <div class="frame">
-                    <div class="content" style="justify-content:center;align-items:center;">
-                        <p style="font-size:15px;line-height:1.7;color:#e8e8e8;text-align:center;padding:24px">${stepMsg}</p>
-                    </div>
-                </div>
-            `;
+            this._withDoc(doc => {
+                doc.getElementById('cal-finetune')?.setProperties({ display: 'none' });
+                doc.getElementById('cal-prompt')?.setProperties({ display: 'flex' });
+                doc.getElementById('cal-prompt-text')?.setProperties({ text: this.promptMessage() });
+            });
             return;
         }
 
-        uiPanel.innerHTML = `
-            <div class="frame">
-                <div class="content">
-                    <div class="header"></div>
-                    <div class="controls">
-                        <div class="section-row">
-                            <div class="section">
-                                <div class="section-label">
-                                    <p class="section-title">Position</p>
-                                </div>
-                                <div class="axis-row">
-                                    <p class="axis-label">X</p>
-                                    <button id="ft-pxm" class="button secondary-dark" type="button">-</button>
-                                    <p id="ft-px-val" class="value-display">0.000</p>
-                                    <button id="ft-pxp" class="button secondary-dark" type="button">+</button>
-                                </div>
-                                <div class="axis-row">
-                                    <p class="axis-label">Y</p>
-                                    <button id="ft-pym" class="button secondary-dark" type="button">-</button>
-                                    <p id="ft-py-val" class="value-display">0.000</p>
-                                    <button id="ft-pyp" class="button secondary-dark" type="button">+</button>
-                                </div>
-                                <div class="axis-row">
-                                    <p class="axis-label">Z</p>
-                                    <button id="ft-pzm" class="button secondary-dark" type="button">-</button>
-                                    <p id="ft-pz-val" class="value-display">0.000</p>
-                                    <button id="ft-pzp" class="button secondary-dark" type="button">+</button>
-                                </div>
-                            </div>
-                            <div class="section">
-                                <div class="section-group">
-                                    <div class="section-label">
-                                        <p class="section-title">Rotation</p>
-                                    </div>
-                                    <div class="axis-row">
-                                        <button id="ft-rym" class="button secondary-dark" type="button">-</button>
-                                        <p id="ft-ry-val" class="value-display">0.0</p>
-                                        <button id="ft-ryp" class="button secondary-dark" type="button">+</button>
-                                    </div>
-                                </div>
-                                <div class="section-group">
-                                    <div class="section-label">
-                                        <p class="section-title">Scale</p>
-                                    </div>
-                                    <div class="axis-row">
-                                        <button id="ft-sm" class="button secondary-dark" type="button">-</button>
-                                        <p id="ft-s-val" class="value-display">1.000</p>
-                                        <button id="ft-sp" class="button secondary-dark" type="button">+</button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="section">
-                            <div class="section-group">
-                                <div class="section-label">
-                                    <p class="section-title">Increment</p>
-                                </div>
-                                <div class="axis-row">
-                                    <button id="ft-incrm" class="button secondary-dark" type="button">-</button>
-                                    <p id="ft-incr-val" class="value-display">0.01</p>
-                                    <button id="ft-incrp" class="button secondary-dark" type="button">+</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="actions">
-                    <button id="ft-restart" class="button primary-dark icon-btn" type="button"><svg width="14" height="14" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M22.1969 4.98846C21.7569 4.66331 21.1341 4.97748 21.1341 5.52465V7.20266C21.1341 7.27629 21.0744 7.33599 21.0008 7.33599H11.1341C8.18859 7.33599 5.80078 9.72381 5.80078 12.6693V14.6693C5.80078 15.0375 6.09925 15.336 6.46744 15.336H8.20078C8.56897 15.336 8.86744 15.0375 8.86744 14.6693V13.0691C8.86744 11.5963 10.0613 10.4024 11.5341 10.4024H21.0008C21.0744 10.4024 21.1341 10.4621 21.1341 10.5357V12.215C21.1341 12.7621 21.7569 13.0763 22.197 12.7511L26.7242 9.40583C27.0849 9.13934 27.0849 8.59995 26.7242 8.33347L22.1969 4.98846Z" fill="currentColor"/><path d="M16 18.0001C17.1046 18.0001 18 17.1046 18 16.0001C18 14.8955 17.1046 14.0001 16 14.0001C14.8954 14.0001 14 14.8955 14 16.0001C14 17.1046 14.8954 18.0001 16 18.0001Z" fill="currentColor"/><path d="M20.8652 24.6641H10.9986C10.9249 24.6641 10.8652 24.7238 10.8652 24.7975V26.4755C10.8652 27.0226 10.2425 27.3368 9.80241 27.0116L5.27514 23.6666C4.91448 23.4002 4.91447 22.8608 5.27512 22.5943L9.80239 19.249C10.2425 18.9238 10.8652 19.238 10.8652 19.7851V21.4644C10.8652 21.538 10.9249 21.5977 10.9986 21.5977H20.4652C21.938 21.5977 23.1319 20.4038 23.1319 18.931V17.3308C23.1319 16.9626 23.4304 16.6641 23.7986 16.6641H25.5319C25.9001 16.6641 26.1986 16.9626 26.1986 17.3308V19.3308C26.1986 22.2763 23.8108 24.6641 20.8652 24.6641Z" fill="currentColor"/></svg><span>Full Reposition</span></button>
-                    <button id="ft-done" class="button primary-light icon-btn" type="button"><svg width="14" height="14" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M10.6667 6.6548C10.6667 6.10764 11.2894 5.79346 11.7295 6.11862L24.377 15.4634C24.7377 15.7298 24.7377 16.2692 24.3771 16.5357L11.7295 25.8813C11.2895 26.2065 10.6667 25.8923 10.6667 25.3451L10.6667 6.6548Z" fill="currentColor"/></svg><span>Play</span></button>
-                </div>
-            </div>
-        `;
+        this._withDoc(doc => {
+            doc.getElementById('cal-prompt')?.setProperties({ display: 'none' });
+            doc.getElementById('cal-finetune')?.setProperties({ display: 'flex' });
 
-        this._spPX   = uiPanel.querySelector('#ft-px-val');
-        this._spPY   = uiPanel.querySelector('#ft-py-val');
-        this._spPZ   = uiPanel.querySelector('#ft-pz-val');
-        this._spRY   = uiPanel.querySelector('#ft-ry-val');
-        this._spS    = uiPanel.querySelector('#ft-s-val');
-        this._spIncr = uiPanel.querySelector('#ft-incr-val');
+            const incr = () => INCR_STEPS[this._ftIncrIdx];
+            const reg = (id: string, onClick: () => void): void => {
+                doc.getElementById(id)?.setProperties({ onClick });
+            };
 
-        const reg = (id: string, onClick: () => void): void => {
-            const el = uiPanel.querySelector(`#${id}`) as HTMLButtonElement | null;
-            if (!el) return;
-            const entry: XrButton = { el, onClick };
-            this._ftButtons.push(entry);
-        };
+            reg('cal-pxm', () => { this._ftPX -= incr(); this.reapply(); });
+            reg('cal-pxp', () => { this._ftPX += incr(); this.reapply(); });
+            reg('cal-pym', () => { this._ftPY -= incr(); this.reapply(); });
+            reg('cal-pyp', () => { this._ftPY += incr(); this.reapply(); });
+            reg('cal-pzm', () => { this._ftPZ -= incr(); this.reapply(); });
+            reg('cal-pzp', () => { this._ftPZ += incr(); this.reapply(); });
+            reg('cal-rym', () => { this._ftRY -= incr(); this.reapply(); });
+            reg('cal-ryp', () => { this._ftRY += incr(); this.reapply(); });
+            reg('cal-sm',  () => { this._ftS  -= incr(); this.reapply(); });
+            reg('cal-sp',  () => { this._ftS  += incr(); this.reapply(); });
+            reg('cal-incrm', () => {
+                this._ftIncrIdx = Math.max(0, this._ftIncrIdx - 1);
+                this.refreshValues();
+            });
+            reg('cal-incrp', () => {
+                this._ftIncrIdx = Math.min(INCR_STEPS.length - 1, this._ftIncrIdx + 1);
+                this.refreshValues();
+            });
+            reg('cal-restart', () => {
+                this._fullRepositionInProgress = true;
+                this.state = 'prompt_left';
+                this.setHighwayVisible(false);
+                this.showFineTunePanel();
+            });
+            reg('cal-done', () => {
+                this.saveCalibration();
+                this._onComplete?.();
+                this._onComplete = null;
+            });
 
-        const incr = () => INCR_STEPS[this._ftIncrIdx];
-
-        reg('ft-pxm', () => { this._ftPX -= incr(); this.reapply(); });
-        reg('ft-pxp', () => { this._ftPX += incr(); this.reapply(); });
-        reg('ft-pym', () => { this._ftPY -= incr(); this.reapply(); });
-        reg('ft-pyp', () => { this._ftPY += incr(); this.reapply(); });
-        reg('ft-pzm', () => { this._ftPZ -= incr(); this.reapply(); });
-        reg('ft-pzp', () => { this._ftPZ += incr(); this.reapply(); });
-        reg('ft-rym', () => { this._ftRY -= incr(); this.reapply(); });
-        reg('ft-ryp', () => { this._ftRY += incr(); this.reapply(); });
-        reg('ft-sm',  () => { this._ftS  -= incr(); this.reapply(); });
-        reg('ft-sp',  () => { this._ftS  += incr(); this.reapply(); });
-        reg('ft-incrm', () => {
-            this._ftIncrIdx = Math.max(0, this._ftIncrIdx - 1);
             this.refreshValues();
         });
-        reg('ft-incrp', () => {
-            this._ftIncrIdx = Math.min(INCR_STEPS.length - 1, this._ftIncrIdx + 1);
-            this.refreshValues();
-        });
-        reg('ft-restart', () => {
-            this._fullRepositionInProgress = true;
-            this.state = 'prompt_left';
-            this.setHighwayVisible(false);
-            this.showFineTunePanel();
-        });
-        reg('ft-done', () => {
-            this.saveCalibration();
-            this._onComplete?.();
-            this._onComplete = null;
-        });
-
-        const xrButtons = this.world.globals.xrButtons as XrButton[] | undefined;
-        if (xrButtons) xrButtons.push(...this._ftButtons);
     }
 
     private setHighwayVisible(visible: boolean): void {
@@ -686,46 +573,87 @@ export class CalibrationSystem extends createSystem({}) {
     }
 
     private refreshValues(): void {
-        if (this._spPX)   this._spPX.textContent   = this._ftPX.toFixed(3);
-        if (this._spPY)   this._spPY.textContent   = this._ftPY.toFixed(3);
-        if (this._spPZ)   this._spPZ.textContent   = this._ftPZ.toFixed(3);
-        if (this._spRY)   this._spRY.textContent   = this._ftRY.toFixed(1);
-        if (this._spS)    this._spS.textContent    = this._ftS.toFixed(3);
-        if (this._spIncr) this._spIncr.textContent = String(INCR_STEPS[this._ftIncrIdx]);
+        this._withDoc(doc => {
+            doc.getElementById('cal-px-val')?.setProperties({ text: this._ftPX.toFixed(3) });
+            doc.getElementById('cal-py-val')?.setProperties({ text: this._ftPY.toFixed(3) });
+            doc.getElementById('cal-pz-val')?.setProperties({ text: this._ftPZ.toFixed(3) });
+            doc.getElementById('cal-ry-val')?.setProperties({ text: this._ftRY.toFixed(1) });
+            doc.getElementById('cal-s-val')?.setProperties({ text: this._ftS.toFixed(3) });
+            doc.getElementById('cal-incr-val')?.setProperties({ text: String(INCR_STEPS[this._ftIncrIdx]) });
+        });
     }
 
-    private clearFtButtons(): void {
-        const xrButtons = this.world.globals.xrButtons as XrButton[] | undefined;
-        if (xrButtons) {
-            for (const btn of this._ftButtons) {
-                const idx = xrButtons.indexOf(btn);
-                if (idx >= 0) xrButtons.splice(idx, 1);
-            }
-        }
-        this._ftButtons = [];
-        this._spPX = this._spPY = this._spPZ = this._spRY = this._spS = this._spIncr = null;
-    }
-
-    private updatePanel(): void {
-        const uiPanel = this.world.globals.uiPanel as HTMLDivElement | undefined;
-        if (!uiPanel) return;
-
+    private promptMessage(): string {
         const ctrl = !this.hasHandInputSources();
         const messages: Record<CalibrationState, string> = {
             idle:  '',
             done:  '',
             prompt_left: ctrl
-                ? '🎹 Step 1 of 2<br><br>Rest your <b>LEFT controller</b><br>on the <b>leftmost key</b><br>and pull the left trigger.'
-                : '🎹 Step 1 of 2<br><br>Touch the <b>leftmost key</b><br>with your <b>left index finger</b><br>and pinch to confirm.',
+                ? 'Step 1 of 2\n\nRest your LEFT controller\non the leftmost key\nand pull the left trigger.'
+                : 'Step 1 of 2\n\nTouch the leftmost key\nwith your left index finger\nand pinch to confirm.',
             prompt_right: ctrl
-                ? '🎹 Step 2 of 2<br><br>Rest your <b>RIGHT controller</b><br>on the <b>rightmost key</b><br>and pull the right trigger.'
-                : '🎹 Step 2 of 2<br><br>Touch the <b>rightmost key</b><br>with your <b>right index finger</b><br>and pinch to confirm.',
+                ? 'Step 2 of 2\n\nRest your RIGHT controller\non the rightmost key\nand pull the right trigger.'
+                : 'Step 2 of 2\n\nTouch the rightmost key\nwith your right index finger\nand pinch to confirm.',
         };
+        return messages[this.state];
+    }
 
-        uiPanel.innerHTML = `
-            <div style="font-size:15px;line-height:1.7;padding:24px;color:#e8e8e8;text-align:center">
-                ${messages[this.state]}
-            </div>
-        `;
+    private updatePanel(): void {
+        this._showPanel();
+        this._withDoc(doc => {
+            doc.getElementById('cal-finetune')?.setProperties({ display: 'none' });
+            doc.getElementById('cal-prompt')?.setProperties({ display: 'flex' });
+            doc.getElementById('cal-prompt-text')?.setProperties({ text: this.promptMessage() });
+        });
+    }
+
+    // ── uikit panel plumbing ─────────────────────────────────────────────────
+
+    // Every uikit panel (settings/preScene/play/library/calibration) is a
+    // separate entity parented at the exact same grabBarEntity-relative slot
+    // — only one is ever meant to be visible at a time, and every other
+    // show-path (showLibrary/showPreScene/showActiveScene/showSettings in
+    // index.ts) explicitly hides its siblings before showing itself. This is
+    // calibration's equivalent, kept here (not in index.ts) specifically
+    // because only CalibrationSystem knows whether a panel is actually about
+    // to be shown — only Keys' paths (updatePanel()/showFineTunePanel()) ever
+    // call this. Guitar is always instant/no-panel now (both first-time and
+    // Reposition-from-Play-HUD — see startGuitarCalibration()/recalibrate()/
+    // showCalibrationFineTune() above), so it must never reach this, or
+    // whichever panel was showing before would be hidden with nothing to
+    // restore it.
+    private _showPanel(): void {
+        const g = this.world.globals;
+        const hide = (obj: unknown): void => {
+            if (obj instanceof THREE.Object3D) obj.visible = false;
+        };
+        hide(g.libraryPanelObj);
+        hide(g.settingsPanelObj);
+        hide(g.preScenePanelObj);
+        hide(g.playPanelObj);
+
+        const obj = g.calibrationPanelObj as THREE.Object3D | undefined;
+        if (obj) obj.visible = true;
+        (g.setCalibrationPanelInteractive as ((e: boolean) => void) | undefined)?.(true);
+    }
+
+    // Polls calibrationPanelEntity's PanelDocument until it's ready, caching it
+    // once found — same pattern as XRSettingsScene.ts/XRSongLibrary.ts. Sets
+    // pointerEvents:'auto' the moment the doc is confirmed real, rather than
+    // relying on an external eager caller's timing assumption: that's the exact
+    // race that left Library's panel permanently non-interactive on first show
+    // (see UikitLessonsLearned.md) — applied proactively here from the start.
+    private _withDoc(cb: (doc: UIKitDocument) => void): void {
+        if (this._doc) { cb(this._doc); return; }
+        const entity = this.world.globals.calibrationPanelEntity as Entity | undefined;
+        if (!entity) return;
+        const doc = entity.getValue(PanelDocument, 'document') as UIKitDocument | null;
+        if (doc) {
+            this._doc = doc;
+            doc.rootElement.setProperties({ pointerEvents: 'auto' });
+            cb(doc);
+            return;
+        }
+        setTimeout(() => this._withDoc(cb), 100);
     }
 }

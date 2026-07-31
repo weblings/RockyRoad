@@ -1,0 +1,254 @@
+<style>
+  /* Scale: 1 unit = 1cm, matching the panel's real 0.4m x 0.3m physical size
+     (PanelUI's maxWidth/maxHeight in src/xr/index.ts) — same convention as
+     the other four migrated screens. Derived from
+     src/xr/screens/reposition.css + src/xr/panel.css's shared .frame/
+     .content/.actions/.button base classes (panel.css has no @import
+     equivalent here, so those base rules are re-derived directly, same as
+     every other migrated screen).
+
+     Simplifications vs. the original DOM (same kind of pragmatic
+     collapsing already done for every other screen this session):
+     - No inline <b>/<br> rich-text formatting inside the prompt message —
+       a single Text node can't mix bold/plain runs. Rendered as one plain
+       string instead, with white-space:pre-line + literal \n\n so the
+       double-line-break visual grouping survives without HTML tags.
+     - No 🎹/🎸 emoji — same missing-glyph risk category as the special
+       typographic characters already found bad elsewhere (uikit's prebuilt
+       Inter MSDF atlas is Latin-only, emoji are outside it); dropped rather
+       than guess-and-check.
+     - No decorative icons on the action buttons (original had inline SVG
+       restart/checkmark glyphs) — inline <svg> is already confirmed to
+       corrupt sibling properties when compiled here (its viewBox attribute
+       leaks into uikit's strict property schema, see
+       UikitLessonsLearned.md), and there's no icon *file* for these two
+       yet like the other screens' back-arrow/play/pause/etc. Plain text
+       buttons ("Full Reposition", "Play", "Done") instead. */
+
+  .panel {
+    width: 40;
+    height: 30;
+    display: flex;
+    flex-direction: column;
+    background-color: #0a0a0a;
+    border-radius: 1.2;
+    font-family: inter;
+    font-weight: medium;
+    pointer-events: none;
+  }
+
+  /* ── #cal-prompt: shared by the first-time 2-touch calibration steps AND
+     the "Full Reposition" restart flow inside fine-tune (identical content
+     either way — see CalibrationSystem.ts's messages[] lookup). ── */
+  .prompt-section {
+    flex-grow: 1;
+    flex-shrink: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-top: 2.4;
+    padding-right: 2.4;
+    padding-bottom: 2.4;
+    padding-left: 2.4;
+  }
+  .prompt-text {
+    color: #e8e8e8;
+    font-size: 1.4;
+    font-weight: medium;
+    text-align: center;
+    white-space: pre-line;
+  }
+
+  /* ── #cal-finetune: the numeric axis grid ── */
+  .finetune-wrap {
+    flex-grow: 1;
+    flex-shrink: 1;
+    display: flex;
+    flex-direction: column;
+  }
+  .controls {
+    flex-grow: 1;
+    flex-shrink: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap-row: 0.8;
+    gap-column: 0.8;
+    padding-top: 0.6;
+    padding-bottom: 0.6;
+  }
+  .section-row {
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    gap-row: 0.8;
+    gap-column: 0.8;
+  }
+  .section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-evenly;
+    gap-row: 0.4;
+    gap-column: 0.4;
+    background-color: #1a1a1a;
+    border-radius: 0.4;
+    padding-top: 0.8;
+    padding-right: 0.8;
+    padding-bottom: 0.8;
+    padding-left: 0.8;
+  }
+  .section-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap-row: 0.4;
+    gap-column: 0.4;
+  }
+  .section-title {
+    color: #e8e8e8;
+    font-size: 1.2;
+    font-weight: bold;
+    text-align: center;
+  }
+  .axis-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap-row: 0.4;
+    gap-column: 0.4;
+  }
+  .axis-label {
+    color: #e8e8e8;
+    font-size: 1.1;
+    font-weight: medium;
+    text-align: center;
+    width: 1.2;
+  }
+  .value-display {
+    color: #e8e8e8;
+    font-size: 1.1;
+    font-weight: medium;
+    text-align: center;
+    min-width: 4;
+  }
+
+  /* Matches panel.css's .button.secondary-dark color family, sized per
+     reposition.css's override (22px square, not the default action-button
+     size). */
+  .cal-stepper-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.2;
+    height: 2.2;
+    background-color: #8b8b8b;
+    color: #111111;
+    font-weight: bold;
+    border-radius: 0.4;
+    font-size: 1.1;
+    cursor: pointer;
+  }
+  .cal-stepper-btn:hover  { background-color: #7c7c7c; }
+  .cal-stepper-btn:active { background-color: #6c6c6c; }
+
+  .actions {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    flex-grow: 0;
+    flex-shrink: 0;
+    gap-row: 1;
+    gap-column: 1;
+    padding-top: 0;
+    padding-right: 1;
+    padding-bottom: 1;
+    padding-left: 1;
+  }
+  .action-btn {
+    width: 15;
+    height: 3.6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-grow: 0;
+    flex-shrink: 0;
+    border-radius: 0.5;
+    font-size: 1.3;
+    font-weight: medium;
+    cursor: pointer;
+  }
+  .primary-dark { background-color: #333333; color: #ffffff; }
+  .primary-dark:hover  { background-color: #515151; }
+  .primary-dark:active { background-color: #7c7c7c; }
+  .primary-light { background-color: #dadada; color: #111111; }
+  .primary-light:hover  { background-color: #bebebe; }
+  .primary-light:active { background-color: #9c9c9c; }
+</style>
+
+<div class="panel">
+  <div class="prompt-section" id="cal-prompt">
+    <span class="prompt-text" id="cal-prompt-text">Step 1 of 2</span>
+  </div>
+
+  <div class="finetune-wrap" id="cal-finetune">
+    <div class="controls">
+      <div class="section-row">
+        <div class="section">
+          <div class="axis-row">
+            <span class="axis-label">X</span>
+            <button id="cal-pxm" class="cal-stepper-btn">-</button>
+            <span id="cal-px-val" class="value-display">0.000</span>
+            <button id="cal-pxp" class="cal-stepper-btn">+</button>
+          </div>
+          <div class="axis-row">
+            <span class="axis-label">Y</span>
+            <button id="cal-pym" class="cal-stepper-btn">-</button>
+            <span id="cal-py-val" class="value-display">0.000</span>
+            <button id="cal-pyp" class="cal-stepper-btn">+</button>
+          </div>
+          <div class="axis-row">
+            <span class="axis-label">Z</span>
+            <button id="cal-pzm" class="cal-stepper-btn">-</button>
+            <span id="cal-pz-val" class="value-display">0.000</span>
+            <button id="cal-pzp" class="cal-stepper-btn">+</button>
+          </div>
+        </div>
+        <div class="section">
+          <div class="section-group">
+            <span class="section-title">Rotation</span>
+            <div class="axis-row">
+              <button id="cal-rym" class="cal-stepper-btn">-</button>
+              <span id="cal-ry-val" class="value-display">0.0</span>
+              <button id="cal-ryp" class="cal-stepper-btn">+</button>
+            </div>
+          </div>
+          <div class="section-group">
+            <span class="section-title">Scale</span>
+            <div class="axis-row">
+              <button id="cal-sm" class="cal-stepper-btn">-</button>
+              <span id="cal-s-val" class="value-display">1.000</span>
+              <button id="cal-sp" class="cal-stepper-btn">+</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-group">
+          <span class="section-title">Increment</span>
+          <div class="axis-row">
+            <button id="cal-incrm" class="cal-stepper-btn">-</button>
+            <span id="cal-incr-val" class="value-display">0.01</span>
+            <button id="cal-incrp" class="cal-stepper-btn">+</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="actions">
+      <button id="cal-restart" class="action-btn primary-dark">Full Reposition</button>
+      <button id="cal-done" class="action-btn primary-light">Play</button>
+    </div>
+  </div>
+</div>

@@ -5,7 +5,6 @@ import './screens/settings.css';
 import './screens/library.css';
 import './screens/play.css';
 
-import html2canvas from "html2canvas";
 import {
     type AssetManifest,
     type Entity,
@@ -46,7 +45,6 @@ import { XRActiveScene } from "./XRActiveScene";
 import { XRSettingsScene } from "./XRSettingsScene";
 import { loadSettings, type Settings } from "../shared/Settings";
 import { fromHex } from "../shared/UIColor";
-import type { XrButton } from "./XRTypes";
 import type {
     SongStructure, SongKeyboardNotes, SongInstrumentNotes, SongSection, SongInfo,
 } from "../shared/SongFormat";
@@ -108,15 +106,6 @@ class HighwaySystem extends createSystem({}) {
     private rayOrigin!: Vector3;
     private rayDir!: Vector3;
 
-    private panelRenderPending = false;
-    private panelRenderGen = 0;
-
-    private scrubBtn: XrButton | null = null;
-    private scrubHandIdx = -1;
-    private scrubLastX = 0;
-
-    private hoveredBtn: XrButton | null = null;
-
     private lastCountdownN: number | undefined = undefined;
 
     private isGrabbed        = false;
@@ -142,11 +131,6 @@ class HighwaySystem extends createSystem({}) {
         this.panelPos     = new Vector3();
         this.headPos      = new Vector3();
         this.guitarBarPos = new Vector3();
-
-        this.world.globals.invalidatePanelRender = (): void => {
-            this.panelRenderGen++;
-            this.panelRenderPending = false;
-        };
     }
 
     update(delta: number, _time: number): void {
@@ -209,33 +193,10 @@ class HighwaySystem extends createSystem({}) {
             }
         }
 
-        // Fires every frame regardless of which panel is currently showing — the
-        // uikit-based Play HUD (XRActiveScene) relies on this for its live seek/
-        // time/play-pause-icon updates, and doesn't use panelMesh/html2canvas at
-        // all, so this can't live inside the panelMesh?.visible-gated block below
-        // (it used to, back when this call only ever served the html2canvas Play
-        // HUD — that coupling was incidental, not intentional, and left this
-        // callback dead for the whole time the migrated uikit panel is visible).
+        // Fires every frame regardless of which panel is currently showing — every
+        // uikit panel's live per-frame content (Play HUD's seek/time/icon, etc.)
+        // relies on this running unconditionally.
         (this.world.globals.updateActivePanel as (() => void) | undefined)?.();
-
-        // ── Panel: html2canvas render — rate limited by capture duration ────────
-        // (only Library still uses this; Settings/Song/Play HUD are all uikit now).
-        const uiPanel   = this.world.globals.uiPanel   as HTMLDivElement  | undefined;
-        const panelTex  = this.world.globals.panelTex  as CanvasTexture   | undefined;
-        const xrButtons = this.world.globals.xrButtons as XrButton[]      | undefined;
-        const panelMesh = this.world.globals.panelMesh as Mesh            | undefined;
-
-        if (uiPanel && panelTex && panelMesh?.visible && !this.panelRenderPending) {
-            this.panelRenderPending = true;
-            const captureGen = this.panelRenderGen;
-            html2canvas(uiPanel, { backgroundColor: null, logging: false }).then(canvas => {
-                this.panelRenderPending = false;
-                if (this.panelRenderGen !== captureGen) return;
-                const dst = panelTex.image as HTMLCanvasElement;
-                dst.getContext("2d")!.drawImage(canvas, 0, 0, dst.width, dst.height);
-                panelTex.needsUpdate = true;
-            }).catch(() => { this.panelRenderPending = false; });
-        }
 
         // ── Hide hand-tracking visuals while actively playing ───────────────────
         // Lets the player see the fretboard/keyboard without their own hand models
@@ -280,7 +241,6 @@ class HighwaySystem extends createSystem({}) {
                     ray.getWorldPosition(this.rayOrigin);
                     this.rayDir.set(0, 0, -1).transformDirection(ray.matrixWorld);
                     this.raycaster.set(this.rayOrigin, this.rayDir);
-                    if (panelMesh && this.raycaster.intersectObject(panelMesh).length > 0) continue;
                     if (this.raycaster.intersectObject(grabBarHit).length > 0) {
                         this.isGrabbed       = true;
                         this.grabbingHandIdx = i;
@@ -361,133 +321,6 @@ class HighwaySystem extends createSystem({}) {
             }
         }
 
-        const rayNormX = (
-            ray: (typeof hands)[number]['ray'],
-            el: HTMLElement,
-        ): number | null => {
-            if (!panelMesh || !uiPanel || !ray) return null;
-            ray.updateMatrixWorld();
-            panelMesh.updateMatrixWorld();
-            ray.getWorldPosition(this.rayOrigin);
-            this.rayDir.set(0, 0, -1).transformDirection(ray.matrixWorld);
-            this.raycaster.set(this.rayOrigin, this.rayDir);
-            const hits = this.raycaster.intersectObject(panelMesh);
-            if (hits.length === 0 || !hits[0].uv) return null;
-            const panelRect = uiPanel.getBoundingClientRect();
-            const pixX = hits[0].uv.x * panelRect.width;
-            const r    = el.getBoundingClientRect();
-            return Math.max(0, Math.min((pixX - (r.left - panelRect.left)) / r.width, 1));
-        };
-
-        const rayNormY = (
-            ray: (typeof hands)[number]['ray'],
-            el: HTMLElement,
-        ): number | null => {
-            if (!panelMesh || !uiPanel || !ray) return null;
-            ray.updateMatrixWorld();
-            panelMesh.updateMatrixWorld();
-            ray.getWorldPosition(this.rayOrigin);
-            this.rayDir.set(0, 0, -1).transformDirection(ray.matrixWorld);
-            this.raycaster.set(this.rayOrigin, this.rayDir);
-            const hits = this.raycaster.intersectObject(panelMesh);
-            if (hits.length === 0 || !hits[0].uv) return null;
-            const panelRect = uiPanel.getBoundingClientRect();
-            const pixY = (1 - hits[0].uv.y) * panelRect.height;
-            const r    = el.getBoundingClientRect();
-            return Math.max(0, Math.min((pixY - (r.top - panelRect.top)) / r.height, 1));
-        };
-
-        // ── Active scrub: move or end ─────────────────────────────────────────
-        if (this.scrubBtn !== null && this.scrubHandIdx >= 0) {
-            const { pad, ray } = hands[this.scrubHandIdx];
-            if (pad?.getButtonPressed(InputComponent.Trigger)) {
-                const nx = this.scrubBtn.scrubVertical
-                    ? rayNormY(ray, this.scrubBtn.el)
-                    : rayNormX(ray, this.scrubBtn.el);
-                if (nx !== null && nx !== this.scrubLastX) {
-                    this.scrubLastX = nx;
-                    this.scrubBtn.onScrubMove?.(nx);
-                }
-            } else {
-                this.scrubBtn.onScrubEnd?.(this.scrubLastX);
-                this.scrubBtn     = null;
-                this.scrubHandIdx = -1;
-            }
-            return;
-        }
-
-        // ── Per-frame hover scan ──────────────────────────────────────────────
-        if (xrButtons && panelMesh && uiPanel) {
-            let newHovered: XrButton | null = null;
-            hoverOuter: for (const { ray } of hands) {
-                if (!ray) continue;
-                ray.updateMatrixWorld();
-                panelMesh.updateMatrixWorld();
-                ray.getWorldPosition(this.rayOrigin);
-                this.rayDir.set(0, 0, -1).transformDirection(ray.matrixWorld);
-                this.raycaster.set(this.rayOrigin, this.rayDir);
-                const hits = this.raycaster.intersectObject(panelMesh);
-                if (hits.length === 0 || !hits[0].uv) continue;
-                const panelRect = uiPanel.getBoundingClientRect();
-                const pixX = hits[0].uv.x * panelRect.width;
-                const pixY = (1 - hits[0].uv.y) * panelRect.height;
-                for (const btn of xrButtons) {
-                    const r  = btn.el.getBoundingClientRect();
-                    const bx = r.left - panelRect.left;
-                    const by = r.top  - panelRect.top;
-                    if (pixX >= bx && pixX <= bx + r.width && pixY >= by && pixY <= by + r.height) {
-                        newHovered = btn;
-                        break hoverOuter;
-                    }
-                }
-                break;
-            }
-            if (newHovered !== this.hoveredBtn) {
-                this.hoveredBtn?.el.classList.remove('xr-hover');
-                newHovered?.el.classList.add('xr-hover');
-                this.hoveredBtn = newHovered;
-            }
-        }
-
-        // ── New button press ──────────────────────────────────────────────────
-        for (let i = 0; i < hands.length; i++) {
-            const { pad, ray } = hands[i];
-            if (!pad?.getButtonDown(InputComponent.Trigger)) continue;
-            if (!panelMesh || !uiPanel || !xrButtons || !ray) continue;
-
-            ray.updateMatrixWorld();
-            panelMesh.updateMatrixWorld();
-            ray.getWorldPosition(this.rayOrigin);
-            this.rayDir.set(0, 0, -1).transformDirection(ray.matrixWorld);
-            this.raycaster.set(this.rayOrigin, this.rayDir);
-
-            const hits = this.raycaster.intersectObject(panelMesh);
-            if (hits.length === 0 || !hits[0].uv) continue;
-
-            const panelRect = uiPanel.getBoundingClientRect();
-            const pixX      = hits[0].uv.x * panelRect.width;
-            const pixY      = (1 - hits[0].uv.y) * panelRect.height;
-
-            for (const btn of xrButtons) {
-                const r  = btn.el.getBoundingClientRect();
-                const bx = r.left - panelRect.left;
-                const by = r.top  - panelRect.top;
-                if (pixX >= bx && pixX <= bx + r.width
-                        && pixY >= by && pixY <= by + r.height) {
-                    if (btn.onScrubStart) {
-                        this.scrubLastX   = btn.scrubVertical
-                            ? Math.max(0, Math.min((pixY - by) / r.height, 1))
-                            : Math.max(0, Math.min((pixX - bx) / r.width, 1));
-                        this.scrubHandIdx = i;
-                        this.scrubBtn     = btn;
-                        btn.onScrubStart();
-                    } else {
-                        btn.onClick?.();
-                    }
-                    break;
-                }
-            }
-        }
     }
 }
 
@@ -588,17 +421,6 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     keysCountdownMesh.visible = false;
     world.createTransformEntity(keysCountdownMesh, { parent: anchorEntity, persistent: true });
 
-    // ── UI panel ──────────────────────────────────────────────────────────────
-    const uiPanel = document.createElement("div");
-    uiPanel.className = 'xr-panel';
-    uiPanel.style.cssText = "position:fixed;left:-9999px;top:0;width:400px;height:300px";
-    document.body.appendChild(uiPanel);
-
-    const panelCanvas = document.createElement("canvas");
-    panelCanvas.width  = 400;
-    panelCanvas.height = 300;
-    const panelTex = new CanvasTexture(panelCanvas);
-
     const grabBarCanvas = document.createElement('canvas');
     grabBarCanvas.width  = 200;
     grabBarCanvas.height = 32;
@@ -644,20 +466,9 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         persistent: true,
     });
 
-    const panelMesh = new Mesh(
-        new PlaneGeometry(0.4, 0.3),
-        new MeshBasicMaterial({ map: panelTex, transparent: true }),
-    );
-    panelMesh.position.set(0, 0.169, 0);
-    const panelMeshEntity = world.createTransformEntity(panelMesh, {
-        parent: grabBarEntity,
-        persistent: true,
-    });
-    panelMeshEntity.addComponent(RayInteractable);
-
     // ── Settings uikit panel (Phase B of the html2canvas → uikit migration) ─────
-    // Same slot as panelMesh (child of grabBarEntity, same local offset/size),
-    // toggled visible instead of it while the Settings screen is showing — see
+    // Same slot every uikit panel below shares (child of grabBarEntity), each
+    // toggled visible while its own screen is showing — see
     // showSettings()/showActiveScene() below. Created once, persistent; content
     // is static (see ui/settings.uikitml) and wired/updated via setProperties()
     // rather than recreated per-open.
@@ -688,8 +499,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     // alone still let the ray cursor snap to/stop at the hidden panel):
     // - RayInteractable add/remove: excludes the panel from IWSDK's
     //   InputSystem raycast-target list entirely, so the ray cursor passes
-    //   through to whatever's actually behind it (e.g. panelMesh's Library
-    //   button) instead of stopping here.
+    //   through to whatever's actually behind it instead of stopping here.
     // - pointerEvents: gates uikit's own internal click/hover dispatch,
     //   independent of the above.
     function setSettingsPanelInteractive(enabled: boolean): void {
@@ -777,20 +587,17 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     }
     setPlayPanelInteractive(false);
 
-    // ── Library uikit panel (last screen-by-screen migration step off
+    // ── Library uikit panel (fourth screen-by-screen migration step off
     // html2canvas) ───────────────────────────────────────────────────────────
     // Same slot/pattern as settingsPanelObj/preScenePanelObj/playPanelObj
     // above, but a different physical size (1m x 0.525m, not the standard
-    // 0.4m x 0.3m the other three use) — matches the size the old
-    // html2canvas panelMesh used to be resized to via resizePanel(1000, 525)
-    // (still used by CalibrationSystem's fine-tune screen, just no longer by
-    // Library), since the 3-column song grid needs more room than the other
-    // screens.
+    // 0.4m x 0.3m the other panels use), since the 3-column song grid needs
+    // more room than the other screens.
     //
-    // Y offset is NOT the same 0.169 the other three panels use — those are
-    // centered on their own local origin (like panelMesh's PlaneGeometry
-    // always was) at a height tuned so a 0.3m-tall panel's BOTTOM edge sits
-    // 0.019m above the grab bar (0.169 - 0.3/2). Keeping that same center
+    // Y offset is NOT the same 0.169 the other panels use — those are
+    // centered on their own local origin at a height tuned so a 0.3m-tall
+    // panel's BOTTOM edge sits 0.019m above the grab bar (0.169 - 0.3/2).
+    // Keeping that same center
     // offset for this taller 0.525m panel would push its bottom edge to
     // 0.169 - 0.525/2 = -0.0935m — i.e. below the bar, overlapping it.
     // Solved for the center offset that preserves the same 0.019m bottom-edge
@@ -826,6 +633,51 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     }
     setLibraryPanelInteractive(false);
 
+    // ── Calibration/fine-tune-reposition uikit panel (last screen-by-screen
+    // migration step off html2canvas) ────────────────────────────────────────
+    // Same slot/pattern as settingsPanelObj/preScenePanelObj/playPanelObj —
+    // standard 0.4m x 0.3m size, so the standard 0.169 center offset applies
+    // unchanged (no Library-style bottom-edge recompute needed).
+    //
+    // CalibrationSystem is a separately-registered ECS system (createSystem),
+    // not a plain class index.ts instantiates directly like
+    // XRSettingsScene/XRSongLibrary — so it can't receive this entity via a
+    // show() call argument. It reads calibrationPanelEntity and calls
+    // setCalibrationPanelInteractive via world.globals instead, same
+    // directional-callback convention already used for setGuitarHighwayScale
+    // (index.ts owns and exposes the function; other files call it).
+    const calibrationPanelObj = new Object3D();
+    calibrationPanelObj.position.set(0, 0.169, 0);
+    calibrationPanelObj.visible = false;
+    const calibrationPanelEntity = world.createTransformEntity(calibrationPanelObj, {
+        parent: grabBarEntity,
+        persistent: true,
+    });
+    calibrationPanelEntity.addComponent(PanelUI, {
+        config: '/ui/calibration.json',
+        maxWidth: 0.4,
+        maxHeight: 0.3,
+    });
+    world.globals.calibrationPanelObj    = calibrationPanelObj;
+    world.globals.calibrationPanelEntity = calibrationPanelEntity;
+
+    function setCalibrationPanelInteractive(enabled: boolean): void {
+        if (enabled) {
+            if (!calibrationPanelEntity.hasComponent(RayInteractable)) {
+                calibrationPanelEntity.addComponent(RayInteractable);
+            }
+        } else {
+            if (calibrationPanelEntity.hasComponent(RayInteractable)) {
+                calibrationPanelEntity.removeComponent(RayInteractable);
+            }
+        }
+        const doc = calibrationPanelEntity.getValue(PanelDocument, 'document') as
+            { rootElement: { setProperties: (p: Record<string, unknown>) => void } } | null;
+        doc?.rootElement.setProperties({ pointerEvents: enabled ? 'auto' : 'none' });
+    }
+    setCalibrationPanelInteractive(false);
+    world.globals.setCalibrationPanelInteractive = setCalibrationPanelInteractive;
+
     // ── Guitar/Bass highway grab bar + content-scroll node ──────────────────────
     // Sits "beneath" the fret volume. Grabbing it repositions the whole volume
     // (position handled by IWSDK DistanceGrabbable; yaw billboard is custom, see
@@ -859,7 +711,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     });
 
     // Fixed real-world gap so the highway sits above the bar rather than around
-    // it — same role as the panel's panelMesh.position.y offset. Position is set
+    // it — same role as every panel's own 0.169 position.y offset. Position is set
     // by CalibrationSystem.applyGuitarHighwayScale() once calibration runs
     // (compensates for Settings.guitarHighwayScale so the gap stays constant
     // regardless of highway size — see that method for the math).
@@ -900,43 +752,15 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     guitarCountdownMesh.visible = false;
     world.createTransformEntity(guitarCountdownMesh, { parent: guitarGrabBarEntity, persistent: true });
 
-    const xrButtons: XrButton[] = [];
-
-    world.globals.uiPanel          = uiPanel;
-    world.globals.panelMesh        = panelMesh;
-    world.globals.panelTex         = panelTex;
-    world.globals.xrButtons        = xrButtons;
     world.globals.grabBarHit              = grabBarHit;
     world.globals.guitarGrabBarHit        = guitarGrabBarHit;
     world.globals.guitarScaleNode         = guitarScaleNode;
     world.globals.guitarContentOffsetNode = guitarContentOffsetNode;
     world.globals.guitarContentNode       = guitarContentNode;
 
-    function resizePanel(w: number, h: number): void {
-        uiPanel.style.width  = `${w}px`;
-        uiPanel.style.height = `${h}px`;
-        if (panelCanvas.width !== w || panelCanvas.height !== h) {
-            panelCanvas.width  = w;
-            panelCanvas.height = h;
-            panelMesh.geometry.dispose();
-            panelMesh.geometry = new PlaneGeometry(w * 0.001, h * 0.001);
-            panelMesh.position.y = 0.169 + (h - 300) * 0.001 * 0.5;
-            panelTex.dispose();
-            panelTex.needsUpdate = true;
-        }
-        (world.globals.invalidatePanelRender as (() => void) | undefined)?.();
-    }
-
-    world.globals.resizePanel = resizePanel;
-
     // ── App state machine ─────────────────────────────────────────────────────
 
     let highwayEntity: { dispose(): void } | null = null;
-
-    function clearXrButtons(): void {
-        for (const btn of xrButtons) btn.el.classList.remove('xr-hover');
-        xrButtons.length = 0;
-    }
 
     // Disposes the mounted highway mesh and hides whichever grab bar owns it.
     // guitarGrabBarHit's own visual pill is a persistent sibling, not part of
@@ -952,27 +776,24 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     }
 
     function showLibrary(): void {
-        clearXrButtons();
-        // panelMesh is no longer Library's own display surface (see
-        // libraryPanelEntity above) — still hidden defensively here since
-        // CalibrationSystem's still-html2canvas fine-tune screen can show it
-        // via the same global uiPanel/panelMesh slot before returning here.
-        panelMesh.visible       = false;
         libraryPanelObj.visible = true;
         setLibraryPanelInteractive(true);
         preScenePanelObj.visible = false;
         setPreScenePanelInteractive(false);
         playPanelObj.visible     = false;
         setPlayPanelInteractive(false);
+        calibrationPanelObj.visible = false;
+        setCalibrationPanelInteractive(false);
         (world.globals.songPlayer as SongPlayer | undefined)?.pause();
         disposeHighway();
         library.show(libraryPanelEntity, showPreScene);
     }
 
     function showPreScene(sourced: SourcedEntry): void {
-        clearXrButtons();
         libraryPanelObj.visible = false;
         setLibraryPanelInteractive(false);
+        calibrationPanelObj.visible = false;
+        setCalibrationPanelInteractive(false);
         preScenePanelObj.visible = true;
         setPreScenePanelInteractive(true);
         preScene.show(
@@ -1105,8 +926,6 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     }
 
     async function playEntry(entry: SourcedEntry, partName: string): Promise<void> {
-        clearXrButtons();
-
         const result = await loadSong(entry, partName);
         if (!result) { showLibrary(); return; }
         const { songPlayer, sections, totalDuration, noteMin, noteMax } = result;
@@ -1114,24 +933,30 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     }
 
     async function repositionEntry(entry: SourcedEntry, partName: string): Promise<void> {
-        clearXrButtons();
-
         const result = await loadSong(entry, partName);
         if (!result) { showLibrary(); return; }
         const { songPlayer, sections, totalDuration, noteMin, noteMax } = result;
 
+        // Reached from PreScene — preScenePanelObj is still visible at this
+        // point (showPreScene() set it). CalibrationSystem's panel occupies
+        // the exact same grabBarEntity-relative slot as every other panel, so
+        // leaving PreScene's panel visible alongside it causes z-fighting.
+        preScenePanelObj.visible = false;
+        setPreScenePanelInteractive(false);
         (world.globals.showCalibrationFineTune as ((d: () => void) => void) | undefined)?.(
             () => showActiveScene(entry, songPlayer, sections, totalDuration, noteMin, noteMax),
         );
     }
 
     async function calibrateAndPlay(entry: SourcedEntry, partName: string): Promise<void> {
-        clearXrButtons();
-
         const result = await loadSong(entry, partName);
         if (!result) { showLibrary(); return; }
         const { songPlayer, sections, totalDuration, noteMin, noteMax } = result;
 
+        // Same reasoning as repositionEntry() above — also reached from
+        // PreScene, first-time calibration.
+        preScenePanelObj.visible = false;
+        setPreScenePanelInteractive(false);
         (world.globals.startCalibration as ((d: () => void) => void) | undefined)?.(
             () => showActiveScene(entry, songPlayer, sections, totalDuration, noteMin, noteMax),
         );
@@ -1145,14 +970,14 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         noteMin: number,
         noteMax: number,
     ): void {
-        clearXrButtons();
-        panelMesh.visible        = false;
         libraryPanelObj.visible  = false;
         setLibraryPanelInteractive(false);
         settingsPanelObj.visible = false;
         setSettingsPanelInteractive(false);
         preScenePanelObj.visible = false;
         setPreScenePanelInteractive(false);
+        calibrationPanelObj.visible = false;
+        setCalibrationPanelInteractive(false);
         playPanelObj.visible     = true;
         setPlayPanelInteractive(true);
         world.globals.updateActivePanel = undefined;
@@ -1165,6 +990,16 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
             totalDuration,
             sections,
             (done: () => void) => {
+                // Do NOT hide playPanelObj here. Guitar's recalibrate is
+                // instant/no-panel (see CalibrationSystem.ts) — `done` here is
+                // just XRActiveScene's own rerender(), not a full
+                // showActiveScene() re-run, so hiding this panel would leave
+                // it permanently invisible (nothing else would ever set it
+                // visible again for that path). Keys DOES show its own panel
+                // over this same slot — CalibrationSystem._showPanel() is
+                // responsible for hiding this one first when that happens,
+                // since only it knows whether a panel is actually about to
+                // show.
                 (world.globals.recalibrate as ((d: () => void) => void) | undefined)?.(done);
             },
             (pausedAt: number) => resumeWithCountdown(pausedAt, entry, songPlayer, sections, totalDuration, noteMin, noteMax),
@@ -1190,14 +1025,14 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         noteMin: number,
         noteMax: number,
     ): void {
-        clearXrButtons();
-        panelMesh.visible        = false;
         libraryPanelObj.visible  = false;
         setLibraryPanelInteractive(false);
         settingsPanelObj.visible = true;
         setSettingsPanelInteractive(true);
         playPanelObj.visible     = false;
         setPlayPanelInteractive(false);
+        calibrationPanelObj.visible = false;
+        setCalibrationPanelInteractive(false);
         world.globals.updateActivePanel = undefined;
         settingsScene.show(
             settingsPanelEntity,
@@ -1240,8 +1075,6 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         songPlayer.seekTo(resumeAt);
 
         world.globals.rollbackState = { from: pausedAt, to: resumeAt, startMs: performance.now() };
-
-        clearXrButtons();
 
         world.globals.countdownN = 3;
         setTimeout(() => { world.globals.countdownN = 2; }, 1000);
