@@ -9,10 +9,12 @@
 
      Simplifications vs. the original DOM (same kind of pragmatic
      collapsing already done for every other screen this session):
-     - No inline <b>/<br> rich-text formatting inside the prompt message —
-       a single Text node can't mix bold/plain runs. Rendered as one plain
-       string instead, with white-space:pre-line + literal \n\n so the
-       double-line-break visual grouping survives without HTML tags.
+     - No inline <b>/<br> rich-text formatting inside the prompt message — a
+       single Text node can't mix bold/plain runs. The "Step X of 2" heading
+       and the instruction body are two separate spans instead (see
+       #cal-prompt-heading/#cal-prompt-text below), each independently
+       styled; the instruction body's own internal line breaks still use
+       white-space:pre-line + literal \n between lines.
      - No 🎹/🎸 emoji — same missing-glyph risk category as the special
        typographic characters already found bad elsewhere (uikit's prebuilt
        Inter MSDF atlas is Latin-only, emoji are outside it); dropped rather
@@ -39,7 +41,7 @@
 
   /* ── #cal-prompt: shared by the first-time 2-touch calibration steps AND
      the "Full Reposition" restart flow inside fine-tune (identical content
-     either way — see CalibrationSystem.ts's messages[] lookup). ── */
+     either way — see CalibrationSystem.ts's promptHeading()/promptBody()). ── */
   .prompt-section {
     flex-grow: 1;
     flex-shrink: 1;
@@ -50,6 +52,19 @@
     padding-right: 2.4;
     padding-bottom: 2.4;
     padding-left: 2.4;
+  }
+  .prompt-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap-row: 1;
+    gap-column: 1;
+  }
+  .prompt-heading {
+    color: #e8e8e8;
+    font-size: 1.7;
+    font-weight: bold;
+    text-align: center;
   }
   .prompt-text {
     color: #e8e8e8;
@@ -190,7 +205,10 @@
 
 <div class="panel">
   <div class="prompt-section" id="cal-prompt">
-    <span class="prompt-text" id="cal-prompt-text">Step 1 of 2</span>
+    <div class="prompt-content">
+      <span class="prompt-heading" id="cal-prompt-heading">Step 1 of 2</span>
+      <span class="prompt-text" id="cal-prompt-text">Touch the leftmost key</span>
+    </div>
   </div>
 
   <div class="finetune-wrap" id="cal-finetune">

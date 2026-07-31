@@ -494,7 +494,8 @@ export class CalibrationSystem extends createSystem({}) {
             this._withDoc(doc => {
                 doc.getElementById('cal-finetune')?.setProperties({ display: 'none' });
                 doc.getElementById('cal-prompt')?.setProperties({ display: 'flex' });
-                doc.getElementById('cal-prompt-text')?.setProperties({ text: this.promptMessage() });
+                doc.getElementById('cal-prompt-heading')?.setProperties({ text: this.promptHeading() });
+                doc.getElementById('cal-prompt-text')?.setProperties({ text: this.promptBody() });
             });
             return;
         }
@@ -583,17 +584,21 @@ export class CalibrationSystem extends createSystem({}) {
         });
     }
 
-    private promptMessage(): string {
+    private promptHeading(): string {
+        return this.state === 'prompt_right' ? 'Step 2 of 2' : 'Step 1 of 2';
+    }
+
+    private promptBody(): string {
         const ctrl = !this.hasHandInputSources();
         const messages: Record<CalibrationState, string> = {
             idle:  '',
             done:  '',
             prompt_left: ctrl
-                ? 'Step 1 of 2\n\nRest your LEFT controller\non the leftmost key\nand pull the left trigger.'
-                : 'Step 1 of 2\n\nTouch the leftmost key\nwith your left index finger\nand pinch to confirm.',
+                ? 'Rest your LEFT controller\non the leftmost key\nand pull the left trigger.'
+                : 'Touch the leftmost key\nwith your left index finger\nand pinch to confirm.',
             prompt_right: ctrl
-                ? 'Step 2 of 2\n\nRest your RIGHT controller\non the rightmost key\nand pull the right trigger.'
-                : 'Step 2 of 2\n\nTouch the rightmost key\nwith your right index finger\nand pinch to confirm.',
+                ? 'Rest your RIGHT controller\non the rightmost key\nand pull the right trigger.'
+                : 'Touch the rightmost key\nwith your right index finger\nand pinch to confirm.',
         };
         return messages[this.state];
     }
@@ -603,7 +608,8 @@ export class CalibrationSystem extends createSystem({}) {
         this._withDoc(doc => {
             doc.getElementById('cal-finetune')?.setProperties({ display: 'none' });
             doc.getElementById('cal-prompt')?.setProperties({ display: 'flex' });
-            doc.getElementById('cal-prompt-text')?.setProperties({ text: this.promptMessage() });
+            doc.getElementById('cal-prompt-heading')?.setProperties({ text: this.promptHeading() });
+            doc.getElementById('cal-prompt-text')?.setProperties({ text: this.promptBody() });
         });
     }
 
