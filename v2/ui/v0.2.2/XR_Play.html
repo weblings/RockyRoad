@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+[[!registerStyle? &style=`<style>
+.frame {
+  width: 400px;
+  height: 300px;
+  padding: 221px 100px 43px 0px;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.frame .6 {
+  max-width: 400px;
+  text-align: center;
+}
+
+.frame .button {
+  width: 150px;
+  height: 36px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 8px 8px 8px 8px;
+  background: #333333;
+  border-radius: 5px;
+  color: #ffffff;
+  font-size: 13.30px;
+  font-weight: 400;
+  text-align: center;
+}
+
+.frame .debug {
+  width: 400px;
+  height: 300px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0px 0px;
+  background: #0a0a0a;
+  border-radius: 12px;
+}
+
+.frame .debug .debug {
+  height: 208px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 6px 0px 6px 0px;
+  align-self: stretch;
+  flex: 0 0 auto;
+  background: #0a0a0a;
+  border-radius: 8px;
+}
+
+.frame .debug .debug .frame {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  width: auto;
+  height: auto;
+  flex: 0 0 auto;
+  border-radius: 8px;
+}
+
+.frame .debug .debug .frame .frame {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 8px 8px 8px;
+  align-self: stretch;
+  height: auto;
+  flex: 0 0 auto;
+  background: #1a1a1a;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.frame .debug .debug .frame .frame .frame {
+  width: 193px;
+  height: 61px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0px 0px;
+  padding: 4px 0px 4px 0px;
+  flex: 0 0 auto;
+  overflow: hidden;
+}
+
+.frame .debug .debug .frame .frame .frame .emotion {
+  color: #ffffff;
+  max-width: 193px;
+  font-size: 12.00px;
+  font-weight: 700;
+}
+
+.frame .debug .debug .frame .frame .frame .super {
+  color: #c8c8c8;
+  max-width: 193px;
+  font-size: 10.30px;
+  font-weight: 400;
+}
+
+.frame .debug .debug .frame .frame .options {
+  height: 36px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0px 0px;
+  padding: 8px 8px 8px 8px;
+  width: auto;
+  flex: 0 0 auto;
+  border: 1px solid #444444;
+  background: #333333;
+  border-radius: 6px;
+}
+
+.frame .debug .debug .frame .frame .options .chevron-down {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  overflow: hidden;
+}
+
+.frame .debug .debug .frame .frame .options .chevron-down .vector {
+  width: 9.152px;
+  height: 5.711px;
+  background: #ffffff;
+}
+
+.frame .debug .debug .frame .frame .options .difficulty: {
+  color: #c8c8c8;
+  max-width: 103px;
+  font-size: 13.50px;
+  line-height: 16px;
+}
+
+.frame .debug .debug .frame .frame .options .speed: {
+  color: #c8c8c8;
+  max-width: 84px;
+  font-size: 13.50px;
+  line-height: 16px;
+}
+
+.frame .debug .debug .frame .frame .rectangle {
+  width: 54px;
+  height: 54px;
+  flex: 0 0 auto;
+  background: #6e6e6e;
+}
+
+.frame .debug .debug .group {
+  width: 356px;
+  height: 43px;
+  flex: 0 0 auto;
+}
+
+.frame .debug .debug .group .frame {
+  width: 356px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 5px 8px 5px 8px;
+}
+
+.frame .debug .debug .group .frame .frame {
+  width: 300px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 10px 10px 10px 10px;
+  flex: 0 0 auto;
+  height: auto;
+}
+
+.frame .debug .debug .group .frame .frame .group {
+  width: 300px;
+  height: 33px;
+  flex: 0 0 auto;
+}
+
+.frame .debug .debug .group .frame .frame .group .frame {
+  width: 300px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.frame .debug .debug .group .frame .frame .group .frame .0:01 {
+  color: #aaaaaa;
+  max-width: 22px;
+  font-size: 11.00px;
+  font-weight: 400;
+}
+
+.frame .debug .debug .group .frame .frame .group .frame .0:55 {
+  color: #aaaaaa;
+  max-width: 24px;
+  font-size: 11.00px;
+  font-weight: 400;
+}
+
+.frame .debug .debug .group .frame .frame .group .frame .background {
+  width: 300px;
+  height: 14px;
+  flex: 0 0 auto;
+  background: #333333;
+  border-radius: 7px;
+}
+
+.frame .debug .debug .group .frame .frame .group .frame .background .background {
+  width: 5.395px;
+  height: 14px;
+  background: #6aaa6a;
+  border-radius: 7px;
+}
+
+.frame .debug .debug .group .frame .frame .group .frame .background .background+shadow {
+  width: 20px;
+  height: 20px;
+  background: #eeeeee;
+  box-shadow: 0px 0px 3px 0px rgba(0,0,0,0.6);
+  border-radius: 10px;
+}
+
+.frame .debug .debug .group .frame .group {
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+}
+
+.frame .debug .debug .group .frame .group .frame {
+  width: 32px;
+  height: 32px;
+}
+
+.frame .debug .debug .group .frame .group .frame .button {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 8px 8px 8px 8px;
+  background: #eeeeee;
+  border-radius: 500px;
+}
+
+.frame .debug .debug .group .frame .group .frame .button .group {
+  width: 13px;
+  height: 17px;
+  flex: 0 0 auto;
+}
+
+.frame .debug .debug .group .frame .group .frame .button .group .▶ {
+  color: #111111;
+  max-width: 13px;
+  font-size: 14.00px;
+  font-weight: 400;
+}
+
+.frame .debug .frame {
+  width: 400px;
+  display: flex;
+  align-items: flex-start;
+  gap: 202px;
+  height: auto;
+  flex: 0 0 auto;
+}
+
+.frame .debug .frame .frame {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 10px 0px 10px;
+  width: auto;
+  flex: 0 0 auto;
+  height: auto;
+}
+
+.frame .debug .frame .frame .button {
+  width: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 8px 8px 8px 8px;
+  height: auto;
+  flex: 0 0 auto;
+  background: #333333;
+  border-radius: 5px;
+}
+
+.frame .debug .frame .frame .button .library {
+  color: #ffffff;
+  max-width: 100px;
+  font-size: 12.00px;
+  font-weight: 400;
+  text-align: center;
+}
+
+.frame .debug .frame .frame .button .settings {
+  color: #f5f5f5;
+  max-width: 100px;
+  font-size: 11.10px;
+  font-weight: 400;
+  text-align: center;
+}
+
+.frame .debug .frame .frame .button .← {
+  color: #ffffff;
+  max-width: 12px;
+  font-size: 12.00px;
+  font-weight: 400;
+  text-align: center;
+}
+
+.frame .debug .frame .frame .button .⚙ {
+  color: #111111;
+  max-width: 12px;
+  font-size: 11.10px;
+  font-weight: 400;
+  text-align: center;
+}
+</style>`]]
+</head>
+<body>
+[[!registerStyle? &style=`<link rel="preload" href="assets/css/frame.min.css" as="style">
+<link rel="stylesheet" href="assets/css/frame.min.css">`]]
+<a class="anchor" id="frame"></a>
+<div class="frame">
+  <div class="debug">
+    <div class="frame">
+      <div class="frame">
+        <button class="button" type="button">
+          <span class="←">←</span>
+          <span class="library">Library</span>
+        </button>
+      </div>
+      <div class="frame">
+        <button class="button" type="button">
+          <span class="⚙">⚙</span>
+          <span class="settings">Settings</span>
+        </button>
+      </div>
+    </div>
+    <div class="debug">
+      <div class="group">
+        <div class="frame">
+          <div class="frame">
+            <div class="group">
+              <div class="frame">
+                <div class="container">
+                  <div class="container">
+                    <p class="0:01">0:01</p>
+                  </div>
+                  <div class="container">
+                    <p class="0:55">0:55</p>
+                  </div>
+                </div>
+                <div class="background">
+                  <div class="background"></div>
+                  <div class="background+shadow"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="group">
+            <div class="frame">
+              <button class="button" type="button">
+                <div class="group">
+                  <p class="▶">▶</p>
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="frame">
+        <div class="frame">
+          <div class="rectangle"></div>
+          <div class="frame">
+            <p class="emotion" An Unvwavering Heart>Emotion (An Unvwavering Heart)</p>
+            <p class="super">Super Piano 64 - Gamechops - Unplugged</p>
+          </div>
+        </div>
+        <div class="frame">
+          <div class="options">
+            <div class="container">
+              <p class="speed:">Speed: 100%</p>
+              <div class="chevron-down">
+                <div class="vector"></div>
+              </div>
+            </div>
+          </div>
+          <div class="container">
+            <div class="options">
+              <div class="container">
+                <p class="difficulty:">Difficulty: 100%</p>
+                <div class="chevron-down">
+                  <div class="vector"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="frame"></div>
+  <button class="button" type="button">🔄 Reposition</button>
+  <p class="6">6 Note Streak    11/13 Total</p>
+</div>
+</body>
+</html>
