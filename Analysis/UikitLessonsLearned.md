@@ -482,3 +482,141 @@ punctuation the first time you write text content for a `.uikitml` screen (`x` n
 `−`, `...` not `…`), rather than writing the "correct" typographic character and finding out via a
 white-square bug report. If a genuinely special character is needed and no ASCII substitute reads
 naturally, test it deliberately before shipping rather than assuming it's covered.
+
+---
+
+## No system/OS text-entry keyboard is reachable from this app — Library's search box needs a custom on-screen keyboard (FOLLOW-UP, not yet built)
+
+**Finding:** Library's current search field (`src/xr/XRSongLibrary.ts`) works around the lack of
+any real text-input primitive by appending a real, invisible `<input>` to `document.body` and
+calling `.focus()` on it to trigger Quest's IME — this reportedly crashes the immersive session.
+Investigated whether a proper fix exists:
+
+- Neither `@pmndrs/*` (uikit, pointer-events, uikitml) nor `@iwsdk/*` exports anything
+  keyboard-related — grepped both fully, zero matches. No native virtual/system-keyboard component
+  exists to reach for.
+- The WebXR-spec-sanctioned way to get a real OS text input inside an active session is the
+  `dom-overlay` feature. This app already runs `SessionMode.ImmersiveAR` with passthrough
+  (`src/xr/index.ts` `World.create()` call — confirmed directly, corrected an earlier wrong
+  assumption that it was `immersive-vr`), which is the session mode `dom-overlay` actually needs —
+  so session mode isn't the blocker.
+- The real blocker: `@iwsdk/core`'s `XROptions.features` (`node_modules/@iwsdk/core/dist/init/
+  xr.d.ts`) is a closed, structured set of exactly 9 named feature flags (handTracking, anchors,
+  hitTest, planeDetection, meshDetection, lightEstimation, depthSensing, layers, unbounded) — the
+  doc comment explicitly says this "avoids raw string arrays." `dom-overlay` isn't one of the 9,
+  `buildSessionInit()` only ever pushes tokens from that hardcoded map, and there's no field
+  anywhere for the `domOverlay: { root: element }` init object the feature actually requires. A
+  full grep of `@iwsdk` for "dom-overlay"/"domOverlay" is empty — it's simply not wired up.
+- Getting `dom-overlay` working would require either patching `buildSessionInit` inside
+  `node_modules` (wiped on every reinstall/update) or bypassing `launchXR()` entirely and hand-
+  rolling `navigator.xr.requestSession()` + `world.renderer.xr.setSession()`, duplicating IWSDK's
+  own session-bootstrap logic (reference-space resolution, session-end handling, its "always offer"
+  button flow) outside the sanctioned API. Both are more fragile than they sound, and neither was
+  attempted — whether `dom-overlay` would even fix the crash (vs. just changing its shape) was
+  never confirmed either.
+
+**How to apply:** treat "no system keyboard" as a hard platform constraint, not a bug to keep
+chasing. **Follow-up task, deferred until the Library screen's uikit migration**: build a fully
+custom on-screen keyboard out of uikit buttons (same `<button class="...">` + `onClick` pattern
+already used everywhere else — toggle/stepper/swatch buttons in `settings.uikitml`), wired to
+append/delete characters from the search string in TS. This is also what every other production VR
+app does for the same reason (Quest's own home search, Horizon Worlds, etc.) — there's no shortcut
+around it on this platform.
+
+---
+
+## Library screen (toolbar/dropdown/scrollview/song rows) — CONFIRMED WORKING in-headset
+
+Last screen-by-screen migration off html2canvas. `ui/library.uikitml` + a rewritten
+`XRSongLibrary.ts`, same idiom as the other three. Confirmed findings from this pass:
+
+- **No CSS Grid — confirmed absent from `@pmndrs/uikit`'s flex schema** (Yoga-based, flexbox
+  only). The original 3-column `grid-template-columns: repeat(3, 1fr)` song list became
+  `display: flex; flex-direction: row; flex-wrap: wrap;`, each row given a literal cm width (not a
+  percentage) sized for 3 columns within the panel's known interior width.
+- **`overflow: scroll` combined with `flex-wrap: wrap` on the same element works** — one element
+  is both the wrapping grid *and* the scrollable viewport (same single-element shape as Settings'
+  `.body`), rather than a separate viewport/inner split. Confirmed in-headset; no separate
+  scroll-track markup needed, matching every other overflow:scroll container in this app.
+- **`UIKit.Image` and `UIKit.Text` exist alongside `UIKit.Container`, all three with an identical
+  constructor shape** (`new X(inputProperties?, initialClasses?, inputConfig?)`) — confirmed via
+  `@pmndrs/uikit`'s own component source, and now confirmed working via Library's runtime-built
+  song rows: `new UIKit.Image({ src: url }, ['some-class'])` /
+  `new UIKit.Text({ text: 'a string' }, ['some-class'])` compose exactly like `.uikitml` markup
+  does. Useful beyond Library: any future runtime-built row/list can use Container + Image + Text
+  together, not just bare Containers (previously only exercised by Play HUD's plain, childless
+  section-tick marks).
+- **An SVG's `fill="currentColor"` breaks uikit's image loader** — surfaced as a console error
+  ("currentColor doesn't exist"), not a silent failure this time. Every other icon already in this
+  project uses a literal `fill="#ffffff"` (confirmed by checking `back-arrow.svg`/
+  `settings-gear-icon.svg`); `currentColor` requires CSS-cascade context uikit's standalone SVG
+  parsing doesn't have. **Any new icon SVG must use a literal hex fill, never `currentColor`** —
+  worth checking this on sight for any future icon before it even gets wired in, same category of
+  "known-bad, check before use" as the missing-glyph character list above.
+- **A `class="foo"` attribute with no corresponding `.foo { }` rule in the `<style>` block compiles
+  and runs silently** — no error, no warning; the element just renders unstyled/inheriting from its
+  parent. Caught by writing a small Node script that loads the compiled `public/ui/*.json`, walks
+  every `element.properties.class`, and diffs against `Object.keys(json.classes)`. One real
+  instance found this pass (a `sort-label` span had the class in markup but no rule — harmless here
+  since it inherited color/font-size from its parent button, but easy to miss otherwise). Worth
+  running this diff — alongside the shorthand-property grep below — on the compiled JSON before
+  every in-headset handoff, not just eyeballing the source file.
+- **Single-value shorthand (`padding: 1;` meaning all four sides) is silently accepted by the
+  compiler and does NOT get expanded** — it compiles straight through as a literal bare
+  `"padding": "1"` key, the same silent-failure shape as the multi-value shorthand case documented
+  above. This directly contradicts this doc's earlier note calling single-value shorthand "fine" —
+  that note was never actually re-verified against compiled output before now. **Correction: treat
+  *all* padding/margin/gap shorthand, single-value or not, as unsupported**, full stop. Same grep
+  (`"padding":`/`"margin":`/`"gap":` bare keys in the compiled JSON) catches this too.
+- **A `pointerEvents: 'auto'` toggle set by code that assumes the panel's `PanelDocument` already
+  exists can silently no-op forever if that panel is shown before its async load finishes** — the
+  bug that actually broke all interaction on first load. `showLibrary()` calls
+  `setLibraryPanelInteractive(true)`, which reads `panelEntity.getValue(PanelDocument, 'document')`
+  synchronously and does `doc?.rootElement.setProperties({ pointerEvents: 'auto' })` — a silent
+  no-op if `doc` is still `null`. Library is the *first* screen shown, at boot, so this call fires
+  before `PanelUISystem`'s async `fetch('/ui/library.json')` has any chance to resolve; nothing
+  ever retries it afterward, so `pointerEvents` stays stuck at the uikitml's static `'none'`
+  default forever — `RayInteractable` still gets added fine (that half is synchronous, no doc
+  dependency), so the ray registers a hit, but uikit's own internal click/hover dispatch never
+  fires. **Settings/Song/Play have the exact same theoretical race** (their `setXPanelInteractive`
+  functions are structurally identical) but never hit it in practice, only because they're shown
+  well after boot, by which point their panels have long since finished loading — this is a latent
+  bug in all four, just one where only the screen shown immediately at startup actually triggers
+  it. **Fix applied to Library only** (scoped to the confirmed-broken screen, not touching the
+  other three's already-working code): set `pointerEvents: 'auto'` from *inside* the doc-ready
+  callback in `XRSongLibrary.show()`'s poll loop, where `doc` being real is guaranteed by
+  construction, rather than relying on an external caller's assumption about timing. **General
+  rule: any one-time "make this interactive" toggle that depends on an async resource must be
+  triggered from the code that actually observes that resource becoming ready — not fired eagerly
+  by a caller that merely hopes it's ready yet.**
+- **A differently-sized panel sharing the same grab-bar-relative Y offset as same-sized sibling
+  panels will visually overlap the grab bar.** Settings/Song/Play are all a fixed 0.4m × 0.3m,
+  centered at local Y = 0.169 on their shared parent (`grabBarEntity`) — chosen so a 0.3m-tall
+  panel's *bottom edge* sits 0.019m above the bar (`0.169 - 0.3/2`). Library is taller (0.525m, to
+  fit the 3-column grid) and initially reused the same 0.169 center offset, which pushed its bottom
+  edge to `0.169 - 0.525/2 ≈ -0.094` — below the bar, physically overlapping it. **When a panel's
+  height differs from its siblings but all share the same parent-relative slot, solve for the
+  center offset that preserves the same *bottom-edge* gap, not the same center Y** — center offset
+  = (desired bottom-edge gap) + (this panel's own height / 2), re-derived per panel, not copied.
+- **A planned "delete the now-unused legacy pipeline" cleanup can be blocked by a consumer outside
+  the screen being migrated.** Planned to delete `panelMesh`/`uiPanel`/`panelTex`/`resizePanel`/
+  `xrButtons` and the html2canvas capture + DOM ray-hit-testing block in `HighwaySystem.update()`,
+  assuming Library was the last consumer once migrated. Wrong — `CalibrationSystem.ts` (the
+  still-unmigrated fine-tune/reposition screen, reached via `repositionEntry()` →
+  `world.globals.showCalibrationFineTune`) independently reads/writes the same
+  `uiPanel`/`resizePanel`/`xrButtons` globals for its own UI, entirely unrelated to Library. Caught
+  by grepping `XrButton`/`xrButtons`/`uiPanel` across the *whole* `src/xr/` tree, not just the
+  files being edited, before deleting anything. **Before deleting any `world.globals.*` slot or
+  shared helper, grep the entire directory for every reader/writer** — "no longer used by the
+  screen I'm touching" is not the same claim as "no longer used by anything."
+- **A loading-state UI update can be dead code if it targets a panel that's already hidden by the
+  time it fires.** Planned to replace `playEntry()`/`repositionEntry()`/`calibrateAndPlay()`'s
+  `uiPanel.innerHTML = 'Loading'` swap with an equivalent overlay on the new uikit Library panel.
+  Traced the actual call sites first and found these three functions only ever fire as PreScene's
+  Play/Reposition/Calibrate button callbacks — by which point `showPreScene()` has already hidden
+  the Library panel. The replacement would have been exactly as invisible as the original (which
+  updates a mesh's texture already hidden behind PreScene at that point) — the original had the
+  same latent dead-code problem, it just degrades silently instead of erroring. Dropped the
+  loading-overlay markup and wiring entirely rather than ship a cleaner-looking copy of the same
+  non-functional code. **Before porting a "show a loading state" update, trace every call site of
+  the function that triggers it** — the panel it updates may not be the one visible when it runs.

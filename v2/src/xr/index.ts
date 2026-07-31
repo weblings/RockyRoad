@@ -777,6 +777,55 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     }
     setPlayPanelInteractive(false);
 
+    // ── Library uikit panel (last screen-by-screen migration step off
+    // html2canvas) ───────────────────────────────────────────────────────────
+    // Same slot/pattern as settingsPanelObj/preScenePanelObj/playPanelObj
+    // above, but a different physical size (1m x 0.525m, not the standard
+    // 0.4m x 0.3m the other three use) — matches the size the old
+    // html2canvas panelMesh used to be resized to via resizePanel(1000, 525)
+    // (still used by CalibrationSystem's fine-tune screen, just no longer by
+    // Library), since the 3-column song grid needs more room than the other
+    // screens.
+    //
+    // Y offset is NOT the same 0.169 the other three panels use — those are
+    // centered on their own local origin (like panelMesh's PlaneGeometry
+    // always was) at a height tuned so a 0.3m-tall panel's BOTTOM edge sits
+    // 0.019m above the grab bar (0.169 - 0.3/2). Keeping that same center
+    // offset for this taller 0.525m panel would push its bottom edge to
+    // 0.169 - 0.525/2 = -0.0935m — i.e. below the bar, overlapping it.
+    // Solved for the center offset that preserves the same 0.019m bottom-edge
+    // gap instead: 0.019 + 0.525/2 = 0.2815.
+    const libraryPanelObj = new Object3D();
+    libraryPanelObj.position.set(0, 0.2815, 0);
+    libraryPanelObj.visible = false;
+    const libraryPanelEntity = world.createTransformEntity(libraryPanelObj, {
+        parent: grabBarEntity,
+        persistent: true,
+    });
+    libraryPanelEntity.addComponent(PanelUI, {
+        config: '/ui/library.json',
+        maxWidth: 1.0,
+        maxHeight: 0.525,
+    });
+    world.globals.libraryPanelObj    = libraryPanelObj;
+    world.globals.libraryPanelEntity = libraryPanelEntity;
+
+    function setLibraryPanelInteractive(enabled: boolean): void {
+        if (enabled) {
+            if (!libraryPanelEntity.hasComponent(RayInteractable)) {
+                libraryPanelEntity.addComponent(RayInteractable);
+            }
+        } else {
+            if (libraryPanelEntity.hasComponent(RayInteractable)) {
+                libraryPanelEntity.removeComponent(RayInteractable);
+            }
+        }
+        const doc = libraryPanelEntity.getValue(PanelDocument, 'document') as
+            { rootElement: { setProperties: (p: Record<string, unknown>) => void } } | null;
+        doc?.rootElement.setProperties({ pointerEvents: enabled ? 'auto' : 'none' });
+    }
+    setLibraryPanelInteractive(false);
+
     // ── Guitar/Bass highway grab bar + content-scroll node ──────────────────────
     // Sits "beneath" the fret volume. Grabbing it repositions the whole volume
     // (position handled by IWSDK DistanceGrabbable; yaw billboard is custom, see
@@ -904,22 +953,26 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
 
     function showLibrary(): void {
         clearXrButtons();
-        resizePanel(1000, 525);
-        panelMesh.visible        = true;
+        // panelMesh is no longer Library's own display surface (see
+        // libraryPanelEntity above) — still hidden defensively here since
+        // CalibrationSystem's still-html2canvas fine-tune screen can show it
+        // via the same global uiPanel/panelMesh slot before returning here.
+        panelMesh.visible       = false;
+        libraryPanelObj.visible = true;
+        setLibraryPanelInteractive(true);
         preScenePanelObj.visible = false;
         setPreScenePanelInteractive(false);
         playPanelObj.visible     = false;
         setPlayPanelInteractive(false);
         (world.globals.songPlayer as SongPlayer | undefined)?.pause();
         disposeHighway();
-        library.show(uiPanel, xrButtons, showPreScene,
-            () => (world.globals.invalidatePanelRender as (() => void) | undefined)?.());
+        library.show(libraryPanelEntity, showPreScene);
     }
 
     function showPreScene(sourced: SourcedEntry): void {
-        document.getElementById('xr-lib-search-real')?.remove();
         clearXrButtons();
-        panelMesh.visible        = false;
+        libraryPanelObj.visible = false;
+        setLibraryPanelInteractive(false);
         preScenePanelObj.visible = true;
         setPreScenePanelInteractive(true);
         preScene.show(
@@ -1053,9 +1106,6 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
 
     async function playEntry(entry: SourcedEntry, partName: string): Promise<void> {
         clearXrButtons();
-        uiPanel.innerHTML = `
-            <div style="font-size:18px;padding:24px;text-align:center;
-                        color:#e8e8e8;font-family:sans-serif">⏳ Loading…</div>`;
 
         const result = await loadSong(entry, partName);
         if (!result) { showLibrary(); return; }
@@ -1065,9 +1115,6 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
 
     async function repositionEntry(entry: SourcedEntry, partName: string): Promise<void> {
         clearXrButtons();
-        uiPanel.innerHTML = `
-            <div style="font-size:18px;padding:24px;text-align:center;
-                        color:#e8e8e8;font-family:sans-serif">⏳ Loading…</div>`;
 
         const result = await loadSong(entry, partName);
         if (!result) { showLibrary(); return; }
@@ -1080,9 +1127,6 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
 
     async function calibrateAndPlay(entry: SourcedEntry, partName: string): Promise<void> {
         clearXrButtons();
-        uiPanel.innerHTML = `
-            <div style="font-size:18px;padding:24px;text-align:center;
-                        color:#e8e8e8;font-family:sans-serif">⏳ Loading…</div>`;
 
         const result = await loadSong(entry, partName);
         if (!result) { showLibrary(); return; }
@@ -1103,6 +1147,8 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     ): void {
         clearXrButtons();
         panelMesh.visible        = false;
+        libraryPanelObj.visible  = false;
+        setLibraryPanelInteractive(false);
         settingsPanelObj.visible = false;
         setSettingsPanelInteractive(false);
         preScenePanelObj.visible = false;
@@ -1146,6 +1192,8 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     ): void {
         clearXrButtons();
         panelMesh.visible        = false;
+        libraryPanelObj.visible  = false;
+        setLibraryPanelInteractive(false);
         settingsPanelObj.visible = true;
         setSettingsPanelInteractive(true);
         playPanelObj.visible     = false;

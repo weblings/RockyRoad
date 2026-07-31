@@ -1,24 +1,48 @@
-import type { XrButton } from "./XRTypes";
+import type { Entity, UIKitDocument } from "@iwsdk/core";
+import { PanelDocument, UIKit } from "@iwsdk/core";
 import type { SourcedEntry } from "../shared/SongSource";
-import { setupScrollList } from "./XRScrollList";
 
-// ── Sort options ──────────────────────────────────────────────────────────────
+// uikit-based (see ui/library.uikitml) — migrated off html2canvas as the last
+// screen-by-screen step of the html2canvas -> uikit migration (see
+// ThreeCP/Analysis/UikitLessonsLearned.md). Same idiom as XRSettingsScene.ts/
+// XRActiveScene.ts: poll for the PanelDocument once, then wire onClick/
+// setProperties per element on every _render() instead of building an
+// innerHTML string.
+//
+// Search is intentionally inert here — no onClick on #lib-search-display, no
+// real <input> anywhere. Typing needs a real OS keyboard, and none is
+// reachable from an active WebXR session (see UikitLessonsLearned.md's "No
+// system/OS text-entry keyboard is reachable from this app" entry). The old
+// hidden-<input>+.focus() approach reportedly crashed the immersive session;
+// the real fix is a future custom on-screen uikit keyboard. searchQuery/
+// _getFiltered() are kept as-is (always '' for now) so that follow-up only
+// has to wire input, not re-derive the filtering logic.
 
 const SORT_OPTIONS = [
-    { value: 'title-asc',       label: 'Title A–Z' },
-    { value: 'title-desc',      label: 'Title Z–A' },
-    { value: 'artist-asc',      label: 'Artist A–Z' },
-    { value: 'artist-desc',     label: 'Artist Z–A' },
-    { value: 'difficulty-asc',  label: 'Difficulty ↑' },
-    { value: 'difficulty-desc', label: 'Difficulty ↓' },
-    { value: 'tuning-asc',      label: 'Tuning A–Z' },
+    { value: 'title-asc',       label: 'Title A-Z' },
+    { value: 'title-desc',      label: 'Title Z-A' },
+    { value: 'artist-asc',      label: 'Artist A-Z' },
+    { value: 'artist-desc',     label: 'Artist Z-A' },
+    { value: 'difficulty-asc',  label: 'Difficulty Low-High' },
+    { value: 'difficulty-desc', label: 'Difficulty High-Low' },
+    { value: 'tuning-asc',      label: 'Tuning A-Z' },
 ] as const;
 
 type SortValue = (typeof SORT_OPTIONS)[number]['value'];
 
-const SEARCH_INPUT_ID = 'xr-lib-search-real';
+// Rows are appended a few frames at a time (not all synchronously) to avoid a
+// confirmed Yoga bug: a large burst of brand-new (never-before-rendered) text
+// glyphs in one pass can corrupt an unrelated element's layout elsewhere in
+// the same document (Inter glyphs lazy-load per-character; see
+// UikitLessonsLearned.md's async-text-burst entry). A song library is exactly
+// the "many never-before-seen titles at once" trigger case.
+const ROW_BATCH_SIZE = 12;
 
-// ── XRSongLibrary ─────────────────────────────────────────────────────────────
+function truncate(s: string, max: number): string {
+    return s.length > max ? s.slice(0, max - 3) + '...' : s;
+}
+
+type UIKitContainer = InstanceType<typeof UIKit.Container>;
 
 export class XRSongLibrary {
     private entries: SourcedEntry[];
@@ -27,209 +51,153 @@ export class XRSongLibrary {
     private sortOpen = false;
     private searchQuery = '';
 
+    private _doc: UIKitDocument | null = null;
+    private _rowNodes: UIKitContainer[] = [];
+    private _rebuildToken = 0;
+
     constructor(entries: SourcedEntry[]) {
         this.entries = entries;
     }
 
-    show(
-        uiPanel: HTMLDivElement,
-        xrButtons: XrButton[],
-        onSelect: (sourced: SourcedEntry) => void,
-        onInvalidate: () => void,
-    ): void {
-        xrButtons.length = 0;
-        this._render(uiPanel, xrButtons, onSelect, onInvalidate);
-    }
-
-    private _render(
-        uiPanel: HTMLDivElement,
-        xrButtons: XrButton[],
-        onSelect: (sourced: SourcedEntry) => void,
-        onInvalidate: () => void,
-    ): void {
-        const rerender = (): void => {
-            xrButtons.length = 0;
-            this._render(uiPanel, xrButtons, onSelect, onInvalidate);
+    show(panelEntity: Entity, onSelect: (sourced: SourcedEntry) => void): void {
+        const proceed = (doc: UIKitDocument) => {
+            this._doc = doc;
+            // Library is the first screen shown, at boot — index.ts's
+            // setLibraryPanelInteractive(true) call in showLibrary() races
+            // this panel's async PanelUI load (it reads PanelDocument
+            // synchronously and no-ops if it's not there yet), so pointerEvents
+            // can get permanently stuck at the uikitml's static 'none' default.
+            // Guaranteed to apply here instead, now that doc is confirmed real.
+            doc.rootElement.setProperties({ pointerEvents: 'auto' });
+            this._render(doc, onSelect);
         };
 
-        // Real input lives in document.body so the Quest IME initialises on focus.
-        document.getElementById(SEARCH_INPUT_ID)?.remove();
-        const searchReal = document.createElement('input');
-        searchReal.type = 'text';
-        searchReal.id   = SEARCH_INPUT_ID;
-        searchReal.style.cssText =
-            'position:fixed;left:0;top:0;width:100%;height:44px;font-size:16px;opacity:0;pointer-events:none;';
-        searchReal.value = this.searchQuery;
-        document.body.appendChild(searchReal);
+        if (this._doc) { proceed(this._doc); return; }
 
-        const currentLabel = SORT_OPTIONS.find(o => o.value === this.sortKey)?.label ?? 'Title A–Z';
-        const displayEntries = this._getFiltered();
+        const poll = () => {
+            const doc = panelEntity.getValue(PanelDocument, 'document') as UIKitDocument | null;
+            if (doc) { proceed(doc); return; }
+            setTimeout(poll, 100);
+        };
+        poll();
+    }
 
-        uiPanel.innerHTML = `
-            <div class="library-frame">
-                <div class="toolbar">
-                    <div class="search-row">
-                        <div class="search-input" id="lib-search-display">
-                            <span class="${this.searchQuery ? 'search-text' : 'search-placeholder'}">${this.searchQuery ? esc(this.searchQuery) : 'Search…'}</span>
-                        </div>
-                        <div class="sort-dropdown${this.sortOpen ? ' open' : ''}">
-                            <button class="sort-trigger" id="sort-trigger" type="button">
-                                <span class="sort-label">${currentLabel}</span>
-                                <span class="sort-chevron">&#9662;</span>
-                            </button>
-                            <div class="sort-menu">
-                                ${SORT_OPTIONS.map(o =>
-                                    `<button class="sort-option${o.value === this.sortKey ? ' selected' : ''}"
-                                        id="sort-opt-${o.value}" type="button">${o.label}</button>`
-                                ).join('')}
-                            </div>
-                        </div>
-                        <button class="button primary-dark" id="exit-vr"
-                                style="padding:9px 14px;border-radius:6px;font-size:13px;font-family:inherit;white-space:nowrap" type="button">Exit VR</button>
-                    </div>
-                    <div class="filter-row">
-                        <button id="filter-all" class="button ${this.filterKey === 'all' ? 'primary-light' : 'primary-dark'}" type="button">All</button>
-                        <button id="filter-lead" class="button ${this.filterKey === 'lead' ? 'primary-light' : 'primary-dark'}" type="button">Lead</button>
-                    </div>
-                </div>
-                <div class="song-list-area">
-                    <div class="song-list-viewport" id="lib-song-viewport">
-                        <div class="song-list-inner" id="lib-song-inner">
-                            ${this._songListHtml(displayEntries)}
-                        </div>
-                    </div>
-                    <div class="scroll-track" id="lib-scroll-track">
-                        <div class="scroll-bar"></div>
-                        <div class="scroll-thumb" id="lib-scroll-thumb"></div>
-                    </div>
-                </div>
-            </div>
-        `;
+    private _render(doc: UIKitDocument, onSelect: (sourced: SourcedEntry) => void): void {
+        const rerender = () => this._render(doc, onSelect);
 
-        // ── Scroll state ──────────────────────────────────────────────────────
-
-        const inner    = uiPanel.querySelector<HTMLElement>('#lib-song-inner')!;
-        const viewport = uiPanel.querySelector<HTMLElement>('#lib-song-viewport')!;
-        const thumb    = uiPanel.querySelector<HTMLElement>('#lib-scroll-thumb')!;
-        const track    = uiPanel.querySelector<HTMLElement>('#lib-scroll-track')!;
-
-        const scrollList = setupScrollList({ viewport, inner, track, thumb }, xrButtons);
-
-        // ── Toolbar buttons ───────────────────────────────────────────────────
-
-        xrButtons.push({
-            el: uiPanel.querySelector('#exit-vr') as HTMLButtonElement,
-            onClick: () => { location.href = 'desktop.html'; },
-        });
-
-        xrButtons.push({
-            el: uiPanel.querySelector('#sort-trigger') as HTMLButtonElement,
+        // ── Sort dropdown ────────────────────────────────────────────────────
+        const currentLabel = SORT_OPTIONS.find(o => o.value === this.sortKey)?.label ?? 'Title A-Z';
+        doc.getElementById('sort-label')?.setProperties({ text: currentLabel });
+        doc.getElementById('sort-menu')?.setProperties({ display: this.sortOpen ? 'flex' : 'none' });
+        doc.getElementById('sort-chevron-down')?.setProperties({ display: this.sortOpen ? 'none' : 'flex' });
+        doc.getElementById('sort-chevron-up')?.setProperties({ display: this.sortOpen ? 'flex' : 'none' });
+        doc.getElementById('sort-trigger')?.setProperties({
             onClick: () => { this.sortOpen = !this.sortOpen; rerender(); },
         });
 
         for (const opt of SORT_OPTIONS) {
-            const el = uiPanel.querySelector(`#sort-opt-${opt.value}`) as HTMLButtonElement | null;
+            const el = doc.getElementById(`sort-opt-${opt.value}`);
             if (!el) continue;
-            const value = opt.value;
-            xrButtons.push({
-                el,
-                onClick: () => { this.sortKey = value; this.sortOpen = false; rerender(); },
+            this._setSelectedClass(el, opt.value === this.sortKey);
+            el.setProperties({
+                onClick: () => { this.sortKey = opt.value; this.sortOpen = false; rerender(); },
             });
         }
 
-        xrButtons.push({
-            el: uiPanel.querySelector('#filter-all') as HTMLButtonElement,
+        // ── Filter row ───────────────────────────────────────────────────────
+        this._setFilterClass(doc.getElementById('filter-all'),  this.filterKey === 'all');
+        this._setFilterClass(doc.getElementById('filter-lead'), this.filterKey === 'lead');
+        doc.getElementById('filter-all')?.setProperties({
             onClick: () => { this.filterKey = 'all'; rerender(); },
         });
-        xrButtons.push({
-            el: uiPanel.querySelector('#filter-lead') as HTMLButtonElement,
+        doc.getElementById('filter-lead')?.setProperties({
             onClick: () => { this.filterKey = 'lead'; rerender(); },
         });
 
-        // ── Search ────────────────────────────────────────────────────────────
-
-        const searchDisplay = uiPanel.querySelector<HTMLElement>('#lib-search-display')!;
-        xrButtons.push({
-            el: searchDisplay,
-            onClick: () => {
-                // LIMITATION: Quest's IME composing buffer is cleared when the keyboard
-                // dismisses and cannot be reliably repopulated on re-focus via JS, so
-                // re-opening the keyboard always starts from an empty state. Clearing
-                // the query on each open is the pragmatic workaround until a native
-                // XR text-input API is available.
-                this.searchQuery = '';
-                searchReal.value = '';
-                const textEl = searchDisplay.querySelector('span');
-                if (textEl) { textEl.textContent = 'Search…'; textEl.className = 'search-placeholder'; }
-                const innerEl = uiPanel.querySelector<HTMLElement>('#lib-song-inner');
-                if (innerEl) {
-                    const entries = this._getFiltered();
-                    innerEl.innerHTML = this._songListHtml(entries);
-                    xrButtons.splice(songButtonOffset);
-                    this._registerSongButtons(uiPanel, xrButtons, entries, onSelect);
-                    scrollList.recompute(true);
-                }
-                searchReal.focus();
-            },
+        // ── Exit ─────────────────────────────────────────────────────────────
+        doc.getElementById('exit-vr')?.setProperties({
+            onClick: () => { location.href = 'desktop.html'; },
         });
 
-        const songButtonOffset = xrButtons.length;
-        this._registerSongButtons(uiPanel, xrButtons, displayEntries, onSelect);
+        // ── Search (display-only — see file header) ─────────────────────────
+        const searchTextEl = doc.getElementById('lib-search-text');
+        searchTextEl?.setProperties({ text: this.searchQuery || 'Search...' });
+        if (searchTextEl) {
+            const addClass = this.searchQuery ? 'search-text' : 'search-placeholder';
+            const removeClass = this.searchQuery ? 'search-placeholder' : 'search-text';
+            if (searchTextEl.classList.contains(removeClass)) searchTextEl.classList.remove(removeClass);
+            if (!searchTextEl.classList.contains(addClass)) searchTextEl.classList.add(addClass);
+        }
 
-        // Partial refresh on keystroke — updates the visual span and song grid
-        // without rebuilding the toolbar, so the real input keeps focus.
-        searchReal.addEventListener('input', () => {
-            this.searchQuery = searchReal.value;
-            const textEl = searchDisplay.querySelector('span');
-            if (textEl) {
-                textEl.textContent = this.searchQuery || 'Search…';
-                textEl.className   = this.searchQuery ? 'search-text' : 'search-placeholder';
-            }
-            const innerEl = uiPanel.querySelector<HTMLElement>('#lib-song-inner');
-            if (!innerEl) return;
-            const entries = this._getFiltered();
-            innerEl.innerHTML = this._songListHtml(entries);
-            xrButtons.splice(songButtonOffset);
-            this._registerSongButtons(uiPanel, xrButtons, entries, onSelect);
-            scrollList.recompute(true);
-            onInvalidate();
-        });
+        // ── Song list ────────────────────────────────────────────────────────
+        const list = doc.getElementById('lib-song-list') as UIKitContainer | null;
+        if (list) this._rebuildRows(list, this._getFiltered(), onSelect);
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
-
-    private _songListHtml(entries: SourcedEntry[]): string {
-        if (entries.length === 0)
-            return '<p style="color:#555;font-size:13px;padding:8px">No songs found.</p>';
-        return entries.map((s, i) => {
-            const artUrl = s.source.getAlbumArtUrl(s.entry);
-            const artEl = artUrl
-                ? `<img class="song-art" src="${esc(artUrl)}" alt="" />`
-                : `<div class="art-placeholder"></div>`;
-            return `
-            <button class="song-entry" id="song-${i}" type="button">
-                ${artEl}
-                <div class="song-meta">
-                    <p class="song-title">${esc(s.entry.songName)}</p>
-                    <p class="song-album"></p>
-                    <p class="song-artist">${esc(s.entry.artistName)}</p>
-                </div>
-            </button>`;
-        }).join('');
+    // classList.remove() warns if the class isn't currently present — guard
+    // with contains() first, same pattern as XRSettingsScene.ts's
+    // _setActiveClass()/_setSwatch().
+    private _setSelectedClass(el: ReturnType<UIKitDocument['getElementById']>, selected: boolean): void {
+        if (!el) return;
+        if (selected) {
+            if (!el.classList.contains('sort-option-selected')) el.classList.add('sort-option-selected');
+        } else {
+            if (el.classList.contains('sort-option-selected')) el.classList.remove('sort-option-selected');
+        }
     }
 
-    private _registerSongButtons(
-        uiPanel: HTMLDivElement,
-        xrButtons: XrButton[],
+    private _setFilterClass(el: ReturnType<UIKitDocument['getElementById']>, active: boolean): void {
+        if (!el) return;
+        const addClass = active ? 'primary-light' : 'primary-dark';
+        const removeClass = active ? 'primary-dark' : 'primary-light';
+        if (el.classList.contains(removeClass)) el.classList.remove(removeClass);
+        if (!el.classList.contains(addClass)) el.classList.add(addClass);
+    }
+
+    private _rebuildRows(
+        list: UIKitContainer,
         entries: SourcedEntry[],
         onSelect: (sourced: SourcedEntry) => void,
     ): void {
-        for (let i = 0; i < entries.length; i++) {
-            const sourced = entries[i];
-            const el = uiPanel.querySelector<HTMLButtonElement>(`#song-${i}`);
-            if (!el) continue;
-            xrButtons.push({ el, onClick: () => onSelect(sourced) });
+        for (const node of this._rowNodes) list.remove(node);
+        this._rowNodes = [];
+
+        const token = ++this._rebuildToken;
+        let i = 0;
+
+        const appendBatch = (): void => {
+            // A newer rebuild (filter/sort changed again) superseded this one.
+            if (token !== this._rebuildToken) return;
+            const end = Math.min(i + ROW_BATCH_SIZE, entries.length);
+            for (; i < end; i++) {
+                const row = this._buildRow(entries[i], onSelect);
+                list.add(row);
+                this._rowNodes.push(row);
+            }
+            if (i < entries.length) requestAnimationFrame(appendBatch);
+        };
+        appendBatch();
+    }
+
+    private _buildRow(sourced: SourcedEntry, onSelect: (sourced: SourcedEntry) => void): UIKitContainer {
+        const row = new UIKit.Container({ onClick: () => onSelect(sourced) }, ['song-entry']);
+
+        const artThumb = new UIKit.Container({}, ['song-art-thumb']);
+        const artUrl = sourced.source.getAlbumArtUrl(sourced.entry);
+        // No separate placeholder element — same pattern as song.uikitml's
+        // #ps-art-img: only add the <img> when there's a real URL, otherwise
+        // let .song-art-thumb's own background color show through.
+        if (artUrl) {
+            artThumb.add(new UIKit.Image({ src: artUrl }, ['song-art-image']));
         }
+        row.add(artThumb);
+
+        const meta = new UIKit.Container({}, ['song-meta']);
+        meta.add(new UIKit.Text({ text: truncate(sourced.entry.songName, 20) },   ['song-title']));
+        meta.add(new UIKit.Text({ text: truncate(sourced.entry.artistName, 24) }, ['song-artist']));
+        row.add(meta);
+
+        return row;
     }
 
     private _getFiltered(): SourcedEntry[] {
@@ -257,12 +225,4 @@ export class XRSongLibrary {
         }
         return copy;
     }
-}
-
-function esc(s: string): string {
-    return s
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
 }

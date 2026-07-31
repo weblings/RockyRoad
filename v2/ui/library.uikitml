@@ -1,0 +1,329 @@
+<style>
+  /* Scale: 1 unit = 1cm, same px/10 convention as settings/song/play.uikitml.
+     Derived from src/xr/screens/library.css + src/xr/panel.css's shared base
+     classes + XRSongLibrary.ts's current template (the live source of truth
+     — not ui/Export/ or ui/BeforeExport/, which are stale Figma scratch
+     files). Unlike the other three screens, this panel is NOT 40x30 — it
+     matches the physical size the old html2canvas panel was resized to via
+     resizePanel(1000, 525) in src/xr/index.ts (1000x525px = 1m x 0.525m),
+     since the 3-column song grid needs more room than the standard
+     0.4m x 0.3m panel. PanelUI's maxWidth/maxHeight are set to 1.0/0.525 to
+     match (see src/xr/index.ts's libraryPanelEntity).
+
+     Two structural simplifications vs. the original DOM, same kind of
+     no-op collapse already done for song.uikitml/settings.uikitml:
+     - .library-frame + a separate .content-clipping wrapper are collapsed
+       into one flat .panel (single background, single border-radius).
+     - .song-list-area + .scroll-track (a separate manual scrollbar driven
+       by XRScrollList.ts, needed only because html2canvas can't capture
+       scrollTop) is replaced by ONE element (.song-list) that is both the
+       flex-wrap grid container AND the native `overflow: scroll` viewport,
+       matching the pattern already confirmed working for settings.uikitml's
+       .body. uikit renders its own scrollbar internally — no separate
+       track/thumb markup needed.
+
+     NOTE: .song-list combines `overflow: scroll` with `flex-wrap: wrap`
+     (rows wrap downward, then the whole thing scrolls vertically) — this
+     specific combination hasn't been exercised anywhere else in this app
+     yet. Structurally it's the same shape Yoga already supports (wrapping
+     flex content that overflows its container), so it's expected to work,
+     but verify in-headset. If scrolling misbehaves, fall back to the
+     two-level viewport/inner split used by the pre-uikit version instead. */
+
+  .panel {
+    width: 100;
+    height: 52.5;
+    display: flex;
+    flex-direction: column;
+    background-color: #0a0a0a;
+    border-radius: 1.2;
+    font-family: inter;
+    font-weight: medium;
+    pointer-events: none;
+    position-type: relative;
+  }
+
+  .toolbar {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 0;
+    flex-shrink: 0;
+    gap-row: 0.8;
+    gap-column: 0.8;
+    padding-top: 1;
+    padding-right: 1;
+    padding-bottom: 0.8;
+    padding-left: 1;
+    border-bottom-width: 0.1;
+    border-color: #1e1e1e;
+  }
+
+  .search-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap-row: 0.8;
+    gap-column: 0.8;
+  }
+
+  /* Display-only for now — no onClick wired in XRSongLibrary.ts. Real text
+     entry needs a custom on-screen uikit keyboard (no OS/system keyboard is
+     reachable from an active WebXR session — see UikitLessonsLearned.md's
+     "No system/OS text-entry keyboard is reachable from this app" entry),
+     which is a separate follow-up task. No cursor/hover styling here on
+     purpose, to visually read as non-interactive in the meantime. */
+  .search-input {
+    flex-grow: 1;
+    flex-shrink: 1;
+    flex-basis: 0;
+    padding-top: 0.9;
+    padding-bottom: 0.9;
+    padding-left: 1.2;
+    padding-right: 1.2;
+    background-color: #333333;
+    border-radius: 0.6;
+    font-size: 1.3;
+    display: flex;
+    align-items: center;
+  }
+  .search-placeholder { color: #999999; }
+  .search-text        { color: #ffffff; }
+
+  .sort-dropdown {
+    position-type: relative;
+    flex-grow: 0;
+    flex-shrink: 0;
+  }
+
+  .sort-trigger {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap-row: 0.6;
+    gap-column: 0.6;
+    padding-top: 0.9;
+    padding-right: 1.4;
+    padding-bottom: 0.9;
+    padding-left: 1.4;
+    background-color: #333333;
+    color: #ffffff;
+    border-radius: 0.6;
+    font-size: 1.3;
+    cursor: pointer;
+  }
+  .sort-trigger:hover  { background-color: #515151; }
+  .sort-trigger:active { background-color: #7c7c7c; }
+
+  .sort-label {
+    color: #ffffff;
+    font-size: 1.3;
+  }
+
+  /* Two stacked chevron images, display-toggled by sortOpen — same swap
+     pattern as Play HUD's #as-play-icon/#as-pause-icon. Using the supplied
+     SVGs instead of the ▾ glyph: unlike the app's ASCII-safe substitutes for
+     missing Inter glyphs elsewhere (x, -, ...), a rotated-triangle character
+     has no clean ASCII equivalent, so an icon is the right call here rather
+     than another guess-and-check glyph. */
+  .sort-chevron {
+    width: 0.9;
+    height: 0.9;
+  }
+
+  /* position-top is a literal estimate of the trigger's own rendered height
+     (no calc() support — same workaround as the seek-thumb's position-top in
+     play.uikitml) plus a small gap. Tune once visible in-headset. */
+  .sort-menu {
+    position-type: absolute;
+    position-top: 3.7;
+    position-right: 0;
+    z-index: 2;
+    display: none;
+    flex-direction: column;
+    background-color: #1a1a1a;
+    border-width: 0.1;
+    border-color: #333333;
+    border-radius: 0.6;
+    min-width: 100%;
+  }
+
+  .sort-option {
+    padding-top: 0.8;
+    padding-right: 1.4;
+    padding-bottom: 0.8;
+    padding-left: 1.4;
+    color: #c8c8c8;
+    font-size: 1.3;
+    cursor: pointer;
+  }
+  .sort-option:hover  { background-color: #2a2a2a; color: #ffffff; }
+  .sort-option:active { background-color: #515151; color: #ffffff; }
+  .sort-option-selected { background-color: #242424; color: #ffffff; }
+
+  .exit-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-grow: 0;
+    flex-shrink: 0;
+    padding-top: 0.9;
+    padding-right: 1.4;
+    padding-bottom: 0.9;
+    padding-left: 1.4;
+    border-radius: 0.6;
+    font-size: 1.3;
+    cursor: pointer;
+  }
+
+  .primary-dark { background-color: #333333; color: #ffffff; }
+  .primary-dark:hover  { background-color: #515151; }
+  .primary-dark:active { background-color: #7c7c7c; }
+
+  .primary-light { background-color: #dadada; color: #111111; }
+  .primary-light:hover  { background-color: #bebebe; }
+  .primary-light:active { background-color: #9c9c9c; }
+
+  .filter-row {
+    display: flex;
+    flex-direction: row;
+    gap-row: 0.6;
+    gap-column: 0.6;
+  }
+
+  .filter-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-grow: 0;
+    flex-shrink: 0;
+    padding-top: 0.5;
+    padding-right: 1.4;
+    padding-bottom: 0.5;
+    padding-left: 1.4;
+    border-radius: 2;
+    font-size: 1.3;
+    cursor: pointer;
+  }
+
+  /* Song rows are created at runtime (XRSongLibrary.ts's _rebuildRows()),
+     not authored here as static markup — see _buildSectionTicks() in
+     XRActiveScene.ts for the precedent (runtime UIKit.Container creation). */
+  .song-list {
+    flex-grow: 1;
+    flex-shrink: 1;
+    flex-basis: 0;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-content: flex-start;
+    overflow: scroll;
+    scrollbar-width: 0.9;
+    scrollbar-color: #4a4a4a;
+    gap-row: 0.4;
+    gap-column: 0.4;
+    padding-top: 1;
+    padding-right: 1;
+    padding-bottom: 1;
+    padding-left: 1;
+  }
+
+  /* Width is a literal cm value, not a percentage, sized for 3 columns
+     within the panel's ~98-unit interior width (100 - 1 padding each side)
+     minus 2 gap-columns at 0.4 each: (98 - 0.8) / 3 ≈ 32.4, rounded down to
+     32 to leave slack against overflow-triggered horizontal scroll. */
+  .song-entry {
+    width: 32;
+    flex-grow: 0;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    background-color: #242424;
+    border-radius: 0.5;
+    padding-top: 0.8;
+    padding-right: 0.8;
+    padding-bottom: 0.8;
+    padding-left: 0.8;
+    cursor: pointer;
+  }
+  .song-entry:hover  { background-color: #2e2e2e; }
+  .song-entry:active { background-color: #383838; }
+
+  .song-art-thumb {
+    width: 4;
+    height: 4;
+    flex-grow: 0;
+    flex-shrink: 0;
+    background-color: #6e6e6e;
+    border-radius: 0.4;
+    overflow: hidden;
+  }
+  /* No separate placeholder element — same pattern as song.uikitml's
+     #ps-art-img: missing art just display:'none's the <img> and lets
+     .song-art-thumb's own #6e6e6e background show through (identical color
+     to the original's dedicated .art-placeholder). */
+  .song-art-image {
+    width: 4;
+    height: 4;
+    object-fit: cover;
+  }
+
+  .song-meta {
+    flex-grow: 1;
+    flex-shrink: 1;
+    flex-basis: 0;
+    display: flex;
+    flex-direction: column;
+    padding-left: 0.8;
+    gap-row: 0.1;
+    gap-column: 0.1;
+  }
+
+  /* No native text-overflow:ellipsis in uikit — truncated with a manually
+     appended "..." in XRSongLibrary.ts before being set here, reusing the
+     same truncate() helper XRActiveScene.ts already has for Play HUD's song
+     title/artist, rather than re-deriving it. */
+  .song-title {
+    color: #ffffff;
+    font-size: 1.2;
+    font-weight: bold;
+  }
+  .song-artist {
+    color: #8c8c8c;
+    font-size: 1.0;
+    font-weight: medium;
+  }
+</style>
+
+<div class="panel">
+  <div class="toolbar">
+    <div class="search-row">
+      <div class="search-input" id="lib-search-display">
+        <span id="lib-search-text" class="search-placeholder">Search...</span>
+      </div>
+      <div class="sort-dropdown" id="sort-dropdown">
+        <button class="sort-trigger" id="sort-trigger">
+          <span class="sort-label" id="sort-label">Title A-Z</span>
+          <img id="sort-chevron-down" class="sort-chevron" src="/chevron-down.svg" />
+          <img id="sort-chevron-up" class="sort-chevron" src="/chevron-up.svg" />
+        </button>
+        <div class="sort-menu" id="sort-menu">
+          <button class="sort-option" id="sort-opt-title-asc">Title A-Z</button>
+          <button class="sort-option" id="sort-opt-title-desc">Title Z-A</button>
+          <button class="sort-option" id="sort-opt-artist-asc">Artist A-Z</button>
+          <button class="sort-option" id="sort-opt-artist-desc">Artist Z-A</button>
+          <button class="sort-option" id="sort-opt-difficulty-asc">Difficulty Low-High</button>
+          <button class="sort-option" id="sort-opt-difficulty-desc">Difficulty High-Low</button>
+          <button class="sort-option" id="sort-opt-tuning-asc">Tuning A-Z</button>
+        </div>
+      </div>
+      <button class="exit-btn primary-dark" id="exit-vr">Exit VR</button>
+    </div>
+    <div class="filter-row">
+      <button id="filter-all" class="filter-btn primary-light">All</button>
+      <button id="filter-lead" class="filter-btn primary-dark">Lead</button>
+    </div>
+  </div>
+
+  <div class="song-list" id="lib-song-list"></div>
+</div>
