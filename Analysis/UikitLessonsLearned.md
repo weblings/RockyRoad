@@ -525,98 +525,256 @@ around it on this platform.
 
 ---
 
-## Library screen (toolbar/dropdown/scrollview/song rows) — CONFIRMED WORKING in-headset
+## No CSS Grid — `@pmndrs/uikit`'s flex schema is Yoga-based, flexbox only
 
-Last screen-by-screen migration off html2canvas. `ui/library.uikitml` + a rewritten
-`XRSongLibrary.ts`, same idiom as the other three. Confirmed findings from this pass:
+**Symptom:** Considering how to port a 3-column `grid-template-columns: repeat(3, 1fr)` song list
+(Library) into `.uikitml`.
 
-- **No CSS Grid — confirmed absent from `@pmndrs/uikit`'s flex schema** (Yoga-based, flexbox
-  only). The original 3-column `grid-template-columns: repeat(3, 1fr)` song list became
-  `display: flex; flex-direction: row; flex-wrap: wrap;`, each row given a literal cm width (not a
-  percentage) sized for 3 columns within the panel's known interior width.
-- **`overflow: scroll` combined with `flex-wrap: wrap` on the same element works** — one element
-  is both the wrapping grid *and* the scrollable viewport (same single-element shape as Settings'
-  `.body`), rather than a separate viewport/inner split. Confirmed in-headset; no separate
-  scroll-track markup needed, matching every other overflow:scroll container in this app.
-- **`UIKit.Image` and `UIKit.Text` exist alongside `UIKit.Container`, all three with an identical
-  constructor shape** (`new X(inputProperties?, initialClasses?, inputConfig?)`) — confirmed via
-  `@pmndrs/uikit`'s own component source, and now confirmed working via Library's runtime-built
-  song rows: `new UIKit.Image({ src: url }, ['some-class'])` /
-  `new UIKit.Text({ text: 'a string' }, ['some-class'])` compose exactly like `.uikitml` markup
-  does. Useful beyond Library: any future runtime-built row/list can use Container + Image + Text
-  together, not just bare Containers (previously only exercised by Play HUD's plain, childless
-  section-tick marks).
-- **An SVG's `fill="currentColor"` breaks uikit's image loader** — surfaced as a console error
-  ("currentColor doesn't exist"), not a silent failure this time. Every other icon already in this
-  project uses a literal `fill="#ffffff"` (confirmed by checking `back-arrow.svg`/
-  `settings-gear-icon.svg`); `currentColor` requires CSS-cascade context uikit's standalone SVG
-  parsing doesn't have. **Any new icon SVG must use a literal hex fill, never `currentColor`** —
-  worth checking this on sight for any future icon before it even gets wired in, same category of
-  "known-bad, check before use" as the missing-glyph character list above.
-- **A `class="foo"` attribute with no corresponding `.foo { }` rule in the `<style>` block compiles
-  and runs silently** — no error, no warning; the element just renders unstyled/inheriting from its
-  parent. Caught by writing a small Node script that loads the compiled `public/ui/*.json`, walks
-  every `element.properties.class`, and diffs against `Object.keys(json.classes)`. One real
-  instance found this pass (a `sort-label` span had the class in markup but no rule — harmless here
-  since it inherited color/font-size from its parent button, but easy to miss otherwise). Worth
-  running this diff — alongside the shorthand-property grep below — on the compiled JSON before
-  every in-headset handoff, not just eyeballing the source file.
-- **Single-value shorthand (`padding: 1;` meaning all four sides) is silently accepted by the
-  compiler and does NOT get expanded** — it compiles straight through as a literal bare
-  `"padding": "1"` key, the same silent-failure shape as the multi-value shorthand case documented
-  above. This directly contradicts this doc's earlier note calling single-value shorthand "fine" —
-  that note was never actually re-verified against compiled output before now. **Correction: treat
-  *all* padding/margin/gap shorthand, single-value or not, as unsupported**, full stop. Same grep
-  (`"padding":`/`"margin":`/`"gap":` bare keys in the compiled JSON) catches this too.
-- **A `pointerEvents: 'auto'` toggle set by code that assumes the panel's `PanelDocument` already
-  exists can silently no-op forever if that panel is shown before its async load finishes** — the
-  bug that actually broke all interaction on first load. `showLibrary()` calls
-  `setLibraryPanelInteractive(true)`, which reads `panelEntity.getValue(PanelDocument, 'document')`
-  synchronously and does `doc?.rootElement.setProperties({ pointerEvents: 'auto' })` — a silent
-  no-op if `doc` is still `null`. Library is the *first* screen shown, at boot, so this call fires
-  before `PanelUISystem`'s async `fetch('/ui/library.json')` has any chance to resolve; nothing
-  ever retries it afterward, so `pointerEvents` stays stuck at the uikitml's static `'none'`
-  default forever — `RayInteractable` still gets added fine (that half is synchronous, no doc
-  dependency), so the ray registers a hit, but uikit's own internal click/hover dispatch never
-  fires. **Settings/Song/Play have the exact same theoretical race** (their `setXPanelInteractive`
-  functions are structurally identical) but never hit it in practice, only because they're shown
-  well after boot, by which point their panels have long since finished loading — this is a latent
-  bug in all four, just one where only the screen shown immediately at startup actually triggers
-  it. **Fix applied to Library only** (scoped to the confirmed-broken screen, not touching the
-  other three's already-working code): set `pointerEvents: 'auto'` from *inside* the doc-ready
-  callback in `XRSongLibrary.show()`'s poll loop, where `doc` being real is guaranteed by
-  construction, rather than relying on an external caller's assumption about timing. **General
-  rule: any one-time "make this interactive" toggle that depends on an async resource must be
-  triggered from the code that actually observes that resource becoming ready — not fired eagerly
-  by a caller that merely hopes it's ready yet.**
-- **A differently-sized panel sharing the same grab-bar-relative Y offset as same-sized sibling
-  panels will visually overlap the grab bar.** Settings/Song/Play are all a fixed 0.4m × 0.3m,
-  centered at local Y = 0.169 on their shared parent (`grabBarEntity`) — chosen so a 0.3m-tall
-  panel's *bottom edge* sits 0.019m above the bar (`0.169 - 0.3/2`). Library is taller (0.525m, to
-  fit the 3-column grid) and initially reused the same 0.169 center offset, which pushed its bottom
-  edge to `0.169 - 0.525/2 ≈ -0.094` — below the bar, physically overlapping it. **When a panel's
-  height differs from its siblings but all share the same parent-relative slot, solve for the
-  center offset that preserves the same *bottom-edge* gap, not the same center Y** — center offset
-  = (desired bottom-edge gap) + (this panel's own height / 2), re-derived per panel, not copied.
-- **A planned "delete the now-unused legacy pipeline" cleanup can be blocked by a consumer outside
-  the screen being migrated.** Planned to delete `panelMesh`/`uiPanel`/`panelTex`/`resizePanel`/
-  `xrButtons` and the html2canvas capture + DOM ray-hit-testing block in `HighwaySystem.update()`,
-  assuming Library was the last consumer once migrated. Wrong — `CalibrationSystem.ts` (the
-  still-unmigrated fine-tune/reposition screen, reached via `repositionEntry()` →
-  `world.globals.showCalibrationFineTune`) independently reads/writes the same
-  `uiPanel`/`resizePanel`/`xrButtons` globals for its own UI, entirely unrelated to Library. Caught
-  by grepping `XrButton`/`xrButtons`/`uiPanel` across the *whole* `src/xr/` tree, not just the
-  files being edited, before deleting anything. **Before deleting any `world.globals.*` slot or
-  shared helper, grep the entire directory for every reader/writer** — "no longer used by the
-  screen I'm touching" is not the same claim as "no longer used by anything."
-- **A loading-state UI update can be dead code if it targets a panel that's already hidden by the
-  time it fires.** Planned to replace `playEntry()`/`repositionEntry()`/`calibrateAndPlay()`'s
-  `uiPanel.innerHTML = 'Loading'` swap with an equivalent overlay on the new uikit Library panel.
-  Traced the actual call sites first and found these three functions only ever fire as PreScene's
-  Play/Reposition/Calibrate button callbacks — by which point `showPreScene()` has already hidden
-  the Library panel. The replacement would have been exactly as invisible as the original (which
-  updates a mesh's texture already hidden behind PreScene at that point) — the original had the
-  same latent dead-code problem, it just degrades silently instead of erroring. Dropped the
-  loading-overlay markup and wiring entirely rather than ship a cleaner-looking copy of the same
-  non-functional code. **Before porting a "show a loading state" update, trace every call site of
-  the function that triggers it** — the panel it updates may not be the one visible when it runs.
+**Root cause:** Confirmed by reading `@pmndrs/uikit`'s flex property schema directly — there is no
+`display: grid` and no grid-template-* property of any kind. Flexbox (via Yoga) is the only layout
+model available.
+
+**Fix:** `display: flex; flex-direction: row; flex-wrap: wrap;`, with each item given a **literal
+cm width** (not a percentage) sized for however many columns are wanted within the container's
+known interior width.
+
+---
+
+## `overflow: scroll` + `flex-wrap: wrap` on the same element works
+
+Confirmed in-headset for Library's song grid: one element is both the wrapping grid *and* the
+scrollable viewport (same single-element shape as Settings' `.body`), rather than a separate
+viewport/inner split. No separate scroll-track markup needed, matching every other
+`overflow: scroll` container in this app.
+
+---
+
+## `UIKit.Image` and `UIKit.Text` exist alongside `UIKit.Container`, same constructor shape
+
+**Finding:** `new X(inputProperties?, initialClasses?, inputConfig?)` — identical shape across all
+three, confirmed via `@pmndrs/uikit`'s own component source and now via Library's runtime-built
+song rows: `new UIKit.Image({ src: url }, ['some-class'])` /
+`new UIKit.Text({ text: 'a string' }, ['some-class'])` compose exactly like `.uikitml` markup does.
+
+**How to apply:** Any future runtime-built row/list can use `Container` + `Image` + `Text`
+together, not just bare `Container`s (previously only exercised by Play HUD's plain, childless
+section-tick marks).
+
+---
+
+## An SVG's `fill="currentColor"` breaks uikit's image loader
+
+**Symptom:** Console error, "currentColor doesn't exist" (not a silent failure this time).
+
+**Root cause:** `currentColor` requires real CSS-cascade context to resolve against — uikit's
+standalone SVG parsing has none. Every other icon already in this project uses a literal
+`fill="#ffffff"` instead (confirmed by checking `back-arrow.svg`/`settings-gear-icon.svg`).
+
+**Fix:** Any new icon SVG must use a literal hex fill, never `currentColor`. Same category as the
+missing-glyph character list below — check for this on sight before wiring in a new icon, don't
+wait for the bug report.
+
+---
+
+## A `class="foo"` with no matching `.foo { }` rule compiles and runs silently
+
+**Symptom:** None visible — the element just renders unstyled/inheriting from its parent. No error,
+no warning.
+
+**Root cause:** The compiler doesn't cross-check that every class referenced in markup has a
+corresponding rule in the `<style>` block.
+
+**Fix:** Write a small Node script that loads the compiled `public/ui/*.json`, walks every
+`element.properties.class`, and diffs against `Object.keys(json.classes)`. One real instance found
+this way (a `sort-label` span had the class in markup but no rule — harmless here since it
+inherited color/font-size from its parent button, but easy to miss otherwise).
+
+**How to avoid next time:** Run this diff — alongside the shorthand-property grep above — on the
+compiled JSON before every in-headset handoff, not just eyeballing the source file.
+
+---
+
+## Correction: single-value shorthand (`padding: 1;`) is NOT safe either
+
+This doc previously claimed single-value padding/margin/gap shorthand was fine (only multi-value
+"1 1 0 1" shorthand was called out as broken) — that claim was never actually re-verified against
+compiled output. It's wrong: `padding: 1;` compiles straight through as a literal bare `"padding":
+"1"` key, the exact same silent-failure shape as multi-value shorthand. **Treat all
+padding/margin/gap shorthand, single-value or not, as unsupported, full stop.** Same grep
+(`"padding":`/`"margin":`/`"gap":` bare keys in the compiled JSON) catches this too.
+
+---
+
+## `pointerEvents: 'auto'` set before the panel's `PanelDocument` exists silently no-ops forever
+
+**Symptom:** A `PanelUI` panel renders correctly and `RayInteractable` registers ray hits on it,
+but nothing on it ever reacts to clicks or hover — permanently, not just briefly.
+
+**Root cause:** The panel's two-gate show function reads `panelEntity.getValue(PanelDocument,
+'document')` **synchronously** and calls `doc?.rootElement.setProperties({ pointerEvents: 'auto'
+})` — a silent no-op if `doc` is still `null` because the panel's own async `fetch('/ui/x.json')`
+hasn't resolved yet. Nothing ever retries it afterward, so `pointerEvents` stays stuck at the
+uikitml's static `'none'` default forever. First found on Library, which is the *first* screen
+shown at boot — its show function fires before the fetch has any chance to resolve.
+`RayInteractable` still gets added fine (that half is synchronous, no doc dependency), which is
+why the ray still registers a hit even though nothing responds.
+
+**Fix:** Set `pointerEvents: 'auto'` from *inside* the doc-ready poll callback (`XRSongLibrary.show()`
+/ `CalibrationSystem._withDoc()`), where `doc` being real is guaranteed by construction — not from
+an external caller that merely hopes it's ready yet.
+
+**How to apply:** Settings/Song/Play have the exact same theoretical race (their
+`setXPanelInteractive` functions are structurally identical) but never hit it in practice, only
+because they're shown well after boot, by which point their panels have long since finished
+loading. **Any one-time "make this interactive" toggle that depends on an async resource must be
+triggered from the code that actually observes that resource becoming ready** — apply this fix
+proactively to any future panel shown early/immediately, don't wait for a bug report.
+
+---
+
+## A differently-sized panel needs its Y offset solved from the bottom-edge gap, not copied from same-slot siblings
+
+**Symptom:** A panel visually overlaps/clips into the grab bar it's attached to.
+
+**Root cause:** Settings/Song/Play/Calibration are all a fixed 0.4m × 0.3m, centered at local
+Y = 0.169 on their shared parent (`grabBarEntity`) — chosen so a 0.3m-tall panel's *bottom edge*
+sits 0.019m above the bar (`0.169 - 0.3/2`). Library is taller (0.525m, for its 3-column grid) and
+initially reused the same 0.169 center offset, which pushed its bottom edge to
+`0.169 - 0.525/2 ≈ -0.094` — below the bar, physically overlapping it.
+
+**Fix:** When a panel's height differs from its same-slot siblings, solve for the center offset
+that preserves the same *bottom-edge* gap, not the same center Y: center offset = (desired
+bottom-edge gap) + (this panel's own height / 2), re-derived per panel, not copied.
+
+---
+
+## Before deleting any `world.globals.*` slot or shared helper, grep the entire directory for every reader/writer
+
+**Symptom:** A planned cleanup (deleting the legacy `panelMesh`/`uiPanel`/`panelTex`/`resizePanel`/
+`xrButtons` html2canvas pipeline once the last known consumer migrated to uikit) turned out to be
+unsafe.
+
+**Root cause:** `CalibrationSystem.ts` — a completely different screen, not the one being
+migrated in that pass — independently read/wrote the same globals for its own UI. "No longer used
+by the screen I'm touching" is not the same claim as "no longer used by anything," and it's easy to
+only check the file(s) actually being edited.
+
+**Fix:** Grep `src/xr/` (or wherever the globals live) for every reader/writer of a global before
+deleting it, not just the files in the current change. (Once `CalibrationSystem.ts` also migrated
+to uikit in a later pass, this pipeline genuinely became dead and the cleanup was completed then.)
+
+---
+
+## A "show a loading state" update can be dead code if it targets a panel that's already hidden by the time it fires
+
+**Symptom:** Planned to replace `uiPanel.innerHTML = 'Loading'` with an equivalent overlay on a new
+uikit panel.
+
+**Root cause:** Traced the actual call sites first and found the functions that would trigger it
+only ever fire as callbacks from a *different* screen that has already hidden the panel in
+question by that point. The replacement would have been exactly as invisible as the original (which
+updated a mesh's texture already hidden behind the other screen) — the original had the same latent
+dead-code problem, it just degrades silently instead of erroring.
+
+**Fix:** Dropped the loading-overlay markup and wiring entirely rather than ship a cleaner-looking
+copy of the same non-functional code.
+
+**How to avoid next time:** Before porting a "show a loading state" update, trace every call site of
+the function that triggers it — the panel it updates may not be the one visible when it runs.
+
+---
+
+## An element authored with no static text content never becomes updatable via `setProperties({ text })`
+
+**Symptom:** A `<span id="x"></span>` authored empty (meant to be filled in entirely at runtime)
+stays permanently blank. `setProperties({ text: '...' })` never throws, never warns — it just does
+nothing, forever, no matter how many times it's called.
+
+**Root cause:** Confirmed by reading `@pmndrs/uikitml`'s interpreter directly
+(`node_modules/@pmndrs/uikitml/dist/interpreter/index.js`): a `<span>text</span>` does **not**
+compile into a Text component itself. It compiles into a `Container`, and the interpreter
+synthesizes a **separate child `Text` node** from any literal string found in that container's
+`children` array *at interpret time* — that child's displayed content is a `computed()` signal
+reading back `parentContainer.properties.value.text` (falling back to the original literal
+string). `setProperties({ text: 'x' })` on the outer span works *because* that inner child is
+watching the parent's `text` property — but if the span's `children` array is empty at compile
+time, no inner Text child is ever created, and there is nothing for `setProperties` to update.
+Confirmed directly by diffing the compiled JSON's `children` array for a working span (real text)
+against a broken one (empty).
+
+**Fix:** Every text-bearing element that will ever be updated via `setProperties` needs real
+placeholder text authored in the `.uikitml` source — not just a nice default, a hard requirement
+for the reactive update path to exist at all.
+
+**How to avoid next time:** Every prior screen happened to always author placeholder text already
+(song titles, labels, time displays), which is exactly why this never surfaced until an element was
+deliberately authored empty for the first time. Grep new `.uikitml` files for `<span[^>]*></span>`
+or `<p[^>]*></p>` before shipping.
+
+---
+
+## Splitting a multi-styled string into independently-styled elements is just two spans, each needing its own placeholder text
+
+A single Text node can't mix font-weight/size mid-string the way inline `<b>` could in the original
+HTML source it was translated from. Two sibling spans in a flex-column wrapper (with `gap-row` for
+the spacing between them), each with its own class and its own real placeholder text (see the
+entry above), is the straightforward replacement — no special mechanism needed beyond that.
+
+---
+
+## A panel shown from multiple independent entry points needs its "hide every sibling" logic centralized in the callee, not assumed handled by the caller
+
+**Symptom:** Two panels visibly z-fighting (rendering coincident in space).
+
+**Root cause:** Every uikit panel in this app (settings/preScene/play/library/calibration) is a
+separate entity parented at the *same* `grabBarEntity`-relative slot; only one is ever meant to be
+visible, and every `index.ts` `showX()` function already hides all its siblings before showing
+itself — but that pattern only works because each of those functions is the *single* place its
+screen ever gets shown from. `CalibrationSystem`'s panel is different: it can be triggered from
+three independent places (PreScene's Reposition, Play HUD's Reposition, first-time calibration),
+and none of those callers could be trusted to already know to hide the calibration panel's siblings
+for it. First attempt hard-coded a sibling-hide at just one call site in `index.ts` — wrong layer:
+fixed one case but broke another, because that call site couldn't distinguish which case it was
+handling (see next entry).
+
+**Fix:** Move the "hide every other panel, show mine" step into the callee that actually knows
+whether it's really about to show a panel (`CalibrationSystem._showPanel()`), not into any one of
+its several external callers.
+
+---
+
+## A completion callback can be a lightweight rerender instead of a full screen rebuild — restoration must match the completion shape, not be assumed generic
+
+**Symptom:** After finishing a flow that temporarily hid another panel, that other panel stayed
+permanently invisible — nothing ever turned it back on.
+
+**Root cause:** Two call sites with structurally identical bodies
+(`CalibrationSystem`'s `recalibrate` and `showCalibrationFineTune` globals — same guitar/keys
+branching, same panel-show calls) turned out to need different hide/restore handling, because what
+happens *after* `onComplete()` fires is actually different between them: one path's completion is a
+full screen-rebuild call that naturally re-establishes every panel's correct visibility from
+scratch; the other's completion is a lightweight in-place rerender of an *already-existing*
+document that never touches panel-level `.visible` at all. Hiding a panel to show a temporary one,
+then finishing through the lightweight path, left it permanently invisible.
+
+**Fix:** Wrap that specific completion callback to explicitly restore the hidden panel's
+visibility before forwarding to the real `onComplete` — don't assume the caller's completion path
+will fix it, because it might not.
+
+**How to avoid next time:** Two call sites that look the same are not necessarily interchangeable —
+check the shape of what happens after completion, not just whether the triggering code looks
+identical.
+
+---
+
+## When there's no real confirmation step to offer, skip the panel entirely rather than showing one for consistency
+
+Guitar/Bass calibration has no physical instrument to touch-calibrate against — placement is always
+the same deterministic camera-forward drop, for both first-time calibration and every later
+reposition. It previously showed a "Grab the bar to reposition" confirm-and-Done screen out of
+habit, matching Keys' shape, even though there was never anything to actually confirm. Removing the
+confirm screen entirely (place the bar, save, call `onComplete()`, done — no panel, no doc lookup,
+no button wiring) simultaneously fixed a visible-panel-flashing bug reported for Guitar's
+Reposition (nothing to hide when no panel ever shows) and deleted an entire now-provably-dead
+method and uikitml section. Worth checking for this shape generally: a "confirmation" screen that
+never actually has anything for the user to decide is a candidate for deletion, not preservation.
