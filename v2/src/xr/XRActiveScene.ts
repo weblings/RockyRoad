@@ -1,5 +1,6 @@
 import type { Entity, UIKitDocument } from "@iwsdk/core";
 import { PanelDocument, UIKit } from "@iwsdk/core";
+import { getPointerById } from "@pmndrs/pointer-events";
 import type { Vector3 } from "three";
 import type { SongPlayer } from "../shared/SongPlayer";
 import type { SongSection } from "../shared/SongFormat";
@@ -51,15 +52,46 @@ type WorldPointerEvent = {
     };
 };
 
+// Temporary diagnostic type for the as-speed-menu scroll-vs-click
+// investigation — object is the deepest originally-hit Object3D (fixed for
+// the whole gesture, even once bubbled to an ancestor's handler);
+// currentTarget is whichever object's handler is currently running. Both
+// carry userData.id when the uikitml element that owns them has an id
+// attribute (set by @pmndrs/uikitml's interpreter). Comparing the two
+// across down/move/up is what confirms or rules out the capture-target-
+// mismatch theory in UikitLessonsLearned.md.
+type DiagPointerEvent = {
+    pointerId?: number;
+    object?: { userData?: { id?: string } };
+    currentTarget?: { userData?: { id?: string } };
+};
+
 const MAX_TITLE_CHARS    = 26;
 const MAX_SUBTITLE_CHARS = 30;
 
+// Note-hit streak/total-notes tracking doesn't exist anywhere in the XR port
+// yet (see NoteDetector/Stretch Goal B in the project plan) and a live
+// in-play Difficulty control has no backing concept either (SongFormat.
+// SongDifficulty is static per-song metadata, used for Library sorting, not
+// an adjustable runtime value). Both rows are built in ui/play.uikitml
+// against the target design already, just gated fully off here until the
+// real features land — flip these consts, no markup changes needed.
+const STATS_ROW_ENABLED = false;
+const DIFFICULTY_ENABLED = false;
+
+// Matches the preset list desktop's speed control generates (see
+// SPEED_PRESET_STEP in src/desktop/ActiveSceneScreen.ts) — 20% steps from
+// 20% to 200%. Unlike desktop, XR has no separate fine +/-0.05 stepper
+// alongside the dropdown (the v0.2.2 design only shows a single trigger), so
+// this is the full range of values reachable here.
+const SPEED_PRESETS = [0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0];
+
 function truncate(s: string, max: number): string {
-    // Three ASCII periods, not '…' (U+2026) — same missing-glyph risk as '×'
-    // (see speedLabel below and UikitLessonsLearned.md) — uikit's pre-built
-    // Inter MSDF atlas doesn't cover every typographic character, only a
-    // known-tested subset, so special characters are guilty until proven
-    // innocent rather than assumed safe.
+    // Three ASCII periods, not '…' (U+2026) — same missing-glyph risk flagged
+    // throughout UikitLessonsLearned.md — uikit's pre-built Inter MSDF atlas
+    // doesn't cover every typographic character, only a known-tested subset,
+    // so special characters are guilty until proven innocent rather than
+    // assumed safe.
     return s.length > max ? s.slice(0, max - 3) + '...' : s;
 }
 
@@ -92,6 +124,15 @@ export class XRActiveScene {
     // scrubbing pauses playback) songPlayer.currentSecond, so the two don't
     // fight over the same elements every frame.
     private _scrubFraction: number | null = null;
+
+    // Open/closed state for the Speed dropdown popover (see as-speed-menu in
+    // ui/play.uikitml) — same idiom as XRSongLibrary.ts's sortOpen.
+    private _speedMenuOpen = false;
+
+    // Temporary diagnostic state — see the DiagPointerEvent comment above.
+    // Tracks which pointerIds have an active down on as-speed-menu, so the
+    // move logger only fires during a real drag, not on every hover.
+    private _diagActiveDrags = new Set<number>();
 
     show(
         panelEntity: Entity,
@@ -155,9 +196,15 @@ export class XRActiveScene {
         if (artUrl) artEl?.setProperties({ display: 'flex', src: artUrl });
         else        artEl?.setProperties({ display: 'none' });
 
-        doc.getElementById('as-speed-val')?.setProperties({ text: speedLabel(songPlayer.playbackRate) });
+        // Both gated fully off for now — see the STATS_ROW_ENABLED/
+        // DIFFICULTY_ENABLED comment near the top of this file. Setting
+        // display explicitly (rather than relying on the compiled-in
+        // default) means flipping either const later needs no markup change.
+        doc.getElementById('as-stats-row')?.setProperties({ display: STATS_ROW_ENABLED ? 'flex' : 'none' });
+        doc.getElementById('as-difficulty-dropdown')?.setProperties({ display: DIFFICULTY_ENABLED ? 'flex' : 'none' });
 
         this._buildSectionTicks(doc, sections, totalDuration);
+        this._wireSpeedDropdown(doc, songPlayer, rerender);
 
         this._setClick(doc, 'as-library', onBack);
         this._setClick(doc, 'as-settings', () => {
@@ -167,14 +214,6 @@ export class XRActiveScene {
         this._setClick(doc, 'as-reposition', () => {
             if (songPlayer.isPlaying) songPlayer.pause();
             startCalibration(() => rerender());
-        });
-        this._setClick(doc, 'as-speed-dec', () => {
-            songPlayer.playbackRate = Math.max(0.1, Math.round((songPlayer.playbackRate - 0.1) * 10) / 10);
-            rerender();
-        });
-        this._setClick(doc, 'as-speed-inc', () => {
-            songPlayer.playbackRate = Math.min(2.0, Math.round((songPlayer.playbackRate + 0.1) * 10) / 10);
-            rerender();
         });
         this._setClick(doc, 'as-playpause', () => {
             if (songPlayer.isPlaying) {
@@ -257,6 +296,92 @@ export class XRActiveScene {
             track.add(tick);
             this._sectionTicks.push(tick);
         }
+    }
+
+    // Speed dropdown popover — same trigger/menu/chevron-swap idiom as
+    // XRSongLibrary.ts's sort dropdown (see as-speed-* in ui/play.uikitml).
+    private _wireSpeedDropdown(doc: UIKitDocument, songPlayer: SongPlayer, rerender: () => void): void {
+        doc.getElementById('as-speed-trigger-label')?.setProperties({ text: speedPercentLabel(songPlayer.playbackRate) });
+        doc.getElementById('as-speed-menu')?.setProperties({ display: this._speedMenuOpen ? 'flex' : 'none' });
+        doc.getElementById('as-speed-chevron-down')?.setProperties({ display: this._speedMenuOpen ? 'none' : 'flex' });
+        doc.getElementById('as-speed-chevron-up')?.setProperties({ display: this._speedMenuOpen ? 'flex' : 'none' });
+        doc.getElementById('as-speed-trigger')?.setProperties({
+            onClick: () => {
+                console.log(`[speed-menu] trigger clicked, opening=${!this._speedMenuOpen}`);
+                this._speedMenuOpen = !this._speedMenuOpen;
+                rerender();
+            },
+        });
+
+        for (const preset of SPEED_PRESETS) {
+            const el = doc.getElementById(`as-speed-opt-${Math.round(preset * 100)}`);
+            if (!el) continue;
+            this._setOptionSelected(el, Math.abs(preset - songPlayer.playbackRate) < 0.001);
+            el.setProperties({
+                onClick: () => {
+                    console.log(`[speed-menu] option clicked: ${Math.round(preset * 100)}%`);
+                    songPlayer.playbackRate = preset;
+                    this._speedMenuOpen = false;
+                    rerender();
+                },
+            });
+        }
+
+        // Temporary diagnostic instrumentation — see the DiagPointerEvent
+        // comment above and UikitLessonsLearned.md's capture-target-mismatch
+        // theory. dynamicHandlers (the internal scroll pointer handlers
+        // setupScrollHandlers registers in scroll.js) is a separate
+        // registration channel from properties.onPointer* (see Container's
+        // constructor in node_modules/@pmndrs/uikit/dist/components/
+        // container.js), so this should log alongside the built-in scroll
+        // behavior rather than replacing it — remove once the theory is
+        // confirmed/ruled out and a real fix lands.
+        const idOf = (o?: { userData?: { id?: string } }) => o?.userData?.id ?? '(no id)';
+        const log = (type: string) => (e: DiagPointerEvent) =>
+            console.log(`[speed-menu] ${type} pid=${e.pointerId} object=${idOf(e.object)} currentTarget=${idOf(e.currentTarget)}`);
+        // Confirmed in-headset: pressing directly on an .option-item button
+        // captures the pointer on that button (event.object is always the
+        // deepest originally-hit element — see the DiagPointerEvent comment
+        // above), but scroll.js's own release calls
+        // container.releasePointerCapture(), which only succeeds if capture
+        // is on that exact container object. On a mismatch it silently
+        // no-ops, wedging capture on the button — every later drag then
+        // resolves against that stale button forever instead of scrolling.
+        // Force-clearing capture ourselves on up/cancel, regardless of which
+        // object holds it, is the real fix: getPointerById(pointerId)
+        // ?.setCapture(undefined) bypasses the broken hasCaptured(this)
+        // match check container.releasePointerCapture() relies on. Safe to
+        // call unconditionally — a no-op if nothing's captured or if
+        // scroll.js's own release already succeeded.
+        const activeDrags = this._diagActiveDrags;
+        const forceReleaseCapture = (e: DiagPointerEvent) => {
+            if (e.pointerId != null) getPointerById(e.pointerId)?.setCapture(undefined);
+        };
+        doc.getElementById('as-speed-menu')?.setProperties({
+            onPointerDown: (e: DiagPointerEvent) => {
+                if (e.pointerId != null) activeDrags.add(e.pointerId);
+                log('down')(e);
+            },
+            onPointerMove: (e: DiagPointerEvent) => {
+                if (e.pointerId != null && activeDrags.has(e.pointerId)) log('move')(e);
+            },
+            onPointerUp: (e: DiagPointerEvent) => {
+                if (e.pointerId != null) activeDrags.delete(e.pointerId);
+                log('up')(e);
+                forceReleaseCapture(e);
+            },
+            onPointerCancel: (e: DiagPointerEvent) => {
+                if (e.pointerId != null) activeDrags.delete(e.pointerId);
+                log('cancel')(e);
+                forceReleaseCapture(e);
+            },
+        });
+    }
+
+    private _setOptionSelected(el: ReturnType<UIKitDocument['getElementById']>, selected: boolean): void {
+        if (!el) return;
+        if (selected) { if (!el.classList.contains('option-item-selected')) el.classList.add('option-item-selected'); }
+        else          { if (el.classList.contains('option-item-selected')) el.classList.remove('option-item-selected'); }
     }
 
     private _wireSeekDrag(
@@ -353,10 +478,6 @@ export class XRActiveScene {
     }
 }
 
-function speedLabel(r: number): string {
-    // Plain ASCII 'x', not '×' (U+00D7) — the multiplication sign isn't in
-    // uikit's pre-built Inter MSDF glyph subset and renders as a missing-
-    // glyph tofu box (same fix already applied to XRSettingsScene.ts's
-    // highwaySizeLabel for the guitar highway-scale stepper).
-    return (Math.round(r * 100) / 100).toString().replace(/\.?0+$/, '') + 'x';
+function speedPercentLabel(r: number): string {
+    return `Speed: ${Math.round(r * 100)}%`;
 }

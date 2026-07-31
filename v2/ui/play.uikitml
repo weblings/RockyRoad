@@ -71,6 +71,32 @@
     position-top: -0.05;
   }
 
+  /* Note-streak/notes-total display — feature doesn't exist yet (no in-game
+     note-hit tracking anywhere in the XR port, see NoteDetector/Stretch Goal
+     B in the project plan). Markup+CSS built now per spec, gated fully
+     hidden via STATS_ROW_ENABLED in XRActiveScene.ts until that lands. */
+  .stats-row {
+    display: none;
+    flex-direction: row;
+    align-items: baseline;
+    justify-content: center;
+    gap-row: 0.6;
+    gap-column: 0.6;
+    flex-grow: 0;
+    flex-shrink: 0;
+  }
+  .text-primary {
+    color: #ffffff;
+    font-size: 1.2;
+    font-weight: bold;
+  }
+  .text-secondary {
+    color: #c8c8c8;
+    font-size: 1.0;
+    font-weight: medium;
+    margin-right: 0.6;
+  }
+
   .primary-dark {
     background-color: #333333;
     color: #ffffff;
@@ -85,8 +111,8 @@
     display: flex;
     flex-direction: column;
     justify-content: center;
-    gap-row: 0.8;
-    gap-column: 0.8;
+    gap-row: 1;
+    gap-column: 1;
     padding-top: 0.6;
     padding-bottom: 0.6;
     padding-left: 2.2;
@@ -101,6 +127,7 @@
     flex-shrink: 0;
     gap-row: 0.8;
     gap-column: 0.8;
+    padding-bottom: 1;
   }
 
   .progress-area {
@@ -213,8 +240,12 @@
     flex-shrink: 0;
     gap-row: 0.8;
     gap-column: 0.8;
-    padding-top: 0.4;
-    padding-bottom: 0.4;
+    padding-top: 0.8;
+    padding-right: 0.8;
+    padding-bottom: 0.8;
+    padding-left: 0.8;
+    background-color: #1a1a1a;
+    border-radius: 0.6;
   }
 
   .art-thumb {
@@ -258,56 +289,149 @@
     font-weight: medium;
   }
 
-  .speed-control {
+  /* Speed / Difficulty dropdown triggers — same trigger+popover shape as
+     library.uikitml's .sort-dropdown/.sort-trigger/.sort-menu, hand-
+     duplicated here since .uikitml has no @import/shared-stylesheet
+     mechanism (each compiled panel is fully self-contained). If a third
+     screen needs this component, re-derive it there the same way rather
+     than trying to share the actual class rules. Difficulty doesn't exist
+     as a real feature yet (SongFormat.SongDifficulty is static per-song
+     metadata, not a live in-play control) — its dropdown is built but kept
+     fully hidden via DIFFICULTY_ENABLED in XRActiveScene.ts. */
+  .option-row {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    gap-row: 0.8;
+    gap-column: 0.8;
     flex-grow: 0;
     flex-shrink: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap-row: 0.4;
-    gap-column: 0.4;
   }
 
-  .speed-label {
-    color: #e8e8e8;
-    font-size: 1.2;
-    font-weight: bold;
+  /* Hugs its trigger's own content width rather than stretching to fill
+     .option-row — with only Speed visible (Difficulty gated off), a
+     flex-grow:1 stretch here made the single trigger span the full row. */
+  .option-dropdown {
+    position-type: relative;
+    flex-grow: 0;
+    flex-shrink: 0;
   }
 
-  .speed-row {
+  /* Difficulty doesn't exist as a real feature yet — see the block comment
+     above .option-row. Compiled-in default so it stays hidden even before
+     XRActiveScene.ts's DIFFICULTY_ENABLED gate runs on first render. */
+  .option-dropdown-gated {
+    display: none;
+  }
+
+  .option-trigger {
     display: flex;
     flex-direction: row;
     align-items: center;
-    gap-row: 0.4;
-    gap-column: 0.4;
-  }
-
-  /* Reuses settings.uikitml's .stepper-btn/.stepper-val treatment (light-
-     button color family) rather than the original's secondary-dark speed
-     button colors, per the same explicit style choice already made there. */
-  .speed-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: #dadada;
-    color: #111111;
-    font-weight: bold;
-    width: 2.2;
-    height: 2.2;
-    border-radius: 0.4;
-    font-size: 1.1;
+    justify-content: space-between;
+    gap-row: 0.6;
+    gap-column: 0.6;
+    padding-top: 0.7;
+    padding-right: 1;
+    padding-bottom: 0.7;
+    padding-left: 1;
+    background-color: #333333;
+    border-width: 0.1;
+    border-color: #444444;
+    border-radius: 0.6;
     cursor: pointer;
   }
-  .speed-btn:hover  { background-color: #bebebe; }
-  .speed-btn:active { background-color: #9c9c9c; }
+  .option-trigger:hover  { background-color: #444444; }
+  .option-trigger:active { background-color: #515151; }
 
-  .speed-value {
-    color: #e8e8e8;
+  .option-label {
+    color: #c8c8c8;
     font-size: 1.2;
-    font-weight: bold;
-    min-width: 3.8;
-    text-align: center;
   }
+
+  /* Two stacked chevron images, display-toggled by menu-open state — same
+     swap pattern as library.uikitml's #sort-chevron-down/#sort-chevron-up
+     (a rotated-triangle glyph has no clean ASCII fallback, unlike '-'/'x'
+     elsewhere in this app). */
+  .option-chevron {
+    width: 0.9;
+    height: 0.9;
+  }
+
+  /* position-top is a literal estimate of the trigger's own rendered height
+     plus a small gap (no calc() support) — tune once visible in-headset,
+     same caveat as library.uikitml's .sort-menu. Fixed height + overflow:
+     scroll rather than letting all 10 presets stack unbounded: the panel is
+     only 30 units tall total and a plain vertical list of 10 items would
+     run off the bottom of it. */
+  .option-menu {
+    position-type: absolute;
+    position-top: 3.4;
+    position-left: 0;
+    z-index: 2;
+    /* z-index alone only controls uikit's painter's-algorithm draw order
+       (transparency/blend sorting) — it doesn't move the mesh, so this
+       popover was still geometrically coplanar with the .actions bar behind
+       it and GPU depth-tested/z-fought against the Reposition button's SVG,
+       which also made it flaky to raycast/scroll. transform-translate-z
+       (same property family as the seek-thumb's transform-translate-x)
+       actually offsets it forward in 3D space instead. */
+    transform-translate-z: 0.15;
+    display: none;
+    flex-direction: column;
+    height: 8;
+    overflow: scroll;
+    scrollbar-width: 0.6;
+    scrollbar-color: #4a4a4a;
+    background-color: #1a1a1a;
+    border-width: 0.1;
+    border-color: #333333;
+    border-radius: 0.6;
+    min-width: 100%;
+    /* Real container-only gutter around/between items — see the pointer-
+       capture note on .option-item below. Doesn't fully fix that bug, but
+       .option-item covering the menu edge-to-edge with zero gap made every
+       single press guaranteed to hit a button, not the container. */
+    gap-row: 0.3;
+    padding-top: 0.4;
+    padding-right: 0.4;
+    padding-bottom: 0.4;
+    padding-left: 0.4;
+  }
+
+  /* flex-shrink:0 required — without it Yoga compresses every item to fit
+     .option-menu's fixed height instead of overflowing it, which is what
+     the scroll needs to have something to scroll through (same gotcha as
+     settings.uikitml's .section, see the comment there).
+
+     Known upstream gotcha (@pmndrs/uikit): a scroll container's own
+     onPointerDown (node_modules/@pmndrs/uikit/dist/scroll.js) captures the
+     pointer on event.object, which is always the deepest originally-hit
+     object (node_modules/@pmndrs/pointer-events/dist/event.js) — so a press
+     starting directly on one of these buttons captures on the BUTTON, not
+     on .option-menu. But release calls container.releasePointerCapture(),
+     which only succeeds if capture is on that exact object — a mismatch
+     that makes release silently no-op, wedging capture on the button
+     permanently (every later drag on this menu then resolves against that
+     stale captured button instead of scrolling). .option-menu's gutter
+     gap/padding above reduces how often a press lands squarely on a button
+     instead of the container, but doesn't eliminate it — there's no
+     ancestor-scroll-awareness in this library version for interactive
+     children (computedAnyAncestorScrollable in scroll.js is only consumed
+     for rubber-band gating, never for click/capture disambiguation). */
+  .option-item {
+    flex-shrink: 0;
+    padding-top: 0.5;
+    padding-right: 1;
+    padding-bottom: 0.5;
+    padding-left: 1;
+    color: #c8c8c8;
+    font-size: 1.2;
+    cursor: pointer;
+  }
+  .option-item:hover  { background-color: #2a2a2a; color: #ffffff; }
+  .option-item:active { background-color: #515151; color: #ffffff; }
+  .option-item-selected { background-color: #242424; color: #ffffff; }
 
   .actions {
     display: flex;
@@ -335,7 +459,10 @@
     flex-shrink: 0;
     gap-row: 0.2;
     gap-column: 0.2;
-    padding: 0.8;
+    padding-top: 0.8;
+    padding-right: 0.8;
+    padding-bottom: 0.8;
+    padding-left: 0.8;
     border-radius: 0.5;
     font-size: 1.3;
     font-weight: medium;
@@ -349,6 +476,12 @@
       <img src="/back-arrow.svg" class="icon" />
       <span class="icon-label">Library</span>
     </button>
+    <div id="as-stats-row" class="stats-row">
+      <span id="as-streak-count" class="text-primary">0</span>
+      <span class="text-secondary">Note Streak</span>
+      <span id="as-notes-progress" class="text-primary">0/0</span>
+      <span class="text-secondary">Total</span>
+    </div>
     <button id="as-settings" class="nav-btn primary-dark">
       <img src="/settings-gear-icon.svg" class="icon" />
       <span class="icon-label">Settings</span>
@@ -381,13 +514,35 @@
         <span id="as-song-title" class="song-title">Song Title</span>
         <span id="as-song-subtitle" class="song-subtitle">Artist Name</span>
       </div>
-      <div class="speed-control">
-        <span class="speed-label">Speed</span>
-        <div class="speed-row">
-          <button id="as-speed-dec" class="speed-btn">-</button>
-          <span id="as-speed-val" class="speed-value">1x</span>
-          <button id="as-speed-inc" class="speed-btn">+</button>
+    </div>
+
+    <div class="option-row">
+      <div class="option-dropdown">
+        <button id="as-speed-trigger" class="option-trigger">
+          <span id="as-speed-trigger-label" class="option-label">Speed: 100%</span>
+          <img id="as-speed-chevron-down" class="option-chevron" src="/chevron-down.svg" />
+          <img id="as-speed-chevron-up" class="option-chevron" src="/chevron-up.svg" />
+        </button>
+        <div id="as-speed-menu" class="option-menu">
+          <button id="as-speed-opt-20" class="option-item">20%</button>
+          <button id="as-speed-opt-40" class="option-item">40%</button>
+          <button id="as-speed-opt-60" class="option-item">60%</button>
+          <button id="as-speed-opt-80" class="option-item">80%</button>
+          <button id="as-speed-opt-100" class="option-item">100%</button>
+          <button id="as-speed-opt-120" class="option-item">120%</button>
+          <button id="as-speed-opt-140" class="option-item">140%</button>
+          <button id="as-speed-opt-160" class="option-item">160%</button>
+          <button id="as-speed-opt-180" class="option-item">180%</button>
+          <button id="as-speed-opt-200" class="option-item">200%</button>
         </div>
+      </div>
+      <div id="as-difficulty-dropdown" class="option-dropdown option-dropdown-gated">
+        <button id="as-difficulty-trigger" class="option-trigger">
+          <span id="as-difficulty-trigger-label" class="option-label">Difficulty: 100%</span>
+          <img id="as-difficulty-chevron-down" class="option-chevron" src="/chevron-down.svg" />
+          <img id="as-difficulty-chevron-up" class="option-chevron" src="/chevron-up.svg" />
+        </button>
+        <div id="as-difficulty-menu" class="option-menu"></div>
       </div>
     </div>
   </div>
