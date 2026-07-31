@@ -126,6 +126,7 @@ export class CalibrationSystem extends createSystem({}) {
         // reuses that same placement instantly and returns control right away
         // instead of showing a confirm screen, so Play HUD never has to hide.
         this.world.globals.recalibrate = (onComplete: () => void): void => {
+            this.cancelCountdown();
             if (this.isGuitarActive()) {
                 this.placeGuitarBar();
                 this.setGuitarBarVisible(true);
@@ -150,6 +151,7 @@ export class CalibrationSystem extends createSystem({}) {
         };
 
         this.world.globals.showCalibrationFineTune = (onComplete: () => void): void => {
+            this.cancelCountdown();
             if (this.isGuitarActive()) {
                 this.placeGuitarBar();
                 this.setGuitarBarVisible(true);
@@ -614,6 +616,17 @@ export class CalibrationSystem extends createSystem({}) {
     }
 
     // ── uikit panel plumbing ─────────────────────────────────────────────────
+
+    // recalibrate()/showCalibrationFineTune() are both reachable while a
+    // resumeWithCountdown() countdown is pending (Play HUD's Reposition
+    // button doesn't wait for one to finish) — without this, the countdown's
+    // still-pending setTimeout would fire mid-calibration and yank the user
+    // back into Play HUD out from under whatever they're doing here. Exposed
+    // via world.globals since index.ts's own countdownGen/cancelCountdown
+    // closure isn't reachable from this separately-registered ECS system.
+    private cancelCountdown(): void {
+        (this.world.globals.cancelCountdown as (() => void) | undefined)?.();
+    }
 
     // Every uikit panel (settings/preScene/play/library/calibration) is a
     // separate entity parented at the exact same grabBarEntity-relative slot

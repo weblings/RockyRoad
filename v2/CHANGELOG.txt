@@ -1,17 +1,25 @@
-v2.1:
+v0.2.2:
+- XR - Swapped panel rendering from html2canvas to uikitml (native to IWSDK)
+- XR - This made the perf fix from before not needed so removed it
+- XR - Added a console window that can be enabled by a flag
+- XR - Search bar in library is currently inoperable
+
+v0.2.1:
 - Added XR guitar support
 - Temp perf fix that times out rendering the menu when playing songs to boost fps
 
-v2:
+v0.2.0:
 - Combined flat and XR forks into a single application
 - Unified UI system applied to both to make them more cohesive
 - Song-server added to share songs to clients on the network
 
-v1:
+v0.1.0:
 - Added piano support to flat v0 version
 - Created WebXR fork of v0 to support piano in XR
 
-v0:
-- Distillation of ChartPlayer to Three.js environment
+v0.0.2:
 - Added library, song, tuning, play, and settings pages
+
+v0.0.1:
+- Distillation of ChartPlayer to Three.js environment
 

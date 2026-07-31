@@ -56,7 +56,7 @@ import type {
 // independent of anything it might be used to debug. See
 // ThreeCP/Analysis/UikitLessonsLearned.md and LessonsLearned.md's
 // "Debugging JS console from Quest Browser on PC" entry.
-const DEBUG_CONSOLE_ENABLED = true;
+const DEBUG_CONSOLE_ENABLED = false;
 
 const debugLines: string[] = [];
 const DEBUG_MAX_LINES = 22;
@@ -762,6 +762,23 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
 
     let highwayEntity: { dispose(): void } | null = null;
 
+    // Generation token for resumeWithCountdown()'s pending setTimeouts — lets
+    // navigating away mid-countdown (e.g. Play HUD's Back-to-Library button)
+    // invalidate them, instead of them firing regardless and forcing the user
+    // back into Play HUD once the timer elapses. Also hides the in-scene
+    // countdown overlay immediately, since HighwaySystem.update() otherwise
+    // keeps it visible/updating regardless of which screen is showing.
+    let countdownGen = 0;
+    function cancelCountdown(): void {
+        countdownGen++;
+        world.globals.countdownN = undefined;
+    }
+    // Exposed so CalibrationSystem.ts (a separately-registered ECS system,
+    // can't reach this closure directly) can cancel a pending countdown too —
+    // Play HUD's Reposition button is reachable while one is running, same as
+    // the Library/Settings cases above.
+    world.globals.cancelCountdown = cancelCountdown;
+
     // Disposes the mounted highway mesh and hides whichever grab bar owns it.
     // guitarGrabBarHit's own visual pill is a persistent sibling, not part of
     // highwayEntity, so disposing the mesh alone would leave it floating visible.
@@ -776,6 +793,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     }
 
     function showLibrary(): void {
+        cancelCountdown();
         libraryPanelObj.visible = true;
         setLibraryPanelInteractive(true);
         preScenePanelObj.visible = false;
@@ -970,6 +988,11 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         noteMin: number,
         noteMax: number,
     ): void {
+        // Cancels any stale countdown from a previous call (e.g. returning
+        // from Settings/Calibration while one was still pending) — the
+        // `if (!songPlayer.isPlaying)` check below may start a fresh, valid
+        // one right after, which is fine since that happens after this.
+        cancelCountdown();
         libraryPanelObj.visible  = false;
         setLibraryPanelInteractive(false);
         settingsPanelObj.visible = false;
@@ -1025,6 +1048,11 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         noteMin: number,
         noteMax: number,
     ): void {
+        // Same reasoning as showLibrary()/showActiveScene() — Settings is
+        // reachable from Play HUD's Settings button while a countdown may be
+        // pending, and its own completion routes back through
+        // showActiveScene(), not through resumeWithCountdown() again.
+        cancelCountdown();
         libraryPanelObj.visible  = false;
         setLibraryPanelInteractive(false);
         settingsPanelObj.visible = true;
@@ -1076,10 +1104,12 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
 
         world.globals.rollbackState = { from: pausedAt, to: resumeAt, startMs: performance.now() };
 
+        const myGen = ++countdownGen;
         world.globals.countdownN = 3;
-        setTimeout(() => { world.globals.countdownN = 2; }, 1000);
-        setTimeout(() => { world.globals.countdownN = 1; }, 2000);
+        setTimeout(() => { if (countdownGen === myGen) world.globals.countdownN = 2; }, 1000);
+        setTimeout(() => { if (countdownGen === myGen) world.globals.countdownN = 1; }, 2000);
         setTimeout(() => {
+            if (countdownGen !== myGen) return;
             world.globals.countdownN = undefined;
             songPlayer.play();
             showActiveScene(entry, songPlayer, sections, totalDuration, noteMin, noteMax);
