@@ -1,6 +1,5 @@
 import type { Entity, UIKitDocument } from "@iwsdk/core";
 import { PanelDocument, UIKit } from "@iwsdk/core";
-import { getPointerById } from "@pmndrs/pointer-events";
 import type { Vector3 } from "three";
 import type { SongPlayer } from "../shared/SongPlayer";
 import type { SongSection } from "../shared/SongFormat";
@@ -50,20 +49,6 @@ type WorldPointerEvent = {
         setPointerCapture?(pointerId: number): void;
         releasePointerCapture?(pointerId: number): void;
     };
-};
-
-// Temporary diagnostic type for the as-speed-menu scroll-vs-click
-// investigation — object is the deepest originally-hit Object3D (fixed for
-// the whole gesture, even once bubbled to an ancestor's handler);
-// currentTarget is whichever object's handler is currently running. Both
-// carry userData.id when the uikitml element that owns them has an id
-// attribute (set by @pmndrs/uikitml's interpreter). Comparing the two
-// across down/move/up is what confirms or rules out the capture-target-
-// mismatch theory in UikitLessonsLearned.md.
-type DiagPointerEvent = {
-    pointerId?: number;
-    object?: { userData?: { id?: string } };
-    currentTarget?: { userData?: { id?: string } };
 };
 
 const MAX_TITLE_CHARS    = 26;
@@ -129,10 +114,13 @@ export class XRActiveScene {
     // ui/play.uikitml) — same idiom as XRSongLibrary.ts's sortOpen.
     private _speedMenuOpen = false;
 
-    // Temporary diagnostic state — see the DiagPointerEvent comment above.
-    // Tracks which pointerIds have an active down on as-speed-menu, so the
-    // move logger only fires during a real drag, not on every hover.
-    private _diagActiveDrags = new Set<number>();
+    // Custom-scroll offset per option-menu popover (keyed by the menu's own
+    // element id, so this generalizes to Difficulty's menu later without
+    // needing a second field) — see _wireOptionMenuScroll. Persisted here
+    // rather than as a local in that method so an unrelated rerender (e.g.
+    // clicking Playpause while the dropdown happens to be open) doesn't
+    // visibly snap the scroll position back to the top.
+    private _optionMenuScrollOffsets = new Map<string, number>();
 
     show(
         panelEntity: Entity,
@@ -307,7 +295,6 @@ export class XRActiveScene {
         doc.getElementById('as-speed-chevron-up')?.setProperties({ display: this._speedMenuOpen ? 'flex' : 'none' });
         doc.getElementById('as-speed-trigger')?.setProperties({
             onClick: () => {
-                console.log(`[speed-menu] trigger clicked, opening=${!this._speedMenuOpen}`);
                 this._speedMenuOpen = !this._speedMenuOpen;
                 rerender();
             },
@@ -319,7 +306,7 @@ export class XRActiveScene {
             this._setOptionSelected(el, Math.abs(preset - songPlayer.playbackRate) < 0.001);
             el.setProperties({
                 onClick: () => {
-                    console.log(`[speed-menu] option clicked: ${Math.round(preset * 100)}%`);
+                    console.log(`[speed-menu] tap-selected ${Math.round(preset * 100)}% — confirms deferred capture doesn't break onClick`);
                     songPlayer.playbackRate = preset;
                     this._speedMenuOpen = false;
                     rerender();
@@ -327,53 +314,120 @@ export class XRActiveScene {
             });
         }
 
-        // Temporary diagnostic instrumentation — see the DiagPointerEvent
-        // comment above and UikitLessonsLearned.md's capture-target-mismatch
-        // theory. dynamicHandlers (the internal scroll pointer handlers
-        // setupScrollHandlers registers in scroll.js) is a separate
-        // registration channel from properties.onPointer* (see Container's
-        // constructor in node_modules/@pmndrs/uikit/dist/components/
-        // container.js), so this should log alongside the built-in scroll
-        // behavior rather than replacing it — remove once the theory is
-        // confirmed/ruled out and a real fix lands.
-        const idOf = (o?: { userData?: { id?: string } }) => o?.userData?.id ?? '(no id)';
-        const log = (type: string) => (e: DiagPointerEvent) =>
-            console.log(`[speed-menu] ${type} pid=${e.pointerId} object=${idOf(e.object)} currentTarget=${idOf(e.currentTarget)}`);
-        // Confirmed in-headset: pressing directly on an .option-item button
-        // captures the pointer on that button (event.object is always the
-        // deepest originally-hit element — see the DiagPointerEvent comment
-        // above), but scroll.js's own release calls
-        // container.releasePointerCapture(), which only succeeds if capture
-        // is on that exact container object. On a mismatch it silently
-        // no-ops, wedging capture on the button — every later drag then
-        // resolves against that stale button forever instead of scrolling.
-        // Force-clearing capture ourselves on up/cancel, regardless of which
-        // object holds it, is the real fix: getPointerById(pointerId)
-        // ?.setCapture(undefined) bypasses the broken hasCaptured(this)
-        // match check container.releasePointerCapture() relies on. Safe to
-        // call unconditionally — a no-op if nothing's captured or if
-        // scroll.js's own release already succeeded.
-        const activeDrags = this._diagActiveDrags;
-        const forceReleaseCapture = (e: DiagPointerEvent) => {
-            if (e.pointerId != null) getPointerById(e.pointerId)?.setCapture(undefined);
+        this._wireOptionMenuScroll(doc, 'as-speed-menu', 'as-speed-menu-inner');
+    }
+
+    // Custom drag-to-scroll for an option-menu popover, replacing @pmndrs/
+    // uikit's built-in overflow:scroll — confirmed in-headset that its
+    // pointer capture (set on whichever object was actually hit) and
+    // release (attempted on the container specifically) mismatch whenever a
+    // drag starts on a child button rather than empty container space,
+    // wedging capture and permanently breaking scroll. At this popover's
+    // small size, buttons cover nearly the whole surface, so that's nearly
+    // every gesture — see UikitLessonsLearned.md.
+    //
+    // Deliberately does NOT call setPointerCapture on every pointerdown the
+    // way _wireSeekDrag does — @pmndrs/pointer-events' own click synthesis
+    // (node_modules/@pmndrs/pointer-events/dist/pointer.js's up()/
+    // getIsClicked()) only fires 'click' when the object released on has the
+    // exact same recorded down-timestamp as the object originally pressed —
+    // capturing eagerly would immediately break that match (the captured
+    // object becomes whatever's under the pointer at up-time) and silently
+    // kill every option's onClick, tap or not. Instead, capture is deferred
+    // until real drag distance is confirmed: a genuine tap's down and up
+    // both land on the same button untouched, so getIsClicked's identity
+    // check still passes and the existing onClick handlers above keep
+    // working unmodified. Once a real drag is confirmed, capturing on the
+    // menu itself (not whatever button was under the initial press) also
+    // means move/up keep arriving even if the ray/hand drifts outside this
+    // small popover's bounds mid-drag.
+    private _wireOptionMenuScroll(doc: UIKitDocument, menuId: string, innerId: string): void {
+        const menu = doc.getElementById(menuId);
+        const inner = doc.getElementById(innerId);
+        if (!menu || !inner) return;
+
+        // Local-space movement (same normalized -0.5..0.5 units as
+        // WorldPointerEvent's pointerFraction, see the comment above it)
+        // past which a press is promoted from "maybe a tap" to a real drag.
+        const DRAG_THRESHOLD = 0.03;
+
+        // pressed: true from onPointerDown until onPointerUp/onPointerCancel
+        // — this is the actual "is a pinch/click currently held" gate.
+        // dragging: only meaningful while pressed; true once movement has
+        // crossed DRAG_THRESHOLD during the current press. Conflating these
+        // into one flag was the bug in the first pass — onPointerMove fires
+        // on every hover, not just while pressed (same behavior already hit
+        // once with the diagnostic logging spam), so without a dedicated
+        // pressed gate, mere hovering computed a delta against a stale
+        // startLocalY and immediately "dragged". _wireSeekDrag already
+        // guards this correctly (`if (!scrubbing) return;`) — mirroring
+        // that here.
+        let pressed = false;
+        let dragging = false;
+        let startLocalY = 0;
+        let startOffset = this._optionMenuScrollOffsets.get(menuId) ?? 0;
+
+        const maxOffset = (): number => {
+            const innerSize = inner.size.peek();
+            const menuSize = menu.size.peek();
+            if (!innerSize || !menuSize) return 0;
+            return Math.max(0, innerSize[1] - menuSize[1]);
         };
-        doc.getElementById('as-speed-menu')?.setProperties({
-            onPointerDown: (e: DiagPointerEvent) => {
-                if (e.pointerId != null) activeDrags.add(e.pointerId);
-                log('down')(e);
+
+        const applyOffset = (o: number): void => {
+            const clamped = Math.max(0, Math.min(o, maxOffset()));
+            this._optionMenuScrollOffsets.set(menuId, clamped);
+            // position-top negative = shifted up, same convention as the
+            // seek-thumb's fixed position-top:-0.3 — growing more negative
+            // as offset grows reveals lower content.
+            inner.setProperties({ positionTop: -clamped });
+        };
+
+        // Re-apply on every (re)wire — content height can in principle
+        // change (a future filtered/variable-length menu), even though
+        // Speed's own 10 presets never do.
+        applyOffset(startOffset);
+
+        menu.setProperties({
+            onPointerDown: (e: WorldPointerEvent) => {
+                if (!e.point) return;
+                const local = menu.worldToLocal(e.point.clone());
+                pressed = true;
+                dragging = false;
+                startLocalY = local.y;
+                startOffset = this._optionMenuScrollOffsets.get(menuId) ?? 0;
+                console.log('[speed-menu] pointerdown — pressed=true');
             },
-            onPointerMove: (e: DiagPointerEvent) => {
-                if (e.pointerId != null && activeDrags.has(e.pointerId)) log('move')(e);
+            onPointerMove: (e: WorldPointerEvent) => {
+                if (!pressed || !e.point) return;
+                const local = menu.worldToLocal(e.point.clone());
+                const deltaNorm = local.y - startLocalY;
+                if (!dragging) {
+                    if (Math.abs(deltaNorm) < DRAG_THRESHOLD) return;
+                    dragging = true;
+                    e.currentTarget?.setPointerCapture?.(e.pointerId);
+                    console.log(`[speed-menu] drag confirmed (deltaNorm=${deltaNorm.toFixed(3)}) — capturing on menu now`);
+                }
+                const menuSize = menu.size.peek();
+                const deltaUnits = deltaNorm * (menuSize?.[1] ?? 0);
+                // Best-guess sign — flip if scroll direction feels inverted
+                // once visible in-headset (same caveat as other geometry
+                // guesses in this file, e.g. the seek-thumb's position-top).
+                const target = startOffset - deltaUnits;
+                applyOffset(target);
+                console.log(`[speed-menu] scrolling: target=${target.toFixed(2)} applied=${(this._optionMenuScrollOffsets.get(menuId) ?? 0).toFixed(2)} max=${maxOffset().toFixed(2)}`);
             },
-            onPointerUp: (e: DiagPointerEvent) => {
-                if (e.pointerId != null) activeDrags.delete(e.pointerId);
-                log('up')(e);
-                forceReleaseCapture(e);
+            onPointerUp: (e: WorldPointerEvent) => {
+                console.log(`[speed-menu] pointerup, wasDragging=${dragging}`);
+                if (dragging) e.currentTarget?.releasePointerCapture?.(e.pointerId);
+                pressed = false;
+                dragging = false;
             },
-            onPointerCancel: (e: DiagPointerEvent) => {
-                if (e.pointerId != null) activeDrags.delete(e.pointerId);
-                log('cancel')(e);
-                forceReleaseCapture(e);
+            onPointerCancel: (e: WorldPointerEvent) => {
+                console.log(`[speed-menu] pointercancel, wasDragging=${dragging}`);
+                if (dragging) e.currentTarget?.releasePointerCapture?.(e.pointerId);
+                pressed = false;
+                dragging = false;
             },
         });
     }
