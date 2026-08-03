@@ -71,6 +71,19 @@ const DIFFICULTY_ENABLED = false;
 // this is the full range of values reachable here.
 const SPEED_PRESETS = [0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0];
 
+// Mirror of .option-item/.option-menu-inner/.option-menu's layout in
+// ui/play.uikitml, used to compute where to scroll the dropdown to on open
+// WITHOUT reading live .size/.relativeCenter signals — confirmed in-headset
+// that those read [0,0] at the exact synchronous moment display flips to
+// 'flex' (Yoga hasn't laid out the newly-visible subtree yet), and even a
+// short handful of setTimeout retries didn't reliably outlast that. Since
+// this menu's item count/sizing is fixed and entirely authored by us, there
+// is no live measurement actually needed here — just arithmetic from the
+// same numbers already in the CSS. Update these three if that CSS changes.
+const OPTION_ITEM_HEIGHT = 2.2; // .option-item: padding-top(0.5) + padding-bottom(0.5) + line-height (font-size 1.2 × uikit's default 1.0 line-height multiplier)
+const OPTION_ITEM_GAP    = 0.3; // .option-menu-inner's gap-row
+const OPTION_MENU_HEIGHT = 8;   // .option-menu's fixed height
+
 function truncate(s: string, max: number): string {
     // Three ASCII periods, not '…' (U+2026) — same missing-glyph risk flagged
     // throughout UikitLessonsLearned.md — uikit's pre-built Inter MSDF atlas
@@ -113,6 +126,11 @@ export class XRActiveScene {
     // Open/closed state for the Speed dropdown popover (see as-speed-menu in
     // ui/play.uikitml) — same idiom as XRSongLibrary.ts's sortOpen.
     private _speedMenuOpen = false;
+    // Previous-frame's _speedMenuOpen, so _wireSpeedDropdown can tell "just
+    // opened this render" apart from "already open, some unrelated control
+    // triggered a rerender" — only the former should recenter the scroll on
+    // the selected preset; the latter would fight the user's own scrolling.
+    private _speedMenuWasOpen = false;
 
     // Custom-scroll offset per option-menu popover (keyed by the menu's own
     // element id, so this generalizes to Difficulty's menu later without
@@ -300,21 +318,38 @@ export class XRActiveScene {
             },
         });
 
-        for (const preset of SPEED_PRESETS) {
-            const el = doc.getElementById(`as-speed-opt-${Math.round(preset * 100)}`);
-            if (!el) continue;
-            this._setOptionSelected(el, Math.abs(preset - songPlayer.playbackRate) < 0.001);
+        let selectedIndex = -1;
+        SPEED_PRESETS.forEach((preset, i) => {
+            const id = `as-speed-opt-${Math.round(preset * 100)}`;
+            const el = doc.getElementById(id);
+            if (!el) return;
+            const selected = Math.abs(preset - songPlayer.playbackRate) < 0.001;
+            if (selected) selectedIndex = i;
+            this._setOptionSelected(el, selected);
             el.setProperties({
                 onClick: () => {
-                    console.log(`[speed-menu] tap-selected ${Math.round(preset * 100)}% — confirms deferred capture doesn't break onClick`);
                     songPlayer.playbackRate = preset;
                     this._speedMenuOpen = false;
                     rerender();
                 },
             });
-        }
+        });
 
-        this._wireOptionMenuScroll(doc, 'as-speed-menu', 'as-speed-menu-inner');
+        // Only recenter on the freshly-opened transition — not on every
+        // rerender an already-open menu happens to receive from an
+        // unrelated control (e.g. Playpause), which would otherwise fight
+        // the user's own in-progress scrolling.
+        const justOpened = this._speedMenuOpen && !this._speedMenuWasOpen;
+        this._speedMenuWasOpen = this._speedMenuOpen;
+
+        let initialOffset: number | undefined;
+        if (justOpened && selectedIndex >= 0) {
+            const distanceFromTop = selectedIndex * (OPTION_ITEM_HEIGHT + OPTION_ITEM_GAP) + OPTION_ITEM_HEIGHT / 2;
+            const contentHeight = SPEED_PRESETS.length * OPTION_ITEM_HEIGHT + (SPEED_PRESETS.length - 1) * OPTION_ITEM_GAP;
+            const maxOffsetEstimate = Math.max(0, contentHeight - OPTION_MENU_HEIGHT);
+            initialOffset = Math.max(0, Math.min(distanceFromTop - OPTION_MENU_HEIGHT / 2, maxOffsetEstimate));
+        }
+        this._wireOptionMenuScroll(doc, 'as-speed-menu', 'as-speed-menu-inner', initialOffset);
     }
 
     // Custom drag-to-scroll for an option-menu popover, replacing @pmndrs/
@@ -341,7 +376,14 @@ export class XRActiveScene {
     // menu itself (not whatever button was under the initial press) also
     // means move/up keep arriving even if the ray/hand drifts outside this
     // small popover's bounds mid-drag.
-    private _wireOptionMenuScroll(doc: UIKitDocument, menuId: string, innerId: string): void {
+    // initialOffset: a pre-clamped scroll offset to open the menu at (e.g.
+    // centering the current selection) — only meaningful on the render that
+    // just opened the menu (see the justOpened check in _wireSpeedDropdown);
+    // pass undefined on every other rerender so an already-open menu keeps
+    // whatever offset the user has scrolled it to. Deliberately a plain
+    // number the caller computes, not an element id this method would have
+    // to measure itself — see the comment below on why.
+    private _wireOptionMenuScroll(doc: UIKitDocument, menuId: string, innerId: string, initialOffset?: number): void {
         const menu = doc.getElementById(menuId);
         const inner = doc.getElementById(innerId);
         if (!menu || !inner) return;
@@ -383,10 +425,47 @@ export class XRActiveScene {
             inner.setProperties({ positionTop: -clamped });
         };
 
-        // Re-apply on every (re)wire — content height can in principle
-        // change (a future filtered/variable-length menu), even though
-        // Speed's own 10 presets never do.
-        applyOffset(startOffset);
+        if (initialOffset != null) {
+            // Deliberately bypasses applyOffset's own maxOffset()-based
+            // clamp — confirmed in-headset that inner.size/menu.size read
+            // [0,0] at this exact synchronous point (Yoga hasn't laid out
+            // the newly-visible subtree yet, see the comment above
+            // OPTION_ITEM_HEIGHT), which would clamp any nonzero target
+            // straight back down to 0 here specifically, the same way it
+            // silently broke three earlier attempts at this (live retries
+            // included — the retries themselves ran fine, they just kept
+            // reading the same [0,0]). The caller already computed and
+            // clamped this analytically from known constants, so it's
+            // trustworthy without a live measurement.
+            this._optionMenuScrollOffsets.set(menuId, initialOffset);
+            inner.setProperties({ positionTop: -initialOffset });
+        } else {
+            // Re-apply on every (re)wire — content height can in principle
+            // change (a future filtered/variable-length menu), even though
+            // Speed's own 10 presets never do. This path (unlike the one
+            // above) is fine to run through the live-measured clamp — by
+            // the time an already-open menu rerenders for an unrelated
+            // reason, layout has long since settled.
+            applyOffset(startOffset);
+        }
+
+        // Disables every other interactive element in the panel while a
+        // real drag is in progress — confirmed in-headset that the ray
+        // cursor could otherwise still hover/click things behind or beside
+        // this popover mid-drag. pointerEvents is an inherited property
+        // (node_modules/@pmndrs/uikit/dist/properties/inheritance.js), so
+        // flipping it at the panel root cascades to everything — except
+        // .option-menu itself, which has its own explicit override in
+        // play.uikitml specifically so this doesn't also lock itself out.
+        // Only toggled once a real drag is confirmed, not from plain
+        // pressed — doing this eagerly on every pointerdown would risk
+        // interfering with a genuine tap's click (pointerEvents is
+        // re-checked live on each raycast, not just once at press time, so
+        // changing it mid-gesture before a tap's matching pointerup could
+        // in principle change what object that up event resolves to).
+        const setOtherInteractorsEnabled = (enabled: boolean): void => {
+            doc.rootElement.setProperties({ pointerEvents: enabled ? 'auto' : 'none' });
+        };
 
         menu.setProperties({
             onPointerDown: (e: WorldPointerEvent) => {
@@ -396,7 +475,6 @@ export class XRActiveScene {
                 dragging = false;
                 startLocalY = local.y;
                 startOffset = this._optionMenuScrollOffsets.get(menuId) ?? 0;
-                console.log('[speed-menu] pointerdown — pressed=true');
             },
             onPointerMove: (e: WorldPointerEvent) => {
                 if (!pressed || !e.point) return;
@@ -406,26 +484,26 @@ export class XRActiveScene {
                     if (Math.abs(deltaNorm) < DRAG_THRESHOLD) return;
                     dragging = true;
                     e.currentTarget?.setPointerCapture?.(e.pointerId);
-                    console.log(`[speed-menu] drag confirmed (deltaNorm=${deltaNorm.toFixed(3)}) — capturing on menu now`);
+                    setOtherInteractorsEnabled(false);
                 }
                 const menuSize = menu.size.peek();
                 const deltaUnits = deltaNorm * (menuSize?.[1] ?? 0);
-                // Best-guess sign — flip if scroll direction feels inverted
-                // once visible in-headset (same caveat as other geometry
-                // guesses in this file, e.g. the seek-thumb's position-top).
-                const target = startOffset - deltaUnits;
+                const target = startOffset + deltaUnits;
                 applyOffset(target);
-                console.log(`[speed-menu] scrolling: target=${target.toFixed(2)} applied=${(this._optionMenuScrollOffsets.get(menuId) ?? 0).toFixed(2)} max=${maxOffset().toFixed(2)}`);
             },
             onPointerUp: (e: WorldPointerEvent) => {
-                console.log(`[speed-menu] pointerup, wasDragging=${dragging}`);
-                if (dragging) e.currentTarget?.releasePointerCapture?.(e.pointerId);
+                if (dragging) {
+                    e.currentTarget?.releasePointerCapture?.(e.pointerId);
+                    setOtherInteractorsEnabled(true);
+                }
                 pressed = false;
                 dragging = false;
             },
             onPointerCancel: (e: WorldPointerEvent) => {
-                console.log(`[speed-menu] pointercancel, wasDragging=${dragging}`);
-                if (dragging) e.currentTarget?.releasePointerCapture?.(e.pointerId);
+                if (dragging) {
+                    e.currentTarget?.releasePointerCapture?.(e.pointerId);
+                    setOtherInteractorsEnabled(true);
+                }
                 pressed = false;
                 dragging = false;
             },

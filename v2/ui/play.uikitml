@@ -335,6 +335,21 @@
     padding-right: 1;
     padding-bottom: 0.7;
     padding-left: 1;
+    /* Explicit fixed width, not min-width — this label was still wrapping
+       at min-width:14 despite that comfortably exceeding "Speed: 200%"'s
+       measured length. Root cause (read node_modules/@pmndrs/uikit/dist/
+       text/layout/measure.js and normalize.js): wrapping here is driven
+       purely by wordBreak against available width — there's no property
+       that means "never wrap," and whiteSpace (tried first) only affects
+       whitespace collapsing, not wrapping at all, so it could never have
+       fixed this regardless of value. min-width on a hugging container
+       likely left Yoga's text-measurement pass working from an ambiguous
+       interim width before the constraint fully resolved — an explicit
+       width removes that ambiguity outright rather than just raising the
+       floor. Sized generously (this row has ~35 units of headroom) since
+       two undershoot guesses in a row is enough guessing; shrink once
+       visible in-headset if it reads too wide. */
+    width: 18;
     background-color: #333333;
     border-width: 0.1;
     border-color: #444444;
@@ -344,6 +359,10 @@
   .option-trigger:hover  { background-color: #444444; }
   .option-trigger:active { background-color: #515151; }
 
+  /* No whiteSpace override — despite the CSS-like naming, whiteSpace only
+     controls whitespace collapsing in this library (see the width comment
+     on .option-trigger), not line-wrapping; there's no property-level way
+     to suppress wrapping, only a wide-enough container. */
   .option-label {
     color: #c8c8c8;
     font-size: 1.2;
@@ -380,6 +399,15 @@
     position-top: 3.4;
     position-left: 0;
     z-index: 2;
+    /* Explicit own value, not inherited — XRActiveScene.ts's
+       _wireOptionMenuScroll temporarily sets the whole panel root's
+       pointer-events to 'none' while a real drag is in progress (see the
+       "disable other interactors" note in that function), so this menu
+       needs its own override to stay hittable through that; pointer-events
+       is an inherited property (node_modules/@pmndrs/uikit/dist/
+       properties/inheritance.js), and a descendant's own explicit value
+       always wins over whatever an ancestor resolves to. */
+    pointer-events: auto;
     /* z-index alone only controls uikit's painter's-algorithm draw order
        (transparency/blend sorting) — it doesn't move the mesh, so this
        popover was still geometrically coplanar with the .actions bar behind
