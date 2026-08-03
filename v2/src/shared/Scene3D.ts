@@ -83,12 +83,9 @@ export class Scene3D {
             this.textBatch  = new TextBatch(scene);
             scene.add(this.quadBatch.mesh);
         } else {
-            // No THREE.Scene in XR — IWSDK owns the scene graph. quadBatch.mesh is
-            // already mounted into it by the caller (xr/index.ts), and text sprites
-            // in the same local coordinate space, so parent the pool there instead.
-            // 2.5x size — desktop's text size assumes a screen viewed from a
-            // distance; the XR volume is small and viewed up close, so it needs
-            // a larger multiplier to stay legible.
+            // No THREE.Scene in XR — IWSDK owns the graph. quadBatch.mesh is already mounted
+            // by the caller (xr/index.ts), so parent text sprites there instead. 2.5x size
+            // since the XR volume is viewed up close, unlike desktop's screen-at-a-distance.
             this.threeScene = null;
             this.textBatch  = new TextBatch(this.quadBatch.mesh, 2.5);
         }

@@ -1,26 +1,10 @@
 import * as THREE from "three";
 
-// Conversion: Camera3D.cs (MonoGame/XNA) -> Camera3D.ts (Three.js)
-//
-// The original Camera3D is a data/math class that manually computes view and
-// projection matrices, which are then handed to a MonoGame BasicEffect as
-// shader uniforms. Three.js handles both matrices internally on its camera
-// objects and uploads them automatically during renderer.render(scene, camera),
-// so we don't need GetViewMatrix() or GetProjectionMatrix() as explicit methods.
-//
-// Coordinate system:
-//   XNA/MonoGame is LEFT-HANDED (Z points into the screen, i.e. positive Z = away from viewer).
-//   Three.js/WebGL is RIGHT-HANDED (Z points out of the screen, i.e. positive Z = toward viewer).
-//   FretCamera's initial Forward = (0, 0, -1) already matches the right-handed convention,
-//   which suggests the geometry was authored with this in mind. Assuming world-space coords
-//   are compatible as-is; verify if anything appears mirrored on the Z axis.
-//
-// Orthographic mode:
-//   IsOrthographic is never set to true anywhere in the codebase, so it is dead code.
-//   Porting as a stub — the camera is always perspective.
-//
-// GetDistanceForWidth:
-//   Pure trigonometry with no framework dependency; ported as-is.
+// Ported from Camera3D.cs. Three.js computes view/projection matrices internally (no
+// GetViewMatrix()/GetProjectionMatrix() needed). XNA is left-handed, Three.js right-handed —
+// FretCamera's Forward=(0,0,-1) already matches right-handed, so world coords are assumed
+// compatible as-is (verify if anything mirrors on Z). IsOrthographic is never set true in the
+// original — ported as a stub, always perspective.
 
 export class Camera3D {
   // In Three.js, camera state is stored on the THREE.PerspectiveCamera directly.
@@ -35,11 +19,9 @@ export class Camera3D {
   up: THREE.Vector3;
   right: THREE.Vector3;
 
-  // Lefty mode: mirrors the scene horizontally.
-  // XNA: view matrix post-multiplied by Matrix.CreateScale(-1, 1, 1).
-  // Three.js: camera.scale.x = -1 achieves the same visual result.
-  // Note: flipping camera scale inverts face winding, but the original code
-  // uses CullNone everywhere so this has no effect on rendering.
+  // Lefty mode: mirrors the scene horizontally via camera.scale.x = -1 (XNA used
+  // Matrix.CreateScale(-1,1,1)). Inverts face winding, but original code uses CullNone
+  // everywhere so it has no rendering effect.
   mirrorLeftRight: boolean = false;
 
   // Orthographic stub — not used in practice (IsOrthographic is always false).

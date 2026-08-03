@@ -198,12 +198,9 @@ class HighwaySystem extends createSystem({}) {
         // relies on this running unconditionally.
         (this.world.globals.updateActivePanel as (() => void) | undefined)?.();
 
-        // ── Hide hand-tracking visuals while actively playing ───────────────────
-        // Lets the player see the fretboard/keyboard without their own hand models
-        // in the way. Restored the instant a ray/hand hovers any panel — reusing
-        // IWSDK's own Hovered tag (already maintained by InputSystem for every
-        // RayInteractable entity as part of its existing ray-cursor hit-testing,
-        // so this is a handful of free component lookups, not a new raycast).
+        // Hide hand-tracking visuals while playing (player sees the fretboard without their
+        // own hand models in the way); restored the instant a ray/hand hovers any panel via
+        // IWSDK's Hovered tag — free component lookups, not a new raycast.
         const songPlayer          = this.world.globals.songPlayer          as SongPlayer | undefined;
         const settingsPanelEntity = this.world.globals.settingsPanelEntity as Entity     | undefined;
         const preScenePanelEntity = this.world.globals.preScenePanelEntity as Entity     | undefined;
@@ -466,27 +463,20 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         persistent: true,
     });
 
-    // ── Settings uikit panel (Phase B of the html2canvas → uikit migration) ─────
-    // Same slot every uikit panel below shares (child of grabBarEntity), each
-    // toggled visible while its own screen is showing — see
-    // showSettings()/showActiveScene() below. Created once, persistent; content
-    // is static (see ui/settings.uikitml) and wired/updated via setProperties()
-    // rather than recreated per-open.
+    // Settings uikit panel — shares the same grabBarEntity-child slot every panel below
+    // uses, toggled visible per-screen (see showSettings()/showActiveScene()). Created
+    // once, persistent; content is static, wired via setProperties().
     const settingsPanelObj = new Object3D();
     settingsPanelObj.position.set(0, 0.169, 0);
     settingsPanelObj.visible = false;
-    // pointer-events also starts at 'none' by default in ui/settings.uikitml
-    // itself — visible=false alone doesn't reliably stop uikit's own
-    // click/hover dispatch from hitting this panel while it's meant to be
-    // hidden (confirmed via testing), so interactivity is gated separately.
+    // visible=false alone doesn't stop uikit's own click/hover dispatch (confirmed via
+    // testing) — pointerEvents defaults to 'none' in ui/settings.uikitml as a second gate.
     const settingsPanelEntity = world.createTransformEntity(settingsPanelObj, {
         parent: grabBarEntity,
         persistent: true,
     });
-    // RayInteractable is NOT added here — it starts absent (panel starts
-    // hidden) and gets added/removed by setSettingsPanelInteractive() below,
-    // so the panel is fully excluded from IWSDK's rayDescendants list (the
-    // ray-cursor targets) while hidden, not just visually hidden.
+    // RayInteractable starts absent (panel starts hidden), added/removed by
+    // setSettingsPanelInteractive() below to fully exclude it from ray-cursor targets.
     settingsPanelEntity.addComponent(PanelUI, {
         config: '/ui/settings.json',
         maxWidth: 0.4,
@@ -495,13 +485,9 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     world.globals.settingsPanelObj    = settingsPanelObj;
     world.globals.settingsPanelEntity = settingsPanelEntity;
 
-    // Two separate gates, both needed (confirmed via testing — pointerEvents
-    // alone still let the ray cursor snap to/stop at the hidden panel):
-    // - RayInteractable add/remove: excludes the panel from IWSDK's
-    //   InputSystem raycast-target list entirely, so the ray cursor passes
-    //   through to whatever's actually behind it instead of stopping here.
-    // - pointerEvents: gates uikit's own internal click/hover dispatch,
-    //   independent of the above.
+    // Two gates, both needed (pointerEvents alone still lets the ray cursor snap to the
+    // hidden panel): RayInteractable add/remove excludes it from IWSDK's raycast targets;
+    // pointerEvents gates uikit's own click/hover dispatch, independently.
     function setSettingsPanelInteractive(enabled: boolean): void {
         if (enabled) {
             if (!settingsPanelEntity.hasComponent(RayInteractable)) {
@@ -587,21 +573,11 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     }
     setPlayPanelInteractive(false);
 
-    // ── Library uikit panel (fourth screen-by-screen migration step off
-    // html2canvas) ───────────────────────────────────────────────────────────
-    // Same slot/pattern as settingsPanelObj/preScenePanelObj/playPanelObj
-    // above, but a different physical size (1m x 0.525m, not the standard
-    // 0.4m x 0.3m the other panels use), since the 3-column song grid needs
-    // more room than the other screens.
-    //
-    // Y offset is NOT the same 0.169 the other panels use — those are
-    // centered on their own local origin at a height tuned so a 0.3m-tall
-    // panel's BOTTOM edge sits 0.019m above the grab bar (0.169 - 0.3/2).
-    // Keeping that same center
-    // offset for this taller 0.525m panel would push its bottom edge to
-    // 0.169 - 0.525/2 = -0.0935m — i.e. below the bar, overlapping it.
-    // Solved for the center offset that preserves the same 0.019m bottom-edge
-    // gap instead: 0.019 + 0.525/2 = 0.2815.
+    // Library uikit panel — same slot/pattern as settingsPanelObj/preScenePanelObj/playPanelObj,
+    // but sized 1m x 0.525m (not the standard 0.4m x 0.3m) for the 3-column song grid.
+    // Y offset is NOT the shared 0.169 — that's tuned so a 0.3m-tall panel's bottom edge sits
+    // 0.019m above the grab bar; reusing it here would push this taller panel's bottom edge
+    // below the bar. Solved for the same 0.019m gap instead: 0.019 + 0.525/2 = 0.2815.
     const libraryPanelObj = new Object3D();
     libraryPanelObj.position.set(0, 0.2815, 0);
     libraryPanelObj.visible = false;
@@ -633,19 +609,11 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     }
     setLibraryPanelInteractive(false);
 
-    // ── Calibration/fine-tune-reposition uikit panel (last screen-by-screen
-    // migration step off html2canvas) ────────────────────────────────────────
-    // Same slot/pattern as settingsPanelObj/preScenePanelObj/playPanelObj —
-    // standard 0.4m x 0.3m size, so the standard 0.169 center offset applies
-    // unchanged (no Library-style bottom-edge recompute needed).
-    //
-    // CalibrationSystem is a separately-registered ECS system (createSystem),
-    // not a plain class index.ts instantiates directly like
-    // XRSettingsScene/XRSongLibrary — so it can't receive this entity via a
-    // show() call argument. It reads calibrationPanelEntity and calls
-    // setCalibrationPanelInteractive via world.globals instead, same
-    // directional-callback convention already used for setGuitarHighwayScale
-    // (index.ts owns and exposes the function; other files call it).
+    // Calibration/fine-tune-reposition uikit panel — standard 0.4m x 0.3m size, standard
+    // 0.169 center offset (no Library-style recompute needed). CalibrationSystem is a
+    // separately-registered ECS system, not a plain class index.ts instantiates directly,
+    // so it reads calibrationPanelEntity / calls setCalibrationPanelInteractive via
+    // world.globals instead — same convention as setGuitarHighwayScale.
     const calibrationPanelObj = new Object3D();
     calibrationPanelObj.position.set(0, 0.169, 0);
     calibrationPanelObj.visible = false;

@@ -275,14 +275,9 @@ export class KeysPlayerScene3D extends ChartScene3D {
         this.pianoTexture?.dispose();
     }
 
-    // Maps MIDI note number to world X coordinate.
-    // One octave = 7 white keys = 56 world units (ScaleOffsets * 8).
-    // Fractional keys interpolate linearly (used for centering note trails).
-    //
-    // Uses absolute chromatic position (key % 12) so the layout is correct for
-    // any minKey — not just C notes. The original (key - minKey) % 12 only worked
-    // when minKey was itself a C (MIDI multiple of 12, e.g. 48). For 88-key mode
-    // minKey = 21 (A0), so every key after the first B was shifted by one position.
+    // Maps MIDI note number to world X (1 octave = 7 white keys = 56 units; fractional
+    // keys interpolate). Uses absolute chromatic position (key % 12), not (key - minKey) % 12
+    // — the latter only works when minKey is itself a C, which 88-key mode's minKey=21 (A0) isn't.
     private getKeyPosition(key: number): number {
         const intKey = Math.floor(key);
 

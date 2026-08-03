@@ -34,18 +34,14 @@ const CAL_STORAGE_KEY = 'xr-calibration';
 
 const PINCH_THRESHOLD_SQ = 0.020 * 0.020; // 20 mm
 
-// Guitar/Bass — no physical instrument to size-match against, so scale is a
-// settings-driven multiplier (Settings.guitarHighwayScale, see
-// applyGuitarHighwayScale) rather than derived from a two-point touch. Reuses
-// the piano's per-unit scale as the 1x reference so a full 24-fret neck
-// (getFretPosition(24) = 225 units) lands at a real-guitar-plausible ~0.65m.
+// Guitar/Bass has no physical instrument to size-match — scale is a settings-driven
+// multiplier instead, reusing the piano's per-unit scale as the 1x reference so a full
+// 24-fret neck lands at a real-guitar-plausible ~0.65m.
 const GUITAR_SCALE_BASE = PIANO_SCALE_88;
 
-// Fixed real-world gap between the guitar grab bar and the highway content
-// above it, at a 1x (GUITAR_SCALE_BASE) highway size. The panel's own
-// bar-to-content gap (panelMesh.position.y = 0.169) is measured to the panel's
-// center, and the panel is tall (0.3m) — its actual visible gap to the bar is
-// much smaller than 0.169. Eyeballed it to be an eighth.
+// Real-world gap between the guitar grab bar and highway content at 1x scale —
+// eyeballed as an eighth of the panel's center-offset (0.169), since the panel's
+// actual visible gap to the bar is much smaller than that center measurement.
 const GUITAR_BASE_OFFSET = 0.169 / 8;
 
 // FretPlayerScene3D.getStringHeight(0) — game units from the content node's
@@ -117,14 +113,9 @@ export class CalibrationSystem extends createSystem({}) {
             return true;
         };
 
-        // Guitar/Bass has no physical instrument to touch-calibrate against —
-        // placement is always the same camera-forward drop placeGuitarBar()
-        // already uses for first-time calibration. Per explicit request,
-        // Reposition-from-Play-HUD (both of these globals — recalibrate is the
-        // Play HUD action button, showCalibrationFineTune is also reached via
-        // PreScene's Reposition button — share identical guitar handling)
-        // reuses that same placement instantly and returns control right away
-        // instead of showing a confirm screen, so Play HUD never has to hide.
+        // Guitar/Bass has no instrument to touch-calibrate against, so Reposition (both
+        // recalibrate and showCalibrationFineTune below) just redoes placeGuitarBar()'s
+        // camera-forward drop instantly and returns — no confirm screen, Play HUD never hides.
         this.world.globals.recalibrate = (onComplete: () => void): void => {
             this.cancelCountdown();
             if (this.isGuitarActive()) {
@@ -134,12 +125,9 @@ export class CalibrationSystem extends createSystem({}) {
                 onComplete();
                 return;
             }
-            // Unlike showCalibrationFineTune below, this is only ever reached
-            // from Play HUD's Reposition button (see index.ts), and its
-            // `onComplete` is just XRActiveScene's own rerender() — not a
-            // full showActiveScene() call — so nothing else will ever turn
-            // playPanelObj back on after _showPanel() hides it. Restore it
-            // explicitly as part of completion here instead.
+            // Only reached from Play HUD's Reposition button, whose onComplete is just a
+            // rerender() (not a full showActiveScene()) — nothing else restores playPanelObj
+            // after _showPanel() hides it, so do it explicitly here.
             this._onComplete = () => {
                 const obj = this.world.globals.playPanelObj as THREE.Object3D | undefined;
                 if (obj) obj.visible = true;
@@ -371,13 +359,10 @@ export class CalibrationSystem extends createSystem({}) {
         return this.world.globals.guitarContentOffsetNode as THREE.Object3D | undefined;
     }
 
-    // Applies a highway-size multiplier (Settings.guitarHighwayScale) to both the
-    // content scale and the grab-bar vertical offset. The offset lives outside
-    // guitarScaleNode (so the bar itself doesn't scale), but the highway's own
-    // visible bottom edge lives inside the scaled subtree — growing the
-    // multiplier grows that scaled portion of the gap too. Compensate by
-    // shrinking the fixed portion so the total physical gap stays what it is
-    // at multiplier=1 (GUITAR_BASE_OFFSET).
+    // Applies a highway-size multiplier to content scale + grab-bar offset. The offset
+    // node sits outside the scaled subtree (bar doesn't scale) but the highway's visible
+    // bottom edge is inside it, so compensate the fixed offset to keep the total gap
+    // constant at GUITAR_BASE_OFFSET regardless of multiplier.
     private applyGuitarHighwayScale(multiplier: number): void {
         const scaleNode  = this.guitarScaleNode();
         const offsetNode = this.guitarContentOffsetNode();
@@ -617,30 +602,18 @@ export class CalibrationSystem extends createSystem({}) {
 
     // ── uikit panel plumbing ─────────────────────────────────────────────────
 
-    // recalibrate()/showCalibrationFineTune() are both reachable while a
-    // resumeWithCountdown() countdown is pending (Play HUD's Reposition
-    // button doesn't wait for one to finish) — without this, the countdown's
-    // still-pending setTimeout would fire mid-calibration and yank the user
-    // back into Play HUD out from under whatever they're doing here. Exposed
-    // via world.globals since index.ts's own countdownGen/cancelCountdown
-    // closure isn't reachable from this separately-registered ECS system.
+    // recalibrate()/showCalibrationFineTune() are reachable mid-countdown (Play HUD's
+    // Reposition doesn't wait for one to finish) — without cancelling, the pending
+    // setTimeout would yank the user back to Play HUD mid-calibration. Exposed via
+    // world.globals since index.ts's countdown closure isn't otherwise reachable here.
     private cancelCountdown(): void {
         (this.world.globals.cancelCountdown as (() => void) | undefined)?.();
     }
 
-    // Every uikit panel (settings/preScene/play/library/calibration) is a
-    // separate entity parented at the exact same grabBarEntity-relative slot
-    // — only one is ever meant to be visible at a time, and every other
-    // show-path (showLibrary/showPreScene/showActiveScene/showSettings in
-    // index.ts) explicitly hides its siblings before showing itself. This is
-    // calibration's equivalent, kept here (not in index.ts) specifically
-    // because only CalibrationSystem knows whether a panel is actually about
-    // to be shown — only Keys' paths (updatePanel()/showFineTunePanel()) ever
-    // call this. Guitar is always instant/no-panel now (both first-time and
-    // Reposition-from-Play-HUD — see startGuitarCalibration()/recalibrate()/
-    // showCalibrationFineTune() above), so it must never reach this, or
-    // whichever panel was showing before would be hidden with nothing to
-    // restore it.
+    // All uikit panels share the same grabBarEntity slot; only one is ever visible, and
+    // every show-path elsewhere hides its siblings first (see UikitLessonsLearned.md).
+    // This is calibration's equivalent, kept here since only CalibrationSystem knows a
+    // panel is about to show — only Keys' paths call this; Guitar is always instant/no-panel.
     private _showPanel(): void {
         const g = this.world.globals;
         const hide = (obj: unknown): void => {
@@ -656,12 +629,9 @@ export class CalibrationSystem extends createSystem({}) {
         (g.setCalibrationPanelInteractive as ((e: boolean) => void) | undefined)?.(true);
     }
 
-    // Polls calibrationPanelEntity's PanelDocument until it's ready, caching it
-    // once found — same pattern as XRSettingsScene.ts/XRSongLibrary.ts. Sets
-    // pointerEvents:'auto' the moment the doc is confirmed real, rather than
-    // relying on an external eager caller's timing assumption: that's the exact
-    // race that left Library's panel permanently non-interactive on first show
-    // (see UikitLessonsLearned.md) — applied proactively here from the start.
+    // Polls until the PanelDocument is ready, caching it — same pattern as
+    // XRSettingsScene.ts/XRSongLibrary.ts. Sets pointerEvents:'auto' the moment doc is
+    // confirmed real, applied proactively to avoid the race documented in UikitLessonsLearned.md.
     private _withDoc(cb: (doc: UIKitDocument) => void): void {
         if (this._doc) { cb(this._doc); return; }
         const entity = this.world.globals.calibrationPanelEntity as Entity | undefined;

@@ -8,26 +8,13 @@ Phase 7 and `ImplementationPlan.md` for the migration itself). Split out from th
 
 ## `.uikitml` has no CSS shorthand — and using it fails silently, far from the error
 
-**Symptom:** `PanelUI` panel renders as completely blank. Console shows
-`[PanelUISystem] Error loading panel for entity N: <something>` — but by default the `<something>`
-is unhelpful (see the console-formatting gotcha below).
+`@pmndrs/uikit`'s schema has no combined `padding`/`margin`/`gap`, only the directional forms
+(`padding-top`, `gap-row`, etc). The compiler doesn't validate this — `padding: 1 1 0 1;` compiles
+straight through and only fails later at runtime, deep inside `interpret()`, far from the source line.
 
-**Root cause:** `@pmndrs/uikit`'s property schema is a **strict** Zod object — there is no
-combined `padding`, `margin`, or `gap` property, only the fully-expanded directional ones:
-`padding-top`/`padding-right`/`padding-bottom`/`padding-left`, `gap-row`/`gap-column`. The
-`.uikitml` **compiler** doesn't validate this — it happily compiles `padding: 1 1 0 1;` into
-`"padding": "1 1 0 1"` in the JSON with no error. The failure only happens later, at **runtime**,
-when `@pmndrs/uikitml`'s `interpret()` tries to apply that property and the schema rejects it —
-by which point the error is several layers removed from the actual bad line in the source file.
-
-**Fix:** Never use shorthand. Always write out all four `padding-*` / two `gap-*` properties
-individually, even for values that would be a single-value shorthand in real CSS. A single-value
-form like `padding: 2;` (all sides equal) *is* fine — the interpreter accepts it as-is for each
-individual directional property; the "1 1 0 1" 2/4-value shorthand syntax is what's unsupported.
-
-**How to avoid next time:** Before shipping a new `.uikitml` file, grep the compiled
-`public/ui/*.json` output for `"padding":`/`"margin":`/`"gap":` (bare, no `Top`/`Row`/etc. suffix)
-— if any of those keys exist, something used shorthand and will fail at runtime.
+**Fix:** always write out directional properties individually, never shorthand (single-value included
+— see the later correction entry). Before shipping, grep compiled `public/ui/*.json` for bare
+`"padding":`/`"margin":`/`"gap":` keys.
 
 ---
 
@@ -97,31 +84,12 @@ in-memory entity already has a loaded `PanelDocument`.
 
 ## Hiding a `PanelUI` panel needs two separate gates, not just `visible = false`
 
-**Symptom:** Set `panelObj.visible = false` on a `PanelUI` entity that should be hidden/inert.
-Its content is invisible, but: (a) clicking where it used to be still triggers its buttons, and/or
-(b) the ray cursor still visually stops/snaps at its (invisible) surface instead of passing
-through to whatever's actually behind it.
+`Object3D.visible = false` hides rendering only — clicks still land and the ray cursor still snaps
+to it. Two independent systems don't consult `visible`: uikit's own click dispatch (governed by
+`pointerEvents`) and IWSDK's ray-cursor targeting (driven by the `RayInteractable` component).
 
-**Root cause:** There are **two independent systems** that don't consult `Object3D.visible` the
-way you'd expect:
-1. **`@pmndrs/uikit`'s own click/hover dispatch** — governed by the `pointerEvents` property
-   (`'auto' | 'none' | 'listener'`, same semantics as CSS `pointer-events`), not by whether the
-   Object3D subtree is visible.
-2. **IWSDK's `InputSystem` ray-cursor targeting** — driven by which entities currently have the
-   `RayInteractable` **component**, collected into `rayDescendants` once when the component set
-   changes (on `addComponent`/`removeComponent`, not on visibility changes). An entity keeps its
-   `RayInteractable` tag — and stays a ray-cursor target — regardless of `visible`.
-
-**Fix:** To fully disable an inert-but-still-mounted `PanelUI` entity:
-```ts
-entity.removeComponent(RayInteractable);        // drop out of IWSDK's ray-cursor targets
-doc.rootElement.setProperties({ pointerEvents: 'none' }); // block uikit's own click dispatch
-```
-and the reverse (`addComponent(RayInteractable)` + `pointerEvents: 'auto'`) to re-enable. Do
-this *in addition to* toggling `visible` for the actual rendering — `visible` alone is necessary
-but not sufficient for either gate. (An earlier, cruder workaround — physically moving the panel
-1000 units away — also worked, since it removes the spatial overlap entirely, but the two-gate
-approach above is the correct fix and doesn't require fighting with a position hack.)
+**Fix:** also do `entity.removeComponent(RayInteractable)` + `doc.rootElement.setProperties({
+pointerEvents: 'none' })` (and the reverse to re-enable) alongside toggling `visible`.
 
 ---
 
@@ -159,113 +127,48 @@ text weight.
 
 ## A burst of brand-new text on one element can corrupt an unrelated element's layout elsewhere in the same document
 
-**Symptom:** A completely unrelated, unchanged element (a header/back-button, in a different
-subtree from the content that changed) started rendering at the wrong size — stretched to ~full
-panel width, wrong height — but *only* when a specific, larger/more-text-heavy section of the
-document was the one currently visible (toggled via `display`). Confirmed via `element.size.value`
-(see below) that the back-button's own CSS/markup never changed; the same static element measured
-`[5.5, 2.5]` normally and `[39, 1.6]` when the bug triggered. A related, milder symptom hit at the
-same time: `overflow: scroll`'s scroll range (`element.maxScrollPosition.value`) was also
-measuring wrong — scroll worked briefly then stopped, and the scrollbar itself wasn't draggable.
+An unrelated, unchanged element (different subtree) rendered at the wrong size — only when a
+larger/text-heavy section elsewhere in the doc became visible. Confirmed via `element.size.value`
+(a public signal, see `component.js`) that a static element's own measured size changed
+(`[5.5, 2.5]` → `[39, 1.6]`) with no CSS/markup change of its own.
 
-**Root cause (best working theory, not confirmed against library source beyond behavior):**
-`inter` glyphs are lazy-loaded per-character, asynchronously, the first time any given character
-is rendered anywhere in the document (`@pmndrs/msdfonts`). Adding a chunk of static filler content
-with several brand-new, never-before-rendered strings (unique digits/words not used elsewhere in
-the doc) to test scrolling caused a burst of many concurrent async glyph-load-triggered remeasure
-passes. Yoga's native layout engine doesn't appear to be safe against overlapping/reentrant
-`calculateLayout()` calls — a large enough burst of simultaneous remeasures from one subtree can
-scribble a wrong computed size into a completely unrelated node elsewhere in the same document.
-Both symptoms (header stretch, scroll-range corruption) disappeared immediately and completely
-once the filler content (the burst source) was removed — no CSS change was needed or made.
+**Best working theory:** `inter` glyphs lazy-load per-character on first render (`@pmndrs/msdfonts`).
+A burst of many never-before-rendered characters triggers concurrent async remeasures; Yoga's
+`calculateLayout()` isn't safe against this overlap and can scribble a wrong size into an unrelated
+node. Confirmed by removing the filler text — both this and a related scroll-range corruption
+disappeared immediately.
 
-**How to diagnose this class of bug:** there's no thrown exception or console error — Yoga just
-silently produces wrong numbers. Add temporary instrumentation instead: give the suspect elements
-an `id`, then read `element.size.value` (and `element.scrollable.value` /
-`element.maxScrollPosition.value` for scroll containers) directly — these are public signals on
-every `Component` (`node_modules/@pmndrs/uikit/dist/components/component.js`). Log them a few
-hundred ms after the render/state change that supposedly triggers the bug (layout settles
-asynchronously, so logging synchronously in the same tick shows stale/undefined values), and
-compare the numbers between a "working" and "broken" state to confirm it's a real miscomputation
-rather than a CSS issue.
-
-**How to avoid next time:** be wary of adding a large amount of brand-new, never-before-rendered
-text to a document all at once (a big static content dump, or — more relevant going forward — the
-Library screen's unbounded, server-driven song list, where every new song title is new text the
-first time it scrolls into view). If a future screen hits unexplained layout corruption in an
-unrelated element that correlates with "how much new text just appeared," this is the first thing
-to suspect — consider whether the new content can be introduced incrementally (e.g. paginated/
-virtualized row creation) rather than all at once, to spread out the glyph-load burst.
-
-**Repro is flaky across reloads — don't trust a single "seems fixed" report.** Because the trigger
-is specifically *never-before-rendered* glyphs, whether a given reload reproduces the bug depends
-on whatever's already sitting in the glyph/font-atlas cache from earlier in the browser session —
-a fresh cold start reliably repros it, but a reload soon after (with the same characters already
-cached from the previous load) can look fine even with the buggy content still present. This
-session burned several round-trips on unrelated CSS edits (padding values, a classList warning
-fix) that appeared to "fix" or "reintroduce" the bug purely by coincidental timing with cache
-state, before the real cause (the filler text itself) was isolated. If a fix for this class of bug
-needs confirming, retest with a genuinely cold browser start, and ideally more than once.
+**How to avoid:** don't dump a large amount of brand-new text into a doc all at once (watch for this
+with Library's unbounded song list). **Diagnosing:** no thrown error — log `element.size.value` a few
+hundred ms after the change (layout settles async) and compare working vs. broken. **Repro is flaky
+across reloads** — the glyph/font-atlas cache from earlier in the session can mask it; confirm fixes
+with a genuinely cold browser start, more than once.
 
 ---
 
 ## `overflow: scroll` alone isn't enough — children need `flex-shrink: 0`, and the scrollbar needs explicit width/color
 
-**Symptom 1:** Setting `overflow: scroll` on a fixed-height container with more content than fits
-doesn't produce a scrollable overflow — instead all the content visibly compresses/squishes to fit
-within the container's bounds, as if `overflow` had no effect at all.
+**Symptom 1:** `overflow: scroll` on a fixed-height container with overflowing content compresses
+the content to fit instead of scrolling. **Root cause:** unlike real CSS, this Yoga port doesn't
+reset a scroll child's min-size to 0 — Yoga's normal `flex-shrink: 1` still compresses children
+before `overflow` gets a chance to matter (`flex/node.js`'s `updateMeasurements()`). **Fix:** give
+the scroll container's direct children `flex-shrink: 0`.
 
-**Root cause:** Real CSS engines special-case this: a flex item's automatic minimum size resets to
-0 once its own `overflow` isn't `visible`, which is what lets *it* overflow its parent instead of
-being forced to shrink. This Yoga port doesn't extend that special-casing down to the *children*
-of the scroll container — `node_modules/@pmndrs/uikit/dist/flex/node.js`'s `updateMeasurements()`
-only uses `overflow` to compute the scrollbar's range (`maxScrollPosition`) after the fact; it
-doesn't stop Yoga's normal flex-shrink pass (default `flex-shrink: 1`, same initial value as real
-CSS) from compressing children to fit *first*.
-
-**Fix:** Give the scroll container's direct child(ren) `flex-shrink: 0` explicitly. That's what
-lets them keep their natural size and overflow the container, which is what `.body`'s
-`overflow: scroll` then has something to actually scroll through.
-
-**Symptom 2:** The first time a container's content actually overflows and a scrollbar appears, it
-renders as a large, pale/white bar taking up a big chunk of the panel — much wider than a normal
-scrollbar should be.
-
-**Root cause:** `@pmndrs/uikit`'s default `scrollbarWidth` is `10`
-(`node_modules/@pmndrs/uikit/dist/properties/defaults.js`) — in the *same raw unit scale* as
-everything else you author in `.uikitml` (i.e. `10` = 10cm if you're using a 1-unit-=-1cm scale),
-not a sensible small pixel default. There's also no default `scrollbarColor` at all.
-
-**Fix:** Always set both explicitly on any element with `overflow: scroll`:
-```css
-scrollbar-width: 0.3;       /* tune to taste — default 10 is roughly 30x too wide at 1cm scale */
-scrollbar-color: #4a4a4a;
-```
+**Symptom 2:** First scrollbar appearance renders as a large pale bar. **Root cause:** default
+`scrollbarWidth` is `10` — same raw unit scale as everything else (`properties/defaults.js`), not a
+sane pixel default, and there's no default `scrollbarColor`. **Fix:** always set both explicitly,
+e.g. `scrollbar-width: 0.3; scrollbar-color: #4a4a4a;`.
 
 ---
 
 ## `classList.remove()` warns (loudly, every render) if the class isn't currently present
 
-**Symptom:** Console spam on every re-render: `Class 'toggle-active' not found in the classList` /
-`Class 'toggle-inactive' not found in the classList`, for classes that obviously *do* exist and
-are used correctly elsewhere. Purely cosmetic — doesn't break anything — but it's noisy enough to
-obscure real errors when debugging something else at the same time.
+Unconditional `classList.remove('state-a', 'state-b')` before adding the active one (a normal DOM
+pattern, silent no-op there) makes `@pmndrs/uikit`'s `ClassList.remove()` (`components/classes.js`)
+`console.warn` every time, since it's not a no-op here — noisy but cosmetic.
 
-**Root cause:** A common toggle-button re-render pattern is to unconditionally call
-`classList.remove('state-a', 'state-b')` before adding whichever one currently applies — cheap and
-simple in real DOM (`classList.remove` on an absent class is a silent no-op there). In
-`@pmndrs/uikit`, `ClassList.remove()` (`node_modules/@pmndrs/uikit/dist/components/classes.js`)
-explicitly `console.warn`s if the class isn't in the element's current list, since each element
-only ever has *one* of the two states at a time — the absent one triggers a warning every time.
-
-**Fix:** Guard with `classList.contains()` before calling `remove()`/`add()`:
-```ts
-if (el.classList.contains(removeClass)) el.classList.remove(removeClass);
-if (!el.classList.contains(addClass))   el.classList.add(addClass);
-```
-See `_setActiveClass()`/`_setSwatch()` in `src/xr/XRSettingsScene.ts` for the working pattern —
-reuse it for any future toggle/selected-state UI (Library's filter chips, Song's difficulty
-selector, etc.) rather than porting the naive unconditional-remove pattern from HTML/CSS code.
+**Fix:** guard with `classList.contains()` before `remove()`/`add()`. See `_setActiveClass()`/
+`_setSwatch()` in `XRSettingsScene.ts` for the working pattern.
 
 ---
 
@@ -310,34 +213,20 @@ for icon buttons/thumbs/dots — the only things that tend to need a true circle
 
 ## Per-frame update hooks can end up silently dead when a screen migrates off html2canvas
 
-**Symptom:** A callback registered to run every frame (e.g. live seek-bar position, elapsed time)
-never fires at all for a uikit-migrated screen — not "wrong values," genuinely never called, with
-no error anywhere.
+A per-frame callback (e.g. live seek position) never fired for a migrated screen, no error anywhere.
+Cause: `world.globals.updateActivePanel` was originally called from inside
+`HighwaySystem.update()`'s html2canvas throttle block, gated on `panelMesh?.visible` — incidental
+coupling, not intentional. Once a screen moves to `PanelUI`, `panelMesh` stays permanently hidden,
+so the hook silently never fires.
 
-**Root cause:** in this project specifically, the per-frame update hook
-(`world.globals.updateActivePanel`, set via `registerPanelUpdate()`) was originally called from
-inside `HighwaySystem.update()`'s html2canvas capture-throttle block, itself gated on
-`panelMesh?.visible`. That gating made sense back when the call only ever served the html2canvas
-Play HUD — but it was **incidental coupling**, not an intentional design decision that the update
-hook should depend on html2canvas. Once the screen migrates to a `PanelUI` entity, `panelMesh` is
-permanently hidden while that screen shows, so the hook silently never fires.
+**Confirmed a sharper version of the same mistake:** an idle-timeout feature gated on
+`panelMesh?.visible && inHighwayScene` went dead entirely — those two conditions became mutually
+exclusive across screens (never both true for any screen), not just wrong for one.
 
-**How to avoid next time:** when migrating any screen off html2canvas, grep for every place that
-reads `panelMesh`/`uiPanel`/`xrButtons` in the shared per-frame update code (`HighwaySystem.update()`
-in `src/xr/index.ts`) and check whether anything *else* important — not just the html2canvas
-render itself — is nested inside that gating. Anything genuinely screen-agnostic (this update hook,
-potentially others added later) needs to be pulled out to run unconditionally, not just the obvious
-html2canvas capture call.
-
-**Confirmed a second time, with a sharper version of the same mistake:** an idle-timeout feature
-(dim the panel + hide hand-tracking visuals after 3s of no panel interaction, gated on
-`panelMesh?.visible && inHighwayScene`) went completely dead once Song/Play also migrated off
-html2canvas — but not just "sometimes wrong": `panelMesh?.visible` (only true during Library) and
-`inHighwayScene` (always false during Library, since `disposeHighway()` runs before `showLibrary()`)
-became **mutually exclusive**, so the condition could never be true again, for any screen, at all.
-The specific thing worth checking for next time: after a migration, look for any condition
-combining "is the old html2canvas panel visible" with something else that's *only ever true on a
-different screen* — that combination isn't just fragile, it can silently become impossible outright.
+**How to avoid next time:** when migrating a screen off html2canvas, grep `HighwaySystem.update()`
+for every `panelMesh`/`uiPanel`/`xrButtons` read and check whether anything screen-agnostic is
+nested inside that gating — pull it out to run unconditionally. Watch especially for a condition
+combining "is the old panel visible" with something only ever true on a *different* screen.
 
 ---
 
@@ -357,93 +246,43 @@ for or duplicate raycasting that IWSDK's own input pipeline already does every f
 
 ## Pointer-drag math: neither `.uv` nor `.localPoint` on the event can be trusted blindly — always `stableElement.worldToLocal(event.point)`
 
-**Symptom (two-stage bug, same underlying cause):** a seek-bar drag interaction (1) didn't track
-the interactor's position at all when read via `event.uv.x`, then (2) after switching to
-`event.localPoint.x`, moved but not smoothly/consistently with the interactor's actual movement.
+`event.uv` didn't track drag position reliably (unconfirmed why). `event.localPoint` is relative to
+`intersection.object` — whichever sub-element was actually hit first — so its reference frame
+silently shifts depending on exactly what the drag grabbed (fill bar vs. thumb vs. tick mark).
+uikit's own scrollbar code (`scroll.js`'s `setupScrollHandlers`) avoids this the same way we should:
+capture the stable container once and always use `container.worldToLocal(event.point.clone())`.
 
-**Root cause, stage 1 (`.uv`):** unclear/unconfirmed — possibly related to how uikit's instanced
-panel rendering interacts with `@pmndrs/pointer-events`' generic ray-plane UV recomputation during
-pointer capture continuation (`intersectPointerCapture` in
-`node_modules/@pmndrs/pointer-events/dist/intersections/ray.js` re-derives `.uv` via a
-`getClosestUV()` call against the intersected mesh's raw geometry, which may not account for
-per-instance transforms correctly). Not fully root-caused — moving off `.uv` entirely turned out
-to be the right call regardless.
-
-**Root cause, stage 2 (`.localPoint`):** confirmed. `event.localPoint` is computed relative to
-`intersection.object` — whichever sub-element the ray/hand *actually hit first*. A seek track has
-several children at different positions within it (the fill bar, the thumb, section-tick marks),
-so depending on exactly what the interactor lands on, `.localPoint`'s reference frame silently
-shifts between them. `@pmndrs/uikit`'s own scrollbar-drag code
-(`node_modules/@pmndrs/uikit/dist/scroll.js`'s `setupScrollHandlers`) never uses the event's own
-`.localPoint` for this exact reason — it explicitly calls `container.worldToLocal(event.point.clone())`
-against the *known, stable* container element every time.
-
-**Fix:** capture a reference to the stable element once (e.g. the track itself, not whatever the
-event says it hit) and always call `.worldToLocal(event.point.clone())` on *that* reference:
 ```ts
 const track = doc.getElementById('as-seek-track');
 const pointerFraction = (e) => {
     if (!e.point) return null;
     const local = track.worldToLocal(e.point.clone());
-    return Math.max(0, Math.min(local.x + 0.5, 1)); // see below for the +0.5
+    return Math.max(0, Math.min(local.x + 0.5, 1)); // local space is centered: x=0 center, ±0.5 edges
 };
 ```
-`event.point` (world-space) is unambiguous regardless of what was actually hit — it's only the
-*local* conversion that needs to be pinned to a specific, known element rather than trusted from
-the event.
 
-**Also confirmed along the way — uikit's local coordinate space is normalized and centered:** a
-local x of `0` is the element's own center, `±0.5` its edges (not raw absolute units, and not a
-`0..1` range with a corner origin). Confirmed via `scroll.js`'s `getIntersectedScrollbarIndex`,
-which does `point.x *= size[0]` to convert this same local coordinate into absolute units, and
-`computeScrollbarTransformation`'s use of `size[i] * 0.5` as the edge boundary. So `localX + 0.5`
-is the 0-1 fraction across an element's width — no division by size needed for that specific case.
+**Coordinate convention:** local space is normalized and centered — `0` is the element's own
+center, `±0.5` its edges (confirmed via `scroll.js`'s `getIntersectedScrollbarIndex`/
+`computeScrollbarTransformation`), so `localX + 0.5` is the 0-1 fraction across an element's width.
 
 ---
 
 ## `setPointerCapture`/`releasePointerCapture` work for XR ray/hand drag — confirmed pattern for "grab and drag past the element's bounds"
 
-**Finding:** `@pmndrs/pointer-events` implements real pointer capture, same semantics as the
-browser Pointer Events API (`node_modules/@pmndrs/pointer-events/dist/pointer.d.ts`). Calling
-`event.currentTarget.setPointerCapture(event.pointerId)` on pointer-down makes `onPointerMove`/
-`onPointerUp` keep firing on that same element even once the ray/hand moves outside its actual
-bounds — without it, drag input only arrives while directly hovering the element, which feels
-broken for anything wider than a few cm (a seek bar, a slider). Confirmed working with both
-controller ray and hand-tracking pinch. Release the capture on pointer-up
-(`releasePointerCapture`). This is the standard "basic XR drag interaction" building block —
-there's no separate slider/scrubber component in this project's dependencies (checked both
-`@iwsdk/*` and `@pmndrs/*` in `node_modules`, nothing named Slider/Scrub/Range), so this
-capture + `worldToLocal` combination *is* the primitive to build one from.
+`@pmndrs/pointer-events` implements real pointer capture (browser-standard semantics). Calling
+`event.currentTarget.setPointerCapture(event.pointerId)` on pointer-down keeps `onPointerMove`/
+`onPointerUp` firing even once the ray/hand leaves the element's bounds — without it, drag only
+works while directly hovering, which feels broken for anything wider than a few cm. Confirmed with
+both ray and hand-pinch. No built-in slider/scrubber component exists in `@iwsdk/*`/`@pmndrs/*` —
+this capture + `worldToLocal` combo is the primitive to build one from.
 
-**Related pattern, worth reusing for any future grab-and-drag UI:** capture a *grab offset* on
-pointer-down (the difference between where you actually grabbed and the thing's current position),
-apply that offset throughout the drag so the element keeps its position *relative to your grab
-point* rather than snapping its center to the exact cursor position, and only commit the final
-value on pointer-up (previewing the intermediate value visually without touching the underlying
-state until release). See `_wireSeekDrag()`/`_applyProgress()`/`_scrubFraction` in
-`src/xr/XRActiveScene.ts`.
-
-**Two more UX refinements worth building in from the start for any scrubber, not just bolting on
-after the fact:**
-
-1. **Distinguish a quick tap from an actual drag by elapsed time, not just presence/absence of
-   movement.** A pointer-down immediately followed by pointer-up (no real hold — under ~200ms is a
-   reasonable threshold) reads as "tap to seek here," and should jump straight to the tapped
-   position. Left to the plain grab-offset logic above, a quick tap instead computes an offset
-   from wherever the playhead *already was* and, since nothing moved, commits that same
-   pre-existing position back — a silent no-op that looks like the tap didn't register at all.
-   Track a `pointerDownTime`, and on pointer-up branch on `Date.now()/performance.now() -
-   pointerDownTime < threshold`: quick tap → use the raw current pointer position as the target;
-   real drag → use the accumulated offset-adjusted `_scrubFraction` as before.
-2. **Actually move the underlying value during the drag, not just its visual preview.** The
-   grab-offset pattern above intentionally defers committing to the real state until pointer-up —
-   but for something like a seek bar, only updating the on-screen fill/thumb/time while dragging
-   (leaving the actual paused playhead frozen at the pre-drag position until release) means the
-   user gets no feedback about *where they're about to land* until they let go. Call the real
-   `seekTo()`-equivalent on every `onPointerMove` too, in addition to the visual preview — the
-   paused player (and anything else synced to its position, e.g. a 3D highway view) then scrubs
-   live with the drag, which is what lets the user actually *see/hear* where release will land
-   instead of guessing from the bar's position alone.
+**Reusable pattern** (`_wireSeekDrag()`/`_applyProgress()` in `XRActiveScene.ts`): capture a *grab
+offset* on pointer-down so the element tracks relative to where you grabbed, not the raw cursor;
+commit on pointer-up. Two refinements worth building in from the start for any scrubber: (1) a
+quick pointer-down→up under ~200ms should jump straight to the tapped position (the plain
+offset logic otherwise computes a no-op offset from the pre-existing value); (2) call the real
+seek/update on every `onPointerMove`, not just a visual preview, so the user sees where release
+will land instead of guessing from the bar alone.
 
 ---
 
@@ -487,41 +326,16 @@ naturally, test it deliberately before shipping rather than assuming it's covere
 
 ## No system/OS text-entry keyboard is reachable from this app — Library's search box needs a custom on-screen keyboard (FOLLOW-UP, not yet built)
 
-**Finding:** Library's current search field (`src/xr/XRSongLibrary.ts`) works around the lack of
-any real text-input primitive by appending a real, invisible `<input>` to `document.body` and
-calling `.focus()` on it to trigger Quest's IME — this reportedly crashes the immersive session.
-Investigated whether a proper fix exists:
+Library's search field works around the lack of a text-input primitive with an invisible
+`<input>.focus()` to trigger Quest's IME — this reportedly crashes the immersive session. No
+keyboard component exists in `@pmndrs/*`/`@iwsdk/*`. The spec-sanctioned fix (WebXR `dom-overlay`)
+isn't reachable either: `@iwsdk/core`'s `XROptions.features` is a closed set of 9 named flags
+(`xr.d.ts`) with no `dom-overlay`/`domOverlay` support anywhere, and wiring it in would mean
+patching `node_modules` or hand-rolling session bootstrap outside the sanctioned API — not attempted.
 
-- Neither `@pmndrs/*` (uikit, pointer-events, uikitml) nor `@iwsdk/*` exports anything
-  keyboard-related — grepped both fully, zero matches. No native virtual/system-keyboard component
-  exists to reach for.
-- The WebXR-spec-sanctioned way to get a real OS text input inside an active session is the
-  `dom-overlay` feature. This app already runs `SessionMode.ImmersiveAR` with passthrough
-  (`src/xr/index.ts` `World.create()` call — confirmed directly, corrected an earlier wrong
-  assumption that it was `immersive-vr`), which is the session mode `dom-overlay` actually needs —
-  so session mode isn't the blocker.
-- The real blocker: `@iwsdk/core`'s `XROptions.features` (`node_modules/@iwsdk/core/dist/init/
-  xr.d.ts`) is a closed, structured set of exactly 9 named feature flags (handTracking, anchors,
-  hitTest, planeDetection, meshDetection, lightEstimation, depthSensing, layers, unbounded) — the
-  doc comment explicitly says this "avoids raw string arrays." `dom-overlay` isn't one of the 9,
-  `buildSessionInit()` only ever pushes tokens from that hardcoded map, and there's no field
-  anywhere for the `domOverlay: { root: element }` init object the feature actually requires. A
-  full grep of `@iwsdk` for "dom-overlay"/"domOverlay" is empty — it's simply not wired up.
-- Getting `dom-overlay` working would require either patching `buildSessionInit` inside
-  `node_modules` (wiped on every reinstall/update) or bypassing `launchXR()` entirely and hand-
-  rolling `navigator.xr.requestSession()` + `world.renderer.xr.setSession()`, duplicating IWSDK's
-  own session-bootstrap logic (reference-space resolution, session-end handling, its "always offer"
-  button flow) outside the sanctioned API. Both are more fragile than they sound, and neither was
-  attempted — whether `dom-overlay` would even fix the crash (vs. just changing its shape) was
-  never confirmed either.
-
-**How to apply:** treat "no system keyboard" as a hard platform constraint, not a bug to keep
-chasing. **Follow-up task, deferred until the Library screen's uikit migration**: build a fully
-custom on-screen keyboard out of uikit buttons (same `<button class="...">` + `onClick` pattern
-already used everywhere else — toggle/stepper/swatch buttons in `settings.uikitml`), wired to
-append/delete characters from the search string in TS. This is also what every other production VR
-app does for the same reason (Quest's own home search, Horizon Worlds, etc.) — there's no shortcut
-around it on this platform.
+**How to apply:** treat this as a hard platform constraint. Follow-up task, deferred until Library's
+uikit migration: build a custom on-screen keyboard from uikit buttons (`onClick` appending/deleting
+from the search string), same as every other production VR app does for the same reason.
 
 ---
 
@@ -607,28 +421,16 @@ padding/margin/gap shorthand, single-value or not, as unsupported, full stop.** 
 
 ## `pointerEvents: 'auto'` set before the panel's `PanelDocument` exists silently no-ops forever
 
-**Symptom:** A `PanelUI` panel renders correctly and `RayInteractable` registers ray hits on it,
-but nothing on it ever reacts to clicks or hover — permanently, not just briefly.
+A `PanelUI` panel rendered and registered ray hits, but nothing on it ever reacted to clicks —
+permanently. Cause: the two-gate show function read `panelEntity.getValue(PanelDocument,
+'document')` synchronously and called `doc?.rootElement.setProperties({ pointerEvents: 'auto' })`
+— a silent no-op if `doc` is still `null` because the panel's async `fetch()` hasn't resolved, and
+nothing ever retries. First hit on Library, the first screen shown at boot.
 
-**Root cause:** The panel's two-gate show function reads `panelEntity.getValue(PanelDocument,
-'document')` **synchronously** and calls `doc?.rootElement.setProperties({ pointerEvents: 'auto'
-})` — a silent no-op if `doc` is still `null` because the panel's own async `fetch('/ui/x.json')`
-hasn't resolved yet. Nothing ever retries it afterward, so `pointerEvents` stays stuck at the
-uikitml's static `'none'` default forever. First found on Library, which is the *first* screen
-shown at boot — its show function fires before the fetch has any chance to resolve.
-`RayInteractable` still gets added fine (that half is synchronous, no doc dependency), which is
-why the ray still registers a hit even though nothing responds.
-
-**Fix:** Set `pointerEvents: 'auto'` from *inside* the doc-ready poll callback (`XRSongLibrary.show()`
-/ `CalibrationSystem._withDoc()`), where `doc` being real is guaranteed by construction — not from
-an external caller that merely hopes it's ready yet.
-
-**How to apply:** Settings/Song/Play have the exact same theoretical race (their
-`setXPanelInteractive` functions are structurally identical) but never hit it in practice, only
-because they're shown well after boot, by which point their panels have long since finished
-loading. **Any one-time "make this interactive" toggle that depends on an async resource must be
-triggered from the code that actually observes that resource becoming ready** — apply this fix
-proactively to any future panel shown early/immediately, don't wait for a bug report.
+**Fix:** set `pointerEvents: 'auto'` from *inside* the doc-ready poll callback, where `doc` being
+real is guaranteed by construction, not from an external caller hoping it's ready. Other screens
+have the same theoretical race but never hit it since they show well after boot — apply this fix
+proactively to any future panel shown early, don't wait for a bug report.
 
 ---
 
@@ -686,30 +488,15 @@ the function that triggers it — the panel it updates may not be the one visibl
 
 ## An element authored with no static text content never becomes updatable via `setProperties({ text })`
 
-**Symptom:** A `<span id="x"></span>` authored empty (meant to be filled in entirely at runtime)
-stays permanently blank. `setProperties({ text: '...' })` never throws, never warns — it just does
-nothing, forever, no matter how many times it's called.
+An empty `<span id="x"></span>` (meant to be filled at runtime) stays permanently blank —
+`setProperties({ text })` never throws, just does nothing. Cause: `<span>text</span>` compiles to a
+`Container` plus a synthesized child `Text` node derived from the literal string in `children` at
+compile time (`uikitml/interpreter/index.js`). Empty `children` → no child Text node → nothing for
+`setProperties` to update.
 
-**Root cause:** Confirmed by reading `@pmndrs/uikitml`'s interpreter directly
-(`node_modules/@pmndrs/uikitml/dist/interpreter/index.js`): a `<span>text</span>` does **not**
-compile into a Text component itself. It compiles into a `Container`, and the interpreter
-synthesizes a **separate child `Text` node** from any literal string found in that container's
-`children` array *at interpret time* — that child's displayed content is a `computed()` signal
-reading back `parentContainer.properties.value.text` (falling back to the original literal
-string). `setProperties({ text: 'x' })` on the outer span works *because* that inner child is
-watching the parent's `text` property — but if the span's `children` array is empty at compile
-time, no inner Text child is ever created, and there is nothing for `setProperties` to update.
-Confirmed directly by diffing the compiled JSON's `children` array for a working span (real text)
-against a broken one (empty).
-
-**Fix:** Every text-bearing element that will ever be updated via `setProperties` needs real
-placeholder text authored in the `.uikitml` source — not just a nice default, a hard requirement
-for the reactive update path to exist at all.
-
-**How to avoid next time:** Every prior screen happened to always author placeholder text already
-(song titles, labels, time displays), which is exactly why this never surfaced until an element was
-deliberately authored empty for the first time. Grep new `.uikitml` files for `<span[^>]*></span>`
-or `<p[^>]*></p>` before shipping.
+**Fix:** every text element ever updated via `setProperties` needs real placeholder text authored
+in the `.uikitml` source — not optional. Grep new files for `<span[^>]*></span>`/`<p[^>]*></p>`
+before shipping.
 
 ---
 
@@ -724,46 +511,27 @@ entry above), is the straightforward replacement — no special mechanism needed
 
 ## A panel shown from multiple independent entry points needs its "hide every sibling" logic centralized in the callee, not assumed handled by the caller
 
-**Symptom:** Two panels visibly z-fighting (rendering coincident in space).
+Two panels z-fought after hardcoding a sibling-hide at just one `index.ts` call site for
+`CalibrationSystem`'s panel — wrong layer, since that panel is triggered from three independent
+places (PreScene/Play HUD Reposition, first-time calibration) and no single caller could be trusted
+to know to hide siblings for the others.
 
-**Root cause:** Every uikit panel in this app (settings/preScene/play/library/calibration) is a
-separate entity parented at the *same* `grabBarEntity`-relative slot; only one is ever meant to be
-visible, and every `index.ts` `showX()` function already hides all its siblings before showing
-itself — but that pattern only works because each of those functions is the *single* place its
-screen ever gets shown from. `CalibrationSystem`'s panel is different: it can be triggered from
-three independent places (PreScene's Reposition, Play HUD's Reposition, first-time calibration),
-and none of those callers could be trusted to already know to hide the calibration panel's siblings
-for it. First attempt hard-coded a sibling-hide at just one call site in `index.ts` — wrong layer:
-fixed one case but broke another, because that call site couldn't distinguish which case it was
-handling (see next entry).
-
-**Fix:** Move the "hide every other panel, show mine" step into the callee that actually knows
-whether it's really about to show a panel (`CalibrationSystem._showPanel()`), not into any one of
-its several external callers.
+**Fix:** move "hide every other panel, show mine" into the callee that actually knows it's about to
+show a panel (`CalibrationSystem._showPanel()`), not into any one external caller.
 
 ---
 
 ## A completion callback can be a lightweight rerender instead of a full screen rebuild — restoration must match the completion shape, not be assumed generic
 
-**Symptom:** After finishing a flow that temporarily hid another panel, that other panel stayed
-permanently invisible — nothing ever turned it back on.
+A panel hidden to show a temporary one stayed permanently invisible after the flow finished. Cause:
+two structurally-identical-looking call sites (`CalibrationSystem`'s `recalibrate` vs.
+`showCalibrationFineTune`) actually differ in what `onComplete()` does — one's a full screen
+rebuild that re-establishes visibility from scratch, the other's a lightweight in-place rerender
+that never touches panel `.visible` at all.
 
-**Root cause:** Two call sites with structurally identical bodies
-(`CalibrationSystem`'s `recalibrate` and `showCalibrationFineTune` globals — same guitar/keys
-branching, same panel-show calls) turned out to need different hide/restore handling, because what
-happens *after* `onComplete()` fires is actually different between them: one path's completion is a
-full screen-rebuild call that naturally re-establishes every panel's correct visibility from
-scratch; the other's completion is a lightweight in-place rerender of an *already-existing*
-document that never touches panel-level `.visible` at all. Hiding a panel to show a temporary one,
-then finishing through the lightweight path, left it permanently invisible.
-
-**Fix:** Wrap that specific completion callback to explicitly restore the hidden panel's
-visibility before forwarding to the real `onComplete` — don't assume the caller's completion path
-will fix it, because it might not.
-
-**How to avoid next time:** Two call sites that look the same are not necessarily interchangeable —
-check the shape of what happens after completion, not just whether the triggering code looks
-identical.
+**Fix:** wrap the specific completion callback to explicitly restore hidden-panel visibility before
+forwarding to the real `onComplete` — don't assume the caller's completion path will fix it. Two
+call sites that look the same aren't necessarily interchangeable.
 
 ---
 
@@ -778,3 +546,67 @@ no button wiring) simultaneously fixed a visible-panel-flashing bug reported for
 Reposition (nothing to hide when no panel ever shows) and deleted an entire now-provably-dead
 method and uikitml section. Worth checking for this shape generally: a "confirmation" screen that
 never actually has anything for the user to decide is a candidate for deletion, not preservation.
+
+---
+
+## `overflow: scroll`'s pointer capture and release check different objects, wedging capture on any drag that starts on a child
+
+A scrollable popover (Play HUD's Speed dropdown) worked once, then never scrolled again. Cause:
+`scroll.js`'s `onPointerDown` captures on `event.object` (the deepest-hit child, per
+`pointer-events/event.js`), but `onPointerFinish` releases via the *container* — mismatch silently
+no-ops and wedges capture on that child forever. Any drag starting on a child (not empty gutter
+space) hits this; at this popover's small size, buttons cover nearly the whole surface.
+
+**Fix:** don't use `overflow: scroll` when clickable children cover most of the surface — roll a
+custom drag (`container.worldToLocal`, like `_wireSeekDrag`) with a `pressed`/`dragging` gate, and
+**defer `setPointerCapture` until real drag distance is confirmed**. Capturing eagerly on every
+`pointerdown` breaks native click synthesis (`pointer.js`'s `getIsClicked()` requires down/up to hit
+the same object) and silently kills every child's `onClick`.
+
+---
+
+## `pointerEvents` inherits down the tree, and a descendant's own explicit value always wins
+
+`pointerEvents` is inherited (`properties/inheritance.js`), defaulting to `parent.pointerEvents ??
+this.defaultPointerEvents`. Useful for disabling every *other* interactive element during a real
+drag: flip the panel root to `'none'`, give the dragged element its own explicit
+`pointer-events: auto;` in `.uikitml` to override it. Only toggle once a drag is *confirmed* (past
+the movement threshold) — it's re-checked live on every raycast, so flipping it before a tap's
+matching `pointerup` could change what object the release resolves to.
+
+---
+
+## `whiteSpace` does not control line-wrapping in this library — only `wordBreak` against available width does
+
+A one-line label ("Speed: 20%") wrapped inside a comfortably-wide container; `white-space: nowrap`
+made no difference. Two stacked bugs: `nowrap` isn't a valid value in this schema at all
+(`properties/schema.js` only allows `normal/collapse/pre/pre-line`, silently falls back to
+default), and more fundamentally, no `whiteSpace` value controls wrapping — it only governs
+whitespace collapsing (`text/layout/normalize.js`); the actual line-break is `wordBreak` vs.
+available width, in `measure.js`.
+
+**Fix:** don't reach for `whiteSpace` for a wrapping problem — give the container real, sufficient
+width instead, calibrated against an already-working element at the same scale rather than guessed.
+
+---
+
+## Even a wide-enough container didn't fully fix the wrap — an unresolved, likely cross-subtree Yoga corruption
+
+**Status: unresolved, shelved.** Speed dropdown trigger's label intermittently renders as broken
+across two lines even with sufficient width — measured height stays constant, ruling out a real
+wrap and pointing at a rendering-level glyph artifact instead. "200%" repros every time; shorter
+labels repro intermittently, correlated with opening/dragging the dropdown.
+
+**Leading theory, not proven:** same class as "A burst of brand-new text..." above — `.option-menu`'s
+ten items are `display:none` until first opened, and Yoga skips measuring `display:none` subtrees
+(`flex/node.js`), so first open bursts all ten measurements at once, plausibly corrupting the
+trigger label elsewhere in the doc (confirmed `.size` reads `[0,0]` at the exact flip moment).
+
+**Tried, none fully resolved it:** recreating the trigger's Text node on every change (measurably
+better, not eliminated); forcing the burst at mount time instead of first open (no improvement,
+and untestable fully-hidden since the panel is already visible by then); throttling drag writes to
+one per rAF (broke scrolling, reverted, didn't fix the wrap either).
+
+**Not attempted — shelved as too costly for a visual bug:** moving the trigger into a separate
+`PanelUI` document, which would structurally guarantee isolation (every `PanelUI` has its own Yoga
+tree; this app currently has exactly one `PanelUI` per screen, five total).

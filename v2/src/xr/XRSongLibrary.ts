@@ -2,21 +2,14 @@ import type { Entity, UIKitDocument } from "@iwsdk/core";
 import { PanelDocument, UIKit } from "@iwsdk/core";
 import type { SourcedEntry } from "../shared/SongSource";
 
-// uikit-based (see ui/library.uikitml) — migrated off html2canvas as the last
-// screen-by-screen step of the html2canvas -> uikit migration (see
-// ThreeCP/Analysis/UikitLessonsLearned.md). Same idiom as XRSettingsScene.ts/
-// XRActiveScene.ts: poll for the PanelDocument once, then wire onClick/
-// setProperties per element on every _render() instead of building an
-// innerHTML string.
+// uikit-based (see ui/library.uikitml), migrated off html2canvas — same idiom as
+// XRSettingsScene.ts/XRActiveScene.ts: poll for the PanelDocument once, then wire
+// onClick/setProperties per element on every _render().
 //
-// Search is intentionally inert here — no onClick on #lib-search-display, no
-// real <input> anywhere. Typing needs a real OS keyboard, and none is
-// reachable from an active WebXR session (see UikitLessonsLearned.md's "No
-// system/OS text-entry keyboard is reachable from this app" entry). The old
-// hidden-<input>+.focus() approach reportedly crashed the immersive session;
-// the real fix is a future custom on-screen uikit keyboard. searchQuery/
-// _getFiltered() are kept as-is (always '' for now) so that follow-up only
-// has to wire input, not re-derive the filtering logic.
+// Search is intentionally inert — no onClick on #lib-search-display, no real <input>.
+// No OS keyboard is reachable from an active WebXR session (see UikitLessonsLearned.md's
+// "No system/OS text-entry keyboard" entry); real fix is a future on-screen uikit keyboard.
+// searchQuery/_getFiltered() are kept as-is (always '') so that follow-up only wires input.
 
 const SORT_OPTIONS = [
     { value: 'title-asc',       label: 'Title A-Z' },
@@ -30,12 +23,9 @@ const SORT_OPTIONS = [
 
 type SortValue = (typeof SORT_OPTIONS)[number]['value'];
 
-// Rows are appended a few frames at a time (not all synchronously) to avoid a
-// confirmed Yoga bug: a large burst of brand-new (never-before-rendered) text
-// glyphs in one pass can corrupt an unrelated element's layout elsewhere in
-// the same document (Inter glyphs lazy-load per-character; see
-// UikitLessonsLearned.md's async-text-burst entry). A song library is exactly
-// the "many never-before-seen titles at once" trigger case.
+// Rows append a few frames at a time, not all at once — avoids a confirmed Yoga bug
+// where a burst of brand-new text glyphs corrupts an unrelated element's layout
+// elsewhere in the doc (see UikitLessonsLearned.md's async-text-burst entry).
 const ROW_BATCH_SIZE = 12;
 
 function truncate(s: string, max: number): string {
@@ -62,12 +52,9 @@ export class XRSongLibrary {
     show(panelEntity: Entity, onSelect: (sourced: SourcedEntry) => void): void {
         const proceed = (doc: UIKitDocument) => {
             this._doc = doc;
-            // Library is the first screen shown, at boot — index.ts's
-            // setLibraryPanelInteractive(true) call in showLibrary() races
-            // this panel's async PanelUI load (it reads PanelDocument
-            // synchronously and no-ops if it's not there yet), so pointerEvents
-            // can get permanently stuck at the uikitml's static 'none' default.
-            // Guaranteed to apply here instead, now that doc is confirmed real.
+            // Library shows at boot, racing index.ts's setLibraryPanelInteractive(true) call
+            // (reads PanelDocument synchronously, no-ops if not ready yet) — set it here
+            // instead, guaranteed to apply now that doc is confirmed real.
             doc.rootElement.setProperties({ pointerEvents: 'auto' });
             this._render(doc, onSelect);
         };

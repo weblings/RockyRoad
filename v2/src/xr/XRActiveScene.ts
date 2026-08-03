@@ -4,44 +4,17 @@ import type { Vector3 } from "three";
 import type { SongPlayer } from "../shared/SongPlayer";
 import type { SongSection } from "../shared/SongFormat";
 
-// ── XRActiveScene ─────────────────────────────────────────────────────────────
-// uikit-based (see ui/play.uikitml) — migrated off html2canvas following the
-// same pattern as XRSettingsScene.ts/XRPreScene.ts. Unlike those two, this
-// screen also has content that updates every frame while showing (play/pause
-// state, seek position, elapsed time) — handled by a separate per-frame
-// method wired through the same registerPanelUpdate hook the old DOM-based
-// version used, rather than the click-triggered _render()/rerender() path.
+// uikit-based (see ui/play.uikitml), migrated off html2canvas — same pattern as
+// XRSettingsScene.ts/XRPreScene.ts, but also has per-frame content (play/pause,
+// seek, elapsed time) wired through registerPanelUpdate, not just click-driven rerenders.
 
-// uikit's own PointerEvent type lives in @pmndrs/pointer-events, not a direct
-// dependency of this project (only transitive via @iwsdk/core) — this local
-// shape covers the fields the seek-drag handlers need. setPointerCapture/
-// releasePointerCapture are real methods @pmndrs/pointer-events attaches to
-// interactive Object3Ds (node_modules/@pmndrs/pointer-events/dist/pointer.d.ts) —
-// capturing on pointerdown is what makes onPointerMove/onPointerUp keep firing
-// even once the ray/hand drags outside the seek track's actual bounds,
-// instead of only while directly hovering it.
-//
-// Deliberately NOT using event.localPoint here, even though it's tempting —
-// it's relative to whichever sub-element the ray/hand actually hit first
-// (the thumb, the fill bar, a section tick, or the track itself all sit at
-// different positions *within* the track), so the reference frame silently
-// changes depending on what you happened to grab. @pmndrs/uikit's own
-// scrollbar-drag code (node_modules/@pmndrs/uikit/dist/scroll.js's
-// setupScrollHandlers) doesn't trust it for the same reason — it explicitly
-// calls `container.worldToLocal(event.point.clone())` against the known,
-// stable container instead. This file does the same against `track`
-// specifically (captured once in _wireSeekDrag), not whatever `event.object`
-// happened to be. `event.point` is world-space (unambiguous regardless of
-// what was hit), confirmed via @pmndrs/pointer-events/dist/event.d.ts.
-//
-// What's still true from the earlier investigation: this local space is
-// normalized to the element's own size and centered at its middle, not raw
-// absolute units — confirmed by scroll.js's getIntersectedScrollbarIndex,
-// which does `point.x *= size[0]` to convert this same local coordinate into
-// absolute cm units, and by computeScrollbarTransformation's use of
-// `size[i] * 0.5` as the edge boundary. So a local x of 0 is the track's
-// center, ±0.5 its edges — `localPoint.x + 0.5` is the 0-1 fraction along
-// its width, no division by size needed.
+// Local slice of @pmndrs/pointer-events' PointerEvent (transitive dep only).
+// setPointerCapture on pointerdown keeps onPointerMove/onPointerUp firing even once the
+// ray/hand drags outside the seek track's bounds. Use event.point (world-space) +
+// track.worldToLocal(), never event.localPoint — it's relative to whichever sub-element
+// was actually hit (thumb/fill/tick/track), so its reference frame shifts depending on
+// what was grabbed; see UikitLessonsLearned.md. Local space is centered/normalized:
+// x=0 is the track's center, ±0.5 its edges, so `localPoint.x + 0.5` is the 0-1 fraction.
 type WorldPointerEvent = {
     point?: Vector3;
     pointerId: number;
@@ -54,42 +27,26 @@ type WorldPointerEvent = {
 const MAX_TITLE_CHARS    = 26;
 const MAX_SUBTITLE_CHARS = 30;
 
-// Note-hit streak/total-notes tracking doesn't exist anywhere in the XR port
-// yet (see NoteDetector/Stretch Goal B in the project plan) and a live
-// in-play Difficulty control has no backing concept either (SongFormat.
-// SongDifficulty is static per-song metadata, used for Library sorting, not
-// an adjustable runtime value). Both rows are built in ui/play.uikitml
-// against the target design already, just gated fully off here until the
-// real features land — flip these consts, no markup changes needed.
+// Note-hit streaks and in-play Difficulty have no backing data model yet (see
+// Stretch Goal B / SongFormat.SongDifficulty being static metadata) — both rows
+// are already built in ui/play.uikitml, just gated off until the real features land.
 const STATS_ROW_ENABLED = false;
 const DIFFICULTY_ENABLED = false;
 
-// Matches the preset list desktop's speed control generates (see
-// SPEED_PRESET_STEP in src/desktop/ActiveSceneScreen.ts) — 20% steps from
-// 20% to 200%. Unlike desktop, XR has no separate fine +/-0.05 stepper
-// alongside the dropdown (the v0.2.2 design only shows a single trigger), so
-// this is the full range of values reachable here.
+// Matches desktop's SPEED_PRESET_STEP: 20% steps, 20%-200%. No separate fine
+// +/-0.05 stepper here — the XR design only shows a single dropdown trigger.
 const SPEED_PRESETS = [0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0];
 
-// Mirror of .option-item/.option-menu-inner/.option-menu's layout in
-// ui/play.uikitml, used to compute where to scroll the dropdown to on open
-// WITHOUT reading live .size/.relativeCenter signals — confirmed in-headset
-// that those read [0,0] at the exact synchronous moment display flips to
-// 'flex' (Yoga hasn't laid out the newly-visible subtree yet), and even a
-// short handful of setTimeout retries didn't reliably outlast that. Since
-// this menu's item count/sizing is fixed and entirely authored by us, there
-// is no live measurement actually needed here — just arithmetic from the
-// same numbers already in the CSS. Update these three if that CSS changes.
-const OPTION_ITEM_HEIGHT = 2.2; // .option-item: padding-top(0.5) + padding-bottom(0.5) + line-height (font-size 1.2 × uikit's default 1.0 line-height multiplier)
+// Mirrors .option-item/.option-menu-inner/.option-menu in ui/play.uikitml, used to compute
+// the dropdown's open-scroll target via arithmetic instead of live .size/.relativeCenter
+// reads — those read [0,0] at the exact moment display flips to 'flex' (Yoga hasn't laid
+// out the subtree yet). Update these three if that CSS changes.
+const OPTION_ITEM_HEIGHT = 2.2; // .option-item: padding-top(0.5) + padding-bottom(0.5) + line-height(1.2)
 const OPTION_ITEM_GAP    = 0.3; // .option-menu-inner's gap-row
 const OPTION_MENU_HEIGHT = 8;   // .option-menu's fixed height
 
 function truncate(s: string, max: number): string {
-    // Three ASCII periods, not '…' (U+2026) — same missing-glyph risk flagged
-    // throughout UikitLessonsLearned.md — uikit's pre-built Inter MSDF atlas
-    // doesn't cover every typographic character, only a known-tested subset,
-    // so special characters are guilty until proven innocent rather than
-    // assumed safe.
+    // ASCII periods, not '…' — uikit's Inter MSDF atlas doesn't cover every glyph (UikitLessonsLearned.md).
     return s.length > max ? s.slice(0, max - 3) + '...' : s;
 }
 
@@ -100,13 +57,10 @@ function formatTime(seconds: number): string {
 }
 
 export class XRActiveScene {
-    // Resolved once (the panel entity/document are created once and persist —
-    // see playPanelEntity in index.ts), then reused across every show().
+    // Panel entity/document are created once and persist (see playPanelEntity in index.ts).
     private _doc: UIKitDocument | null = null;
 
-    // Cached per-frame-update element refs, re-resolved each show() (the
-    // underlying songPlayer/totalDuration change per song, so this can't be
-    // resolved once at construction time).
+    // Re-resolved each show() since songPlayer/totalDuration change per song.
     private _playIcon:  ReturnType<UIKitDocument['getElementById']> = null;
     private _pauseIcon: ReturnType<UIKitDocument['getElementById']> = null;
     private _seekFill:  ReturnType<UIKitDocument['getElementById']> = null;
@@ -115,35 +69,22 @@ export class XRActiveScene {
 
     private _sectionTicks: InstanceType<typeof UIKit.Container>[] = [];
 
-    // The currently-mounted Speed trigger label Text node (see
-    // _setSpeedTriggerLabel) — destroyed and recreated on every value
-    // change rather than mutated in place, see the comment on .option-label
-    // in ui/play.uikitml for why.
+    // Currently-mounted Speed trigger label node — destroyed/recreated on each value
+    // change rather than mutated in place (see .option-label in ui/play.uikitml).
     private _speedTriggerLabelNode: InstanceType<typeof UIKit.Text> | null = null;
 
-    // Non-null only while actively dragging the seek bar — the fraction (0-1)
-    // the drag handlers want fill/thumb/time to show right now, previewed
-    // without touching songPlayer until pointer-up commits it. While this is
-    // set, _perFrameUpdate defers to it instead of the real (frozen, since
-    // scrubbing pauses playback) songPlayer.currentSecond, so the two don't
-    // fight over the same elements every frame.
+    // Non-null only while dragging the seek bar: the previewed 0-1 fraction, applied
+    // instead of songPlayer.currentSecond until pointer-up commits it.
     private _scrubFraction: number | null = null;
 
-    // Open/closed state for the Speed dropdown popover (see as-speed-menu in
-    // ui/play.uikitml) — same idiom as XRSongLibrary.ts's sortOpen.
+    // Speed dropdown open/closed state (as-speed-menu), same idiom as XRSongLibrary's sortOpen.
     private _speedMenuOpen = false;
-    // Previous-frame's _speedMenuOpen, so _wireSpeedDropdown can tell "just
-    // opened this render" apart from "already open, some unrelated control
-    // triggered a rerender" — only the former should recenter the scroll on
-    // the selected preset; the latter would fight the user's own scrolling.
+    // Previous-frame value, so _wireSpeedDropdown can recenter scroll only on the open
+    // transition, not on every unrelated rerender of an already-open menu.
     private _speedMenuWasOpen = false;
 
-    // Custom-scroll offset per option-menu popover (keyed by the menu's own
-    // element id, so this generalizes to Difficulty's menu later without
-    // needing a second field) — see _wireOptionMenuScroll. Persisted here
-    // rather than as a local in that method so an unrelated rerender (e.g.
-    // clicking Playpause while the dropdown happens to be open) doesn't
-    // visibly snap the scroll position back to the top.
+    // Scroll offset per option-menu popover, keyed by menu id (generalizes to Difficulty's
+    // menu later). Persisted here, not as a method local, so unrelated rerenders don't snap it to 0.
     private _optionMenuScrollOffsets = new Map<string, number>();
 
     show(
@@ -342,10 +283,8 @@ export class XRActiveScene {
             });
         });
 
-        // Only recenter on the freshly-opened transition — not on every
-        // rerender an already-open menu happens to receive from an
-        // unrelated control (e.g. Playpause), which would otherwise fight
-        // the user's own in-progress scrolling.
+        // Recenter only on the open transition, not every rerender (e.g. Playpause)
+        // of an already-open menu, which would fight the user's own scrolling.
         const justOpened = this._speedMenuOpen && !this._speedMenuWasOpen;
         this._speedMenuWasOpen = this._speedMenuOpen;
 
@@ -359,12 +298,8 @@ export class XRActiveScene {
         this._wireOptionMenuScroll(doc, 'as-speed-menu', 'as-speed-menu-inner', initialOffset);
     }
 
-    // Destroys and recreates the Speed trigger's label Text node instead of
-    // mutating an existing element's .text — confirmed in-headset that
-    // mutating in place left stale/misaligned glyphs rendering behind the
-    // new text (looked like a 2-line wrap even though the measured box
-    // height never actually changed, ruling out a real wrap). See the
-    // comment on .option-label in ui/play.uikitml for the full context.
+    // Destroys/recreates the trigger's label node instead of mutating .text — mutating in
+    // place left stale glyphs rendering behind new text (see .option-label in ui/play.uikitml).
     private _setSpeedTriggerLabel(doc: UIKitDocument, text: string): void {
         const slot = doc.getElementById('as-speed-trigger-label-slot');
         if (!slot) return;
@@ -373,58 +308,31 @@ export class XRActiveScene {
         slot.add(this._speedTriggerLabelNode);
     }
 
-    // Custom drag-to-scroll for an option-menu popover, replacing @pmndrs/
-    // uikit's built-in overflow:scroll — confirmed in-headset that its
-    // pointer capture (set on whichever object was actually hit) and
-    // release (attempted on the container specifically) mismatch whenever a
-    // drag starts on a child button rather than empty container space,
-    // wedging capture and permanently breaking scroll. At this popover's
-    // small size, buttons cover nearly the whole surface, so that's nearly
-    // every gesture — see UikitLessonsLearned.md.
+    // Custom drag-to-scroll, replacing overflow:scroll — its capture/release object
+    // mismatch wedges scroll permanently once a drag starts on a child button (nearly
+    // every gesture at this popover's size). See UikitLessonsLearned.md. Deliberately
+    // doesn't capture on every pointerdown like _wireSeekDrag does: native click synthesis
+    // requires down/up to land on the same object, so eager capture would break every
+    // option's onClick. Capture is deferred until real drag distance is confirmed.
     //
-    // Deliberately does NOT call setPointerCapture on every pointerdown the
-    // way _wireSeekDrag does — @pmndrs/pointer-events' own click synthesis
-    // (node_modules/@pmndrs/pointer-events/dist/pointer.js's up()/
-    // getIsClicked()) only fires 'click' when the object released on has the
-    // exact same recorded down-timestamp as the object originally pressed —
-    // capturing eagerly would immediately break that match (the captured
-    // object becomes whatever's under the pointer at up-time) and silently
-    // kill every option's onClick, tap or not. Instead, capture is deferred
-    // until real drag distance is confirmed: a genuine tap's down and up
-    // both land on the same button untouched, so getIsClicked's identity
-    // check still passes and the existing onClick handlers above keep
-    // working unmodified. Once a real drag is confirmed, capturing on the
-    // menu itself (not whatever button was under the initial press) also
-    // means move/up keep arriving even if the ray/hand drifts outside this
-    // small popover's bounds mid-drag.
-    // initialOffset: a pre-clamped scroll offset to open the menu at (e.g.
-    // centering the current selection) — only meaningful on the render that
-    // just opened the menu (see the justOpened check in _wireSpeedDropdown);
-    // pass undefined on every other rerender so an already-open menu keeps
-    // whatever offset the user has scrolled it to. Deliberately a plain
-    // number the caller computes, not an element id this method would have
-    // to measure itself — see the comment below on why.
+    // initialOffset: pre-clamped scroll offset to open at (e.g. centered selection) — only
+    // set on the render that just opened the menu; undefined otherwise so the user's own
+    // scroll position is preserved. A plain number, not an id, since only the caller
+    // (already computing it analytically) can supply it before layout has settled.
     private _wireOptionMenuScroll(doc: UIKitDocument, menuId: string, innerId: string, initialOffset?: number): void {
         const menu = doc.getElementById(menuId);
         const inner = doc.getElementById(innerId);
         if (!menu || !inner) return;
 
-        // Local-space movement (same normalized -0.5..0.5 units as
-        // WorldPointerEvent's pointerFraction, see the comment above it)
-        // past which a press is promoted from "maybe a tap" to a real drag.
+        // Local-space movement (normalized -0.5..0.5, same units as WorldPointerEvent
+        // above) past which a press is promoted from "maybe a tap" to a real drag.
         const DRAG_THRESHOLD = 0.03;
 
-        // pressed: true from onPointerDown until onPointerUp/onPointerCancel
-        // — this is the actual "is a pinch/click currently held" gate.
-        // dragging: only meaningful while pressed; true once movement has
-        // crossed DRAG_THRESHOLD during the current press. Conflating these
-        // into one flag was the bug in the first pass — onPointerMove fires
-        // on every hover, not just while pressed (same behavior already hit
-        // once with the diagnostic logging spam), so without a dedicated
-        // pressed gate, mere hovering computed a delta against a stale
-        // startLocalY and immediately "dragged". _wireSeekDrag already
-        // guards this correctly (`if (!scrubbing) return;`) — mirroring
-        // that here.
+        // pressed: is a pinch/click currently held. dragging: only meaningful while
+        // pressed, true once movement crosses DRAG_THRESHOLD. Keep these separate —
+        // onPointerMove fires on every hover, not just while pressed, so without the
+        // pressed gate a mere hover would "drag" against a stale startLocalY (mirrors
+        // _wireSeekDrag's `if (!scrubbing) return;` guard).
         let pressed = false;
         let dragging = false;
         let startLocalY = 0;
@@ -447,43 +355,24 @@ export class XRActiveScene {
         };
 
         if (initialOffset != null) {
-            // Deliberately bypasses applyOffset's own maxOffset()-based
-            // clamp — confirmed in-headset that inner.size/menu.size read
-            // [0,0] at this exact synchronous point (Yoga hasn't laid out
-            // the newly-visible subtree yet, see the comment above
-            // OPTION_ITEM_HEIGHT), which would clamp any nonzero target
-            // straight back down to 0 here specifically, the same way it
-            // silently broke three earlier attempts at this (live retries
-            // included — the retries themselves ran fine, they just kept
-            // reading the same [0,0]). The caller already computed and
-            // clamped this analytically from known constants, so it's
-            // trustworthy without a live measurement.
+            // Bypasses applyOffset's live maxOffset() clamp — inner.size/menu.size read
+            // [0,0] at this exact synchronous point (Yoga hasn't laid out the newly-visible
+            // subtree yet), which would clamp any nonzero target back to 0. The caller
+            // already computed and clamped this analytically, so it's trustworthy as-is.
             this._optionMenuScrollOffsets.set(menuId, initialOffset);
             inner.setProperties({ positionTop: -initialOffset });
         } else {
-            // Re-apply on every (re)wire — content height can in principle
-            // change (a future filtered/variable-length menu), even though
-            // Speed's own 10 presets never do. This path (unlike the one
-            // above) is fine to run through the live-measured clamp — by
-            // the time an already-open menu rerenders for an unrelated
-            // reason, layout has long since settled.
+            // Fine to run through the live-measured clamp here — an already-open menu's
+            // layout has long since settled by the time it rerenders for an unrelated reason.
             applyOffset(startOffset);
         }
 
-        // Disables every other interactive element in the panel while a
-        // real drag is in progress — confirmed in-headset that the ray
-        // cursor could otherwise still hover/click things behind or beside
-        // this popover mid-drag. pointerEvents is an inherited property
-        // (node_modules/@pmndrs/uikit/dist/properties/inheritance.js), so
-        // flipping it at the panel root cascades to everything — except
-        // .option-menu itself, which has its own explicit override in
-        // play.uikitml specifically so this doesn't also lock itself out.
-        // Only toggled once a real drag is confirmed, not from plain
-        // pressed — doing this eagerly on every pointerdown would risk
-        // interfering with a genuine tap's click (pointerEvents is
-        // re-checked live on each raycast, not just once at press time, so
-        // changing it mid-gesture before a tap's matching pointerup could
-        // in principle change what object that up event resolves to).
+        // Disables every other interactive element while a real drag is in progress (the ray
+        // cursor could otherwise hover/click things behind this popover). pointerEvents is
+        // inherited, so flipping it at the panel root cascades everywhere except .option-menu
+        // itself (explicit override in play.uikitml). Only toggled once a drag is confirmed,
+        // not on plain pressed — pointerEvents is re-checked live on each raycast, so flipping
+        // it before a tap's matching pointerup could change what object the release resolves to.
         const setOtherInteractorsEnabled = (enabled: boolean): void => {
             doc.rootElement.setProperties({ pointerEvents: enabled ? 'auto' : 'none' });
         };

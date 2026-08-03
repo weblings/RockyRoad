@@ -39,13 +39,9 @@ export class TextBatch {
             );
             spr.visible = false;
             spr.frustumCulled = false;
-            // Purely decorative, never interactive. IWSDK's pointer-ray system
-            // walks the whole scene graph every frame regardless of RayInteractable
-            // tagging, and THREE.Sprite.raycast() requires Raycaster.camera to be
-            // set externally — which IWSDK's own raycaster doesn't do — causing a
-            // console-spamming warning and an eventual uncaught TypeError
-            // ("Cannot read properties of null (reading 'matrixWorld')") every
-            // frame once any Sprite exists in the XR scene graph. No-op it out.
+            // No-op raycast: IWSDK's pointer-ray walks the whole scene graph regardless of
+            // RayInteractable tagging, and THREE.Sprite.raycast() crashes (needs
+            // Raycaster.camera, which IWSDK's raycaster never sets) once any Sprite exists.
             spr.raycast = () => {};
             parent.add(spr);
             this.pool.push(spr);
