@@ -335,21 +335,15 @@
     padding-right: 1;
     padding-bottom: 0.7;
     padding-left: 1;
-    /* Explicit fixed width, not min-width — this label was still wrapping
-       at min-width:14 despite that comfortably exceeding "Speed: 200%"'s
-       measured length. Root cause (read node_modules/@pmndrs/uikit/dist/
-       text/layout/measure.js and normalize.js): wrapping here is driven
-       purely by wordBreak against available width — there's no property
-       that means "never wrap," and whiteSpace (tried first) only affects
-       whitespace collapsing, not wrapping at all, so it could never have
-       fixed this regardless of value. min-width on a hugging container
-       likely left Yoga's text-measurement pass working from an ambiguous
-       interim width before the constraint fully resolved — an explicit
-       width removes that ambiguity outright rather than just raising the
-       floor. Sized generously (this row has ~35 units of headroom) since
-       two undershoot guesses in a row is enough guessing; shrink once
-       visible in-headset if it reads too wide. */
-    width: 18;
+    /* Explicit fixed width, not min-width — see the wrapping-mechanism
+       explanation on .option-label below for why min-width didn't help.
+       18 (tried previously) was a blind guess and rendered cartoonishly
+       wide — 15 is calibrated against .action-btn below instead, an
+       already-working reference at this same panel scale: it's width:15
+       and comfortably fits "Reposition" (10 chars) plus an icon, and
+       "Speed: 200%" is only one character longer with a smaller chevron
+       than that icon. */
+    width: 15;
     background-color: #333333;
     border-width: 0.1;
     border-color: #444444;
@@ -363,6 +357,19 @@
      controls whitespace collapsing in this library (see the width comment
      on .option-trigger), not line-wrapping; there's no property-level way
      to suppress wrapping, only a wide-enough container. */
+  /* Applied to a UIKit.Text node XRActiveScene.ts destroys and recreates on
+     every value change (into #as-speed-trigger-label-slot, an otherwise-
+     empty positional placeholder in the markup below), rather than a
+     static <span> mutated via setProperties({text}) — confirmed in-headset
+     that mutating an existing element's text left stale/misaligned glyphs
+     rendering behind the new ones (looked like a 2-line wrap; logged
+     .size and the box height never actually changed, so it wasn't a real
+     wrap). Recreating the node sidesteps whatever the exact stale-glyph
+     mechanism is, same technique already used for section ticks
+     (_buildSectionTicks) and Library's song rows. Difficulty's trigger
+     label (#as-difficulty-trigger-label below) is still a static span —
+     nothing updates its text yet (DIFFICULTY_ENABLED gates it off
+     entirely), but it'll need the same slot treatment once that's real. */
   .option-label {
     color: #c8c8c8;
     font-size: 1.2;
@@ -424,7 +431,15 @@
     border-width: 0.1;
     border-color: #333333;
     border-radius: 0.6;
-    min-width: 100%;
+    /* Explicit, matching .option-trigger's own width literally rather than
+       min-width:100% (relative to .option-dropdown, the nearest
+       position-type:relative ancestor) — no evidence this was actually
+       causing a feedback loop (Yoga's absolute-position exclusion from a
+       parent's hug-sizing happens inside the engine itself, not in the JS
+       layer this codebase can inspect), but a relative tie back to a
+       hugging ancestor was avoidable risk for zero benefit once this has
+       its own fixed number anyway. */
+    width: 15;
     padding-top: 0.4;
     padding-right: 0.4;
     padding-bottom: 0.4;
@@ -543,7 +558,7 @@
     <div class="option-row">
       <div class="option-dropdown">
         <button id="as-speed-trigger" class="option-trigger">
-          <span id="as-speed-trigger-label" class="option-label">Speed: 100%</span>
+          <div id="as-speed-trigger-label-slot"></div>
           <img id="as-speed-chevron-down" class="option-chevron" src="/chevron-down.svg" />
           <img id="as-speed-chevron-up" class="option-chevron" src="/chevron-up.svg" />
         </button>

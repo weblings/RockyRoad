@@ -115,6 +115,12 @@ export class XRActiveScene {
 
     private _sectionTicks: InstanceType<typeof UIKit.Container>[] = [];
 
+    // The currently-mounted Speed trigger label Text node (see
+    // _setSpeedTriggerLabel) — destroyed and recreated on every value
+    // change rather than mutated in place, see the comment on .option-label
+    // in ui/play.uikitml for why.
+    private _speedTriggerLabelNode: InstanceType<typeof UIKit.Text> | null = null;
+
     // Non-null only while actively dragging the seek bar — the fraction (0-1)
     // the drag handlers want fill/thumb/time to show right now, previewed
     // without touching songPlayer until pointer-up commits it. While this is
@@ -307,7 +313,8 @@ export class XRActiveScene {
     // Speed dropdown popover — same trigger/menu/chevron-swap idiom as
     // XRSongLibrary.ts's sort dropdown (see as-speed-* in ui/play.uikitml).
     private _wireSpeedDropdown(doc: UIKitDocument, songPlayer: SongPlayer, rerender: () => void): void {
-        doc.getElementById('as-speed-trigger-label')?.setProperties({ text: speedPercentLabel(songPlayer.playbackRate) });
+        this._setSpeedTriggerLabel(doc, speedPercentLabel(songPlayer.playbackRate));
+
         doc.getElementById('as-speed-menu')?.setProperties({ display: this._speedMenuOpen ? 'flex' : 'none' });
         doc.getElementById('as-speed-chevron-down')?.setProperties({ display: this._speedMenuOpen ? 'none' : 'flex' });
         doc.getElementById('as-speed-chevron-up')?.setProperties({ display: this._speedMenuOpen ? 'flex' : 'none' });
@@ -350,6 +357,20 @@ export class XRActiveScene {
             initialOffset = Math.max(0, Math.min(distanceFromTop - OPTION_MENU_HEIGHT / 2, maxOffsetEstimate));
         }
         this._wireOptionMenuScroll(doc, 'as-speed-menu', 'as-speed-menu-inner', initialOffset);
+    }
+
+    // Destroys and recreates the Speed trigger's label Text node instead of
+    // mutating an existing element's .text — confirmed in-headset that
+    // mutating in place left stale/misaligned glyphs rendering behind the
+    // new text (looked like a 2-line wrap even though the measured box
+    // height never actually changed, ruling out a real wrap). See the
+    // comment on .option-label in ui/play.uikitml for the full context.
+    private _setSpeedTriggerLabel(doc: UIKitDocument, text: string): void {
+        const slot = doc.getElementById('as-speed-trigger-label-slot');
+        if (!slot) return;
+        if (this._speedTriggerLabelNode) slot.remove(this._speedTriggerLabelNode);
+        this._speedTriggerLabelNode = new UIKit.Text({ text }, ['option-label']);
+        slot.add(this._speedTriggerLabelNode);
     }
 
     // Custom drag-to-scroll for an option-menu popover, replacing @pmndrs/
