@@ -503,6 +503,9 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         doc?.rootElement.setProperties({ pointerEvents: enabled ? 'auto' : 'none' });
     }
     setSettingsPanelInteractive(false);
+    // Exposed so CalibrationSystem._showPanel() can fully disable this panel (not just
+    // hide it) when it's the sibling being displaced — see UikitLessonsLearned.md.
+    world.globals.setSettingsPanelInteractive = setSettingsPanelInteractive;
 
     // ── Song/PreScene uikit panel (next screen-by-screen migration step after
     // Settings) ───────────────────────────────────────────────────────────────
@@ -539,6 +542,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         doc?.rootElement.setProperties({ pointerEvents: enabled ? 'auto' : 'none' });
     }
     setPreScenePanelInteractive(false);
+    world.globals.setPreScenePanelInteractive = setPreScenePanelInteractive;
 
     // ── Play HUD uikit panel (third screen-by-screen migration step) ────────────
     // Same slot/pattern as settingsPanelObj/preScenePanelObj above.
@@ -572,6 +576,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         doc?.rootElement.setProperties({ pointerEvents: enabled ? 'auto' : 'none' });
     }
     setPlayPanelInteractive(false);
+    world.globals.setPlayPanelInteractive = setPlayPanelInteractive;
 
     // Library uikit panel — same slot/pattern as settingsPanelObj/preScenePanelObj/playPanelObj,
     // but sized 1m x 0.525m (not the standard 0.4m x 0.3m) for the 3-column song grid.
@@ -608,6 +613,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         doc?.rootElement.setProperties({ pointerEvents: enabled ? 'auto' : 'none' });
     }
     setLibraryPanelInteractive(false);
+    world.globals.setLibraryPanelInteractive = setLibraryPanelInteractive;
 
     // Calibration/fine-tune-reposition uikit panel — standard 0.4m x 0.3m size, standard
     // 0.169 center offset (no Library-style recompute needed). CalibrationSystem is a

@@ -126,11 +126,12 @@ export class CalibrationSystem extends createSystem({}) {
                 return;
             }
             // Only reached from Play HUD's Reposition button, whose onComplete is just a
-            // rerender() (not a full showActiveScene()) — nothing else restores playPanelObj
-            // after _showPanel() hides it, so do it explicitly here.
+            // rerender() (not a full showActiveScene()) — nothing else restores playPanelObj's
+            // visibility or interactivity after _showPanel() hides both, so do it here.
             this._onComplete = () => {
                 const obj = this.world.globals.playPanelObj as THREE.Object3D | undefined;
                 if (obj) obj.visible = true;
+                (this.world.globals.setPlayPanelInteractive as ((e: boolean) => void) | undefined)?.(true);
                 onComplete();
             };
             this.state = 'done';
@@ -614,15 +615,20 @@ export class CalibrationSystem extends createSystem({}) {
     // every show-path elsewhere hides its siblings first (see UikitLessonsLearned.md).
     // This is calibration's equivalent, kept here since only CalibrationSystem knows a
     // panel is about to show — only Keys' paths call this; Guitar is always instant/no-panel.
+    //
+    // Disables each sibling's interactivity too, not just its visibility — some callers
+    // (Play HUD's Reposition button) only hide their own panel visually before reaching
+    // here, leaving it fully ray-interactive and coincident with this panel underneath it.
     private _showPanel(): void {
         const g = this.world.globals;
-        const hide = (obj: unknown): void => {
+        const hide = (obj: unknown, setInteractive: unknown): void => {
             if (obj instanceof THREE.Object3D) obj.visible = false;
+            (setInteractive as ((e: boolean) => void) | undefined)?.(false);
         };
-        hide(g.libraryPanelObj);
-        hide(g.settingsPanelObj);
-        hide(g.preScenePanelObj);
-        hide(g.playPanelObj);
+        hide(g.libraryPanelObj,  g.setLibraryPanelInteractive);
+        hide(g.settingsPanelObj, g.setSettingsPanelInteractive);
+        hide(g.preScenePanelObj, g.setPreScenePanelInteractive);
+        hide(g.playPanelObj,     g.setPlayPanelInteractive);
 
         const obj = g.calibrationPanelObj as THREE.Object3D | undefined;
         if (obj) obj.visible = true;
@@ -630,8 +636,12 @@ export class CalibrationSystem extends createSystem({}) {
     }
 
     // Polls until the PanelDocument is ready, caching it — same pattern as
-    // XRSettingsScene.ts/XRSongLibrary.ts. Sets pointerEvents:'auto' the moment doc is
-    // confirmed real, applied proactively to avoid the race documented in UikitLessonsLearned.md.
+    // XRSettingsScene.ts/XRSongLibrary.ts. Only caches + runs the callback — does NOT
+    // touch pointerEvents (that's _showPanel()'s job via setCalibrationPanelInteractive()).
+    // This is called by read-only paths too (refreshValues() via reapply(), reached just
+    // from browsing to a Keys song, not from actually showing this panel) — a stray
+    // pointerEvents:'auto' here used to silently re-enable the panel while it was still
+    // invisible and coincident with whatever screen was actually showing.
     private _withDoc(cb: (doc: UIKitDocument) => void): void {
         if (this._doc) { cb(this._doc); return; }
         const entity = this.world.globals.calibrationPanelEntity as Entity | undefined;
@@ -639,7 +649,6 @@ export class CalibrationSystem extends createSystem({}) {
         const doc = entity.getValue(PanelDocument, 'document') as UIKitDocument | null;
         if (doc) {
             this._doc = doc;
-            doc.rootElement.setProperties({ pointerEvents: 'auto' });
             cb(doc);
             return;
         }
