@@ -106,9 +106,8 @@ export class ActiveSceneScreen implements IScreen {
             const instrumentPart =
                 songInfo.InstrumentParts.find(p => p.InstrumentName === this.part.name) ??
                 songInfo.InstrumentParts[0];
-            // No Difficulty selector on desktop yet (see DifficultyDropdownPlan.md's "Phase 3
-            // detail") — null is a no-op, returns instrumentNotes.Notes unchanged. Wired now so
-            // this call site is already correct once desktop gets its own selector.
+            // No Difficulty selector on desktop yet — null is a no-op, returns instrumentNotes.Notes
+            // unchanged. Wired now so this call site is already correct once desktop gets one.
             const resolvedNotes = { ...instrumentNotes, Notes: resolveNotesForDifficulty(instrumentNotes, null) };
             this.scene = new FretPlayerScene3D(
                 this.app.renderer, this.texture, songStructure, resolvedNotes, instrumentPart,

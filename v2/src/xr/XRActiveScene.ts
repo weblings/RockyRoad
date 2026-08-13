@@ -77,13 +77,13 @@ export class XRActiveScene {
         menuInner: 'as-difficulty-menu-inner',
     });
 
-    // Difficulty has no real playback effect yet (phase 5 — see DifficultyDropdownPlan.md), so
-    // unlike Speed (whose selection genuinely is songPlayer.playbackRate) there's no existing
-    // state to read the current selection from — this field exists purely to drive the trigger
-    // label/highlighted option. Seeded from show()'s initialDifficulty, not unconditionally reset —
-    // index.ts's showActiveScene() re-runs show() on every Settings-close/countdown-resume, not
-    // just genuine new-song starts, so a hard reset here would silently wipe the user's selection
-    // on every pause/resume within the same session.
+    // Unlike Speed (whose selection genuinely is songPlayer.playbackRate, a live-readable
+    // property), a Difficulty change rebuilds the whole highway — this field exists purely to
+    // drive the trigger label/highlighted option, not to read the "real" current value from
+    // anywhere. Seeded from show()'s initialDifficulty, not unconditionally reset — index.ts's
+    // showActiveScene() re-runs show() on every Settings-close/countdown-resume, not just genuine
+    // new-song starts, so a hard reset here would silently wipe the user's selection on every
+    // pause/resume within the same session.
     private _selectedDifficulty: number | null = null;
 
     // Current live selection — read by index.ts so a same-session re-entry (Settings close,
@@ -105,9 +105,9 @@ export class XRActiveScene {
         // Raw selected Difficulty value carried from Song, or the current live value on
         // same-session re-entry; null/undefined -> defaults to max on first render.
         initialDifficulty: number | null | undefined,
-        // Phase 5, "immediate rebuild": index.ts reloads the song at the new difficulty and
-        // re-enters showActiveScene(). No effect on the dropdown UI itself — _selectedDifficulty
-        // is still updated immediately in _wireDifficultyDropdown for instant visual feedback.
+        // index.ts rebuilds the highway at the new difficulty and re-enters showActiveScene().
+        // _selectedDifficulty is still updated immediately in _wireDifficultyDropdown regardless,
+        // so the trigger label/highlight reflect the new selection without waiting on this.
         onDifficultyChange: (value: number) => void,
         // Starts recalibration; calls done() when the user presses Done in fine-tune.
         startCalibration: (done: () => void) => void,
@@ -291,7 +291,7 @@ export class XRActiveScene {
     // song (renderDynamic(), not render()) and the "selected" value is local UI state rather than
     // read from a real property (see _selectedDifficulty). Only called when availableDifficulties
     // is non-empty (see _render()). Selecting an option updates the trigger/highlight immediately
-    // and also triggers onDifficultyChange (index.ts's "immediate rebuild" — see phase 5).
+    // and also calls onDifficultyChange, which rebuilds the highway for the new selection.
     private _wireDifficultyDropdown(
         doc: UIKitDocument,
         availableDifficulties: number[],

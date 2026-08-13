@@ -15,8 +15,8 @@ export function difficultyPercentLabel(rank: number, count: number): string {
     return `Difficulty: ${difficultyOptionLabel(rank, count)}`;
 }
 
-// Song's "Phase 3 detail": when Instrument changes, retarget Difficulty to the option in the new
-// part's list whose percentage is closest to the old selection's, rather than resetting to 100%.
+// On Song, when Instrument changes, retarget Difficulty to the option in the new part's list
+// whose percentage is closest to the old selection's, rather than resetting to 100%.
 export function nearestRankForPercentage(oldRank: number, oldCount: number, newCount: number): number {
     if (newCount <= 0) return 0;
     const fraction = oldCount > 0 ? oldRank / oldCount : 1;

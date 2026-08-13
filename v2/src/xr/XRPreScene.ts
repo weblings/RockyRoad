@@ -10,9 +10,8 @@ import { difficultyOptionLabel, difficultyPercentLabel, nearestRankForPercentage
 
 // ── XRPreScene ────────────────────────────────────────────────────────────────
 // uikit-based (see ui/song.uikitml) — migrated off html2canvas following the
-// same pattern as XRSettingsScene.ts. Now stateful (Instrument/Difficulty
-// selection persist across rerenders) — see DifficultyDropdownPlan.md's
-// "Phase 3 detail" for the design.
+// same pattern as XRSettingsScene.ts. Stateful: Instrument/Difficulty selection
+// persist across rerenders (see _selectedPart/_selectedDifficulty below).
 
 // Mirrors .option-item/.option-menu-inner/.option-menu in ui/song.uikitml — same values as
 // XRActiveScene.ts's OPTION_MENU_LAYOUT (identical CSS, hand-duplicated per-screen).
@@ -178,7 +177,7 @@ export class XRPreScene {
     }
 
     // Switching Instrument retargets Difficulty to the nearest percentage in the new part's list
-    // instead of resetting to 100% — see DifficultyDropdownPlan.md's "Phase 3 detail".
+    // instead of resetting to 100%.
     private _selectInstrument(part: SongIndexPart): void {
         const oldDifficulties = this._selectedPart?.availableDifficulties;
         const newDifficulties = part.availableDifficulties;

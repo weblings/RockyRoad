@@ -207,3 +207,27 @@ Two related facts, confirmed by reading `node_modules/@iwsdk/core/dist/ecs/{enti
 **Symptom:** Built on the assumption an earlier fix (grab-bar geometry/panel offset changes) was still in the file; it had been reverted outside the visible tool-call history, and the mismatch only surfaced because the user asked a direct readiness question.
 
 **Fix:** Re-read a file fresh before adding more work on top of it, especially after any gap in the conversation — don't rely on memory of what was previously written. Cheap insurance against silent reverts, session compaction, or edits made outside the tool-call history.
+
+---
+
+## A codebase can have more than one loading path for "the" data model — find every producer/consumer, not just the first
+
+**Symptom:** Threaded `AvailableDifficulties` through `SongIndex.ts`'s `entryFromJson()` and assumed that was the data model; the feature silently didn't work in-headset.
+
+**Root cause:** XR's actual song-loading path goes through a separate manifest-based system (`SongSource.ts`/`tools/bake-songs.ts`/`tools/song-server.ts`) that never carried the new field — a second, parallel producer/consumer of the same conceptual entity that a grep for the type definition alone didn't surface.
+
+**Fix:** When adding a field to a shared data model, trace every place that constructs the type, not just the one found first — a clean typecheck doesn't catch a parallel path that independently builds the same shape.
+
+## Audit what a reused "load everything" function actually needs before reusing it wholesale
+
+Reused the full song-loading pipeline (including a new `SongPlayer` + full audio re-fetch/decode)
+for a difficulty-only highway rebuild that never needed to touch audio at all — then had to build
+pause/preserve-position/reseek logic to paper over a problem that reuse itself created. Splitting
+out just the audio-independent part (chart fetch + scene build) made the interruption-avoidance
+logic unnecessary rather than something to work around.
+
+## A discarded Web Audio object keeps playing unless explicitly stopped
+
+Replacing a `SongPlayer` instance mid-session (e.g. for a highway rebuild) without first calling
+its `.pause()` leaves the old `AudioBufferSourceNode` playing in the background — dropping the JS
+reference alone doesn't stop it, unlike garbage-collectable state in general.

@@ -837,8 +837,8 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
             songInfo.InstrumentParts.find(p => p.InstrumentName === part.name) ??
             songInfo.InstrumentParts[0];
 
-        // Phase 5 — swap in the AlternateLevels-resolved note set for the selected difficulty.
-        // No-op (returns instrumentNotes.Notes unchanged) when selectedDifficulty is null.
+        // Swap in the AlternateLevels-resolved note set for the selected difficulty. No-op
+        // (returns instrumentNotes.Notes unchanged) when selectedDifficulty is null.
         const resolvedNotes = { ...instrumentNotes, Notes: resolveNotesForDifficulty(instrumentNotes, selectedDifficulty) };
 
         const saved = loadSettings();
@@ -941,8 +941,8 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
                 ? songPlayer.duration
                 : (songInfo.SongLengthSeconds ?? 0);
 
-            // MIDI-imported Keys songs never carry AvailableDifficulties (see
-            // ThreeCP/Analysis/DifficultyDropdownPlan.md) — no generation logic exists yet.
+            // MIDI-imported Keys songs never carry AvailableDifficulties — no generation logic
+            // for dynamic difficulty tiers exists on that import path.
             return { songPlayer, sections: rawNotes.Sections ?? [], totalDuration, noteMin, noteMax, availableDifficulties: [] };
         }
 
@@ -1036,12 +1036,11 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         setPlayPanelInteractive(true);
         world.globals.updateActivePanel = undefined;
 
-        // Phase 5, "immediate rebuild": changing Difficulty mid-play calls buildGuitarHighway()
-        // directly (not loadSong()) with the same still-playing songPlayer — audio is never
-        // touched at all (no pause, no seek, no reload), only the chart/highway geometry swaps
-        // under it. totalDuration/noteMin/noteMax are reused unchanged from this closure (the
-        // audio didn't change, so neither did they); sections/availableDifficulties come back
-        // fresh from the rebuild as a natural byproduct of re-fetching song.json anyway.
+        // Changing Difficulty calls buildGuitarHighway() directly (not loadSong()) with the same
+        // still-playing songPlayer — audio is never touched (no pause/seek/reload), only the
+        // chart/highway geometry swaps under it. totalDuration/noteMin/noteMax are reused
+        // unchanged from this closure since the audio didn't change; sections/availableDifficulties
+        // come back fresh from the rebuild as a natural byproduct of re-fetching song.json anyway.
         const onDifficultyChange = async (newDifficulty: number): Promise<void> => {
             disposeHighway();
             const result = await buildGuitarHighway(entry, partName, newDifficulty, songPlayer);

@@ -1,8 +1,7 @@
-// Phase 5 (see ThreeCP/Analysis/DifficultyDropdownPlan.md): merges instrumentNotes.Notes (the
-// implicit hardest tier) with instrumentNotes.AlternateLevels (explicit easier tiers, phrase-
-// scoped) into a single flat note array matching a selected difficulty. Pure, no rendering
-// dependency — shared by XR's index.ts and desktop's ActiveSceneScreen.ts (desktop passes null
-// today, since it has no Difficulty UI yet — see DifficultyDropdownPlan.md's "Phase 3 detail").
+// Merges instrumentNotes.Notes (the implicit hardest tier) with instrumentNotes.AlternateLevels
+// (explicit easier tiers, phrase-scoped) into a single flat note array matching a selected
+// difficulty. Pure, no rendering dependency — shared by XR's index.ts and desktop's
+// ActiveSceneScreen.ts (desktop passes null today, since it has no Difficulty selector yet).
 
 import type { SongInstrumentNotes, SongNote, SongDifficultyLevel } from "./SongFormat";
 

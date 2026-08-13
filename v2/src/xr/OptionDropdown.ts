@@ -66,12 +66,10 @@ function setOptionSelected(el: ReturnType<UIKitDocument['getElementById']>, sele
     else          { if (el.classList.contains('option-item-selected')) el.classList.remove('option-item-selected'); }
 }
 
-// A single trigger+popover dropdown (Speed, and later Difficulty/Instrument) — one instance per
-// dropdown, each owning its own open/scroll/label state. Extracted from XRActiveScene.ts's
-// original Speed-only implementation; see ThreeCP/Analysis/DifficultyDropdownPlan.md's
-// "Phase 1 detail" for the extraction rationale. Two ways to supply options: render() for a
-// fixed, statically-declared list (Speed's markup always has all 10 buttons present); renderDynamic()
-// for a list whose length/labels vary per song (Difficulty, and later Song's Instrument dropdown).
+// A single trigger+popover dropdown (Play's Speed/Difficulty, Song's Instrument/Difficulty) — one
+// instance per dropdown, each owning its own open/scroll/label state. Two ways to supply options:
+// render() for a fixed, statically-declared list (Speed's markup always has all 10 buttons
+// present); renderDynamic() for a list whose length/labels vary per song (Difficulty, Instrument).
 export class OptionDropdown {
     private ids: OptionDropdownIds;
     private menuOpen = false;

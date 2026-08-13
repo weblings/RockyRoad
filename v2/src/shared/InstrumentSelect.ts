@@ -1,6 +1,5 @@
 // Shared instrument-selection logic — used by both src/xr/XRPreScene.ts and
-// src/desktop/PreSceneScreen.ts so the two platforms behave identically (see
-// ThreeCP/Analysis/DifficultyDropdownPlan.md's "Phase 3 detail").
+// src/desktop/PreSceneScreen.ts so the two platforms behave identically.
 
 import type { SongIndexEntry, SongIndexPart } from "./SongIndex";
 

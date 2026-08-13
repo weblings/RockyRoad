@@ -657,3 +657,23 @@ list) — creating/destroying `UIKit.Container`+`Text` nodes each call, same pat
 `_buildSectionTicks`/Library's rows. Both funnel into one shared private tail (trigger/chevron
 toggle, centering math, scroll wiring) that doesn't care how the option elements were obtained —
 only the "how do we get the elements" step differs.
+
+---
+
+## An analytic viewport-height fix for a dropdown's last-item-clipped scroll bug didn't work — unresolved
+
+**Symptom:** Selecting the last option in a dropdown doesn't scroll it into the visible window;
+earlier/near-last options work fine.
+
+**Attempted fix (reverted):** Assumed `computeCenteredOffset()`'s `menuHeight` (mirroring
+`.option-menu`'s CSS `height`) overstated the real clipped viewport by the element's padding/border,
+under-clamping the max scroll offset. Reducing `menuHeight` to compensate had no observed effect —
+root cause is still unconfirmed. Don't re-attempt the same padding-subtraction theory without new
+evidence.
+
+## A runtime-created option node doesn't inherit a `<button>` markup class's default alignment
+
+Reusing `.option-item` (authored against a `<button>` in markup) on a dynamically-created
+`UIKit.Container` (`OptionDropdown.renderDynamic()`) left its text left-justified instead of
+centered — the button's implicit center-alignment isn't part of the shared class, only the button
+element itself. Fix: set `justifyContent`/`alignItems: 'center'` explicitly on the container.

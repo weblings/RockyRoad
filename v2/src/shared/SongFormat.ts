@@ -94,9 +94,8 @@ export interface SongChordDefinition {
     Frets: number[];
 }
 
-// One phrase's worth of alternate (easier) notes at a given difficulty level — see
-// ThreeCP/Analysis/DifficultyDropdownPlan.md. Not yet consumed for playback (phase 5);
-// the type exists now since the data is already present in real converted note files.
+// One phrase's worth of alternate (easier) notes at a given difficulty level — resolved
+// against a selected difficulty by DifficultyResolve.ts's resolveNotesForDifficulty().
 export interface SongDifficultyLevel {
     Difficulty: number;
     StartTime: number;
