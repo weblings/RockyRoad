@@ -285,3 +285,15 @@ Confirmed hands-on: manually deriving the list from `bass.json`/`lead.json`/`rhy
   part's overall max.
 - `normalizeTechniques()`-equivalent handling for `AlternateLevels[].Notes` (only matters once those
   notes are actually rendered).
+
+## Follow-up (not phase-ordered): `SongDifficulty` fallback in library sort
+
+`SongIndex.ts:108` maps `difficulty: Number(p.SongDifficulty ?? 0)`, consumed by desktop
+`SongLibraryScreen.ts`'s difficulty-asc/desc sort. `SongDifficulty` (confirmed still real, not
+vestigial — added upstream in `OpenSongChart` by a third-party contributor, predates this project)
+is a flat per-song value and can be absent even when `AvailableDifficulties` is populated, which
+currently sorts those songs to the bottom regardless of actual difficulty. Fallback: when
+`SongDifficulty` is missing, derive from `AvailableDifficulties` (e.g. its max) instead of `0`. No
+fallback needed in the reverse direction — `SongDifficulty` is a single number, not a set of
+selectable tiers, so it can't stand in for `AvailableDifficulties` anywhere (e.g. the Play dropdown
+gate, which correctly just hides when the list is empty).

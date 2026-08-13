@@ -123,7 +123,9 @@ export class OptionDropdown {
 
         let selectedIndex = -1;
         options.forEach((opt, i) => {
-            const node = new UIKit.Container({}, ['option-item']);
+            // .option-item's markup counterpart is a <button>, which centers its text by
+            // default — a plain Container doesn't, so it's set explicitly here.
+            const node = new UIKit.Container({ justifyContent: 'center', alignItems: 'center' }, ['option-item']);
             node.add(new UIKit.Text({ text: opt.label }, []));
             if (opt.selected) selectedIndex = i;
             this._wireOption(node, opt.selected, opt.onSelect, rerender);

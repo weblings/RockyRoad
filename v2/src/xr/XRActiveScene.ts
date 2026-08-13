@@ -286,7 +286,7 @@ export class XRActiveScene {
         );
 
         const options: DynamicOption[] = sorted.map(value => ({
-            label: difficultyPercentLabel(value, max),
+            label: difficultyOptionLabel(value, max),
             selected: value === this._selectedDifficulty,
             onSelect: () => { this._selectedDifficulty = value; },
         }));
@@ -396,6 +396,12 @@ function speedPercentLabel(r: number): string {
 // Raw Difficulty values are an arbitrary per-song integer scale (see DifficultyDropdownPlan.md's
 // "song.json is the primary source" section) — normalized to a percentage of that song's own max
 // for display, same "float under the hood, shown like '100%'" framing as Speed.
+function difficultyOptionLabel(value: number, max: number): string {
+    return `${max > 0 ? Math.round((value / max) * 100) : 100}%`;
+}
+
+// Trigger label only — options use difficultyOptionLabel (bare percent, no prefix; Speed avoids
+// needing this split because its options are static markup, not JS-generated labels).
 function difficultyPercentLabel(value: number, max: number): string {
-    return `Difficulty: ${max > 0 ? Math.round((value / max) * 100) : 100}%`;
+    return `Difficulty: ${difficultyOptionLabel(value, max)}`;
 }
