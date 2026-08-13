@@ -5,7 +5,8 @@ import type { SongIndexPart } from "../shared/SongIndex";
 import { PART_LABEL, resolveDefaultPart } from "../shared/InstrumentSelect";
 import { loadSettings, saveSettings } from "../shared/Settings";
 import type { DynamicOption, OptionMenuLayout } from "./OptionDropdown";
-import { OptionDropdown, difficultyOptionLabel, difficultyPercentLabel, nearestRankForPercentage } from "./OptionDropdown";
+import { OptionDropdown } from "./OptionDropdown";
+import { difficultyOptionLabel, difficultyPercentLabel, nearestRankForPercentage } from "../shared/DifficultyDisplay";
 
 // ── XRPreScene ────────────────────────────────────────────────────────────────
 // uikit-based (see ui/song.uikitml) — migrated off html2canvas following the
@@ -65,11 +66,11 @@ export class XRPreScene {
         // Returns true if a saved calibration was found and applied.
         tryLoadCalibration: (instrumentType: string) => boolean,
         // Saved calibration exists — load song and go straight to active scene.
-        onPlay: (sourced: SourcedEntry, partName: string) => void,
+        onPlay: (sourced: SourcedEntry, partName: string, difficulty: number | null) => void,
         // No saved calibration — load song first (highway visible), then full 3-step calibrate.
-        onCalibratePlay: (sourced: SourcedEntry, partName: string) => void,
+        onCalibratePlay: (sourced: SourcedEntry, partName: string, difficulty: number | null) => void,
         // Saved calibration exists — load song then open fine-tune panel directly.
-        onReposition: (sourced: SourcedEntry, partName: string) => void,
+        onReposition: (sourced: SourcedEntry, partName: string, difficulty: number | null) => void,
         onBack: () => void,
     ): void {
         this._selectedPart = null;
@@ -94,9 +95,9 @@ export class XRPreScene {
         doc: UIKitDocument,
         sourced: SourcedEntry,
         tryLoadCalibration: (instrumentType: string) => boolean,
-        onPlay: (sourced: SourcedEntry, partName: string) => void,
-        onCalibratePlay: (sourced: SourcedEntry, partName: string) => void,
-        onReposition: (sourced: SourcedEntry, partName: string) => void,
+        onPlay: (sourced: SourcedEntry, partName: string, difficulty: number | null) => void,
+        onCalibratePlay: (sourced: SourcedEntry, partName: string, difficulty: number | null) => void,
+        onReposition: (sourced: SourcedEntry, partName: string, difficulty: number | null) => void,
         onBack: () => void,
     ): void {
         const rerender = () => this._render(doc, sourced, tryLoadCalibration, onPlay, onCalibratePlay, onReposition, onBack);
@@ -151,10 +152,10 @@ export class XRPreScene {
         };
 
         if (hasSavedCal) {
-            this._setClick(doc, 'ps-play',  () => { commitInstrument(); onPlay(sourced, partName); });
-            this._setClick(doc, 'ps-recal', () => { commitInstrument(); onReposition(sourced, partName); });
+            this._setClick(doc, 'ps-play',  () => { commitInstrument(); onPlay(sourced, partName, this._selectedDifficulty); });
+            this._setClick(doc, 'ps-recal', () => { commitInstrument(); onReposition(sourced, partName, this._selectedDifficulty); });
         } else {
-            this._setClick(doc, 'ps-play', () => { commitInstrument(); onCalibratePlay(sourced, partName); });
+            this._setClick(doc, 'ps-play', () => { commitInstrument(); onCalibratePlay(sourced, partName, this._selectedDifficulty); });
         }
     }
 

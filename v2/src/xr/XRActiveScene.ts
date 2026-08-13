@@ -3,7 +3,8 @@ import { PanelDocument, UIKit } from "@iwsdk/core";
 import type { SongPlayer } from "../shared/SongPlayer";
 import type { SongSection } from "../shared/SongFormat";
 import type { DynamicOption, OptionDropdownItem, OptionMenuLayout, WorldPointerEvent } from "./OptionDropdown";
-import { OptionDropdown, difficultyOptionLabel, difficultyPercentLabel } from "./OptionDropdown";
+import { OptionDropdown } from "./OptionDropdown";
+import { difficultyOptionLabel, difficultyPercentLabel } from "../shared/DifficultyDisplay";
 
 // uikit-based (see ui/play.uikitml), migrated off html2canvas — same pattern as
 // XRSettingsScene.ts/XRPreScene.ts, but also has per-frame content (play/pause,
@@ -79,8 +80,18 @@ export class XRActiveScene {
     // Difficulty has no real playback effect yet (phase 5 — see DifficultyDropdownPlan.md), so
     // unlike Speed (whose selection genuinely is songPlayer.playbackRate) there's no existing
     // state to read the current selection from — this field exists purely to drive the trigger
-    // label/highlighted option. Reset to null in show() (new song), not on every rerender.
+    // label/highlighted option. Seeded from show()'s initialDifficulty, not unconditionally reset —
+    // index.ts's showActiveScene() re-runs show() on every Settings-close/countdown-resume, not
+    // just genuine new-song starts, so a hard reset here would silently wipe the user's selection
+    // on every pause/resume within the same session.
     private _selectedDifficulty: number | null = null;
+
+    // Current live selection — read by index.ts so a same-session re-entry (Settings close,
+    // countdown resume) can pass the latest value back into show() instead of the original
+    // Song-time snapshot or a hard reset.
+    get selectedDifficulty(): number | null {
+        return this._selectedDifficulty;
+    }
 
     show(
         panelEntity: Entity,
@@ -91,6 +102,9 @@ export class XRActiveScene {
         totalDuration: number,
         sections: SongSection[],
         availableDifficulties: number[],
+        // Raw selected Difficulty value carried from Song, or the current live value on
+        // same-session re-entry; null/undefined -> defaults to max on first render.
+        initialDifficulty: number | null | undefined,
         // Starts recalibration; calls done() when the user presses Done in fine-tune.
         startCalibration: (done: () => void) => void,
         // Pause + 3s rollback + 3-2-1 countdown, then resume.
@@ -100,10 +114,7 @@ export class XRActiveScene {
         registerPanelUpdate: (cb: () => void) => void,
         onBack: () => void,
     ): void {
-        // New song — Difficulty's selection (unlike Speed's, which reads straight from
-        // songPlayer.playbackRate) is local UI state and would otherwise carry over from
-        // whatever song was playing before.
-        this._selectedDifficulty = null;
+        this._selectedDifficulty = initialDifficulty ?? null;
 
         const proceed = (doc: UIKitDocument) => {
             this._doc = doc;

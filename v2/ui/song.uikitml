@@ -104,8 +104,8 @@
     gap-column: 1.2;
     padding-top: 0.6;
     padding-bottom: 0.6;
-    padding-left: 2.2;
-    padding-right: 2.2;
+    padding-left: 1;
+    padding-right: 1;
   }
 
   /* Explicit width (not hug-sized) so the card has a consistent size regardless
@@ -218,7 +218,10 @@
     padding-right: 1;
     padding-bottom: 0.7;
     padding-left: 1;
-    width: 12.6;
+    /* Wider than Play's equivalent (15) — "Instrument: Rhythm" (19 chars) is longer than
+       anything Play's own triggers show ("Difficulty: 100%", 17 chars). Literal estimate,
+       tune once visible in-headset, same caveat as .option-menu's position-top below. */
+    width: 16.5;
     background-color: #333333;
     border-width: 0.1;
     border-color: #444444;
@@ -264,7 +267,7 @@
     border-width: 0.1;
     border-color: #333333;
     border-radius: 0.6;
-    width: 12.6;
+    width: 16.5;
     padding-top: 0.4;
     padding-right: 0.4;
     padding-bottom: 0.4;
