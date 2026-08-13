@@ -276,17 +276,23 @@ export class XRActiveScene {
     private _wireDifficultyDropdown(doc: UIKitDocument, availableDifficulties: number[], rerender: () => void): void {
         const sorted = [...availableDifficulties].sort((a, b) => a - b);
         const max = sorted[sorted.length - 1];
+        const count = sorted.length;
 
         // Lazy default on first render for this song — max value (100%, no reduction), same
         // "safe default" role Speed's 100% plays. show() resets this to null per new song.
         if (this._selectedDifficulty == null) this._selectedDifficulty = max;
 
+        // Percentage is by rank (1-based position in the sorted list), not raw value/max — the
+        // raw values are an arbitrary per-song scale that can start at 0, which would otherwise
+        // show the easiest option as a misleading "0%". Rank guarantees the range is (0%, 100%].
+        const rankOf = (value: number): number => sorted.indexOf(value) + 1;
+
         this._difficultyDropdown.setTriggerLabel(
-            doc, difficultyPercentLabel(this._selectedDifficulty, max), 'option-label',
+            doc, difficultyPercentLabel(rankOf(this._selectedDifficulty), count), 'option-label',
         );
 
-        const options: DynamicOption[] = sorted.map(value => ({
-            label: difficultyOptionLabel(value, max),
+        const options: DynamicOption[] = sorted.map((value, i) => ({
+            label: difficultyOptionLabel(i + 1, count),
             selected: value === this._selectedDifficulty,
             onSelect: () => { this._selectedDifficulty = value; },
         }));
@@ -393,15 +399,16 @@ function speedPercentLabel(r: number): string {
     return `Speed: ${Math.round(r * 100)}%`;
 }
 
-// Raw Difficulty values are an arbitrary per-song integer scale (see DifficultyDropdownPlan.md's
-// "song.json is the primary source" section) — normalized to a percentage of that song's own max
-// for display, same "float under the hood, shown like '100%'" framing as Speed.
-function difficultyOptionLabel(value: number, max: number): string {
-    return `${max > 0 ? Math.round((value / max) * 100) : 100}%`;
+// rank/count, not raw value/max — see _wireDifficultyDropdown's rankOf() for why (raw Difficulty
+// values are an arbitrary per-song scale that can start at 0). 1-based rank keeps the displayed
+// range (0%, 100%] instead of [0%, 100%], same "float under the hood, shown like '100%'" framing
+// as Speed.
+function difficultyOptionLabel(rank: number, count: number): string {
+    return `${count > 0 ? Math.round((rank / count) * 100) : 100}%`;
 }
 
 // Trigger label only — options use difficultyOptionLabel (bare percent, no prefix; Speed avoids
 // needing this split because its options are static markup, not JS-generated labels).
-function difficultyPercentLabel(value: number, max: number): string {
-    return `Difficulty: ${difficultyOptionLabel(value, max)}`;
+function difficultyPercentLabel(rank: number, count: number): string {
+    return `Difficulty: ${difficultyOptionLabel(rank, count)}`;
 }
