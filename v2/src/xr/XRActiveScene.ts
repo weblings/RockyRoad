@@ -2,7 +2,7 @@ import type { Entity, UIKitDocument } from "@iwsdk/core";
 import { PanelDocument, UIKit } from "@iwsdk/core";
 import type { SongPlayer } from "../shared/SongPlayer";
 import type { SongSection } from "../shared/SongFormat";
-import type { OptionDropdownItem, OptionMenuLayout, WorldPointerEvent } from "./OptionDropdown";
+import type { DynamicOption, OptionDropdownItem, OptionMenuLayout, WorldPointerEvent } from "./OptionDropdown";
 import { OptionDropdown } from "./OptionDropdown";
 
 // uikit-based (see ui/play.uikitml), migrated off html2canvas — same pattern as
@@ -12,11 +12,11 @@ import { OptionDropdown } from "./OptionDropdown";
 const MAX_TITLE_CHARS    = 26;
 const MAX_SUBTITLE_CHARS = 30;
 
-// Note-hit streaks and in-play Difficulty have no backing data model yet (see
-// Stretch Goal B / SongFormat.SongDifficulty being static metadata) — both rows
-// are already built in ui/play.uikitml, just gated off until the real features land.
+// Note-hit streaks have no backing data model yet (see Stretch Goal B) — the row is already
+// built in ui/play.uikitml, just gated off until the real feature lands. Difficulty is real
+// now (see ThreeCP/Analysis/DifficultyDropdownPlan.md) — its own visibility is per-song,
+// driven by whether the loaded part actually has AvailableDifficulties.
 const STATS_ROW_ENABLED = false;
-const DIFFICULTY_ENABLED = false;
 
 // Matches desktop's SPEED_PRESET_STEP: 20% steps, 20%-200%. No separate fine
 // +/-0.05 stepper here — the XR design only shows a single dropdown trigger.
@@ -67,6 +67,21 @@ export class XRActiveScene {
         menuInner: 'as-speed-menu-inner',
     });
 
+    private _difficultyDropdown = new OptionDropdown({
+        trigger: 'as-difficulty-trigger',
+        triggerLabelSlot: 'as-difficulty-trigger-label-slot',
+        chevronDown: 'as-difficulty-chevron-down',
+        chevronUp: 'as-difficulty-chevron-up',
+        menu: 'as-difficulty-menu',
+        menuInner: 'as-difficulty-menu-inner',
+    });
+
+    // Difficulty has no real playback effect yet (phase 5 — see DifficultyDropdownPlan.md), so
+    // unlike Speed (whose selection genuinely is songPlayer.playbackRate) there's no existing
+    // state to read the current selection from — this field exists purely to drive the trigger
+    // label/highlighted option. Reset to null in show() (new song), not on every rerender.
+    private _selectedDifficulty: number | null = null;
+
     show(
         panelEntity: Entity,
         songTitle: string,
@@ -75,6 +90,7 @@ export class XRActiveScene {
         songPlayer: SongPlayer,
         totalDuration: number,
         sections: SongSection[],
+        availableDifficulties: number[],
         // Starts recalibration; calls done() when the user presses Done in fine-tune.
         startCalibration: (done: () => void) => void,
         // Pause + 3s rollback + 3-2-1 countdown, then resume.
@@ -84,10 +100,15 @@ export class XRActiveScene {
         registerPanelUpdate: (cb: () => void) => void,
         onBack: () => void,
     ): void {
+        // New song — Difficulty's selection (unlike Speed's, which reads straight from
+        // songPlayer.playbackRate) is local UI state and would otherwise carry over from
+        // whatever song was playing before.
+        this._selectedDifficulty = null;
+
         const proceed = (doc: UIKitDocument) => {
             this._doc = doc;
             this._render(
-                doc, songTitle, songArtist, artUrl, songPlayer, totalDuration, sections,
+                doc, songTitle, songArtist, artUrl, songPlayer, totalDuration, sections, availableDifficulties,
                 startCalibration, onResumeWithCountdown, onSettings, registerPanelUpdate, onBack,
             );
         };
@@ -110,6 +131,7 @@ export class XRActiveScene {
         songPlayer: SongPlayer,
         totalDuration: number,
         sections: SongSection[],
+        availableDifficulties: number[],
         startCalibration: (done: () => void) => void,
         onResumeWithCountdown: (pausedAt: number) => void,
         onSettings: () => void,
@@ -117,7 +139,7 @@ export class XRActiveScene {
         onBack: () => void,
     ): void {
         const rerender = () => this._render(
-            doc, songTitle, songArtist, artUrl, songPlayer, totalDuration, sections,
+            doc, songTitle, songArtist, artUrl, songPlayer, totalDuration, sections, availableDifficulties,
             startCalibration, onResumeWithCountdown, onSettings, registerPanelUpdate, onBack,
         );
 
@@ -129,15 +151,17 @@ export class XRActiveScene {
         if (artUrl) artEl?.setProperties({ display: 'flex', src: artUrl });
         else        artEl?.setProperties({ display: 'none' });
 
-        // Both gated fully off for now — see the STATS_ROW_ENABLED/
-        // DIFFICULTY_ENABLED comment near the top of this file. Setting
-        // display explicitly (rather than relying on the compiled-in
-        // default) means flipping either const later needs no markup change.
+        // Stats row is gated fully off for now — see STATS_ROW_ENABLED near the top of this
+        // file. Setting display explicitly (rather than relying on the compiled-in default)
+        // means flipping it later needs no markup change.
         doc.getElementById('as-stats-row')?.setProperties({ display: STATS_ROW_ENABLED ? 'flex' : 'none' });
-        doc.getElementById('as-difficulty-dropdown')?.setProperties({ display: DIFFICULTY_ENABLED ? 'flex' : 'none' });
+        doc.getElementById('as-difficulty-dropdown')?.setProperties({
+            display: availableDifficulties.length > 0 ? 'flex' : 'none',
+        });
 
         this._buildSectionTicks(doc, sections, totalDuration);
         this._wireSpeedDropdown(doc, songPlayer, rerender);
+        if (availableDifficulties.length > 0) this._wireDifficultyDropdown(doc, availableDifficulties, rerender);
 
         this._setClick(doc, 'as-library', onBack);
         this._setClick(doc, 'as-settings', () => {
@@ -245,6 +269,31 @@ export class XRActiveScene {
         this._speedDropdown.render(doc, items, OPTION_MENU_LAYOUT, rerender);
     }
 
+    // Difficulty dropdown popover — same shape as Speed's, but the option count/labels vary per
+    // song (renderDynamic(), not render()) and the "selected" value is local UI state rather than
+    // read from a real property (see _selectedDifficulty). Only called when availableDifficulties
+    // is non-empty (see _render()). No playback effect yet — see DifficultyDropdownPlan.md phase 5.
+    private _wireDifficultyDropdown(doc: UIKitDocument, availableDifficulties: number[], rerender: () => void): void {
+        const sorted = [...availableDifficulties].sort((a, b) => a - b);
+        const max = sorted[sorted.length - 1];
+
+        // Lazy default on first render for this song — max value (100%, no reduction), same
+        // "safe default" role Speed's 100% plays. show() resets this to null per new song.
+        if (this._selectedDifficulty == null) this._selectedDifficulty = max;
+
+        this._difficultyDropdown.setTriggerLabel(
+            doc, difficultyPercentLabel(this._selectedDifficulty, max), 'option-label',
+        );
+
+        const options: DynamicOption[] = sorted.map(value => ({
+            label: difficultyPercentLabel(value, max),
+            selected: value === this._selectedDifficulty,
+            onSelect: () => { this._selectedDifficulty = value; },
+        }));
+
+        this._difficultyDropdown.renderDynamic(doc, options, OPTION_MENU_LAYOUT, rerender);
+    }
+
     private _wireSeekDrag(
         doc: UIKitDocument,
         songPlayer: SongPlayer,
@@ -342,4 +391,11 @@ export class XRActiveScene {
 
 function speedPercentLabel(r: number): string {
     return `Speed: ${Math.round(r * 100)}%`;
+}
+
+// Raw Difficulty values are an arbitrary per-song integer scale (see DifficultyDropdownPlan.md's
+// "song.json is the primary source" section) — normalized to a percentage of that song's own max
+// for display, same "float under the hood, shown like '100%'" framing as Speed.
+function difficultyPercentLabel(value: number, max: number): string {
+    return `Difficulty: ${max > 0 ? Math.round((value / max) * 100) : 100}%`;
 }

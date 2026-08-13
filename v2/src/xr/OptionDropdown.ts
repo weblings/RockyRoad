@@ -29,6 +29,14 @@ export interface OptionDropdownItem {
     onSelect: () => void;
 }
 
+// Same shape as OptionDropdownItem but for renderDynamic() — no id, since the element doesn't
+// exist in markup yet; a label instead, since the element's text has to come from somewhere.
+export interface DynamicOption {
+    label: string;
+    selected: boolean;
+    onSelect: () => void;
+}
+
 export interface OptionMenuLayout {
     itemHeight: number;
     itemGap: number;
@@ -61,14 +69,15 @@ function setOptionSelected(el: ReturnType<UIKitDocument['getElementById']>, sele
 // A single trigger+popover dropdown (Speed, and later Difficulty/Instrument) — one instance per
 // dropdown, each owning its own open/scroll/label state. Extracted from XRActiveScene.ts's
 // original Speed-only implementation; see ThreeCP/Analysis/DifficultyDropdownPlan.md's
-// "Phase 1 detail" for the extraction rationale. Handles a fixed, statically-declared option list
-// (matching play.uikitml's markup) — does not yet support runtime-created/destroyed options,
-// which a future dynamic-length dropdown (Song's Instrument/Difficulty) would need to add.
+// "Phase 1 detail" for the extraction rationale. Two ways to supply options: render() for a
+// fixed, statically-declared list (Speed's markup always has all 10 buttons present); renderDynamic()
+// for a list whose length/labels vary per song (Difficulty, and later Song's Instrument dropdown).
 export class OptionDropdown {
     private ids: OptionDropdownIds;
     private menuOpen = false;
     private menuWasOpen = false;
     private triggerLabelNode: InstanceType<typeof UIKit.Text> | null = null;
+    private optionNodes: InstanceType<typeof UIKit.Container>[] = [];
     private scrollOffset = 0;
 
     constructor(ids: OptionDropdownIds) {
@@ -89,9 +98,64 @@ export class OptionDropdown {
         slot.add(this.triggerLabelNode);
     }
 
-    // Call every render. items describes the current, full option list — trigger/chevron/menu
-    // display, each option's selected state and click, and open-scroll centering all get wired here.
+    // Call every render. items describes the current, full option list, each already present in
+    // markup with a known id — trigger/chevron/menu display, each option's selected state and
+    // click, and open-scroll centering all get wired here.
     render(doc: UIKitDocument, items: OptionDropdownItem[], layout: OptionMenuLayout, rerender: () => void): void {
+        let selectedIndex = -1;
+        items.forEach((item, i) => {
+            const el = doc.getElementById(item.id);
+            if (!el) return;
+            if (item.selected) selectedIndex = i;
+            this._wireOption(el, item.selected, item.onSelect, rerender);
+        });
+        this._afterOptionsWired(doc, selectedIndex, items.length, layout, rerender);
+    }
+
+    // Same as render(), but for an option count/labels that vary per song (menu-inner starts
+    // empty in markup) — destroys and recreates UIKit.Container+Text option nodes each call, same
+    // "destroy and recreate" pattern already used for section ticks and Library's song rows.
+    renderDynamic(doc: UIKitDocument, options: DynamicOption[], layout: OptionMenuLayout, rerender: () => void): void {
+        const container = doc.getElementById(this.ids.menuInner);
+        if (!container) return;
+        for (const node of this.optionNodes) container.remove(node);
+        this.optionNodes = [];
+
+        let selectedIndex = -1;
+        options.forEach((opt, i) => {
+            const node = new UIKit.Container({}, ['option-item']);
+            node.add(new UIKit.Text({ text: opt.label }, []));
+            if (opt.selected) selectedIndex = i;
+            this._wireOption(node, opt.selected, opt.onSelect, rerender);
+            container.add(node);
+            this.optionNodes.push(node);
+        });
+        this._afterOptionsWired(doc, selectedIndex, options.length, layout, rerender);
+    }
+
+    private _wireOption(
+        el: InstanceType<typeof UIKit.Container> | Exclude<ReturnType<UIKitDocument['getElementById']>, null>,
+        selected: boolean,
+        onSelect: () => void,
+        rerender: () => void,
+    ): void {
+        setOptionSelected(el, selected);
+        el.setProperties({
+            onClick: () => {
+                onSelect();
+                this.menuOpen = false;
+                rerender();
+            },
+        });
+    }
+
+    private _afterOptionsWired(
+        doc: UIKitDocument,
+        selectedIndex: number,
+        itemCount: number,
+        layout: OptionMenuLayout,
+        rerender: () => void,
+    ): void {
         doc.getElementById(this.ids.menu)?.setProperties({ display: this.menuOpen ? 'flex' : 'none' });
         doc.getElementById(this.ids.chevronDown)?.setProperties({ display: this.menuOpen ? 'none' : 'flex' });
         doc.getElementById(this.ids.chevronUp)?.setProperties({ display: this.menuOpen ? 'flex' : 'none' });
@@ -102,27 +166,12 @@ export class OptionDropdown {
             },
         });
 
-        let selectedIndex = -1;
-        items.forEach((item, i) => {
-            const el = doc.getElementById(item.id);
-            if (!el) return;
-            if (item.selected) selectedIndex = i;
-            setOptionSelected(el, item.selected);
-            el.setProperties({
-                onClick: () => {
-                    item.onSelect();
-                    this.menuOpen = false;
-                    rerender();
-                },
-            });
-        });
-
         // Recenter only on the open transition, not every rerender (e.g. Playpause) of an
         // already-open menu, which would fight the user's own scrolling.
         const justOpened = this.menuOpen && !this.menuWasOpen;
         this.menuWasOpen = this.menuOpen;
 
-        const initialOffset = justOpened ? computeCenteredOffset(selectedIndex, items.length, layout) : undefined;
+        const initialOffset = justOpened ? computeCenteredOffset(selectedIndex, itemCount, layout) : undefined;
         this._wireScroll(doc, initialOffset);
     }
 

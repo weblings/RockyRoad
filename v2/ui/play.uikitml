@@ -294,10 +294,7 @@
      duplicated here since .uikitml has no @import/shared-stylesheet
      mechanism (each compiled panel is fully self-contained). If a third
      screen needs this component, re-derive it there the same way rather
-     than trying to share the actual class rules. Difficulty doesn't exist
-     as a real feature yet (SongFormat.SongDifficulty is static per-song
-     metadata, not a live in-play control) — its dropdown is built but kept
-     fully hidden via DIFFICULTY_ENABLED in XRActiveScene.ts. */
+     than trying to share the actual class rules. */
   .option-row {
     display: flex;
     flex-direction: row;
@@ -308,18 +305,18 @@
     flex-shrink: 0;
   }
 
-  /* Hugs its trigger's own content width rather than stretching to fill
-     .option-row — with only Speed visible (Difficulty gated off), a
-     flex-grow:1 stretch here made the single trigger span the full row. */
+  /* Hugs its trigger's own content width rather than stretching to fill .option-row —
+     a flex-grow:1 stretch here made a single trigger span the full row when Difficulty
+     is hidden (song has no AvailableDifficulties). */
   .option-dropdown {
     position-type: relative;
     flex-grow: 0;
     flex-shrink: 0;
   }
 
-  /* Difficulty doesn't exist as a real feature yet — see the block comment
-     above .option-row. Compiled-in default so it stays hidden even before
-     XRActiveScene.ts's DIFFICULTY_ENABLED gate runs on first render. */
+  /* Difficulty's default state — XRActiveScene.ts flips this to 'flex' per song, only
+     when that song's selected part actually has AvailableDifficulties. Compiled-in
+     default so it stays hidden even before the first render sets it either way. */
   .option-dropdown-gated {
     display: none;
   }
@@ -357,19 +354,10 @@
      controls whitespace collapsing in this library (see the width comment
      on .option-trigger), not line-wrapping; there's no property-level way
      to suppress wrapping, only a wide-enough container. */
-  /* Applied to a UIKit.Text node XRActiveScene.ts destroys and recreates on
-     every value change (into #as-speed-trigger-label-slot, an otherwise-
-     empty positional placeholder in the markup below), rather than a
-     static <span> mutated via setProperties({text}) — confirmed in-headset
-     that mutating an existing element's text left stale/misaligned glyphs
-     rendering behind the new ones (looked like a 2-line wrap; logged
-     .size and the box height never actually changed, so it wasn't a real
-     wrap). Recreating the node sidesteps whatever the exact stale-glyph
-     mechanism is, same technique already used for section ticks
-     (_buildSectionTicks) and Library's song rows. Difficulty's trigger
-     label (#as-difficulty-trigger-label below) is still a static span —
-     nothing updates its text yet (DIFFICULTY_ENABLED gates it off
-     entirely), but it'll need the same slot treatment once that's real. */
+  /* Applied to a UIKit.Text node OptionDropdown.setTriggerLabel() destroys and recreates on
+     every value change (into an otherwise-empty slot div), rather than a static <span> mutated
+     via setProperties({text}) — confirmed in-headset that mutating in place left stale/misaligned
+     glyphs rendering behind new text. Both Speed's and Difficulty's trigger labels use this. */
   .option-label {
     color: #c8c8c8;
     font-size: 1.2;
@@ -579,7 +567,7 @@
       </div>
       <div id="as-difficulty-dropdown" class="option-dropdown option-dropdown-gated">
         <button id="as-difficulty-trigger" class="option-trigger">
-          <span id="as-difficulty-trigger-label" class="option-label">Difficulty: 100%</span>
+          <div id="as-difficulty-trigger-label-slot"></div>
           <img id="as-difficulty-chevron-down" class="option-chevron" src="/chevron-down.svg" />
           <img id="as-difficulty-chevron-up" class="option-chevron" src="/chevron-up.svg" />
         </button>
