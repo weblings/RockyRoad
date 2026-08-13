@@ -20,7 +20,7 @@ interface SongManifestEntry {
     folder:  string;
     title:   string;
     artist:  string;
-    parts:   { name: string; type: string }[];
+    parts:   { name: string; type: string; availableDifficulties?: number[] }[];
     hasArt:  boolean;
 }
 
@@ -41,6 +41,9 @@ for (const name of readdirSync(songsDir)) {
                         .map(p => ({
                             name: String(p.InstrumentName ?? ""),
                             type: String(p.InstrumentType ?? ""),
+                            availableDifficulties: Array.isArray(p.AvailableDifficulties)
+                                ? p.AvailableDifficulties as number[]
+                                : undefined,
                         })),
             hasArt: existsSync(join(dir, "albumart.png")),
         });

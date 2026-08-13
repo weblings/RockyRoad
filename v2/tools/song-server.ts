@@ -54,7 +54,7 @@ interface ManifestEntry {
     folder:  string;
     title:   string;
     artist:  string;
-    parts:   { name: string; type: string }[];
+    parts:   { name: string; type: string; availableDifficulties?: number[] }[];
     hasArt:  boolean;
 }
 
@@ -73,6 +73,9 @@ function scanDir(dir: string, entries: ManifestEntry[]): void {
                 ).map(p => ({
                     name: String(p.InstrumentName ?? ''),
                     type: String(p.InstrumentType ?? ''),
+                    availableDifficulties: Array.isArray(p.AvailableDifficulties)
+                        ? p.AvailableDifficulties as number[]
+                        : undefined,
                 })),
                 hasArt: existsSync(join(dir, 'albumart.png')),
             });

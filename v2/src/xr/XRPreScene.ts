@@ -162,12 +162,13 @@ export class XRPreScene {
     // option count/labels vary per song).
     private _wireInstrumentDropdown(doc: UIKitDocument, playableParts: SongIndexPart[], rerender: () => void): void {
         const selected = this._selectedPart;
+        const label = (part: SongIndexPart): string => PART_LABEL[part.type] ?? part.type;
         this._instrumentDropdown.setTriggerLabel(
-            doc, selected ? (PART_LABEL[selected.type] ?? selected.type) : '', 'option-label',
+            doc, selected ? `Instrument: ${label(selected)}` : 'Instrument', 'option-label',
         );
 
         const options: DynamicOption[] = playableParts.map(part => ({
-            label: PART_LABEL[part.type] ?? part.type,
+            label: label(part),
             selected: part.name === selected?.name,
             onSelect: () => this._selectInstrument(part),
         }));

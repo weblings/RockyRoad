@@ -20,7 +20,7 @@ interface ManifestEntry {
     folder:  string;
     title:   string;
     artist:  string;
-    parts:   { name: string; type: string }[];
+    parts:   { name: string; type: string; availableDifficulties?: number[] }[];
     hasArt?: boolean;
 }
 
@@ -30,7 +30,12 @@ function fromManifest(e: ManifestEntry): SongIndexEntry {
         songName:      e.title,
         artistName:    e.artist,
         lengthSeconds: 0,
-        parts: e.parts.map(p => ({ type: p.type, name: p.name, difficulty: 0 })),
+        parts: e.parts.map(p => ({
+            type: p.type,
+            name: p.name,
+            difficulty: 0,
+            availableDifficulties: p.availableDifficulties?.length ? p.availableDifficulties : undefined,
+        })),
         hasArt: e.hasArt ?? false,
     };
 }
