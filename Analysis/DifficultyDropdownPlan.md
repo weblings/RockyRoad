@@ -58,12 +58,11 @@ class):
   `as-speed-*` today; Song's future Instrument/Difficulty dropdowns will have their own.
 - The option list itself, and each option's `selected`/`onClick` — Speed's is a fixed 10-item list
   declared statically in `play.uikitml` (`as-speed-opt-20` … `as-speed-opt-200`, always present,
-  just toggled). Phase 1's class should accept an options array/callback shape general enough that
-  this isn't hardcoded to exactly 10, but **does not need to handle runtime-created/destroyed
-  option elements** — that's a phase 3 requirement (Song's Instrument/Difficulty lists vary in
-  length per song, closer to Library's row-instantiation pattern than Play's static markup) and is
-  explicitly out of scope here. Flagging now so it doesn't surprise phase 3: extending the class to
-  support a dynamic option count is real, not-yet-designed work, not a given.
+  just toggled).
+  **Update from phase 2:** dynamic (runtime-created/destroyed) option lists were originally flagged
+  here as deferred, phase-3-only work. That's done — `OptionDropdown.renderDynamic()` shipped in
+  phase 2 for Play's Difficulty dropdown and is fully generic, not Difficulty-specific. Phase 3
+  reuses it as-is for Instrument; no new dropdown machinery needed there.
 - `songPlayer.playbackRate` / `SPEED_PRESETS` / `speedPercentLabel()` — Speed's own state and
   values, stay in `XRActiveScene`, passed to the shared instance rather than absorbed by it.
 
@@ -245,38 +244,114 @@ Confirmed hands-on: manually deriving the list from `bass.json`/`lead.json`/`rhy
 
 ## Song Instrument dropdown — complexity findings (phase 3)
 
-- **Visual port is cheap.** `play.uikitml`'s `.song-row` (art-thumb + song-meta, `#1a1a1a`
-  background, `0.6` radius) is close to a verbatim copy into `song.uikitml`, replacing Song's
-  current large-centered-art `.song-info` treatment. That current treatment is a hero layout (6.4×6.4
-  art, 2cm title) — swapping in the compact card plus an option-row is a real visual redesign, not
-  a mechanical resize; how much of the freed vertical space goes to what is an open design call.
 - **Depends on phase 1** for the actual dropdown interaction machinery — none of it exists on
-  `XRPreScene` today.
-- **Instrument itself is new UI, but not new logic** — desktop's `PreSceneScreen.ts` already has
-  the selection logic, default rule, and `PART_LABEL` map (see "Desktop comparison"); port the
-  shape rather than design fresh. Still need to decide the Keys-preference-vs-first-playable-part
-  discrepancy before implementing.
-- **Cross-dropdown dependency (Instrument → Difficulty) is new interaction, not a stability risk.**
-  Nothing today depends on it, so building it doesn't threaten existing behavior — but there's no
-  existing pattern to copy either. Play's Speed/Difficulty are independent of each other; nothing
-  else in this codebase has one dropdown's options depend on another's live selection. Real open
-  question: what happens to Difficulty's current selection when Instrument changes — reset to that
-  part's own default (100%), or try to preserve the same percentage if the new part supports it?
-- **`XRPreScene` needs to become stateful.** Today it recomputes a best-guess part fresh on every
-  `show()` call with no persisted selection — no analog to `XRActiveScene`'s `_speedMenuOpen`/
-  `_optionMenuScrollOffsets` fields. Needs its own version of that shape so click handlers read live
-  selection state instead of a value recomputed at render time. Desktop's `selectedPart` field is
-  the reference for what this should look like.
+  `XRPreScene` today. Already satisfied: `OptionDropdown.renderDynamic()` (shipped phase 2) is
+  generic, Instrument needs no new dropdown machinery, just two more instances.
 - **Calibration lookup needs to react to instrument changes.** `tryLoadCalibration(selectedPart.type)`
   is keyed by type (`'Keys'` vs. everything else), not by specific part — switching within the
   guitar family (Lead/Bass/Rhythm) is cheap (same calibration), but switching between a Keys part
   and a Guitar part changes calibration type entirely and has to re-derive `hasSavedCal`, which
   currently drives whether `ps-recal` shows at all and which callback `ps-play` wires to.
-- **Naive default, cheap to ship first**: Instrument reuses XR's existing `selectedPart` resolution
-  logic unchanged (pending the Keys-vs-first-playable decision above); Difficulty defaults to the
-  max value in `availableDifficulties` (100%, no reduction) — same "safe default" role Speed's 100%
-  already plays. Neither requires the cross-dependency behavior to be decided to ship an initial
-  working version; that behavior only matters once the user actually changes Instrument mid-session.
+
+All three open questions this section originally raised (default-instrument rule, cross-dropdown
+Difficulty behavior, visual layout) are now settled — see "Phase 3 detail" below.
+
+## Phase 3 detail — Song's Instrument + Difficulty dropdowns
+
+### Decisions (settled)
+
+- **Default-instrument rule, shared by XR and desktop** (explicit ask: keep the two platforms
+  consistent, not XR-only): `Settings.lastInstrumentType` (if the current song has a part of that
+  type) → Keys (if present) → Lead (if present, among Lead/Rhythm/Bass) → first playable part.
+  Written whenever the user actually starts playing (`onPlay`/`onCalibratePlay`), not on mere
+  dropdown selection. This **replaces** desktop's current `entry.parts.find(p => p.type !==
+  'Vocals') ?? entry.parts[0]` rule too, not just XR's Keys-preferring one — both platforms call
+  the same resolver function.
+- **Cross-dropdown (Instrument → Difficulty)**: when Instrument changes, retarget Difficulty to the
+  option in the *new* part's list whose rank/count ratio is closest to the old selection's
+  percentage (e.g. 60% selected on a 5-tier part → nearest rank on an 8-tier part is
+  `round(0.6×8)=5th` ≈ 62%), not a hard reset to 100%.
+- **Layout**: top — single back button (not Play's 3-item nav bar). Center — `.song-row` (art-thumb
+  + song-meta, ported from `play.uikitml`) directly above `.option-row` (Instrument + Difficulty),
+  both centered, replacing `.song-info`'s hero layout (6.4×6.4 art, 2cm title). Bottom — existing
+  `.actions` bar (Reposition/Play), unchanged.
+
+### Concrete changes
+
+**`src/shared/Settings.ts`**
+- Add `lastInstrumentType: string | null` to `Settings`, default `null`.
+
+**`src/shared/SongIndex.ts`** (gap found during investigation — phase 2's data-model list called
+for this and it was never actually done)
+- Add `availableDifficulties?: number[]` to `SongIndexPart`.
+- `entryFromJson()` must map `p.AvailableDifficulties` through — narrow field-by-field mapping, not
+  a passthrough spread, so this is silently dropped otherwise.
+
+**New shared resolver** (`src/shared/` — exact filename TBD at implementation time)
+- The default-instrument chain above, as one function both `XRPreScene.ts` and desktop's
+  `PreSceneScreen.ts` call, taking `(entry: SongIndexEntry, lastInstrumentType: string | null) =>
+  SongIndexPart`.
+- Hoist `PART_LABEL` (currently `src/desktop/PreSceneScreen.ts:7`, desktop-only) alongside it —
+  XR's Instrument dropdown needs the same friendly-name map.
+
+**`src/desktop/PreSceneScreen.ts`**
+- Swap its own default-rule inline expression for a call to the shared resolver, so both platforms
+  actually share behavior rather than just having similar-looking separate rules.
+- Write `Settings.lastInstrumentType` at the same play-start points XR does.
+- **Not in scope for phase 3**: desktop gets no Difficulty UI here — desktop has no Difficulty
+  concept anywhere yet (see "Desktop comparison"), and this phase only wires the shared default
+  rule + persistence, not a new desktop control. A future phase, if wanted.
+
+**`src/xr/XRPreScene.ts`**
+- Becomes stateful: `_selectedPart`/`_selectedDifficulty` fields (replacing the fresh-every-render
+  `entry.parts.find(...)`), two `OptionDropdown` instances (Instrument, Difficulty — same
+  constructor shape as `XRActiveScene`'s).
+- Instrument selection triggers the cross-dropdown Difficulty retarget above.
+- `tryLoadCalibration`/`hasSavedCal` re-derives whenever `_selectedPart` changes, not just once per
+  mount.
+- Calls the shared resolver for the initial default; writes `Settings.lastInstrumentType` in
+  `onPlay`/`onCalibratePlay`, mirroring desktop.
+
+**`ui/song.uikitml`**
+- Replace `.song-info`'s hero layout with `.song-row`/`.art-thumb`/`.song-meta` +
+  `.option-row`/`.option-dropdown`/`.option-trigger`/`.option-menu`/`.option-item` etc., hand-copied
+  from `play.uikitml` (no `@import` mechanism — same convention every other screen already follows).
+  Two `.option-dropdown` blocks (Instrument always shown, Difficulty gated exactly like Play's via
+  `.option-dropdown-gated` + a `display` toggle based on `selectedPart.availableDifficulties`).
+- `.header`/`.back-btn` stay as-is (already just the back button — no nav-bar simplification needed
+  here, unlike Play).
+- `.actions`/`.action-btn` stay as-is.
+
+### Testing
+
+Same split as phase 1 — no automated headset visibility in this environment.
+
+**Without a headset:**
+- `npx tsc --noEmit`.
+- Validate `public/ui/song.json` the same way as every prior screen (diff markup classes against
+  compiled `classes` keys, grep for bare shorthand leftovers).
+- Unit-testable in isolation: the shared default-instrument resolver (pure function, no uikit) and
+  the nearest-percentage-rank retarget math — both good candidates for the same
+  plain-Node-assertions treatment `computeCenteredOffset()` got.
+
+**In-headset regression + new-behavior checklist:**
+- Existing Reposition/Play flow (touch-calibrate, fine-tune, playback) unchanged for a
+  single-instrument song (e.g. Keys-only) — the bar is "still true after," matching phase 1's
+  framing.
+- Instrument dropdown shows all playable parts (Vocals excluded), selects/highlights correctly,
+  updates the trigger label.
+- Switching Instrument on a song with saved Keys calibration but no Guitar calibration correctly
+  flips `ps-recal` visibility and which callback `ps-play` wires to.
+- Switching Instrument retargets Difficulty to the nearest percentage, not always back to 100%.
+- Difficulty dropdown hidden entirely when the selected part has no `AvailableDifficulties`.
+- Opening a song with a previously-used instrument type (`Settings.lastInstrumentType`) defaults to
+  that part, not Keys/Lead, when that type exists on this song.
+- Opening a song with no matching `lastInstrumentType` falls back correctly: Keys if present,
+  otherwise Lead if present, otherwise first playable part.
+- Desktop regression: `PreSceneScreen.ts`'s existing part-selection buttons still work, and its
+  default now matches the shared rule (verify against a song where desktop's old rule and the new
+  shared rule would actually pick different parts, e.g. one with a saved `lastInstrumentType` from
+  a prior XR session).
 
 ## Explicitly deferred to phase 5
 

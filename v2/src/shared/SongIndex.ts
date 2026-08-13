@@ -22,6 +22,9 @@ export interface SongIndexPart {
     tuning?: string;
     // Raw StringSemitoneOffsets from song.json. Only set for stringed instruments.
     tuningOffsets?: number[];
+    // Distinct dynamic-difficulty tiers, from song.json's AvailableDifficulties. Not the same as
+    // difficulty above (a flat per-song rating) — see DifficultyDropdownPlan.md.
+    availableDifficulties?: number[];
 }
 
 // ── ISongLibrary ──────────────────────────────────────────────────────────────
@@ -102,12 +105,14 @@ function entryFromJson(folderPath: string, json: Record<string, unknown>): SongI
         const tuningData = p.Tuning as { StringSemitoneOffsets?: number[] } | undefined;
         const offsets = tuningData?.StringSemitoneOffsets;
         const isStringed = STRINGED.has(type);
+        const availableDifficulties = p.AvailableDifficulties as number[] | undefined;
         return {
             type,
             name: String(p.InstrumentName ?? ''),
             difficulty: Number(p.SongDifficulty ?? 0),
             tuning:        isStringed && offsets ? tuningDisplayString(offsets) : undefined,
             tuningOffsets: isStringed && offsets ? offsets : undefined,
+            availableDifficulties: availableDifficulties?.length ? availableDifficulties : undefined,
         };
     });
     return {

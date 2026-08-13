@@ -6,17 +6,13 @@
      (panel.css has no @import equivalent here, so those base rules are
      re-derived directly into this file, same as settings.uikitml did).
 
-     Two structural simplifications vs. the original DOM, both purely
-     cosmetic no-ops (same computed layout, fewer wrapper nodes):
-     - .frame/.content/.actions in the original are three separately-clipped
-       regions (content has top-only radius, actions has bottom-only radius)
-       purely so .content could independently scroll — but this screen's
-       content never scrolls, and both regions use the identical #0a0a0a
-       background, so they're collapsed into one flat .panel here (matches
-       settings.uikitml's .panel exactly: one background, one full-radius).
-     - The .row/.text-wrap wrapper divs around the art box and artist name
-       (present in the original song.css, likely Figma auto-layout residue)
-       are flattened — .song-details lays out its children directly. */
+     Phase 3 (see ThreeCP/Analysis/DifficultyDropdownPlan.md) replaced the original
+     hero layout (6.4x6.4 centered art, 2cm title) with a compact song-row card +
+     Instrument/Difficulty dropdowns, matching play.uikitml's own .song-row/
+     .option-row/.option-dropdown classes (hand-duplicated here — no @import
+     mechanism, same convention every migrated screen already follows). Layout:
+     top — single back button; center — song-row + option-row, centered as a
+     group; bottom — the original Reposition/Play actions bar, unchanged. */
 
   .panel {
     width: 40;
@@ -93,7 +89,10 @@
   .primary-light:hover  { background-color: #bebebe; }
   .primary-light:active { background-color: #9c9c9c; }
 
-  .song-info {
+  /* Centers the song-row + option-row block as a group, both vertically (within
+     the space left by .header/.actions) and horizontally (align-items — both
+     children are hug-sized, not stretched, unlike play.uikitml's play-body). */
+  .song-body {
     flex-grow: 1;
     flex-shrink: 1;
     flex-basis: 0;
@@ -101,62 +100,199 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    gap-row: 1.2;
+    gap-column: 1.2;
+    padding-top: 0.6;
+    padding-bottom: 0.6;
+    padding-left: 2.2;
+    padding-right: 2.2;
   }
 
-  .song-details {
+  /* Explicit width (not hug-sized) so the card has a consistent size regardless
+     of title-length variance — truncate() already caps text length the same
+     way play.uikitml's song-row does. Literal estimate, tune once visible
+     in-headset, same caveat as .option-menu's position-top below. */
+  .song-row {
+    width: 28;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
-    gap-row: 0.6;
-    gap-column: 0.6;
-  }
-
-  .art-bg {
-    width: 6.4;
-    height: 6.4;
     flex-grow: 0;
     flex-shrink: 0;
+    gap-row: 0.8;
+    gap-column: 0.8;
+    padding-top: 0.8;
+    padding-right: 0.8;
+    padding-bottom: 0.8;
+    padding-left: 0.8;
+    background-color: #1a1a1a;
+    border-radius: 0.6;
+  }
+
+  .art-thumb {
+    width: 5.4;
+    height: 5.4;
+    flex-grow: 0;
+    flex-shrink: 0;
+    background-color: #242424;
+    border-radius: 0.4;
+    overflow: hidden;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    background-color: #242424;
-    border-radius: 1;
-    overflow: hidden;
   }
 
-  /* No separate "placeholder" element for missing album art — #ps-art-img
-     just gets display:'none' set on it when there's no art URL, and
-     .art-bg's own #242424 background shows through, matching the original
-     (the "placeholder" there was really just the empty art-bg box; .art-
-     image itself had no fallback styling of its own). One harmless,
-     one-time "Image element missing src property" console.warn is expected
-     on initial load, before the first _render() call either sets a real
-     src or hides this element — no src is set in the static markup since
-     it's always assigned at runtime. */
+  /* No separate "placeholder" element for missing album art — #ps-art-img just
+     gets display:'none' set on it when there's no art URL, and .art-thumb's own
+     background shows through (same pattern the old hero layout used). */
   .art-image {
-    width: 6.4;
-    height: 6.4;
+    width: 5.4;
+    height: 5.4;
     object-fit: cover;
   }
 
-  .song-title {
-    color: #ffffff;
-    font-size: 2;
-    font-weight: bold;
-    text-align: center;
-    line-height: 2;
+  .song-meta {
+    flex-grow: 1;
+    flex-shrink: 1;
+    flex-basis: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap-row: 0.2;
+    gap-column: 0.2;
   }
 
-  /* font-weight 400/"normal" doesn't exist in uikit's prebuilt Inter set
-     (light/medium/semi-bold/bold only) — medium is the closest available,
-     same substitution UikitLessonsLearned.md already documents. */
-  .artist-name {
-    color: #8c8c8c;
-    font-size: 1.4;
-    font-weight: medium;
-    text-align: center;
+  /* No native text-overflow:ellipsis in uikit — title/artist are truncated
+     with a manually-appended "…" in XRPreScene.ts before being set here. */
+  .song-title {
+    color: #ffffff;
+    font-size: 1.2;
+    font-weight: bold;
   }
+  .song-subtitle {
+    color: #8c8c8c;
+    font-size: 1.0;
+    font-weight: medium;
+  }
+
+  /* Instrument / Difficulty dropdown triggers — same trigger+popover shape as
+     play.uikitml's as-speed-*/as-difficulty-* (hand-duplicated here — see the
+     top-of-file note on why). */
+  .option-row {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    gap-row: 0.8;
+    gap-column: 0.8;
+    flex-grow: 0;
+    flex-shrink: 0;
+  }
+
+  /* Hugs its trigger's own content width rather than stretching — a single
+     trigger would otherwise span the full row when Difficulty is hidden
+     (part has no AvailableDifficulties), matching play.uikitml's fix. */
+  .option-dropdown {
+    position-type: relative;
+    flex-grow: 0;
+    flex-shrink: 0;
+  }
+
+  /* Instrument's default state is single-instrument songs (dropdown gated
+     off — see .option-dropdown-gated) and Difficulty's default is "song has
+     no AvailableDifficulties" — both flipped to 'flex' per song by
+     XRPreScene.ts. Compiled-in default so both stay hidden even before the
+     first render sets them either way. */
+  .option-dropdown-gated {
+    display: none;
+  }
+
+  .option-trigger {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap-row: 0.6;
+    gap-column: 0.6;
+    padding-top: 0.7;
+    padding-right: 1;
+    padding-bottom: 0.7;
+    padding-left: 1;
+    width: 12.6;
+    background-color: #333333;
+    border-width: 0.1;
+    border-color: #444444;
+    border-radius: 0.6;
+    cursor: pointer;
+  }
+  .option-trigger:hover  { background-color: #444444; }
+  .option-trigger:active { background-color: #515151; }
+
+  /* Applied to a UIKit.Text node OptionDropdown.setTriggerLabel() destroys and
+     recreates on every value change (into an otherwise-empty slot div), rather
+     than a static <span> mutated via setProperties({text}) — mutating in place
+     left stale/misaligned glyphs rendering behind new text (confirmed on Play). */
+  .option-label {
+    color: #c8c8c8;
+    font-size: 1.2;
+  }
+
+  /* Two stacked chevron images, display-toggled by menu-open state. */
+  .option-chevron {
+    width: 0.9;
+    height: 0.9;
+  }
+
+  /* position-top is a literal estimate of the trigger's own rendered height
+     plus a small gap (no calc() support) — tune once visible in-headset, same
+     caveat as play.uikitml's .option-menu. Deliberately NOT overflow:scroll —
+     see play.uikitml's own comment on this same class for why (uikit's scroll
+     container capture/release mismatch); OptionDropdown.ts drives
+     .option-menu-inner's position-top directly instead. */
+  .option-menu {
+    position-type: absolute;
+    position-top: 3.4;
+    position-left: 0;
+    z-index: 2;
+    pointer-events: auto;
+    transform-translate-z: 0.15;
+    display: none;
+    flex-direction: column;
+    height: 8;
+    overflow: hidden;
+    background-color: #1a1a1a;
+    border-width: 0.1;
+    border-color: #333333;
+    border-radius: 0.6;
+    width: 12.6;
+    padding-top: 0.4;
+    padding-right: 0.4;
+    padding-bottom: 0.4;
+    padding-left: 0.4;
+  }
+
+  .option-menu-inner {
+    position-type: relative;
+    position-top: 0;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    gap-row: 0.3;
+  }
+
+  .option-item {
+    flex-shrink: 0;
+    padding-top: 0.5;
+    padding-right: 1;
+    padding-bottom: 0.5;
+    padding-left: 1;
+    color: #c8c8c8;
+    font-size: 1.2;
+    cursor: pointer;
+  }
+  .option-item:hover  { background-color: #2a2a2a; color: #ffffff; }
+  .option-item:active { background-color: #515151; color: #ffffff; }
+  .option-item-selected { background-color: #242424; color: #ffffff; }
 
   .actions {
     display: flex;
@@ -208,13 +344,38 @@
     </button>
   </div>
 
-  <div class="song-info">
-    <div class="song-details">
-      <div class="art-bg">
+  <div class="song-body">
+    <div class="song-row">
+      <div class="art-thumb">
         <img id="ps-art-img" class="art-image" />
       </div>
-      <span id="ps-song-title" class="song-title">Song Title</span>
-      <span id="ps-artist-name" class="artist-name">Artist Name</span>
+      <div class="song-meta">
+        <span id="ps-song-title" class="song-title">Song Title</span>
+        <span id="ps-artist-name" class="song-subtitle">Artist Name</span>
+      </div>
+    </div>
+
+    <div class="option-row">
+      <div id="ps-instrument-dropdown" class="option-dropdown option-dropdown-gated">
+        <button id="ps-instrument-trigger" class="option-trigger">
+          <div id="ps-instrument-trigger-label-slot"></div>
+          <img id="ps-instrument-chevron-down" class="option-chevron" src="/chevron-down.svg" />
+          <img id="ps-instrument-chevron-up" class="option-chevron" src="/chevron-up.svg" />
+        </button>
+        <div id="ps-instrument-menu" class="option-menu">
+          <div id="ps-instrument-menu-inner" class="option-menu-inner"></div>
+        </div>
+      </div>
+      <div id="ps-difficulty-dropdown" class="option-dropdown option-dropdown-gated">
+        <button id="ps-difficulty-trigger" class="option-trigger">
+          <div id="ps-difficulty-trigger-label-slot"></div>
+          <img id="ps-difficulty-chevron-down" class="option-chevron" src="/chevron-down.svg" />
+          <img id="ps-difficulty-chevron-up" class="option-chevron" src="/chevron-up.svg" />
+        </button>
+        <div id="ps-difficulty-menu" class="option-menu">
+          <div id="ps-difficulty-menu-inner" class="option-menu-inner"></div>
+        </div>
+      </div>
     </div>
   </div>
 

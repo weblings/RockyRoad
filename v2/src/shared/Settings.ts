@@ -18,6 +18,7 @@ export interface Settings {
     keysRightHandColor: string; // hex color for right-hand notes
     keysLeftHandColor: string;  // hex color for left-hand notes
     remoteServerUrl: string;    // base URL for the remote song server; empty = none
+    lastInstrumentType: string | null; // InstrumentType of the last-played part, shared XR/desktop
 }
 
 const DEFAULTS: Settings = {
@@ -35,6 +36,7 @@ const DEFAULTS: Settings = {
     keysRightHandColor: '#2E71D6',
     keysLeftHandColor: '#E33737',
     remoteServerUrl: '',
+    lastInstrumentType: null,
 };
 
 export function loadSettings(): Settings {

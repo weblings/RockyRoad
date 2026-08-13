@@ -60,6 +60,28 @@ export function computeCenteredOffset(
     return Math.max(0, Math.min(distanceFromTop - menuHeight / 2, maxOffsetEstimate));
 }
 
+// Shared by Play's and Song's Difficulty dropdowns (see DifficultyDropdownPlan.md's "Population —
+// shared logic"). rank/count, not raw value/max — raw Difficulty values are an arbitrary per-song
+// scale that can start at 0, which would otherwise show the easiest option as a misleading "0%".
+// 1-based rank keeps the displayed range (0%, 100%] instead of [0%, 100%].
+export function difficultyOptionLabel(rank: number, count: number): string {
+    return `${count > 0 ? Math.round((rank / count) * 100) : 100}%`;
+}
+
+// Trigger label only — options use difficultyOptionLabel (bare percent, no prefix).
+export function difficultyPercentLabel(rank: number, count: number): string {
+    return `Difficulty: ${difficultyOptionLabel(rank, count)}`;
+}
+
+// Song's "Phase 3 detail": when Instrument changes, retarget Difficulty to the option in the new
+// part's list whose percentage is closest to the old selection's, rather than resetting to 100%.
+// Pure function, no uikit dependency — testable without a headset, like computeCenteredOffset.
+export function nearestRankForPercentage(oldRank: number, oldCount: number, newCount: number): number {
+    if (newCount <= 0) return 0;
+    const fraction = oldCount > 0 ? oldRank / oldCount : 1;
+    return Math.min(newCount, Math.max(1, Math.round(fraction * newCount)));
+}
+
 function setOptionSelected(el: ReturnType<UIKitDocument['getElementById']>, selected: boolean): void {
     if (!el) return;
     if (selected) { if (!el.classList.contains('option-item-selected')) el.classList.add('option-item-selected'); }

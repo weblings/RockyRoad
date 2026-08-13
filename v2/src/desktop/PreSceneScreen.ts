@@ -2,12 +2,9 @@ import * as THREE from "three";
 import type { App, IScreen } from "./App";
 import type { SongIndexEntry, SongIndexPart } from "../shared/SongIndex";
 import type { ISongSource } from "../shared/SongSource";
+import { PART_LABEL, resolveDefaultPart } from "../shared/InstrumentSelect";
+import { loadSettings, saveSettings } from "../shared/Settings";
 import { ActiveSceneScreen } from "./ActiveSceneScreen";
-
-const PART_LABEL: Record<string, string> = {
-    LeadGuitar: 'Lead', RhythmGuitar: 'Rhythm', BassGuitar: 'Bass',
-    Keys: 'Keys', Drums: 'Drums',
-};
 
 function esc(s: string): string {
     return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -26,7 +23,15 @@ export class PreSceneScreen implements IScreen {
         this.texture = texture;
         this.source = source;
         this.entry = entry;
-        this.selectedPart = entry.parts.find(p => p.type !== 'Vocals') ?? entry.parts[0];
+        this.selectedPart = resolveDefaultPart(entry, loadSettings().lastInstrumentType) ?? entry.parts[0];
+    }
+
+    // Committed on actually starting to play, not on mere part-button selection — shared with
+    // XR's XRPreScene.ts so the two platforms' "last used instrument" default stay in sync.
+    private commitInstrument(): void {
+        const s = loadSettings();
+        s.lastInstrumentType = this.selectedPart.type;
+        saveSettings(s);
     }
 
     async mount(container: HTMLElement): Promise<void> {
@@ -89,6 +94,7 @@ export class PreSceneScreen implements IScreen {
 
         // Tune button — explicit tune request, always goes through tuner
         container.querySelector('#pre-tune')!.addEventListener('click', () => {
+            this.commitInstrument();
             import('./TunerScreen').then(({ TunerScreen }) => {
                 this.app.navigate(new TunerScreen(
                     this.app, this.texture, this.source, this.entry, this.selectedPart, 'song-flow',
@@ -98,6 +104,7 @@ export class PreSceneScreen implements IScreen {
 
         // Play — auto-tunes if needed, otherwise goes straight to active scene
         container.querySelector('#pre-play')!.addEventListener('click', () => {
+            this.commitInstrument();
             if (this.app.shouldAutoTune(this.selectedPart)) {
                 import('./TunerScreen').then(({ TunerScreen }) => {
                     this.app.navigate(new TunerScreen(

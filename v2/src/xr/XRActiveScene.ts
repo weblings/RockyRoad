@@ -3,7 +3,7 @@ import { PanelDocument, UIKit } from "@iwsdk/core";
 import type { SongPlayer } from "../shared/SongPlayer";
 import type { SongSection } from "../shared/SongFormat";
 import type { DynamicOption, OptionDropdownItem, OptionMenuLayout, WorldPointerEvent } from "./OptionDropdown";
-import { OptionDropdown } from "./OptionDropdown";
+import { OptionDropdown, difficultyOptionLabel, difficultyPercentLabel } from "./OptionDropdown";
 
 // uikit-based (see ui/play.uikitml), migrated off html2canvas — same pattern as
 // XRSettingsScene.ts/XRPreScene.ts, but also has per-frame content (play/pause,
@@ -397,18 +397,4 @@ export class XRActiveScene {
 
 function speedPercentLabel(r: number): string {
     return `Speed: ${Math.round(r * 100)}%`;
-}
-
-// rank/count, not raw value/max — see _wireDifficultyDropdown's rankOf() for why (raw Difficulty
-// values are an arbitrary per-song scale that can start at 0). 1-based rank keeps the displayed
-// range (0%, 100%] instead of [0%, 100%], same "float under the hood, shown like '100%'" framing
-// as Speed.
-function difficultyOptionLabel(rank: number, count: number): string {
-    return `${count > 0 ? Math.round((rank / count) * 100) : 100}%`;
-}
-
-// Trigger label only — options use difficultyOptionLabel (bare percent, no prefix; Speed avoids
-// needing this split because its options are static markup, not JS-generated labels).
-function difficultyPercentLabel(rank: number, count: number): string {
-    return `Difficulty: ${difficultyOptionLabel(rank, count)}`;
 }

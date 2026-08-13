@@ -67,43 +67,207 @@
                   }
                 ],
                 "properties": {
-                  "class": "art-bg"
+                  "class": "art-thumb"
                 },
                 "dataUid": "uid-8"
               },
               {
-                "sourceTag": "span",
-                "type": "custom",
+                "type": "container",
+                "sourceTag": "div",
                 "children": [
-                  "Song Title"
+                  {
+                    "sourceTag": "span",
+                    "type": "custom",
+                    "children": [
+                      "Song Title"
+                    ],
+                    "properties": {
+                      "id": "ps-song-title",
+                      "class": "song-title"
+                    },
+                    "dataUid": "uid-11"
+                  },
+                  {
+                    "sourceTag": "span",
+                    "type": "custom",
+                    "children": [
+                      "Artist Name"
+                    ],
+                    "properties": {
+                      "id": "ps-artist-name",
+                      "class": "song-subtitle"
+                    },
+                    "dataUid": "uid-12"
+                  }
                 ],
                 "properties": {
-                  "id": "ps-song-title",
-                  "class": "song-title"
+                  "class": "song-meta"
                 },
                 "dataUid": "uid-10"
-              },
-              {
-                "sourceTag": "span",
-                "type": "custom",
-                "children": [
-                  "Artist Name"
-                ],
-                "properties": {
-                  "id": "ps-artist-name",
-                  "class": "artist-name"
-                },
-                "dataUid": "uid-11"
               }
             ],
             "properties": {
-              "class": "song-details"
+              "class": "song-row"
             },
             "dataUid": "uid-7"
+          },
+          {
+            "type": "container",
+            "sourceTag": "div",
+            "children": [
+              {
+                "type": "container",
+                "sourceTag": "div",
+                "children": [
+                  {
+                    "sourceTag": "button",
+                    "type": "custom",
+                    "children": [
+                      {
+                        "type": "container",
+                        "sourceTag": "div",
+                        "children": [],
+                        "properties": {
+                          "id": "ps-instrument-trigger-label-slot"
+                        },
+                        "dataUid": "uid-16"
+                      },
+                      {
+                        "type": "svg",
+                        "sourceTag": "img",
+                        "properties": {
+                          "id": "ps-instrument-chevron-down",
+                          "class": "option-chevron",
+                          "src": "/chevron-down.svg"
+                        },
+                        "dataUid": "uid-17"
+                      },
+                      {
+                        "type": "svg",
+                        "sourceTag": "img",
+                        "properties": {
+                          "id": "ps-instrument-chevron-up",
+                          "class": "option-chevron",
+                          "src": "/chevron-up.svg"
+                        },
+                        "dataUid": "uid-18"
+                      }
+                    ],
+                    "properties": {
+                      "id": "ps-instrument-trigger",
+                      "class": "option-trigger"
+                    },
+                    "dataUid": "uid-15"
+                  },
+                  {
+                    "type": "container",
+                    "sourceTag": "div",
+                    "children": [
+                      {
+                        "type": "container",
+                        "sourceTag": "div",
+                        "children": [],
+                        "properties": {
+                          "id": "ps-instrument-menu-inner",
+                          "class": "option-menu-inner"
+                        },
+                        "dataUid": "uid-20"
+                      }
+                    ],
+                    "properties": {
+                      "id": "ps-instrument-menu",
+                      "class": "option-menu"
+                    },
+                    "dataUid": "uid-19"
+                  }
+                ],
+                "properties": {
+                  "id": "ps-instrument-dropdown",
+                  "class": "option-dropdown option-dropdown-gated"
+                },
+                "dataUid": "uid-14"
+              },
+              {
+                "type": "container",
+                "sourceTag": "div",
+                "children": [
+                  {
+                    "sourceTag": "button",
+                    "type": "custom",
+                    "children": [
+                      {
+                        "type": "container",
+                        "sourceTag": "div",
+                        "children": [],
+                        "properties": {
+                          "id": "ps-difficulty-trigger-label-slot"
+                        },
+                        "dataUid": "uid-23"
+                      },
+                      {
+                        "type": "svg",
+                        "sourceTag": "img",
+                        "properties": {
+                          "id": "ps-difficulty-chevron-down",
+                          "class": "option-chevron",
+                          "src": "/chevron-down.svg"
+                        },
+                        "dataUid": "uid-24"
+                      },
+                      {
+                        "type": "svg",
+                        "sourceTag": "img",
+                        "properties": {
+                          "id": "ps-difficulty-chevron-up",
+                          "class": "option-chevron",
+                          "src": "/chevron-up.svg"
+                        },
+                        "dataUid": "uid-25"
+                      }
+                    ],
+                    "properties": {
+                      "id": "ps-difficulty-trigger",
+                      "class": "option-trigger"
+                    },
+                    "dataUid": "uid-22"
+                  },
+                  {
+                    "type": "container",
+                    "sourceTag": "div",
+                    "children": [
+                      {
+                        "type": "container",
+                        "sourceTag": "div",
+                        "children": [],
+                        "properties": {
+                          "id": "ps-difficulty-menu-inner",
+                          "class": "option-menu-inner"
+                        },
+                        "dataUid": "uid-27"
+                      }
+                    ],
+                    "properties": {
+                      "id": "ps-difficulty-menu",
+                      "class": "option-menu"
+                    },
+                    "dataUid": "uid-26"
+                  }
+                ],
+                "properties": {
+                  "id": "ps-difficulty-dropdown",
+                  "class": "option-dropdown option-dropdown-gated"
+                },
+                "dataUid": "uid-21"
+              }
+            ],
+            "properties": {
+              "class": "option-row"
+            },
+            "dataUid": "uid-13"
           }
         ],
         "properties": {
-          "class": "song-info"
+          "class": "song-body"
         },
         "dataUid": "uid-6"
       },
@@ -122,7 +286,7 @@
                   "src": "/recal-icon.svg",
                   "class": "icon"
                 },
-                "dataUid": "uid-14"
+                "dataUid": "uid-30"
               },
               {
                 "sourceTag": "span",
@@ -133,14 +297,14 @@
                 "properties": {
                   "class": "icon-label"
                 },
-                "dataUid": "uid-15"
+                "dataUid": "uid-31"
               }
             ],
             "properties": {
               "id": "ps-recal",
               "class": "action-btn primary-dark"
             },
-            "dataUid": "uid-13"
+            "dataUid": "uid-29"
           },
           {
             "sourceTag": "button",
@@ -153,7 +317,7 @@
                   "src": "/play-icon.svg",
                   "class": "icon"
                 },
-                "dataUid": "uid-17"
+                "dataUid": "uid-33"
               },
               {
                 "sourceTag": "span",
@@ -164,20 +328,20 @@
                 "properties": {
                   "class": "icon-label"
                 },
-                "dataUid": "uid-18"
+                "dataUid": "uid-34"
               }
             ],
             "properties": {
               "id": "ps-play",
               "class": "action-btn primary-light"
             },
-            "dataUid": "uid-16"
+            "dataUid": "uid-32"
           }
         ],
         "properties": {
           "class": "actions"
         },
-        "dataUid": "uid-12"
+        "dataUid": "uid-28"
       }
     ],
     "properties": {
@@ -268,7 +432,7 @@
         }
       }
     },
-    "song-info": {
+    "song-body": {
       "content": {
         "flexGrow": "1",
         "flexShrink": "1",
@@ -276,55 +440,199 @@
         "display": "flex",
         "flexDirection": "column",
         "alignItems": "center",
-        "justifyContent": "center"
+        "justifyContent": "center",
+        "gapRow": "1.2",
+        "gapColumn": "1.2",
+        "paddingTop": "0.6",
+        "paddingBottom": "0.6",
+        "paddingLeft": "2.2",
+        "paddingRight": "2.2"
       }
     },
-    "song-details": {
+    "song-row": {
       "content": {
+        "width": "28",
         "display": "flex",
-        "flexDirection": "column",
+        "flexDirection": "row",
         "alignItems": "center",
-        "gapRow": "0.6",
-        "gapColumn": "0.6"
-      }
-    },
-    "art-bg": {
-      "content": {
-        "width": "6.4",
-        "height": "6.4",
         "flexGrow": "0",
         "flexShrink": "0",
+        "gapRow": "0.8",
+        "gapColumn": "0.8",
+        "paddingTop": "0.8",
+        "paddingRight": "0.8",
+        "paddingBottom": "0.8",
+        "paddingLeft": "0.8",
+        "backgroundColor": "#1a1a1a",
+        "borderRadius": 0.6
+      }
+    },
+    "art-thumb": {
+      "content": {
+        "width": "5.4",
+        "height": "5.4",
+        "flexGrow": "0",
+        "flexShrink": "0",
+        "backgroundColor": "#242424",
+        "borderRadius": 0.4,
+        "overflow": "hidden",
         "display": "flex",
         "flexDirection": "column",
         "alignItems": "center",
-        "justifyContent": "center",
-        "backgroundColor": "#242424",
-        "borderRadius": 1,
-        "overflow": "hidden"
+        "justifyContent": "center"
       }
     },
     "art-image": {
       "content": {
-        "width": "6.4",
-        "height": "6.4",
+        "width": "5.4",
+        "height": "5.4",
         "objectFit": "cover"
+      }
+    },
+    "song-meta": {
+      "content": {
+        "flexGrow": "1",
+        "flexShrink": "1",
+        "flexBasis": "0",
+        "display": "flex",
+        "flexDirection": "column",
+        "justifyContent": "center",
+        "gapRow": "0.2",
+        "gapColumn": "0.2"
       }
     },
     "song-title": {
       "content": {
         "color": "#ffffff",
-        "fontSize": "2",
-        "fontWeight": "bold",
-        "textAlign": "center",
-        "lineHeight": "2"
+        "fontSize": "1.2",
+        "fontWeight": "bold"
       }
     },
-    "artist-name": {
+    "song-subtitle": {
       "content": {
         "color": "#8c8c8c",
-        "fontSize": "1.4",
-        "fontWeight": "medium",
-        "textAlign": "center"
+        "fontSize": "1.0",
+        "fontWeight": "medium"
+      }
+    },
+    "option-row": {
+      "content": {
+        "display": "flex",
+        "flexDirection": "row",
+        "justifyContent": "center",
+        "gapRow": "0.8",
+        "gapColumn": "0.8",
+        "flexGrow": "0",
+        "flexShrink": "0"
+      }
+    },
+    "option-dropdown": {
+      "content": {
+        "positionType": "relative",
+        "flexGrow": "0",
+        "flexShrink": "0"
+      }
+    },
+    "option-dropdown-gated": {
+      "content": {
+        "display": "none"
+      }
+    },
+    "option-trigger": {
+      "content": {
+        "display": "flex",
+        "flexDirection": "row",
+        "alignItems": "center",
+        "justifyContent": "space-between",
+        "gapRow": "0.6",
+        "gapColumn": "0.6",
+        "paddingTop": "0.7",
+        "paddingRight": "1",
+        "paddingBottom": "0.7",
+        "paddingLeft": "1",
+        "width": "12.6",
+        "backgroundColor": "#333333",
+        "borderWidth": "0.1",
+        "borderColor": "#444444",
+        "borderRadius": 0.6,
+        "cursor": "pointer",
+        "hover": {
+          "backgroundColor": "#444444"
+        },
+        "active": {
+          "backgroundColor": "#515151"
+        }
+      }
+    },
+    "option-label": {
+      "content": {
+        "color": "#c8c8c8",
+        "fontSize": "1.2"
+      }
+    },
+    "option-chevron": {
+      "content": {
+        "width": "0.9",
+        "height": "0.9"
+      }
+    },
+    "option-menu": {
+      "content": {
+        "positionType": "absolute",
+        "positionTop": "3.4",
+        "positionLeft": "0",
+        "zIndex": "2",
+        "pointerEvents": "auto",
+        "transformTranslateZ": "0.15",
+        "display": "none",
+        "flexDirection": "column",
+        "height": "8",
+        "overflow": "hidden",
+        "backgroundColor": "#1a1a1a",
+        "borderWidth": "0.1",
+        "borderColor": "#333333",
+        "borderRadius": 0.6,
+        "width": "12.6",
+        "paddingTop": "0.4",
+        "paddingRight": "0.4",
+        "paddingBottom": "0.4",
+        "paddingLeft": "0.4"
+      }
+    },
+    "option-menu-inner": {
+      "content": {
+        "positionType": "relative",
+        "positionTop": "0",
+        "display": "flex",
+        "flexDirection": "column",
+        "flexShrink": "0",
+        "gapRow": "0.3"
+      }
+    },
+    "option-item": {
+      "content": {
+        "flexShrink": "0",
+        "paddingTop": "0.5",
+        "paddingRight": "1",
+        "paddingBottom": "0.5",
+        "paddingLeft": "1",
+        "color": "#c8c8c8",
+        "fontSize": "1.2",
+        "cursor": "pointer",
+        "hover": {
+          "backgroundColor": "#2a2a2a",
+          "color": "#ffffff"
+        },
+        "active": {
+          "backgroundColor": "#515151",
+          "color": "#ffffff"
+        }
+      }
+    },
+    "option-item-selected": {
+      "content": {
+        "backgroundColor": "#242424",
+        "color": "#ffffff"
       }
     },
     "actions": {
@@ -372,341 +680,611 @@
   "ranges": {
     "panel": {
       "start": {
-        "line": 20,
+        "line": 16,
         "column": 2
       },
       "end": {
-        "line": 20,
+        "line": 16,
         "column": 8
       }
     },
     "header": {
       "start": {
-        "line": 32,
+        "line": 28,
         "column": 2
       },
       "end": {
-        "line": 32,
+        "line": 28,
         "column": 9
       }
     },
     "icon": {
       "start": {
-        "line": 50,
+        "line": 46,
         "column": 2
       },
       "end": {
-        "line": 50,
+        "line": 46,
         "column": 7
       }
     },
     "icon-label": {
       "start": {
-        "line": 55,
+        "line": 51,
         "column": 2
       },
       "end": {
-        "line": 55,
+        "line": 51,
         "column": 13
       }
     },
     "back-btn": {
       "start": {
-        "line": 61,
+        "line": 57,
         "column": 2
       },
       "end": {
-        "line": 61,
+        "line": 57,
         "column": 11
       }
     },
     "primary-dark": {
       "start": {
-        "line": 81,
+        "line": 77,
         "column": 2
       },
       "end": {
-        "line": 81,
+        "line": 77,
         "column": 15
       }
     },
     "primary-light": {
       "start": {
-        "line": 88,
+        "line": 84,
         "column": 2
       },
       "end": {
-        "line": 88,
+        "line": 84,
         "column": 16
       }
     },
-    "song-info": {
+    "song-body": {
       "start": {
-        "line": 95,
+        "line": 94,
         "column": 2
       },
       "end": {
-        "line": 95,
+        "line": 94,
         "column": 12
       }
     },
-    "song-details": {
+    "song-row": {
       "start": {
-        "line": 105,
+        "line": 114,
         "column": 2
       },
       "end": {
-        "line": 105,
-        "column": 15
+        "line": 114,
+        "column": 11
       }
     },
-    "art-bg": {
+    "art-thumb": {
       "start": {
-        "line": 113,
+        "line": 131,
         "column": 2
       },
       "end": {
-        "line": 113,
-        "column": 9
+        "line": 131,
+        "column": 12
       }
     },
     "art-image": {
       "start": {
-        "line": 136,
+        "line": 148,
         "column": 2
       },
       "end": {
-        "line": 136,
+        "line": 148,
+        "column": 12
+      }
+    },
+    "song-meta": {
+      "start": {
+        "line": 154,
+        "column": 2
+      },
+      "end": {
+        "line": 154,
         "column": 12
       }
     },
     "song-title": {
       "start": {
-        "line": 142,
+        "line": 167,
         "column": 2
       },
       "end": {
-        "line": 142,
+        "line": 167,
         "column": 13
       }
     },
-    "artist-name": {
+    "song-subtitle": {
       "start": {
-        "line": 153,
+        "line": 172,
         "column": 2
       },
       "end": {
-        "line": 153,
+        "line": 172,
+        "column": 16
+      }
+    },
+    "option-row": {
+      "start": {
+        "line": 181,
+        "column": 2
+      },
+      "end": {
+        "line": 181,
+        "column": 13
+      }
+    },
+    "option-dropdown": {
+      "start": {
+        "line": 194,
+        "column": 2
+      },
+      "end": {
+        "line": 194,
+        "column": 18
+      }
+    },
+    "option-dropdown-gated": {
+      "start": {
+        "line": 205,
+        "column": 2
+      },
+      "end": {
+        "line": 205,
+        "column": 24
+      }
+    },
+    "option-trigger": {
+      "start": {
+        "line": 209,
+        "column": 2
+      },
+      "end": {
+        "line": 209,
+        "column": 17
+      }
+    },
+    "option-label": {
+      "start": {
+        "line": 234,
+        "column": 2
+      },
+      "end": {
+        "line": 234,
+        "column": 15
+      }
+    },
+    "option-chevron": {
+      "start": {
+        "line": 240,
+        "column": 2
+      },
+      "end": {
+        "line": 240,
+        "column": 17
+      }
+    },
+    "option-menu": {
+      "start": {
+        "line": 251,
+        "column": 2
+      },
+      "end": {
+        "line": 251,
         "column": 14
+      }
+    },
+    "option-menu-inner": {
+      "start": {
+        "line": 273,
+        "column": 2
+      },
+      "end": {
+        "line": 273,
+        "column": 20
+      }
+    },
+    "option-item": {
+      "start": {
+        "line": 282,
+        "column": 2
+      },
+      "end": {
+        "line": 282,
+        "column": 14
+      }
+    },
+    "option-item-selected": {
+      "start": {
+        "line": 294,
+        "column": 2
+      },
+      "end": {
+        "line": 294,
+        "column": 23
       }
     },
     "actions": {
       "start": {
-        "line": 160,
+        "line": 296,
         "column": 2
       },
       "end": {
-        "line": 160,
+        "line": 296,
         "column": 10
       }
     },
     "action-btn": {
       "start": {
-        "line": 175,
+        "line": 311,
         "column": 2
       },
       "end": {
-        "line": 175,
+        "line": 311,
         "column": 13
       }
     },
     "disabled": {
       "start": {
-        "line": 196,
+        "line": 332,
         "column": 2
       },
       "end": {
-        "line": 196,
+        "line": 332,
         "column": 11
       }
     },
     "uid-1": {
       "start": {
-        "line": 202,
+        "line": 338,
         "column": 0
       },
       "end": {
-        "line": 230,
+        "line": 391,
         "column": 6
       }
     },
     "uid-2": {
       "start": {
-        "line": 203,
+        "line": 339,
         "column": 2
       },
       "end": {
-        "line": 208,
+        "line": 344,
         "column": 8
       }
     },
     "uid-3": {
       "start": {
-        "line": 204,
+        "line": 340,
         "column": 4
       },
       "end": {
-        "line": 207,
+        "line": 343,
         "column": 13
       }
     },
     "uid-4": {
       "start": {
-        "line": 205,
+        "line": 341,
         "column": 6
       },
       "end": {
-        "line": 205,
+        "line": 341,
         "column": 48
       }
     },
     "uid-5": {
       "start": {
-        "line": 206,
+        "line": 342,
         "column": 6
       },
       "end": {
-        "line": 206,
+        "line": 342,
         "column": 45
       }
     },
     "uid-6": {
       "start": {
-        "line": 210,
+        "line": 346,
         "column": 2
       },
       "end": {
-        "line": 218,
+        "line": 379,
         "column": 8
       }
     },
     "uid-7": {
       "start": {
-        "line": 211,
+        "line": 347,
         "column": 4
       },
       "end": {
-        "line": 217,
+        "line": 355,
         "column": 10
       }
     },
     "uid-8": {
       "start": {
-        "line": 212,
+        "line": 348,
         "column": 6
       },
       "end": {
-        "line": 214,
+        "line": 350,
         "column": 12
       }
     },
     "uid-9": {
       "start": {
-        "line": 213,
+        "line": 349,
         "column": 8
       },
       "end": {
-        "line": 213,
+        "line": 349,
         "column": 49
       }
     },
     "uid-10": {
       "start": {
-        "line": 215,
+        "line": 351,
         "column": 6
       },
       "end": {
-        "line": 215,
-        "column": 67
+        "line": 354,
+        "column": 12
       }
     },
     "uid-11": {
       "start": {
-        "line": 216,
-        "column": 6
+        "line": 352,
+        "column": 8
       },
       "end": {
-        "line": 216,
-        "column": 70
+        "line": 352,
+        "column": 69
       }
     },
     "uid-12": {
       "start": {
-        "line": 220,
-        "column": 2
+        "line": 353,
+        "column": 8
       },
       "end": {
-        "line": 229,
-        "column": 8
+        "line": 353,
+        "column": 74
       }
     },
     "uid-13": {
       "start": {
-        "line": 221,
+        "line": 357,
         "column": 4
       },
       "end": {
-        "line": 224,
-        "column": 13
+        "line": 378,
+        "column": 10
       }
     },
     "uid-14": {
       "start": {
-        "line": 222,
+        "line": 358,
         "column": 6
       },
       "end": {
-        "line": 222,
-        "column": 48
+        "line": 367,
+        "column": 12
       }
     },
     "uid-15": {
       "start": {
-        "line": 223,
-        "column": 6
+        "line": 359,
+        "column": 8
       },
       "end": {
-        "line": 223,
-        "column": 48
+        "line": 363,
+        "column": 17
       }
     },
     "uid-16": {
       "start": {
-        "line": 225,
-        "column": 4
+        "line": 360,
+        "column": 10
       },
       "end": {
-        "line": 228,
-        "column": 13
+        "line": 360,
+        "column": 59
       }
     },
     "uid-17": {
       "start": {
-        "line": 226,
-        "column": 6
+        "line": 361,
+        "column": 10
       },
       "end": {
-        "line": 226,
-        "column": 47
+        "line": 361,
+        "column": 96
       }
     },
     "uid-18": {
       "start": {
-        "line": 227,
+        "line": 362,
+        "column": 10
+      },
+      "end": {
+        "line": 362,
+        "column": 92
+      }
+    },
+    "uid-19": {
+      "start": {
+        "line": 364,
+        "column": 8
+      },
+      "end": {
+        "line": 366,
+        "column": 14
+      }
+    },
+    "uid-20": {
+      "start": {
+        "line": 365,
+        "column": 10
+      },
+      "end": {
+        "line": 365,
+        "column": 77
+      }
+    },
+    "uid-21": {
+      "start": {
+        "line": 368,
         "column": 6
       },
       "end": {
-        "line": 227,
+        "line": 377,
+        "column": 12
+      }
+    },
+    "uid-22": {
+      "start": {
+        "line": 369,
+        "column": 8
+      },
+      "end": {
+        "line": 373,
+        "column": 17
+      }
+    },
+    "uid-23": {
+      "start": {
+        "line": 370,
+        "column": 10
+      },
+      "end": {
+        "line": 370,
+        "column": 59
+      }
+    },
+    "uid-24": {
+      "start": {
+        "line": 371,
+        "column": 10
+      },
+      "end": {
+        "line": 371,
+        "column": 96
+      }
+    },
+    "uid-25": {
+      "start": {
+        "line": 372,
+        "column": 10
+      },
+      "end": {
+        "line": 372,
+        "column": 92
+      }
+    },
+    "uid-26": {
+      "start": {
+        "line": 374,
+        "column": 8
+      },
+      "end": {
+        "line": 376,
+        "column": 14
+      }
+    },
+    "uid-27": {
+      "start": {
+        "line": 375,
+        "column": 10
+      },
+      "end": {
+        "line": 375,
+        "column": 77
+      }
+    },
+    "uid-28": {
+      "start": {
+        "line": 381,
+        "column": 2
+      },
+      "end": {
+        "line": 390,
+        "column": 8
+      }
+    },
+    "uid-29": {
+      "start": {
+        "line": 382,
+        "column": 4
+      },
+      "end": {
+        "line": 385,
+        "column": 13
+      }
+    },
+    "uid-30": {
+      "start": {
+        "line": 383,
+        "column": 6
+      },
+      "end": {
+        "line": 383,
+        "column": 48
+      }
+    },
+    "uid-31": {
+      "start": {
+        "line": 384,
+        "column": 6
+      },
+      "end": {
+        "line": 384,
+        "column": 48
+      }
+    },
+    "uid-32": {
+      "start": {
+        "line": 386,
+        "column": 4
+      },
+      "end": {
+        "line": 389,
+        "column": 13
+      }
+    },
+    "uid-33": {
+      "start": {
+        "line": 387,
+        "column": 6
+      },
+      "end": {
+        "line": 387,
+        "column": 47
+      }
+    },
+    "uid-34": {
+      "start": {
+        "line": 388,
+        "column": 6
+      },
+      "end": {
+        "line": 388,
         "column": 42
       }
     }
