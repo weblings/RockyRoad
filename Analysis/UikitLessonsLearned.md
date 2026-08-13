@@ -610,3 +610,50 @@ one per rAF (broke scrolling, reverted, didn't fix the wrap either).
 **Not attempted — shelved as too costly for a visual bug:** moving the trigger into a separate
 `PanelUI` document, which would structurally guarantee isolation (every `PanelUI` has its own Yoga
 tree; this app currently has exactly one `PanelUI` per screen, five total).
+
+---
+
+## A "resolve and cache a resource" helper shouldn't also have a side effect that only some callers want
+
+**Symptom:** A panel's `pointerEvents` silently flipped back to `'auto'` while it was still invisible
+and had never legitimately been shown — coincident with whatever screen was actually displaying,
+causing hover flicker between the two.
+
+**Root cause:** `CalibrationSystem._withDoc()` — a generic "poll until the doc resolves, cache it,
+run the callback" utility — set `pointerEvents: 'auto'` the first time it ever resolved a real doc.
+It's called by read-only paths too (`refreshValues()` via `reapply()` via `tryLoadCalibration()`,
+which fires just from browsing to a song, not from showing the panel), so the side effect fired for
+callers that never meant to enable anything.
+
+**Fix:** Keep resource-caching helpers free of side effects entirely — interactivity should only
+ever be toggled by the explicit setter built for that purpose, never as a byproduct of an unrelated
+read.
+
+---
+
+## A callee that hides siblings via `.visible` alone is only safe because every caller happens to also disable interactivity itself
+
+**Symptom:** Play HUD stayed fully clickable, invisible, underneath the calibration panel — a full
+coincident overlap, not just a near-miss.
+
+**Root cause:** `CalibrationSystem._showPanel()` toggled only `.visible` on sibling panels — it had
+no access to their real interactivity setters (`RayInteractable` + `pointerEvents`), because only
+its own setter was ever exposed on `world.globals`. Worked everywhere except one caller (Play HUD's
+Reposition button) that only ever disabled `.visible` itself, assuming `_showPanel()` would handle
+the rest.
+
+**Fix:** Expose every sibling's real interactivity setter the same way, and have the callee call
+them directly rather than trusting that whichever caller invoked it already did so — a callee that
+can enforce its own invariant shouldn't depend on every caller remembering to.
+
+---
+
+## A dropdown needing both a fixed and a variable-length option list splits into two methods sharing one private tail
+
+**Finding:** `OptionDropdown` (the extracted shared XR dropdown class — see the phase-1 entries
+above) needs two shapes: `render()` for options already declared in markup with known ids (Speed's
+fixed 10), and `renderDynamic()` for a count/labels that vary per instance (Difficulty's per-song
+list) — creating/destroying `UIKit.Container`+`Text` nodes each call, same pattern as
+`_buildSectionTicks`/Library's rows. Both funnel into one shared private tail (trigger/chevron
+toggle, centering math, scroll wiring) that doesn't care how the option elements were obtained —
+only the "how do we get the elements" step differs.

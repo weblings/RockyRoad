@@ -189,3 +189,21 @@ Two related facts, confirmed by reading `node_modules/@iwsdk/core/dist/ecs/{enti
 **Fix:** Don't rely on a one-shot toggle for anything that needs to stay hidden across frames while IWSDK's own systems are still running. Instead, force `visual.model.visible = false` every frame for the duration of the hidden state (in `HighwaySystem.update()`, guarded by the same idle condition). No explicit re-show call is needed — stop forcing it false and IWSDK's own per-frame reset naturally makes it visible again with a live (non-frozen) pose, since joint updates were never actually stopped.
 
 **Diagnosis note:** The bug looked like "hiding doesn't work" but was actually two separate effects overlapping (pose freeze + visibility not sticking) that only made sense once `xr-input-manager.js` and `base-impl.js` were read directly — the `enabled`-gates-updates and `.visible`-gets-reset-every-frame behaviors live in different files and aren't documented together anywhere.
+
+---
+
+## "Confirmed absent" needs a verified search surface, not just a clean grep
+
+**Symptom:** Stated "confirmed zero references in `ChartPlayerShared`" based on a grep across that path returning no matches.
+
+**Root cause:** `ChartPlayerShared` doesn't exist on this machine at all — the grep searched nothing, not "searched real content and found nothing." A negative result from an empty/nonexistent path looks identical to a genuine absence.
+
+**Fix:** Before treating a search's silence as confirmation, verify the target path actually exists and has content — `find`/`ls` it first, don't jump straight to grep.
+
+---
+
+## Don't trust remembered file state across turns — re-read before extending prior work
+
+**Symptom:** Built on the assumption an earlier fix (grab-bar geometry/panel offset changes) was still in the file; it had been reverted outside the visible tool-call history, and the mismatch only surfaced because the user asked a direct readiness question.
+
+**Fix:** Re-read a file fresh before adding more work on top of it, especially after any gap in the conversation — don't rely on memory of what was previously written. Cheap insurance against silent reverts, session compaction, or edits made outside the tool-call history.
