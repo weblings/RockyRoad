@@ -801,6 +801,82 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         );
     }
 
+    // Builds/rebuilds the guitar/bass highway using an already-loaded SongPlayer — shared by
+    // loadSong() (a fresh song, songPlayer about to load its own audio) and showActiveScene()'s
+    // onDifficultyChange (same songPlayer, still playing — a difficulty change only swaps which
+    // notes are charted, never the audio). Caller owns disposeHighway() beforehand and all
+    // songPlayer audio state (seek/play/pause) — this only fetches chart data and builds the
+    // visual highway around whatever songPlayer it's given.
+    async function buildGuitarHighway(
+        sourced: SourcedEntry,
+        partName: string,
+        selectedDifficulty: number | null,
+        songPlayer: SongPlayer,
+    ): Promise<{
+        sections: SongSection[]; songLengthSecondsFallback: number;
+        availableDifficulties: number[]; firstNoteTime: number;
+    } | null> {
+        const { source, entry } = sourced;
+        const part = entry.parts.find(p => p.name === partName);
+        if (!part) return null;
+
+        world.globals.currentPartType = part.type;
+
+        keysCountdownMesh.visible = false;
+        world.globals.countdownMesh   = guitarCountdownMesh;
+        world.globals.countdownCanvas = guitarCountdownCanvas;
+        world.globals.countdownTex    = guitarCountdownTex;
+
+        const [songStructure, instrumentNotes, songInfo] = await Promise.all([
+            fetchJson<SongStructure>(source.getFileUrl(entry, 'arrangement.json')),
+            fetchJson<SongInstrumentNotes>(source.getFileUrl(entry, `${partName}.json`)),
+            fetchJson<SongInfo>(source.getFileUrl(entry, 'song.json')),
+        ]);
+
+        const instrumentPart =
+            songInfo.InstrumentParts.find(p => p.InstrumentName === part.name) ??
+            songInfo.InstrumentParts[0];
+
+        // Phase 5 — swap in the AlternateLevels-resolved note set for the selected difficulty.
+        // No-op (returns instrumentNotes.Notes unchanged) when selectedDifficulty is null.
+        const resolvedNotes = { ...instrumentNotes, Notes: resolveNotesForDifficulty(instrumentNotes, selectedDifficulty) };
+
+        const saved = loadSettings();
+        const scene = new FretPlayerScene3D(
+            world.renderer, texture, songStructure, resolvedNotes, instrumentPart,
+        );
+        scene.boldText           = saved.boldText;
+        scene.invertStrings      = saved.invertStrings;
+        scene.leftyMode          = saved.leftyMode;
+        scene.noteNumbersDesktop = saved.noteNumbersDesktop;
+        scene.noteNumbersXR      = saved.noteNumbersXR;
+        scene.currentSecond      = songPlayer.currentSecond;
+
+        highwayEntity = world.createTransformEntity(scene.mesh, {
+            parent: guitarContentEntity,
+            persistent: true,
+        });
+        world.globals.highwayScene = scene;
+        world.globals.songPlayer   = songPlayer;
+
+        // Placement is instant/synchronous (unlike Keys' multi-step pointing
+        // flow), so there's no in-between state to hide — show it as soon as
+        // it's mounted, regardless of which caller runs next (direct Play,
+        // Reposition, first-time calibrate, or a mid-play Difficulty change).
+        guitarGrabBarHit.visible = true;
+
+        const sections = instrumentNotes.Sections?.length > 0
+            ? instrumentNotes.Sections
+            : (songStructure.Sections ?? []);
+
+        return {
+            sections,
+            songLengthSecondsFallback: songInfo.SongLengthSeconds ?? 0,
+            availableDifficulties: instrumentPart.AvailableDifficulties ?? [],
+            firstNoteTime: resolvedNotes.Notes[0]?.TimeOffset ?? 0,
+        };
+    }
+
     async function loadSong(
         sourced: SourcedEntry,
         partName: string,
@@ -871,65 +947,22 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         }
 
         // ── Guitar / Bass ────────────────────────────────────────────────────────
-        keysCountdownMesh.visible = false;
-        world.globals.countdownMesh   = guitarCountdownMesh;
-        world.globals.countdownCanvas = guitarCountdownCanvas;
-        world.globals.countdownTex    = guitarCountdownTex;
+        // Audio load and chart fetch/build run in parallel (same as before the split) — only
+        // songPlayer.duration (needed for totalDuration below) has to wait for audio to resolve.
+        const audioLoad = songPlayer.loadSong(source.getFileUrl(entry, 'song.ogg')).catch(() => {});
+        const result = await buildGuitarHighway(sourced, partName, selectedDifficulty, songPlayer);
+        await audioLoad;
+        if (!result) return null;
 
-        const [songStructure, instrumentNotes, songInfo] = await Promise.all([
-            fetchJson<SongStructure>(source.getFileUrl(entry, 'arrangement.json')),
-            fetchJson<SongInstrumentNotes>(source.getFileUrl(entry, `${partName}.json`)),
-            fetchJson<SongInfo>(source.getFileUrl(entry, 'song.json')),
-            songPlayer.loadSong(source.getFileUrl(entry, 'song.ogg')).catch(() => {}),
-        ]) as [SongStructure, SongInstrumentNotes, SongInfo, void];
-
-        const instrumentPart =
-            songInfo.InstrumentParts.find(p => p.InstrumentName === part.name) ??
-            songInfo.InstrumentParts[0];
-
-        // Phase 5 — swap in the AlternateLevels-resolved note set for the selected difficulty.
-        // No-op (returns instrumentNotes.Notes unchanged) when selectedDifficulty is null.
-        const resolvedNotes = { ...instrumentNotes, Notes: resolveNotesForDifficulty(instrumentNotes, selectedDifficulty) };
-
-        const scene = new FretPlayerScene3D(
-            world.renderer, texture, songStructure, resolvedNotes, instrumentPart,
-        );
-        scene.boldText           = saved.boldText;
-        scene.invertStrings      = saved.invertStrings;
-        scene.leftyMode          = saved.leftyMode;
-        scene.noteNumbersDesktop = saved.noteNumbersDesktop;
-        scene.noteNumbersXR      = saved.noteNumbersXR;
-
-        // resolvedNotes.Notes, not instrumentNotes.Notes — the constructor above sorts it in
-        // place, and it's the actual (possibly difficulty-resolved) set being played.
-        const firstNoteTime = resolvedNotes.Notes[0]?.TimeOffset ?? 0;
-        if (firstNoteTime > 0) songPlayer.seekTo(firstNoteTime);
-        scene.currentSecond = songPlayer.currentSecond;
-
-        highwayEntity = world.createTransformEntity(scene.mesh, {
-            parent: guitarContentEntity,
-            persistent: true,
-        });
-        world.globals.highwayScene = scene;
-        world.globals.songPlayer   = songPlayer;
-
-        // Placement is instant/synchronous (unlike Keys' multi-step pointing
-        // flow), so there's no in-between state to hide — show it as soon as
-        // it's mounted, regardless of which caller runs next (direct Play,
-        // Reposition, or first-time calibrate).
-        guitarGrabBarHit.visible = true;
+        if (result.firstNoteTime > 0) songPlayer.seekTo(result.firstNoteTime);
 
         const totalDuration = songPlayer.duration > 0
             ? songPlayer.duration
-            : (songInfo.SongLengthSeconds ?? 0);
-
-        const sections = instrumentNotes.Sections?.length > 0
-            ? instrumentNotes.Sections
-            : (songStructure.Sections ?? []);
+            : result.songLengthSecondsFallback;
 
         return {
-            songPlayer, sections, totalDuration, noteMin: 21, noteMax: 108,
-            availableDifficulties: instrumentPart.AvailableDifficulties ?? [],
+            songPlayer, sections: result.sections, totalDuration, noteMin: 21, noteMax: 108,
+            availableDifficulties: result.availableDifficulties,
         };
     }
 
@@ -1003,27 +1036,19 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         setPlayPanelInteractive(true);
         world.globals.updateActivePanel = undefined;
 
-        // Phase 5, "immediate rebuild": changing Difficulty mid-play re-runs loadSong() (which
-        // disposes and reconstructs the highway, same as switching songs) and re-enters
-        // showActiveScene(). Preserves playback position — loadSong()'s own default seek (to the
-        // first note) is overridden below — but not play/pause state; reusing showActiveScene()'s
-        // own "not playing -> resumeWithCountdown" tail below gives the same 3-2-1 countdown every
-        // other resume point already has, rather than a custom resume path here.
+        // Phase 5, "immediate rebuild": changing Difficulty mid-play calls buildGuitarHighway()
+        // directly (not loadSong()) with the same still-playing songPlayer — audio is never
+        // touched at all (no pause, no seek, no reload), only the chart/highway geometry swaps
+        // under it. totalDuration/noteMin/noteMax are reused unchanged from this closure (the
+        // audio didn't change, so neither did they); sections/availableDifficulties come back
+        // fresh from the rebuild as a natural byproduct of re-fetching song.json anyway.
         const onDifficultyChange = async (newDifficulty: number): Promise<void> => {
-            const resumeAt = songPlayer.currentSecond;
-            // Web Audio doesn't stop just because the JS reference is dropped — same pause-before-
-            // discard requirement showLibrary() already follows for the same reason.
-            songPlayer.pause();
-            const result = await loadSong(entry, partName, newDifficulty);
+            disposeHighway();
+            const result = await buildGuitarHighway(entry, partName, newDifficulty, songPlayer);
             if (!result) { showLibrary(); return; }
-            const {
-                songPlayer: newPlayer, sections: newSections, totalDuration: newDuration,
-                noteMin: newNoteMin, noteMax: newNoteMax, availableDifficulties: newAvailableDifficulties,
-            } = result;
-            newPlayer.seekTo(resumeAt);
             showActiveScene(
-                entry, newPlayer, newSections, newDuration, newNoteMin, newNoteMax,
-                newAvailableDifficulties, newDifficulty, partName,
+                entry, songPlayer, result.sections, totalDuration, noteMin, noteMax,
+                result.availableDifficulties, newDifficulty, partName,
             );
         };
 
