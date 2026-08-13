@@ -8,9 +8,9 @@ of this solved — see "Desktop comparison" — so later phases lean on that rat
 ## Phased approach
 
 1. **Extract the shared dropdown class, proven on Play.** Pull `_wireOptionMenuScroll`/centering-
-   on-open/trigger-label-recreate-node/warm-up-mitigation out of `XRActiveScene` into something
-   reusable, validated by having Play's existing Speed dropdown keep working unchanged through it.
-   **XR-only** — see "Desktop comparison," desktop has no equivalent need.
+   on-open/trigger-label-recreate-node out of `XRActiveScene` into something reusable, validated by
+   having Play's existing Speed dropdown keep working unchanged through it. **XR-only** — see
+   "Desktop comparison," desktop has no equivalent need. Detail: see "Phase 1 detail" below.
 2. **Difficulty detection + population, on Play.** The data-model and detection/population work
    below. Ends with a dropdown that shows real per-song percentage options and lets you select one
    — **selecting a value does not yet change played notes**, that's phase 5, not this phase.
@@ -28,6 +28,78 @@ of this solved — see "Desktop comparison" — so later phases lean on that rat
 `RockBandConverter.cs`'s discard-tier fix (Easy/Medium/Hard → `AlternateLevels`, whole-song-scoped
 instead of phrase-scoped) isn't phase-ordered above — it's independent, do it whenever convenient
 around phase 4.
+
+## Phase 1 detail — shared dropdown class
+
+Re-read the current `XRActiveScene.ts` in full before drafting this (this session had a revert I
+wasn't aware of until asked, so working from memory wasn't trustworthy). Confirmed there's no
+warm-up-at-mount mitigation in the code today — the phase list above previously claimed otherwise,
+now corrected.
+
+**Instantiation shape: one instance per dropdown**, not one per screen managing several via keyed
+Maps — confirmed preference. Each instance owns its own `menuOpen`/`menuWasOpen`/`triggerLabelNode`/
+`scrollOffset`/drag state as plain fields, no Map indirection needed.
+
+**What moves into the shared class, verbatim or near-verbatim** (all confirmed generic in the
+current code — no Speed-specific logic inside any of these):
+- `_wireOptionMenuScroll`'s full drag-to-scroll implementation (capture/release, tap-vs-drag via
+  `DRAG_THRESHOLD`, `pointerEvents` disable-others-while-dragging).
+- `_setOptionSelected`'s class-toggle helper.
+- The trigger-label recreate-node pattern (currently `_setSpeedTriggerLabel` — destroy/recreate a
+  `UIKit.Text` node in a slot rather than mutate `.text`).
+- The centering-on-open formula, currently inlined in `_wireSpeedDropdown` (lines 291–297) —
+  extract into its own function first, both because the class needs it and because it's the one
+  piece of this whole thing that's pure math with no uikit/pointer-events dependency, worth its own
+  test (see "Testing" below).
+
+**What stays caller-supplied** (constructor config or per-render-call arguments, not owned by the
+class):
+- Element ids (trigger, chevron-down/up, menu, menu-inner, trigger-label-slot) — Speed's are
+  `as-speed-*` today; Song's future Instrument/Difficulty dropdowns will have their own.
+- The option list itself, and each option's `selected`/`onClick` — Speed's is a fixed 10-item list
+  declared statically in `play.uikitml` (`as-speed-opt-20` … `as-speed-opt-200`, always present,
+  just toggled). Phase 1's class should accept an options array/callback shape general enough that
+  this isn't hardcoded to exactly 10, but **does not need to handle runtime-created/destroyed
+  option elements** — that's a phase 3 requirement (Song's Instrument/Difficulty lists vary in
+  length per song, closer to Library's row-instantiation pattern than Play's static markup) and is
+  explicitly out of scope here. Flagging now so it doesn't surprise phase 3: extending the class to
+  support a dynamic option count is real, not-yet-designed work, not a given.
+- `songPlayer.playbackRate` / `SPEED_PRESETS` / `speedPercentLabel()` — Speed's own state and
+  values, stay in `XRActiveScene`, passed to the shared instance rather than absorbed by it.
+
+**Regression-safety property to preserve:** `play.uikitml` needs zero markup changes for phase 1 —
+same ids, same structure, only the TS-side implementation moves. If that holds, in-headset behavior
+should be identical before/after by construction, which is also most of the test plan.
+
+### Testing
+
+No automated headset visibility in this environment (established earlier in the project) — testing
+is a mix of what can be checked without a headset and a manual in-headset regression pass.
+
+**Without a headset:**
+- `npx tsc --noEmit` after the refactor.
+- Confirm `play.uikitml` has zero diff (or intentionally zero changes) — the strongest cheap signal
+  that behavior shouldn't have shifted.
+- Unit-test the extracted centering-math function in isolation (plain Node/`vitest`-style
+  assertions, no uikit involved) — edge cases: first item selected, last item selected, nothing
+  selected, item count small enough that `contentHeight < menuHeight` (no scrolling needed at all).
+  This is the one piece of the class worth testing this way; everything else is fundamentally
+  interaction-driven and can't be meaningfully exercised without real pointer events.
+
+**In-headset regression checklist** (all of these already work today — the bar is "still true after
+the refactor," not new functionality):
+- Tap trigger opens/closes the menu; chevron swaps accordingly.
+- Drag-scroll works in both directions inside the popover.
+- A quick tap on an option selects it (doesn't get eaten as a micro-drag).
+- A real drag doesn't accidentally register as a click on whatever option it started over.
+- Reopening after selecting a non-default value (e.g. 100%) centers on that selection, not the top.
+- Selecting a new value updates the trigger label without the label going stale/misaligned.
+- Other panel elements don't receive stray hover/clicks while a drag is in progress.
+- Selecting an option actually changes `songPlayer.playbackRate` — functional correctness, not just
+  visual.
+- The known-unresolved two-line-wrap glitch (see `UikitLessonsLearned.md`) should be **unchanged**
+  in frequency/character, not better or worse — call this out explicitly so it isn't misattributed
+  to the refactor either way if it's noticed during testing.
 
 ## Desktop comparison
 

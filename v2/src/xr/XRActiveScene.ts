@@ -1,28 +1,13 @@
 import type { Entity, UIKitDocument } from "@iwsdk/core";
 import { PanelDocument, UIKit } from "@iwsdk/core";
-import type { Vector3 } from "three";
 import type { SongPlayer } from "../shared/SongPlayer";
 import type { SongSection } from "../shared/SongFormat";
+import type { OptionDropdownItem, OptionMenuLayout, WorldPointerEvent } from "./OptionDropdown";
+import { OptionDropdown } from "./OptionDropdown";
 
 // uikit-based (see ui/play.uikitml), migrated off html2canvas — same pattern as
 // XRSettingsScene.ts/XRPreScene.ts, but also has per-frame content (play/pause,
 // seek, elapsed time) wired through registerPanelUpdate, not just click-driven rerenders.
-
-// Local slice of @pmndrs/pointer-events' PointerEvent (transitive dep only).
-// setPointerCapture on pointerdown keeps onPointerMove/onPointerUp firing even once the
-// ray/hand drags outside the seek track's bounds. Use event.point (world-space) +
-// track.worldToLocal(), never event.localPoint — it's relative to whichever sub-element
-// was actually hit (thumb/fill/tick/track), so its reference frame shifts depending on
-// what was grabbed; see UikitLessonsLearned.md. Local space is centered/normalized:
-// x=0 is the track's center, ±0.5 its edges, so `localPoint.x + 0.5` is the 0-1 fraction.
-type WorldPointerEvent = {
-    point?: Vector3;
-    pointerId: number;
-    currentTarget?: {
-        setPointerCapture?(pointerId: number): void;
-        releasePointerCapture?(pointerId: number): void;
-    };
-};
 
 const MAX_TITLE_CHARS    = 26;
 const MAX_SUBTITLE_CHARS = 30;
@@ -37,13 +22,13 @@ const DIFFICULTY_ENABLED = false;
 // +/-0.05 stepper here — the XR design only shows a single dropdown trigger.
 const SPEED_PRESETS = [0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0];
 
-// Mirrors .option-item/.option-menu-inner/.option-menu in ui/play.uikitml, used to compute
-// the dropdown's open-scroll target via arithmetic instead of live .size/.relativeCenter
-// reads — those read [0,0] at the exact moment display flips to 'flex' (Yoga hasn't laid
-// out the subtree yet). Update these three if that CSS changes.
-const OPTION_ITEM_HEIGHT = 2.2; // .option-item: padding-top(0.5) + padding-bottom(0.5) + line-height(1.2)
-const OPTION_ITEM_GAP    = 0.3; // .option-menu-inner's gap-row
-const OPTION_MENU_HEIGHT = 8;   // .option-menu's fixed height
+// Mirrors .option-item/.option-menu-inner/.option-menu in ui/play.uikitml — see
+// OptionDropdown.ts's computeCenteredOffset(). Update if that CSS changes.
+const OPTION_MENU_LAYOUT: OptionMenuLayout = {
+    itemHeight: 2.2, // .option-item: padding-top(0.5) + padding-bottom(0.5) + line-height(1.2)
+    itemGap:    0.3, // .option-menu-inner's gap-row
+    menuHeight: 8,   // .option-menu's fixed height
+};
 
 function truncate(s: string, max: number): string {
     // ASCII periods, not '…' — uikit's Inter MSDF atlas doesn't cover every glyph (UikitLessonsLearned.md).
@@ -69,23 +54,18 @@ export class XRActiveScene {
 
     private _sectionTicks: InstanceType<typeof UIKit.Container>[] = [];
 
-    // Currently-mounted Speed trigger label node — destroyed/recreated on each value
-    // change rather than mutated in place (see .option-label in ui/play.uikitml).
-    private _speedTriggerLabelNode: InstanceType<typeof UIKit.Text> | null = null;
-
     // Non-null only while dragging the seek bar: the previewed 0-1 fraction, applied
     // instead of songPlayer.currentSecond until pointer-up commits it.
     private _scrubFraction: number | null = null;
 
-    // Speed dropdown open/closed state (as-speed-menu), same idiom as XRSongLibrary's sortOpen.
-    private _speedMenuOpen = false;
-    // Previous-frame value, so _wireSpeedDropdown can recenter scroll only on the open
-    // transition, not on every unrelated rerender of an already-open menu.
-    private _speedMenuWasOpen = false;
-
-    // Scroll offset per option-menu popover, keyed by menu id (generalizes to Difficulty's
-    // menu later). Persisted here, not as a method local, so unrelated rerenders don't snap it to 0.
-    private _optionMenuScrollOffsets = new Map<string, number>();
+    private _speedDropdown = new OptionDropdown({
+        trigger: 'as-speed-trigger',
+        triggerLabelSlot: 'as-speed-trigger-label-slot',
+        chevronDown: 'as-speed-chevron-down',
+        chevronUp: 'as-speed-chevron-up',
+        menu: 'as-speed-menu',
+        menuInner: 'as-speed-menu-inner',
+    });
 
     show(
         panelEntity: Entity,
@@ -254,176 +234,15 @@ export class XRActiveScene {
     // Speed dropdown popover — same trigger/menu/chevron-swap idiom as
     // XRSongLibrary.ts's sort dropdown (see as-speed-* in ui/play.uikitml).
     private _wireSpeedDropdown(doc: UIKitDocument, songPlayer: SongPlayer, rerender: () => void): void {
-        this._setSpeedTriggerLabel(doc, speedPercentLabel(songPlayer.playbackRate));
+        this._speedDropdown.setTriggerLabel(doc, speedPercentLabel(songPlayer.playbackRate), 'option-label');
 
-        doc.getElementById('as-speed-menu')?.setProperties({ display: this._speedMenuOpen ? 'flex' : 'none' });
-        doc.getElementById('as-speed-chevron-down')?.setProperties({ display: this._speedMenuOpen ? 'none' : 'flex' });
-        doc.getElementById('as-speed-chevron-up')?.setProperties({ display: this._speedMenuOpen ? 'flex' : 'none' });
-        doc.getElementById('as-speed-trigger')?.setProperties({
-            onClick: () => {
-                this._speedMenuOpen = !this._speedMenuOpen;
-                rerender();
-            },
-        });
+        const items: OptionDropdownItem[] = SPEED_PRESETS.map(preset => ({
+            id: `as-speed-opt-${Math.round(preset * 100)}`,
+            selected: Math.abs(preset - songPlayer.playbackRate) < 0.001,
+            onSelect: () => { songPlayer.playbackRate = preset; },
+        }));
 
-        let selectedIndex = -1;
-        SPEED_PRESETS.forEach((preset, i) => {
-            const id = `as-speed-opt-${Math.round(preset * 100)}`;
-            const el = doc.getElementById(id);
-            if (!el) return;
-            const selected = Math.abs(preset - songPlayer.playbackRate) < 0.001;
-            if (selected) selectedIndex = i;
-            this._setOptionSelected(el, selected);
-            el.setProperties({
-                onClick: () => {
-                    songPlayer.playbackRate = preset;
-                    this._speedMenuOpen = false;
-                    rerender();
-                },
-            });
-        });
-
-        // Recenter only on the open transition, not every rerender (e.g. Playpause)
-        // of an already-open menu, which would fight the user's own scrolling.
-        const justOpened = this._speedMenuOpen && !this._speedMenuWasOpen;
-        this._speedMenuWasOpen = this._speedMenuOpen;
-
-        let initialOffset: number | undefined;
-        if (justOpened && selectedIndex >= 0) {
-            const distanceFromTop = selectedIndex * (OPTION_ITEM_HEIGHT + OPTION_ITEM_GAP) + OPTION_ITEM_HEIGHT / 2;
-            const contentHeight = SPEED_PRESETS.length * OPTION_ITEM_HEIGHT + (SPEED_PRESETS.length - 1) * OPTION_ITEM_GAP;
-            const maxOffsetEstimate = Math.max(0, contentHeight - OPTION_MENU_HEIGHT);
-            initialOffset = Math.max(0, Math.min(distanceFromTop - OPTION_MENU_HEIGHT / 2, maxOffsetEstimate));
-        }
-        this._wireOptionMenuScroll(doc, 'as-speed-menu', 'as-speed-menu-inner', initialOffset);
-    }
-
-    // Destroys/recreates the trigger's label node instead of mutating .text — mutating in
-    // place left stale glyphs rendering behind new text (see .option-label in ui/play.uikitml).
-    private _setSpeedTriggerLabel(doc: UIKitDocument, text: string): void {
-        const slot = doc.getElementById('as-speed-trigger-label-slot');
-        if (!slot) return;
-        if (this._speedTriggerLabelNode) slot.remove(this._speedTriggerLabelNode);
-        this._speedTriggerLabelNode = new UIKit.Text({ text }, ['option-label']);
-        slot.add(this._speedTriggerLabelNode);
-    }
-
-    // Custom drag-to-scroll, replacing overflow:scroll — its capture/release object
-    // mismatch wedges scroll permanently once a drag starts on a child button (nearly
-    // every gesture at this popover's size). See UikitLessonsLearned.md. Deliberately
-    // doesn't capture on every pointerdown like _wireSeekDrag does: native click synthesis
-    // requires down/up to land on the same object, so eager capture would break every
-    // option's onClick. Capture is deferred until real drag distance is confirmed.
-    //
-    // initialOffset: pre-clamped scroll offset to open at (e.g. centered selection) — only
-    // set on the render that just opened the menu; undefined otherwise so the user's own
-    // scroll position is preserved. A plain number, not an id, since only the caller
-    // (already computing it analytically) can supply it before layout has settled.
-    private _wireOptionMenuScroll(doc: UIKitDocument, menuId: string, innerId: string, initialOffset?: number): void {
-        const menu = doc.getElementById(menuId);
-        const inner = doc.getElementById(innerId);
-        if (!menu || !inner) return;
-
-        // Local-space movement (normalized -0.5..0.5, same units as WorldPointerEvent
-        // above) past which a press is promoted from "maybe a tap" to a real drag.
-        const DRAG_THRESHOLD = 0.03;
-
-        // pressed: is a pinch/click currently held. dragging: only meaningful while
-        // pressed, true once movement crosses DRAG_THRESHOLD. Keep these separate —
-        // onPointerMove fires on every hover, not just while pressed, so without the
-        // pressed gate a mere hover would "drag" against a stale startLocalY (mirrors
-        // _wireSeekDrag's `if (!scrubbing) return;` guard).
-        let pressed = false;
-        let dragging = false;
-        let startLocalY = 0;
-        let startOffset = this._optionMenuScrollOffsets.get(menuId) ?? 0;
-
-        const maxOffset = (): number => {
-            const innerSize = inner.size.peek();
-            const menuSize = menu.size.peek();
-            if (!innerSize || !menuSize) return 0;
-            return Math.max(0, innerSize[1] - menuSize[1]);
-        };
-
-        const applyOffset = (o: number): void => {
-            const clamped = Math.max(0, Math.min(o, maxOffset()));
-            this._optionMenuScrollOffsets.set(menuId, clamped);
-            // position-top negative = shifted up, same convention as the
-            // seek-thumb's fixed position-top:-0.3 — growing more negative
-            // as offset grows reveals lower content.
-            inner.setProperties({ positionTop: -clamped });
-        };
-
-        if (initialOffset != null) {
-            // Bypasses applyOffset's live maxOffset() clamp — inner.size/menu.size read
-            // [0,0] at this exact synchronous point (Yoga hasn't laid out the newly-visible
-            // subtree yet), which would clamp any nonzero target back to 0. The caller
-            // already computed and clamped this analytically, so it's trustworthy as-is.
-            this._optionMenuScrollOffsets.set(menuId, initialOffset);
-            inner.setProperties({ positionTop: -initialOffset });
-        } else {
-            // Fine to run through the live-measured clamp here — an already-open menu's
-            // layout has long since settled by the time it rerenders for an unrelated reason.
-            applyOffset(startOffset);
-        }
-
-        // Disables every other interactive element while a real drag is in progress (the ray
-        // cursor could otherwise hover/click things behind this popover). pointerEvents is
-        // inherited, so flipping it at the panel root cascades everywhere except .option-menu
-        // itself (explicit override in play.uikitml). Only toggled once a drag is confirmed,
-        // not on plain pressed — pointerEvents is re-checked live on each raycast, so flipping
-        // it before a tap's matching pointerup could change what object the release resolves to.
-        const setOtherInteractorsEnabled = (enabled: boolean): void => {
-            doc.rootElement.setProperties({ pointerEvents: enabled ? 'auto' : 'none' });
-        };
-
-        menu.setProperties({
-            onPointerDown: (e: WorldPointerEvent) => {
-                if (!e.point) return;
-                const local = menu.worldToLocal(e.point.clone());
-                pressed = true;
-                dragging = false;
-                startLocalY = local.y;
-                startOffset = this._optionMenuScrollOffsets.get(menuId) ?? 0;
-            },
-            onPointerMove: (e: WorldPointerEvent) => {
-                if (!pressed || !e.point) return;
-                const local = menu.worldToLocal(e.point.clone());
-                const deltaNorm = local.y - startLocalY;
-                if (!dragging) {
-                    if (Math.abs(deltaNorm) < DRAG_THRESHOLD) return;
-                    dragging = true;
-                    e.currentTarget?.setPointerCapture?.(e.pointerId);
-                    setOtherInteractorsEnabled(false);
-                }
-                const menuSize = menu.size.peek();
-                const deltaUnits = deltaNorm * (menuSize?.[1] ?? 0);
-                const target = startOffset + deltaUnits;
-                applyOffset(target);
-            },
-            onPointerUp: (e: WorldPointerEvent) => {
-                if (dragging) {
-                    e.currentTarget?.releasePointerCapture?.(e.pointerId);
-                    setOtherInteractorsEnabled(true);
-                }
-                pressed = false;
-                dragging = false;
-            },
-            onPointerCancel: (e: WorldPointerEvent) => {
-                if (dragging) {
-                    e.currentTarget?.releasePointerCapture?.(e.pointerId);
-                    setOtherInteractorsEnabled(true);
-                }
-                pressed = false;
-                dragging = false;
-            },
-        });
-    }
-
-    private _setOptionSelected(el: ReturnType<UIKitDocument['getElementById']>, selected: boolean): void {
-        if (!el) return;
-        if (selected) { if (!el.classList.contains('option-item-selected')) el.classList.add('option-item-selected'); }
-        else          { if (el.classList.contains('option-item-selected')) el.classList.remove('option-item-selected'); }
+        this._speedDropdown.render(doc, items, OPTION_MENU_LAYOUT, rerender);
     }
 
     private _wireSeekDrag(
@@ -450,10 +269,11 @@ export class XRActiveScene {
         // sense once something's actually been dragged).
         const QUICK_TAP_MS = 200;
 
-        // See the comment above WorldPointerEvent for why this goes through
-        // track.worldToLocal(event.point) rather than event.localPoint, and
-        // why "+ 0.5" — this is the established uikit drag-math pattern
-        // (mirroring scroll.js), not a guess.
+        // track.worldToLocal(event.point), not event.localPoint — the latter is relative to
+        // whichever sub-element was actually hit (thumb/fill/tick/track), so its reference frame
+        // shifts depending on what was grabbed; see UikitLessonsLearned.md. Local space is
+        // centered/normalized (x=0 is the track's center, ±0.5 its edges), hence the "+ 0.5" —
+        // the established uikit drag-math pattern (mirroring scroll.js), not a guess.
         const pointerFraction = (e: WorldPointerEvent): number | null => {
             if (!e.point) return null;
             const local = track.worldToLocal(e.point.clone());
