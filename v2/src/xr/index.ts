@@ -36,6 +36,7 @@ Scene3D.xrMode = true;
 import { loadManifest } from "../shared/UIImage";
 import { KeysPlayerScene3D } from "../shared/KeysPlayerScene3D";
 import { FretPlayerScene3D } from "../shared/FretPlayerScene3D";
+import { resolveNotesForDifficulty } from "../shared/DifficultyResolve";
 import { SongPlayer } from "../shared/SongPlayer";
 import { CalibrationSystem } from "./CalibrationSystem";
 import { XRSongLibrary } from "./XRSongLibrary";
@@ -803,6 +804,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     async function loadSong(
         sourced: SourcedEntry,
         partName: string,
+        selectedDifficulty: number | null = null,
     ): Promise<{
         songPlayer: SongPlayer; sections: SongSection[]; totalDuration: number;
         noteMin: number; noteMax: number; availableDifficulties: number[];
@@ -885,8 +887,12 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
             songInfo.InstrumentParts.find(p => p.InstrumentName === part.name) ??
             songInfo.InstrumentParts[0];
 
+        // Phase 5 — swap in the AlternateLevels-resolved note set for the selected difficulty.
+        // No-op (returns instrumentNotes.Notes unchanged) when selectedDifficulty is null.
+        const resolvedNotes = { ...instrumentNotes, Notes: resolveNotesForDifficulty(instrumentNotes, selectedDifficulty) };
+
         const scene = new FretPlayerScene3D(
-            world.renderer, texture, songStructure, instrumentNotes, instrumentPart,
+            world.renderer, texture, songStructure, resolvedNotes, instrumentPart,
         );
         scene.boldText           = saved.boldText;
         scene.invertStrings      = saved.invertStrings;
@@ -894,7 +900,9 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         scene.noteNumbersDesktop = saved.noteNumbersDesktop;
         scene.noteNumbersXR      = saved.noteNumbersXR;
 
-        const firstNoteTime = instrumentNotes.Notes[0]?.TimeOffset ?? 0;
+        // resolvedNotes.Notes, not instrumentNotes.Notes — the constructor above sorts it in
+        // place, and it's the actual (possibly difficulty-resolved) set being played.
+        const firstNoteTime = resolvedNotes.Notes[0]?.TimeOffset ?? 0;
         if (firstNoteTime > 0) songPlayer.seekTo(firstNoteTime);
         scene.currentSecond = songPlayer.currentSecond;
 
@@ -926,14 +934,14 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     }
 
     async function playEntry(entry: SourcedEntry, partName: string, difficulty: number | null): Promise<void> {
-        const result = await loadSong(entry, partName);
+        const result = await loadSong(entry, partName, difficulty);
         if (!result) { showLibrary(); return; }
         const { songPlayer, sections, totalDuration, noteMin, noteMax, availableDifficulties } = result;
-        showActiveScene(entry, songPlayer, sections, totalDuration, noteMin, noteMax, availableDifficulties, difficulty);
+        showActiveScene(entry, songPlayer, sections, totalDuration, noteMin, noteMax, availableDifficulties, difficulty, partName);
     }
 
     async function repositionEntry(entry: SourcedEntry, partName: string, difficulty: number | null): Promise<void> {
-        const result = await loadSong(entry, partName);
+        const result = await loadSong(entry, partName, difficulty);
         if (!result) { showLibrary(); return; }
         const { songPlayer, sections, totalDuration, noteMin, noteMax, availableDifficulties } = result;
 
@@ -944,12 +952,12 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         preScenePanelObj.visible = false;
         setPreScenePanelInteractive(false);
         (world.globals.showCalibrationFineTune as ((d: () => void) => void) | undefined)?.(
-            () => showActiveScene(entry, songPlayer, sections, totalDuration, noteMin, noteMax, availableDifficulties, difficulty),
+            () => showActiveScene(entry, songPlayer, sections, totalDuration, noteMin, noteMax, availableDifficulties, difficulty, partName),
         );
     }
 
     async function calibrateAndPlay(entry: SourcedEntry, partName: string, difficulty: number | null): Promise<void> {
-        const result = await loadSong(entry, partName);
+        const result = await loadSong(entry, partName, difficulty);
         if (!result) { showLibrary(); return; }
         const { songPlayer, sections, totalDuration, noteMin, noteMax, availableDifficulties } = result;
 
@@ -958,7 +966,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         preScenePanelObj.visible = false;
         setPreScenePanelInteractive(false);
         (world.globals.startCalibration as ((d: () => void) => void) | undefined)?.(
-            () => showActiveScene(entry, songPlayer, sections, totalDuration, noteMin, noteMax, availableDifficulties, difficulty),
+            () => showActiveScene(entry, songPlayer, sections, totalDuration, noteMin, noteMax, availableDifficulties, difficulty, partName),
         );
     }
 
@@ -974,6 +982,9 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         // resumeWithCountdown below) the live value read back from activeScene itself — never a
         // hard reset, see XRActiveScene.show()'s own comment on why that mattered.
         initialDifficulty: number | null,
+        // Needed to rebuild via loadSong() again on a mid-play Difficulty change (onDifficultyChange
+        // below) — not read here otherwise, showActiveScene itself doesn't need to know which part.
+        partName: string,
     ): void {
         // Cancels any stale countdown from a previous call (e.g. returning
         // from Settings/Calibration while one was still pending) — the
@@ -991,6 +1002,31 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         playPanelObj.visible     = true;
         setPlayPanelInteractive(true);
         world.globals.updateActivePanel = undefined;
+
+        // Phase 5, "immediate rebuild": changing Difficulty mid-play re-runs loadSong() (which
+        // disposes and reconstructs the highway, same as switching songs) and re-enters
+        // showActiveScene(). Preserves playback position — loadSong()'s own default seek (to the
+        // first note) is overridden below — but not play/pause state; reusing showActiveScene()'s
+        // own "not playing -> resumeWithCountdown" tail below gives the same 3-2-1 countdown every
+        // other resume point already has, rather than a custom resume path here.
+        const onDifficultyChange = async (newDifficulty: number): Promise<void> => {
+            const resumeAt = songPlayer.currentSecond;
+            // Web Audio doesn't stop just because the JS reference is dropped — same pause-before-
+            // discard requirement showLibrary() already follows for the same reason.
+            songPlayer.pause();
+            const result = await loadSong(entry, partName, newDifficulty);
+            if (!result) { showLibrary(); return; }
+            const {
+                songPlayer: newPlayer, sections: newSections, totalDuration: newDuration,
+                noteMin: newNoteMin, noteMax: newNoteMax, availableDifficulties: newAvailableDifficulties,
+            } = result;
+            newPlayer.seekTo(resumeAt);
+            showActiveScene(
+                entry, newPlayer, newSections, newDuration, newNoteMin, newNoteMax,
+                newAvailableDifficulties, newDifficulty, partName,
+            );
+        };
+
         activeScene.show(
             playPanelEntity,
             entry.entry.songName,
@@ -1001,6 +1037,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
             sections,
             availableDifficulties,
             initialDifficulty,
+            onDifficultyChange,
             (done: () => void) => {
                 // Do NOT hide playPanelObj here. Guitar's recalibrate is
                 // instant/no-panel (see CalibrationSystem.ts) — `done` here is
@@ -1016,11 +1053,11 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
             },
             (pausedAt: number) => resumeWithCountdown(
                 pausedAt, entry, songPlayer, sections, totalDuration, noteMin, noteMax, availableDifficulties,
-                activeScene.selectedDifficulty,
+                activeScene.selectedDifficulty, partName,
             ),
             () => showSettings(
                 entry, songPlayer, sections, totalDuration, noteMin, noteMax, availableDifficulties,
-                activeScene.selectedDifficulty,
+                activeScene.selectedDifficulty, partName,
             ),
             (cb: () => void) => { world.globals.updateActivePanel = cb; },
             () => {
@@ -1033,7 +1070,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         if (!songPlayer.isPlaying) {
             resumeWithCountdown(
                 songPlayer.currentSecond, entry, songPlayer, sections, totalDuration, noteMin, noteMax,
-                availableDifficulties, activeScene.selectedDifficulty,
+                availableDifficulties, activeScene.selectedDifficulty, partName,
             );
         }
     }
@@ -1047,6 +1084,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         noteMax: number,
         availableDifficulties: number[],
         initialDifficulty: number | null,
+        partName: string,
     ): void {
         // Same reasoning as showLibrary()/showActiveScene() — Settings is
         // reachable from Play HUD's Settings button while a countdown may be
@@ -1083,7 +1121,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
                     scene.noteNumbersXR      = s.noteNumbersXR;
                     (world.globals.setGuitarHighwayScale as ((m: number) => void) | undefined)?.(s.guitarHighwayScale);
                 }
-                showActiveScene(entry, songPlayer, sections, totalDuration, noteMin, noteMax, availableDifficulties, initialDifficulty);
+                showActiveScene(entry, songPlayer, sections, totalDuration, noteMin, noteMax, availableDifficulties, initialDifficulty, partName);
             },
         );
     }
@@ -1098,6 +1136,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         noteMax: number,
         availableDifficulties: number[],
         initialDifficulty: number | null,
+        partName: string,
     ): void {
         const resumeAt = Math.max(0, pausedAt - 3);
 
@@ -1114,7 +1153,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
             if (countdownGen !== myGen) return;
             world.globals.countdownN = undefined;
             songPlayer.play();
-            showActiveScene(entry, songPlayer, sections, totalDuration, noteMin, noteMax, availableDifficulties, initialDifficulty);
+            showActiveScene(entry, songPlayer, sections, totalDuration, noteMin, noteMax, availableDifficulties, initialDifficulty, partName);
         }, 3000);
     }
 

@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import type { App, IScreen } from "./App";
 import { FretPlayerScene3D } from "../shared/FretPlayerScene3D";
+import { resolveNotesForDifficulty } from "../shared/DifficultyResolve";
 import { KeysPlayerScene3D } from "../shared/KeysPlayerScene3D";
 import { fromHex } from "../shared/UIColor";
 import { SongPlayer, SilentPlayer, type ISongPlayer } from "../shared/SongPlayer";
@@ -105,19 +106,23 @@ export class ActiveSceneScreen implements IScreen {
             const instrumentPart =
                 songInfo.InstrumentParts.find(p => p.InstrumentName === this.part.name) ??
                 songInfo.InstrumentParts[0];
+            // No Difficulty selector on desktop yet (see DifficultyDropdownPlan.md's "Phase 3
+            // detail") — null is a no-op, returns instrumentNotes.Notes unchanged. Wired now so
+            // this call site is already correct once desktop gets its own selector.
+            const resolvedNotes = { ...instrumentNotes, Notes: resolveNotesForDifficulty(instrumentNotes, null) };
             this.scene = new FretPlayerScene3D(
-                this.app.renderer, this.texture, songStructure, instrumentNotes, instrumentPart,
+                this.app.renderer, this.texture, songStructure, resolvedNotes, instrumentPart,
             );
             this.scene.boldText           = settings.boldText;
             this.scene.invertStrings      = settings.invertStrings;
             this.scene.leftyMode          = settings.leftyMode;
             this.scene.noteNumbersDesktop = settings.noteNumbersDesktop;
             this.scene.noteNumbersXR      = settings.noteNumbersXR;
-            this.sections = instrumentNotes.Sections?.length > 0
-                ? instrumentNotes.Sections
+            this.sections = resolvedNotes.Sections?.length > 0
+                ? resolvedNotes.Sections
                 : (songStructure.Sections ?? []);
             if (settings.skipIntro) {
-                const skipTarget = instrumentNotes.Notes[0]?.TimeOffset ?? 0;
+                const skipTarget = resolvedNotes.Notes[0]?.TimeOffset ?? 0;
                 if (skipTarget > 0) this.scene.currentSecond = skipTarget;
             }
         }

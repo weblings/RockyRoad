@@ -105,6 +105,10 @@ export class XRActiveScene {
         // Raw selected Difficulty value carried from Song, or the current live value on
         // same-session re-entry; null/undefined -> defaults to max on first render.
         initialDifficulty: number | null | undefined,
+        // Phase 5, "immediate rebuild": index.ts reloads the song at the new difficulty and
+        // re-enters showActiveScene(). No effect on the dropdown UI itself — _selectedDifficulty
+        // is still updated immediately in _wireDifficultyDropdown for instant visual feedback.
+        onDifficultyChange: (value: number) => void,
         // Starts recalibration; calls done() when the user presses Done in fine-tune.
         startCalibration: (done: () => void) => void,
         // Pause + 3s rollback + 3-2-1 countdown, then resume.
@@ -120,7 +124,7 @@ export class XRActiveScene {
             this._doc = doc;
             this._render(
                 doc, songTitle, songArtist, artUrl, songPlayer, totalDuration, sections, availableDifficulties,
-                startCalibration, onResumeWithCountdown, onSettings, registerPanelUpdate, onBack,
+                onDifficultyChange, startCalibration, onResumeWithCountdown, onSettings, registerPanelUpdate, onBack,
             );
         };
 
@@ -143,6 +147,7 @@ export class XRActiveScene {
         totalDuration: number,
         sections: SongSection[],
         availableDifficulties: number[],
+        onDifficultyChange: (value: number) => void,
         startCalibration: (done: () => void) => void,
         onResumeWithCountdown: (pausedAt: number) => void,
         onSettings: () => void,
@@ -151,7 +156,7 @@ export class XRActiveScene {
     ): void {
         const rerender = () => this._render(
             doc, songTitle, songArtist, artUrl, songPlayer, totalDuration, sections, availableDifficulties,
-            startCalibration, onResumeWithCountdown, onSettings, registerPanelUpdate, onBack,
+            onDifficultyChange, startCalibration, onResumeWithCountdown, onSettings, registerPanelUpdate, onBack,
         );
 
         doc.getElementById('as-song-title')?.setProperties({ text: truncate(songTitle, MAX_TITLE_CHARS) });
@@ -172,7 +177,9 @@ export class XRActiveScene {
 
         this._buildSectionTicks(doc, sections, totalDuration);
         this._wireSpeedDropdown(doc, songPlayer, rerender);
-        if (availableDifficulties.length > 0) this._wireDifficultyDropdown(doc, availableDifficulties, rerender);
+        if (availableDifficulties.length > 0) {
+            this._wireDifficultyDropdown(doc, availableDifficulties, onDifficultyChange, rerender);
+        }
 
         this._setClick(doc, 'as-library', onBack);
         this._setClick(doc, 'as-settings', () => {
@@ -283,8 +290,14 @@ export class XRActiveScene {
     // Difficulty dropdown popover — same shape as Speed's, but the option count/labels vary per
     // song (renderDynamic(), not render()) and the "selected" value is local UI state rather than
     // read from a real property (see _selectedDifficulty). Only called when availableDifficulties
-    // is non-empty (see _render()). No playback effect yet — see DifficultyDropdownPlan.md phase 5.
-    private _wireDifficultyDropdown(doc: UIKitDocument, availableDifficulties: number[], rerender: () => void): void {
+    // is non-empty (see _render()). Selecting an option updates the trigger/highlight immediately
+    // and also triggers onDifficultyChange (index.ts's "immediate rebuild" — see phase 5).
+    private _wireDifficultyDropdown(
+        doc: UIKitDocument,
+        availableDifficulties: number[],
+        onDifficultyChange: (value: number) => void,
+        rerender: () => void,
+    ): void {
         const sorted = [...availableDifficulties].sort((a, b) => a - b);
         const max = sorted[sorted.length - 1];
         const count = sorted.length;
@@ -305,7 +318,10 @@ export class XRActiveScene {
         const options: DynamicOption[] = sorted.map((value, i) => ({
             label: difficultyOptionLabel(i + 1, count),
             selected: value === this._selectedDifficulty,
-            onSelect: () => { this._selectedDifficulty = value; },
+            onSelect: () => {
+                this._selectedDifficulty = value;
+                onDifficultyChange(value);
+            },
         }));
 
         this._difficultyDropdown.renderDynamic(doc, options, OPTION_MENU_LAYOUT, rerender);
