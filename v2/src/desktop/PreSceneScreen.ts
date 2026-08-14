@@ -80,10 +80,13 @@ export class PreSceneScreen implements IScreen {
         });
 
         // Instrument dropdown — hidden entirely (no dropdown, no label) when there's only one
-        // playable part, same gating as XR's XRPreScene.
+        // playable part, same gating as XR's XRPreScene. The slot itself (not just the dropdown)
+        // has to collapse too — otherwise it keeps claiming half the row's width via
+        // .dropdown-row-item's flex:1 1 0, leaving Difficulty pinned to one side instead of
+        // centered when it's the only dropdown showing.
+        const instrumentSlot = container.querySelector<HTMLElement>('#pre-instrument-slot')!;
         if (playableParts.length > 1) {
-            const slot = container.querySelector<HTMLElement>('#pre-instrument-slot')!;
-            this.instrumentDropdown = new Dropdown(slot, '', (value) => {
+            this.instrumentDropdown = new Dropdown(instrumentSlot, '', (value) => {
                 const part = playableParts.find(p => p.name === value);
                 if (!part) return;
                 this.selectInstrument(part);
@@ -93,6 +96,8 @@ export class PreSceneScreen implements IScreen {
             });
             this.instrumentDropdown.root.classList.add('dropdown-fill');
             this.refreshInstrumentDropdown(playableParts);
+        } else {
+            instrumentSlot.style.display = 'none';
         }
 
         // Difficulty dropdown — hidden entirely when the selected part has no AvailableDifficulties
@@ -181,12 +186,20 @@ export class PreSceneScreen implements IScreen {
 
     private refreshDifficultyDropdown(): void {
         if (!this.difficultyDropdown) return;
+        // The slot (not just the dropdown) has to collapse when hidden too — same reasoning as
+        // instrumentSlot in mount(): otherwise it keeps claiming half the row via
+        // .dropdown-row-item's flex:1 1 0, leaving Instrument pinned to one side instead of
+        // centered when it ends up the only dropdown showing.
+        const slot = this.container?.querySelector<HTMLElement>('#pre-difficulty-slot');
+
         const available = this.selectedPart.availableDifficulties ?? [];
         if (available.length === 0) {
             this.difficultyDropdown.setVisible(false);
+            if (slot) slot.style.display = 'none';
             return;
         }
         this.difficultyDropdown.setVisible(true);
+        if (slot) slot.style.display = '';
 
         const sorted = [...available].sort((a, b) => a - b);
         const count = sorted.length;
