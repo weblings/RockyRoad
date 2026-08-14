@@ -3,6 +3,7 @@ import type { App, IScreen } from "./App";
 import { loadAllSources, type SourcedEntry } from "../shared/SongSource";
 import { loadSettings } from "../shared/Settings";
 import { PreSceneScreen } from "./PreSceneScreen";
+import { Dropdown, type DropdownOption } from "./Dropdown";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -47,7 +48,7 @@ export class SongLibraryScreen implements IScreen {
     private container: HTMLElement | null = null;
     private songs: SourcedEntry[] = [];
     private state: LibraryState;
-    private sortOpen = false;
+    private sortDropdown: Dropdown | null = null;
 
     constructor(app: App, texture: THREE.Texture) {
         this.app = app;
@@ -64,6 +65,8 @@ export class SongLibraryScreen implements IScreen {
     }
 
     unmount(): void {
+        this.sortDropdown?.destroy();
+        this.sortDropdown = null;
         if (this.container) this.container.innerHTML = '';
         this.container = null;
     }
@@ -99,7 +102,11 @@ export class SongLibraryScreen implements IScreen {
         const typeFilter = INSTRUMENT_TYPE[this.state.instrumentFilter];
         const isStringed = STRINGED.has(typeFilter);
         const isFiltered = this.state.instrumentFilter !== 'All';
-        const sel = (v: string) => v === this.state.sort ? ' selected' : '';
+
+        // Full-container rebuild (this method) discards the old Dropdown's DOM along with
+        // everything else — snapshot its open state and evict it from the static registry first.
+        const sortWasOpen = this.sortDropdown?.isOpen ?? false;
+        this.sortDropdown?.destroy();
 
         this.setContent(`
             <div class="lib-screen">
@@ -108,24 +115,8 @@ export class SongLibraryScreen implements IScreen {
                         <input class="lib-search" id="lib-search" type="text"
                             placeholder="Search songs, artists, albums…"
                             value="${esc(this.state.searchQuery)}" />
-                        <div class="lib-sort-dropdown${this.sortOpen ? ' open' : ''}" id="lib-sort-dropdown">
-                            <button class="lib-sort-trigger" id="lib-sort-trigger" type="button">
-                                <span class="lib-sort-label">${SORT_LABELS[this.state.sort] ?? 'Title A–Z'}</span>
-                                <span class="lib-sort-chevron">&#9662;</span>
-                            </button>
-                            <div class="lib-sort-menu">
-                                <button class="lib-sort-option${sel('title-asc')}" data-sort="title-asc" type="button">Title A–Z</button>
-                                <button class="lib-sort-option${sel('title-desc')}" data-sort="title-desc" type="button">Title Z–A</button>
-                                <button class="lib-sort-option${sel('artist-asc')}" data-sort="artist-asc" type="button">Artist A–Z</button>
-                                <button class="lib-sort-option${sel('artist-desc')}" data-sort="artist-desc" type="button">Artist Z–A</button>
-                                ${isFiltered ? `
-                                <button class="lib-sort-option${sel('difficulty-asc')}" data-sort="difficulty-asc" type="button">Difficulty ↑</button>
-                                <button class="lib-sort-option${sel('difficulty-desc')}" data-sort="difficulty-desc" type="button">Difficulty ↓</button>` : ''}
-                                ${isStringed ? `
-                                <button class="lib-sort-option${sel('tuning-asc')}" data-sort="tuning-asc" type="button">Tuning A–Z</button>` : ''}
-                            </div>
-                        </div>
-                        <button id="enter-vr" class="lib-sort-trigger" style="display:none"
+                        <div id="lib-sort-slot"></div>
+                        <button id="enter-vr" class="dropdown-trigger" style="display:none"
                                 type="button" onclick="location.href='xr.html'">Enter VR</button>
                     </div>
                     <div class="lib-filter-row">
@@ -158,25 +149,16 @@ export class SongLibraryScreen implements IScreen {
             this.refreshCards();
         });
 
-        this.container!.querySelector('#lib-sort-trigger')!.addEventListener('click', (e) => {
-            e.stopPropagation();
-            this.sortOpen = !this.sortOpen;
-            (this.container!.querySelector('#lib-sort-dropdown') as HTMLElement)
-                .classList.toggle('open', this.sortOpen);
-        });
-
-        this.container!.querySelector('.lib-sort-menu')!.addEventListener('click', (e) => {
-            const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('.lib-sort-option');
-            if (!btn) return;
-            this.state.sort = btn.dataset.sort as SortOption;
-            this.sortOpen = false;
+        const sortSlot = this.container!.querySelector<HTMLElement>('#lib-sort-slot')!;
+        this.sortDropdown = new Dropdown(sortSlot, SORT_LABELS[this.state.sort] ?? 'Title A–Z', (value) => {
+            this.state.sort = value as SortOption;
             saveState(this.state);
-            (this.container!.querySelector('#lib-sort-dropdown') as HTMLElement).classList.remove('open');
-            (this.container!.querySelector('.lib-sort-label') as HTMLElement).textContent = btn.textContent ?? '';
-            this.container!.querySelectorAll('.lib-sort-option').forEach(el => el.classList.remove('selected'));
-            btn.classList.add('selected');
+            this.sortDropdown!.setTriggerLabel(SORT_LABELS[value] ?? '');
+            this.sortDropdown!.setOptions(this.buildSortOptions(isFiltered, isStringed));
             this.refreshCards();
         });
+        this.sortDropdown.setOptions(this.buildSortOptions(isFiltered, isStringed));
+        if (sortWasOpen) this.sortDropdown.openMenu();
 
         this.container!.querySelector('#lib-chips')!.addEventListener('click', e => {
             const btn = (e.target as HTMLElement).closest<HTMLElement>('[data-filter]');
@@ -296,6 +278,13 @@ export class SongLibraryScreen implements IScreen {
                 `<option value="${esc(t)}" ${this.state.tuningFilter === t ? 'selected' : ''}>${esc(t)}</option>`
             ).join('')}
         </select>`;
+    }
+
+    private buildSortOptions(isFiltered: boolean, isStringed: boolean): DropdownOption[] {
+        const keys: SortOption[] = ['title-asc', 'title-desc', 'artist-asc', 'artist-desc'];
+        if (isFiltered) keys.push('difficulty-asc', 'difficulty-desc');
+        if (isStringed) keys.push('tuning-asc');
+        return keys.map(value => ({ label: SORT_LABELS[value], value, selected: value === this.state.sort }));
     }
 }
 
