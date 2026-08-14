@@ -3,43 +3,40 @@
 Gotchas, non-obvious findings, and hard-won decisions that aren't obvious from reading the code or
 planning docs. Add here whenever something costs more than 30 minutes to diagnose.
 
-**This directory is the only lessons-learned location in the repo** — for every subproject
-(`ThreeCP/v2/`, `ThreeCP/XRProto/`, etc.), not just `ThreeCP/Analysis/` itself. Don't start a new
-`LessonsLearned.md` next to a subproject because it's convenient — file into this tree instead,
-even if the fact is specific to that one subproject (there's no rule that every entry must apply
-project-wide, only that they all live in one place). If you're unsure whether a relevant doc
-already exists, `find . -iname "*lesson*"` from the repo root before creating anything.
+**This directory is the only lessons-learned location in the repo** — for every subproject, not
+just `ThreeCP/Analysis/` itself. Don't start a new `LessonsLearned.md` elsewhere; if unsure whether
+one already exists, `find . -iname "*lesson*"` first.
 
-## Where a lesson lives
+## Index
 
-1. Is this about *my own* verification/reliability habits, not code or design? → persistent memory
+- [`engineering-hygiene.md`](engineering-hygiene.md) — general design principles, small enough to
+  read whole, no sub-index needed.
+- [`ui-toolkit/INDEX.md`](ui-toolkit/INDEX.md) — uikit/uikitml/PanelUI, by activity.
+- [`engine/INDEX.md`](engine/INDEX.md) — IWSDK/Three.js/Web Audio + dev/XR environment, by activity.
+
+## Where a new lesson goes
+
+1. About *my own* verification/reliability habits, not code/design? → persistent memory
    (`feedback_*`), not the repo.
-2. Is this a general software-design principle, demonstrated by a real bug here? →
-   [`engineering-hygiene.md`](engineering-hygiene.md).
-3. Otherwise, uikit/uikitml/PanelUI? → `ui-toolkit/<topic>.md` (see
-   [`ui-toolkit/INDEX.md`](ui-toolkit/INDEX.md)), topic chosen by activity: syntax, text,
-   panel-lifecycle, scrolling, pointer, assets/tooling.
-4. Otherwise → `engine/<topic>.md` (see [`engine/INDEX.md`](engine/INDEX.md)): runtime-apis /
-   xr-3d-rendering / dev-environment.
-5. Cross-cutting entry (touches two systems)? File it under whichever system *constrains the fix*,
-   not whichever system exhibited the symptom — e.g. "`THREE.Sprite` crashes IWSDK's pointer
-   system" lives under `engine/runtime-apis.md` because the fix is "don't use `Sprite` in an
-   IWSDK-managed scene graph," not something wrong with `Sprite` itself. Cross-list it under every
-   relevant heading in that directory's `INDEX.md` if genuinely two-sided — content lives once,
-   discovery can point from multiple angles.
+2. General software-design principle, demonstrated by a real bug here? → `engineering-hygiene.md`.
+3. uikit/uikitml/PanelUI? → `ui-toolkit/<topic>.md`, topic chosen by activity.
+4. Otherwise → `engine/<topic>.md`, topic chosen by activity.
+5. Cross-cutting entry? File under whichever system *constrains the fix*, not whichever exhibited
+   the symptom — e.g. `THREE.Sprite` crashing IWSDK's pointer system files under
+   `engine/runtime-apis.md`, not a Sprite-specific file. Cross-list in that directory's `INDEX.md`
+   if genuinely two-sided.
+6. Destination file too long to skim (rough proxy: 15+ entries)? Split along a finer cut of the
+   same activity razor, into a new sibling file in the same directory. Then update: that
+   directory's `INDEX.md`, any other lesson entry or code comment pointing at the old filename,
+   and this list if it names it. Skills route via `INDEX.md`, never a hardcoded filename, so they
+   shouldn't need touching — confirm rather than assume.
 
-## Directory map
-
-```
-lessons/
-  README.md               # this file
-  engineering-hygiene.md  # design principles demonstrated via a real bug here
-  ui-toolkit/              # uikit/uikitml/PanelUI — see INDEX.md
-  engine/                  # IWSDK/Three.js/Web Audio + dev/XR environment — see INDEX.md
-```
+Tied to now-removed code? Keep the principle if it still applies, drop the dead specifics, and
+say the origin is historical — see `engineering-hygiene.md`'s async-gating entry for a worked
+example, genericized from the removed html2canvas pipeline.
 
 ## Skills
 
 Three skills route to this tree — `uikit-lessons`, `xr-engine-lessons`,
-`engineering-hygiene-lessons` (see `.claude/skills/`). They're not slash commands; check them
-against whatever you're about to touch and invoke the matching one yourself, same as any skill.
+`engineering-hygiene-lessons` (see `.claude/skills/`). Not slash commands; check them against
+whatever you're about to touch and invoke the matching one yourself.
