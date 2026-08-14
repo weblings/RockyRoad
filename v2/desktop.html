@@ -438,26 +438,9 @@
       pointer-events: none;
     }
 
-    /* Speed compound control: [−] [select] [+] as one visual unit */
-    .speed-group {
-      display: flex; align-items: stretch; flex-shrink: 0;
-      border-radius: 5px; overflow: hidden;
-    }
-    .speed-step {
-      width: 22px; display: flex; align-items: center; justify-content: center;
-      padding: 8px 0; background: #333333; border: none;
-      color: #cccccc; font-size: 11px; font-weight: 600;
-      cursor: pointer; line-height: 1;
-    }
-    .speed-step:hover { background: #515151; color: #fff; }
-    #active-speed-select {
-      appearance: none; -webkit-appearance: none;
-      background: #1a1a1a; border: none;
-      color: #ffffff; font-size: 13px; font-weight: 400;
-      padding: 8px 10px; text-align: center; cursor: pointer;
-      min-width: 42px;
-    }
-    #active-speed-select option { background: #1a1a1a; }
+    /* Speed/Difficulty dropdowns match the bar's other controls' vertical padding (8px, e.g.
+       .active-back-btn) rather than the slightly taller default (9px) used elsewhere. */
+    .active-bar .dropdown-trigger { padding-top: 8px; padding-bottom: 8px; }
   </style>
   </head>
   <body>

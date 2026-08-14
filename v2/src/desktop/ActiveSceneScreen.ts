@@ -5,12 +5,14 @@ import { resolveNotesForDifficulty } from "../shared/DifficultyResolve";
 import { KeysPlayerScene3D } from "../shared/KeysPlayerScene3D";
 import { fromHex } from "../shared/UIColor";
 import { SongPlayer, SilentPlayer, type ISongPlayer } from "../shared/SongPlayer";
-import type { SongStructure, SongInstrumentNotes, SongKeyboardNotes, SongInfo, SongSection } from "../shared/SongFormat";
+import type { SongStructure, SongInstrumentNotes, SongInstrumentPart, SongKeyboardNotes, SongInfo, SongSection } from "../shared/SongFormat";
 import type { SongIndexEntry, SongIndexPart } from "../shared/SongIndex";
 import type { ISongSource } from "../shared/SongSource";
 import { loadSettings } from "../shared/Settings";
 import { NoteDetector } from "../shared/NoteDetector";
 import type { PitchDetector } from "../shared/PitchDetector";
+import { Dropdown, type DropdownOption } from "./Dropdown";
+import { difficultyOptionLabel, difficultyPercentLabel } from "../shared/DifficultyDisplay";
 
 function formatTime(seconds: number): string {
     const m = Math.floor(seconds / 60);
@@ -28,6 +30,14 @@ export class ActiveSceneScreen implements IScreen {
     private container: HTMLElement | null = null;
     private totalDuration = 0;
     private sections: SongSection[] = [];
+
+    // Cached chart data (guitar/bass only) — lets a mid-play Difficulty change rebuild the
+    // highway from memory, no re-fetch, no audio interruption.
+    private songStructure: SongStructure | null = null;
+    private instrumentNotes: SongInstrumentNotes | null = null;
+    private instrumentPart: SongInstrumentPart | null = null;
+    private speedDropdown: Dropdown | null = null;
+    private difficultyDropdown: Dropdown | null = null;
 
     // Scroll-back animation state — set by onSongRollback, consumed by onPreDraw.
     private rollbackFromTime: number | null = null;
@@ -49,6 +59,9 @@ export class ActiveSceneScreen implements IScreen {
     private pitchDetector: PitchDetector | null;
     private noteDetector: NoteDetector | null = null;
     private ownsPitchDetector = false; // true = we created it, we must destroy it
+    // Guards setupNoteDetection() (called again on every difficulty rebuild) from firing a
+    // second concurrent getUserMedia request while the first is still resolving.
+    private micRequested = false;
 
     constructor(
         app: App,
@@ -105,25 +118,20 @@ export class ActiveSceneScreen implements IScreen {
                 if (skipTarget > 0) this.keysScene.currentSecond = skipTarget;
             }
         } else {
-            const instrumentNotes = await readJson<SongInstrumentNotes>(`${this.part.name}.json`);
-            const instrumentPart =
+            this.songStructure = songStructure;
+            this.instrumentNotes = await readJson<SongInstrumentNotes>(`${this.part.name}.json`);
+            this.instrumentPart =
                 songInfo.InstrumentParts.find(p => p.InstrumentName === this.part.name) ??
                 songInfo.InstrumentParts[0];
-            const resolvedNotes = { ...instrumentNotes, Notes: resolveNotesForDifficulty(instrumentNotes, this.selectedDifficulty) };
-            this.scene = new FretPlayerScene3D(
-                this.app.renderer, this.texture, songStructure, resolvedNotes, instrumentPart,
-            );
-            this.scene.boldText           = settings.boldText;
-            this.scene.invertStrings      = settings.invertStrings;
-            this.scene.leftyMode          = settings.leftyMode;
-            this.scene.noteNumbersDesktop = settings.noteNumbersDesktop;
-            this.scene.noteNumbersXR      = settings.noteNumbersXR;
+
+            const resolvedNotes = this.resolveGuitarNotes();
+            this.buildGuitarScene(resolvedNotes);
             this.sections = resolvedNotes.Sections?.length > 0
                 ? resolvedNotes.Sections
                 : (songStructure.Sections ?? []);
             if (settings.skipIntro) {
                 const skipTarget = resolvedNotes.Notes[0]?.TimeOffset ?? 0;
-                if (skipTarget > 0) this.scene.currentSecond = skipTarget;
+                if (skipTarget > 0) this.scene!.currentSecond = skipTarget;
             }
         }
 
@@ -144,25 +152,7 @@ export class ActiveSceneScreen implements IScreen {
         this.app.activeInstrumentType = this.part.type;
         this.songPlayer.play();
 
-        // Note detection — stringed instruments only.
-        if (this.part.tuningOffsets && this.scene) {
-            const { notes, notesDetected } = this.scene.detectionState();
-            this.noteDetector = new NoteDetector(
-                notes, this.part,
-                () => this.songPlayer?.currentSecond ?? 0,
-                notesDetected,
-                () => this.scene?.gracePeriodEndTime ?? null,
-            );
-            // If no detector was passed from the tuner, open the mic now.
-            if (!this.pitchDetector) {
-                this.ownsPitchDetector = true;
-                import('../shared/PitchDetector').then(({ PitchDetector }) => {
-                    PitchDetector.create().then(det => {
-                        this.pitchDetector = det;
-                    }).catch(() => { /* mic denied — stay in unscored mode */ });
-                });
-            }
-        }
+        this.setupNoteDetection();
 
         this.app.onSongPause = () => {
             if (!this.songPlayer?.isPlaying) return null;
@@ -217,6 +207,81 @@ export class ActiveSceneScreen implements IScreen {
         window.addEventListener('keydown', this.mockKeyHandler);
     }
 
+    // Swaps in the AlternateLevels-resolved note set for the currently selected difficulty —
+    // no-op (returns instrumentNotes.Notes unchanged) when selectedDifficulty is null.
+    private resolveGuitarNotes(): SongInstrumentNotes {
+        return {
+            ...this.instrumentNotes!,
+            Notes: resolveNotesForDifficulty(this.instrumentNotes!, this.selectedDifficulty),
+        };
+    }
+
+    private buildGuitarScene(resolvedNotes: SongInstrumentNotes): void {
+        const settings = loadSettings();
+        this.scene = new FretPlayerScene3D(
+            this.app.renderer, this.texture, this.songStructure!, resolvedNotes, this.instrumentPart!,
+        );
+        this.scene.boldText           = settings.boldText;
+        this.scene.invertStrings      = settings.invertStrings;
+        this.scene.leftyMode          = settings.leftyMode;
+        this.scene.noteNumbersDesktop = settings.noteNumbersDesktop;
+        this.scene.noteNumbersXR      = settings.noteNumbersXR;
+    }
+
+    // Stringed instruments only. Called at mount and again after a difficulty rebuild — the mic
+    // open is guarded by micRequested so a rebuild never fires a second concurrent request.
+    private setupNoteDetection(): void {
+        if (!this.part.tuningOffsets || !this.scene) return;
+        const { notes, notesDetected } = this.scene.detectionState();
+        this.noteDetector = new NoteDetector(
+            notes, this.part,
+            () => this.songPlayer?.currentSecond ?? 0,
+            notesDetected,
+            () => this.scene?.gracePeriodEndTime ?? null,
+        );
+        if (!this.pitchDetector && !this.micRequested) {
+            this.micRequested = true;
+            this.ownsPitchDetector = true;
+            import('../shared/PitchDetector').then(({ PitchDetector }) => {
+                PitchDetector.create().then(det => {
+                    this.pitchDetector = det;
+                }).catch(() => { /* mic denied — stay in unscored mode */ });
+            });
+        }
+    }
+
+    // Difficulty change mid-play — rebuilds the highway from the chart data already cached at
+    // mount, no re-fetch, songPlayer/audio never touched. Sections don't need rebuilding:
+    // resolveNotesForDifficulty() only ever touches Notes, phrase/section boundaries are the
+    // same at every tier.
+    private rebuildGuitarScene(newDifficulty: number): void {
+        this.selectedDifficulty = newDifficulty;
+        const resolvedNotes = this.resolveGuitarNotes();
+        this.scene?.destroy();
+        this.buildGuitarScene(resolvedNotes);
+        this.scene!.currentSecond = this.songPlayer?.currentSecond ?? 0;
+        this.app.activeScene = this.scene;
+        this.setupNoteDetection();
+    }
+
+    private refreshDifficultyDropdown(): void {
+        if (!this.difficultyDropdown) return;
+        const available = this.part.availableDifficulties ?? [];
+        if (available.length === 0) return;
+
+        const sorted = [...available].sort((a, b) => a - b);
+        const count = sorted.length;
+        if (this.selectedDifficulty == null) this.selectedDifficulty = sorted[sorted.length - 1];
+
+        const rankOf = (value: number) => sorted.indexOf(value) + 1;
+        this.difficultyDropdown.setTriggerLabel(difficultyPercentLabel(rankOf(this.selectedDifficulty), count));
+        this.difficultyDropdown.setOptions(sorted.map((value, i): DropdownOption => ({
+            label: difficultyOptionLabel(i + 1, count),
+            value: String(value),
+            selected: value === this.selectedDifficulty,
+        })));
+    }
+
     private buildOverlay(container: HTMLElement): void {
         const dur = this.totalDuration;
         const durStr = formatTime(dur);
@@ -240,11 +305,8 @@ export class ActiveSceneScreen implements IScreen {
                         </div>
                     </div>
                     <span class="active-duration">${durStr}</span>
-                    <div class="speed-group">
-                        <button class="speed-step" id="speed-down" type="button">&#x2212;</button>
-                        <select id="active-speed-select"></select>
-                        <button class="speed-step" id="speed-up" type="button">+</button>
-                    </div>
+                    <div id="active-speed-slot"></div>
+                    <div id="active-difficulty-slot"></div>
                     <button class="active-back-btn" id="active-settings" type="button">
                         <svg width="14" height="14" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M13.3321 4C12.598 4 11.9728 4.50932 11.8154 5.22745L11.4396 6.96752C10.8867 7.19965 10.3672 7.49361 9.88904 7.84127L8.19799 7.29239C7.50395 7.06339 6.74634 7.35056 6.37926 7.98082L4.71259 10.8636C4.34551 11.4939 4.48613 12.2948 5.04981 12.7627L6.42361 13.9071C6.38394 14.2002 6.36329 14.4981 6.36329 14.8C6.36329 15.1019 6.38394 15.3998 6.42361 15.6929L5.04981 16.8373C4.48613 17.3052 4.34551 18.1061 4.71259 18.7364L6.37926 21.6192C6.74634 22.2494 7.50395 22.5366 8.19799 22.3076L9.88904 21.7587C10.3672 22.1064 10.8867 22.4003 11.4396 22.6325L11.8154 24.3725C11.9728 25.0907 12.598 25.6 13.3321 25.6H16.6654C17.3994 25.6 18.0247 25.0907 18.182 24.3725L18.5579 22.6325C19.1107 22.4003 19.6303 22.1064 20.1084 21.7587L21.7995 22.3076C22.4935 22.5366 23.2511 22.2494 23.6182 21.6192L25.2849 18.7364C25.6519 18.1061 25.5113 17.3052 24.9476 16.8373L23.5738 15.6929C23.6135 15.3998 23.6342 15.1019 23.6342 14.8C23.6342 14.4981 23.6135 14.2002 23.5738 13.9071L24.9476 12.7627C25.5113 12.2948 25.6519 11.4939 25.2849 10.8636L23.6182 7.98082C23.2511 7.35056 22.4935 7.06339 21.7995 7.29239L20.1084 7.84127C19.6303 7.49361 19.1107 7.19965 18.5579 6.96752L18.182 5.22745C18.0247 4.50932 17.3994 4 16.6654 4H13.3321ZM14.9987 18.4C16.9869 18.4 18.5987 16.7882 18.5987 14.8C18.5987 12.8118 16.9869 11.2 14.9987 11.2C13.0105 11.2 11.3987 12.8118 11.3987 14.8C11.3987 16.7882 13.0105 18.4 14.9987 18.4Z" fill="currentColor"/></svg>
                         <span>Settings</span>
@@ -345,52 +407,41 @@ export class ActiveSceneScreen implements IScreen {
             }
         });
 
-        // Speed compound control: [−] select [+]
-        const speedSelect = container.querySelector('#active-speed-select') as HTMLSelectElement;
-        const SPEED_MIN  = 0.05, SPEED_MAX = 2.0, SPEED_STEP = 0.05;
-        const SPEED_PRESET_STEP = 0.2;
+        // Speed dropdown — preset-only (20%–200% in 20% steps), same values and same shape as
+        // XR's as-speed-dropdown. No more fine +/- stepping now that the stepper buttons are gone.
+        const SPEED_PRESET_STEP = 0.2, SPEED_MAX = 2.0;
         const speedLabel = (v: number) => (Math.round(v * 100) / 100).toString().replace(/\.?0+$/, '') + '×';
+        const speedPresets: number[] = [];
         for (let r = SPEED_PRESET_STEP; r <= SPEED_MAX + 0.001; r += SPEED_PRESET_STEP) {
-            const v = Math.round(r / SPEED_PRESET_STEP) * SPEED_PRESET_STEP;
-            const opt = document.createElement('option');
-            opt.value = v.toFixed(2);
-            opt.textContent = speedLabel(v);
-            opt.selected = Math.abs(v - 1) < 0.001;
-            speedSelect.appendChild(opt);
+            speedPresets.push(Math.round(r / SPEED_PRESET_STEP) * SPEED_PRESET_STEP);
         }
-        let customOpt: HTMLOptionElement | null = null;
         const setSpeed = (rate: number) => {
             if (!this.songPlayer) return;
-            const rounded = Math.round(rate / SPEED_STEP) * SPEED_STEP;
-            const clamped = Math.max(SPEED_MIN, Math.min(SPEED_MAX, rounded));
-            this.songPlayer.playbackRate = clamped;
-            const isPreset = Math.abs(Math.round(clamped / SPEED_PRESET_STEP) * SPEED_PRESET_STEP - clamped) < 0.001;
-            if (isPreset) {
-                if (customOpt) { speedSelect.removeChild(customOpt); customOpt = null; }
-                speedSelect.value = clamped.toFixed(2);
-            } else {
-                if (!customOpt) {
-                    customOpt = document.createElement('option');
-                    speedSelect.insertBefore(customOpt, speedSelect.firstChild);
-                }
-                customOpt.value = clamped.toFixed(2);
-                customOpt.textContent = speedLabel(clamped);
-                customOpt.selected = true;
-            }
+            this.songPlayer.playbackRate = rate;
+            this.speedDropdown?.setTriggerLabel(`Speed: ${speedLabel(rate)}`);
+            this.speedDropdown?.setOptions(speedPresets.map((v): DropdownOption => ({
+                label: speedLabel(v), value: v.toFixed(2), selected: Math.abs(v - rate) < 0.001,
+            })));
             showBar();
         };
-        speedSelect.addEventListener('change', (e) => {
-            e.stopPropagation();
-            setSpeed(Number(speedSelect.value));
-        });
-        container.querySelector('#speed-down')!.addEventListener('click', (e) => {
-            e.stopPropagation();
-            setSpeed((this.songPlayer?.playbackRate ?? 1) - SPEED_STEP);
-        });
-        container.querySelector('#speed-up')!.addEventListener('click', (e) => {
-            e.stopPropagation();
-            setSpeed((this.songPlayer?.playbackRate ?? 1) + SPEED_STEP);
-        });
+        const speedSlot = container.querySelector<HTMLElement>('#active-speed-slot')!;
+        this.speedDropdown = new Dropdown(speedSlot, '', (value) => setSpeed(Number(value)));
+        setSpeed(1);
+
+        // Difficulty dropdown — hidden entirely when the part has no AvailableDifficulties
+        // (e.g. Keys), same gating as XR's as-difficulty-dropdown. Selecting a value rebuilds
+        // the highway live (see rebuildGuitarScene()) — no audio interruption.
+        const difficultySlot = container.querySelector<HTMLElement>('#active-difficulty-slot')!;
+        if (this.part.availableDifficulties?.length) {
+            this.difficultyDropdown = new Dropdown(difficultySlot, '', (value) => {
+                this.rebuildGuitarScene(Number(value));
+                this.refreshDifficultyDropdown();
+                showBar();
+            });
+            this.refreshDifficultyDropdown();
+        } else {
+            difficultySlot.style.display = 'none';
+        }
 
         // Back button
         container.querySelector('#active-back')!.addEventListener('click', e => {
@@ -452,6 +503,10 @@ export class ActiveSceneScreen implements IScreen {
         this.songPlayer?.pause();
         this.scene?.destroy();
         this.keysScene?.destroy();
+        this.speedDropdown?.destroy();
+        this.difficultyDropdown?.destroy();
+        this.speedDropdown = null;
+        this.difficultyDropdown = null;
         if (this.ownsPitchDetector) this.pitchDetector?.destroy();
         this.pitchDetector = null;
         this.noteDetector  = null;
