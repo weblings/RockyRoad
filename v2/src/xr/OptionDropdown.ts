@@ -71,12 +71,22 @@ function setOptionSelected(el: ReturnType<UIKitDocument['getElementById']>, sele
 // render() for a fixed, statically-declared list (Speed's markup always has all 10 buttons
 // present); renderDynamic() for a list whose length/labels vary per song (Difficulty, Instrument).
 export class OptionDropdown {
+    // Backs the outside-click/sibling-close listener below — every instance registers against
+    // whichever document it renders into (scoped per-document, not global, since screens are
+    // always-mounted singletons that outlive being hidden — see ensureOutsideClickListener()).
+    private static docRegistry = new WeakMap<UIKitDocument, Set<OptionDropdown>>();
+    private static installedDocs = new WeakSet<UIKitDocument>();
+
     private ids: OptionDropdownIds;
     private menuOpen = false;
     private menuWasOpen = false;
     private triggerLabelNode: InstanceType<typeof UIKit.Text> | null = null;
     private optionNodes: InstanceType<typeof UIKit.Container>[] = [];
     private scrollOffset = 0;
+    private lastRerender: (() => void) | null = null;
+    // One-shot: set by the trigger's own onClick when it opens, consumed by
+    // _closeIfClickWasOutside — see that handler's comment for why.
+    private justOpenedByOwnClick = false;
 
     constructor(ids: OptionDropdownIds) {
         this.ids = ids;
@@ -100,6 +110,7 @@ export class OptionDropdown {
     // markup with a known id — trigger/chevron/menu display, each option's selected state and
     // click, and open-scroll centering all get wired here.
     render(doc: UIKitDocument, items: OptionDropdownItem[], layout: OptionMenuLayout, rerender: () => void): void {
+        this._registerWithDocument(doc, rerender);
         let selectedIndex = -1;
         items.forEach((item, i) => {
             const el = doc.getElementById(item.id);
@@ -114,6 +125,7 @@ export class OptionDropdown {
     // empty in markup) — destroys and recreates UIKit.Container+Text option nodes each call, same
     // "destroy and recreate" pattern already used for section ticks and Library's song rows.
     renderDynamic(doc: UIKitDocument, options: DynamicOption[], layout: OptionMenuLayout, rerender: () => void): void {
+        this._registerWithDocument(doc, rerender);
         const container = doc.getElementById(this.ids.menuInner);
         if (!container) return;
         for (const node of this.optionNodes) container.remove(node);
@@ -162,6 +174,13 @@ export class OptionDropdown {
         doc.getElementById(this.ids.trigger)?.setProperties({
             onClick: () => {
                 this.menuOpen = !this.menuOpen;
+                // rerender() below runs setTriggerLabel(), which destroys/recreates the label
+                // Text node on every call — if the click landed on that node, this severs its
+                // .parent chain before the outside-click listener's containment check ever runs
+                // (see _closeIfClickWasOutside). This flag lets that check skip straight past the
+                // now-unreliable identity check: a trigger click can only ever be "inside" its own
+                // dropdown by definition.
+                if (this.menuOpen) this.justOpenedByOwnClick = true;
                 rerender();
             },
         });
@@ -173,6 +192,57 @@ export class OptionDropdown {
 
         const initialOffset = justOpened ? computeCenteredOffset(selectedIndex, itemCount, layout) : undefined;
         this._wireScroll(doc, initialOffset);
+    }
+
+    // Tracks this dropdown against the document it just rendered into, and lazily installs that
+    // document's outside-click listener. Safe to call every render — Set/WeakSet membership makes
+    // both steps no-ops past the first call, same "safe to rewire every rerender" idiom already
+    // used for onClick above.
+    private _registerWithDocument(doc: UIKitDocument, rerender: () => void): void {
+        this.lastRerender = rerender;
+        let dropdowns = OptionDropdown.docRegistry.get(doc);
+        if (!dropdowns) {
+            dropdowns = new Set();
+            OptionDropdown.docRegistry.set(doc, dropdowns);
+        }
+        dropdowns.add(this);
+        OptionDropdown.ensureOutsideClickListener(doc);
+    }
+
+    // XR counterpart to desktop's Dropdown outside-click/sibling-close fix (see
+    // ThreeCP/Analysis/lessons/desktop-dom.md) — uikit click events bubble from the clicked element
+    // up through .parent to doc.rootElement, the same way DOM clicks bubble to document. A trigger
+    // click has already toggled its own dropdown's state by the time this runs (listeners on the
+    // hit element itself fire before bubbling reaches root), so the containment check below both
+    // closes genuinely-outside clicks and leaves a just-opened dropdown alone. Installed once per
+    // document, lazily, on first render into it.
+    private static ensureOutsideClickListener(doc: UIKitDocument): void {
+        if (OptionDropdown.installedDocs.has(doc)) return;
+        OptionDropdown.installedDocs.add(doc);
+        doc.rootElement.setProperties({
+            onClick: (e: { object?: NonNullable<ReturnType<UIKitDocument['getElementById']>> }) => {
+                if (!e.object) return;
+                const dropdowns = OptionDropdown.docRegistry.get(doc);
+                if (!dropdowns) return;
+                for (const dropdown of dropdowns) dropdown._closeIfClickWasOutside(doc, e.object);
+            },
+        });
+    }
+
+    private _closeIfClickWasOutside(doc: UIKitDocument, target: NonNullable<ReturnType<UIKitDocument['getElementById']>>): void {
+        if (!this.menuOpen) return;
+        if (this.justOpenedByOwnClick) {
+            this.justOpenedByOwnClick = false;
+            return;
+        }
+        const trigger = doc.getElementById(this.ids.trigger);
+        const menu = doc.getElementById(this.ids.menu);
+        const inside =
+            (trigger != null && (trigger === target || doc.isDescendantOf(target, trigger))) ||
+            (menu != null && (menu === target || doc.isDescendantOf(target, menu)));
+        if (inside) return;
+        this.menuOpen = false;
+        this.lastRerender?.();
     }
 
     // Custom drag-to-scroll, replacing overflow:scroll — its capture/release object mismatch
