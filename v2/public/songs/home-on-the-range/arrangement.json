@@ -1,60 +1,346 @@
 {
   "Sections": [
-    { "Name": "Verse", "StartTime": 0.0, "EndTime": 40.0 }
+    {
+      "Name": "Verse 1",
+      "StartTime": 0,
+      "EndTime": 12.5
+    },
+    {
+      "Name": "Verse 2",
+      "StartTime": 12.5,
+      "EndTime": 24.5
+    },
+    {
+      "Name": "Bridge",
+      "StartTime": 24.5,
+      "EndTime": 36.5
+    },
+    {
+      "Name": "Verse 3",
+      "StartTime": 36.5,
+      "EndTime": 48
+    }
   ],
   "Beats": [
-    { "TimeOffset": 0.00 },
-    { "TimeOffset": 0.75, "IsMeasure": true },
-    { "TimeOffset": 1.50 },
-    { "TimeOffset": 2.25 },
-    { "TimeOffset": 3.00, "IsMeasure": true },
-    { "TimeOffset": 3.75 },
-    { "TimeOffset": 4.50 },
-    { "TimeOffset": 5.25, "IsMeasure": true },
-    { "TimeOffset": 6.00 },
-    { "TimeOffset": 6.75 },
-    { "TimeOffset": 7.50, "IsMeasure": true },
-    { "TimeOffset": 8.25 },
-    { "TimeOffset": 9.00 },
-    { "TimeOffset": 9.75, "IsMeasure": true },
-    { "TimeOffset": 10.50 },
-    { "TimeOffset": 11.25 },
-    { "TimeOffset": 12.00, "IsMeasure": true },
-    { "TimeOffset": 12.75 },
-    { "TimeOffset": 13.50 },
-    { "TimeOffset": 14.25, "IsMeasure": true },
-    { "TimeOffset": 15.00 },
-    { "TimeOffset": 15.75 },
-    { "TimeOffset": 16.50, "IsMeasure": true },
-    { "TimeOffset": 17.25 },
-    { "TimeOffset": 18.00 },
-    { "TimeOffset": 18.75, "IsMeasure": true },
-    { "TimeOffset": 19.50 },
-    { "TimeOffset": 20.25 },
-    { "TimeOffset": 21.00, "IsMeasure": true },
-    { "TimeOffset": 21.75 },
-    { "TimeOffset": 22.50 },
-    { "TimeOffset": 23.25, "IsMeasure": true },
-    { "TimeOffset": 24.00 },
-    { "TimeOffset": 24.75 },
-    { "TimeOffset": 25.50, "IsMeasure": true },
-    { "TimeOffset": 26.25 },
-    { "TimeOffset": 27.00 },
-    { "TimeOffset": 27.75, "IsMeasure": true },
-    { "TimeOffset": 28.50 },
-    { "TimeOffset": 29.25 },
-    { "TimeOffset": 30.00, "IsMeasure": true },
-    { "TimeOffset": 30.75 },
-    { "TimeOffset": 31.50 },
-    { "TimeOffset": 32.25, "IsMeasure": true },
-    { "TimeOffset": 33.00 },
-    { "TimeOffset": 33.75 },
-    { "TimeOffset": 34.50, "IsMeasure": true },
-    { "TimeOffset": 35.25 },
-    { "TimeOffset": 36.00 },
-    { "TimeOffset": 36.75, "IsMeasure": true },
-    { "TimeOffset": 37.50 },
-    { "TimeOffset": 38.25 },
-    { "TimeOffset": 39.00, "IsMeasure": true }
+    {
+      "TimeOffset": 0
+    },
+    {
+      "TimeOffset": 0.5,
+      "IsMeasure": true
+    },
+    {
+      "TimeOffset": 1
+    },
+    {
+      "TimeOffset": 1.5
+    },
+    {
+      "TimeOffset": 2,
+      "IsMeasure": true
+    },
+    {
+      "TimeOffset": 2.5
+    },
+    {
+      "TimeOffset": 3
+    },
+    {
+      "TimeOffset": 3.5,
+      "IsMeasure": true
+    },
+    {
+      "TimeOffset": 4
+    },
+    {
+      "TimeOffset": 4.5
+    },
+    {
+      "TimeOffset": 5,
+      "IsMeasure": true
+    },
+    {
+      "TimeOffset": 5.5
+    },
+    {
+      "TimeOffset": 6
+    },
+    {
+      "TimeOffset": 6.5,
+      "IsMeasure": true
+    },
+    {
+      "TimeOffset": 7
+    },
+    {
+      "TimeOffset": 7.5
+    },
+    {
+      "TimeOffset": 8,
+      "IsMeasure": true
+    },
+    {
+      "TimeOffset": 8.5
+    },
+    {
+      "TimeOffset": 9
+    },
+    {
+      "TimeOffset": 9.5,
+      "IsMeasure": true
+    },
+    {
+      "TimeOffset": 10
+    },
+    {
+      "TimeOffset": 10.5
+    },
+    {
+      "TimeOffset": 11,
+      "IsMeasure": true
+    },
+    {
+      "TimeOffset": 11.5
+    },
+    {
+      "TimeOffset": 12
+    },
+    {
+      "TimeOffset": 12.5,
+      "IsMeasure": true
+    },
+    {
+      "TimeOffset": 13
+    },
+    {
+      "TimeOffset": 13.5
+    },
+    {
+      "TimeOffset": 14,
+      "IsMeasure": true
+    },
+    {
+      "TimeOffset": 14.5
+    },
+    {
+      "TimeOffset": 15
+    },
+    {
+      "TimeOffset": 15.5,
+      "IsMeasure": true
+    },
+    {
+      "TimeOffset": 16
+    },
+    {
+      "TimeOffset": 16.5
+    },
+    {
+      "TimeOffset": 17,
+      "IsMeasure": true
+    },
+    {
+      "TimeOffset": 17.5
+    },
+    {
+      "TimeOffset": 18
+    },
+    {
+      "TimeOffset": 18.5,
+      "IsMeasure": true
+    },
+    {
+      "TimeOffset": 19
+    },
+    {
+      "TimeOffset": 19.5
+    },
+    {
+      "TimeOffset": 20,
+      "IsMeasure": true
+    },
+    {
+      "TimeOffset": 20.5
+    },
+    {
+      "TimeOffset": 21
+    },
+    {
+      "TimeOffset": 21.5,
+      "IsMeasure": true
+    },
+    {
+      "TimeOffset": 22
+    },
+    {
+      "TimeOffset": 22.5
+    },
+    {
+      "TimeOffset": 23,
+      "IsMeasure": true
+    },
+    {
+      "TimeOffset": 23.5
+    },
+    {
+      "TimeOffset": 24
+    },
+    {
+      "TimeOffset": 24.5,
+      "IsMeasure": true
+    },
+    {
+      "TimeOffset": 25
+    },
+    {
+      "TimeOffset": 25.5
+    },
+    {
+      "TimeOffset": 26,
+      "IsMeasure": true
+    },
+    {
+      "TimeOffset": 26.5
+    },
+    {
+      "TimeOffset": 27
+    },
+    {
+      "TimeOffset": 27.5,
+      "IsMeasure": true
+    },
+    {
+      "TimeOffset": 28
+    },
+    {
+      "TimeOffset": 28.5
+    },
+    {
+      "TimeOffset": 29,
+      "IsMeasure": true
+    },
+    {
+      "TimeOffset": 29.5
+    },
+    {
+      "TimeOffset": 30
+    },
+    {
+      "TimeOffset": 30.5,
+      "IsMeasure": true
+    },
+    {
+      "TimeOffset": 31
+    },
+    {
+      "TimeOffset": 31.5
+    },
+    {
+      "TimeOffset": 32,
+      "IsMeasure": true
+    },
+    {
+      "TimeOffset": 32.5
+    },
+    {
+      "TimeOffset": 33
+    },
+    {
+      "TimeOffset": 33.5,
+      "IsMeasure": true
+    },
+    {
+      "TimeOffset": 34
+    },
+    {
+      "TimeOffset": 34.5
+    },
+    {
+      "TimeOffset": 35,
+      "IsMeasure": true
+    },
+    {
+      "TimeOffset": 35.5
+    },
+    {
+      "TimeOffset": 36
+    },
+    {
+      "TimeOffset": 36.5,
+      "IsMeasure": true
+    },
+    {
+      "TimeOffset": 37
+    },
+    {
+      "TimeOffset": 37.5
+    },
+    {
+      "TimeOffset": 38,
+      "IsMeasure": true
+    },
+    {
+      "TimeOffset": 38.5
+    },
+    {
+      "TimeOffset": 39
+    },
+    {
+      "TimeOffset": 39.5,
+      "IsMeasure": true
+    },
+    {
+      "TimeOffset": 40
+    },
+    {
+      "TimeOffset": 40.5
+    },
+    {
+      "TimeOffset": 41,
+      "IsMeasure": true
+    },
+    {
+      "TimeOffset": 41.5
+    },
+    {
+      "TimeOffset": 42
+    },
+    {
+      "TimeOffset": 42.5,
+      "IsMeasure": true
+    },
+    {
+      "TimeOffset": 43
+    },
+    {
+      "TimeOffset": 43.5
+    },
+    {
+      "TimeOffset": 44,
+      "IsMeasure": true
+    },
+    {
+      "TimeOffset": 44.5
+    },
+    {
+      "TimeOffset": 45
+    },
+    {
+      "TimeOffset": 45.5,
+      "IsMeasure": true
+    },
+    {
+      "TimeOffset": 46
+    },
+    {
+      "TimeOffset": 46.5
+    },
+    {
+      "TimeOffset": 47,
+      "IsMeasure": true
+    },
+    {
+      "TimeOffset": 47.5
+    }
   ]
 }
