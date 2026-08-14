@@ -16,7 +16,8 @@ editing `.uikitml` or XR panel/dropdown/screen code.
   skip-confirmation-when-nothing-to-confirm, sibling-interactivity ownership.
 - [`scrolling-and-dropdowns.md`](scrolling-and-dropdowns.md) — `overflow: scroll` behavior,
   scrollbar defaults, pointer-capture wedging, `OptionDropdown`'s `render()`/`renderDynamic()`
-  split, the two unresolved dropdown bugs (last-item-clipped scroll, `overflow: hidden` clipping).
+  split, the two unresolved dropdown bugs (last-item-clipped scroll, `overflow: hidden` clipping),
+  stale `event.object` identity mid-bubble from a handler's own destroy/recreate rerender.
 - [`pointer-interaction.md`](pointer-interaction.md) — `Hovered`, drag math
   (`worldToLocal(event.point)`), `setPointerCapture`/`releasePointerCapture`, `pointerEvents`
   inheritance.

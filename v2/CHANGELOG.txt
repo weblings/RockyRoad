@@ -1,3 +1,7 @@
+v0.2.3:
+- If a song has variable difficulty, it can now be adjusted in XR and Desktop
+- Dev - Lesson capturing refactor
+
 v0.2.2:
 - XR - Swapped panel rendering from html2canvas to uikitml (native to IWSDK)
 - XR - This made the perf fix from before not needed so removed it

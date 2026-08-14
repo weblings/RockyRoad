@@ -96,3 +96,32 @@ Reusing `.option-item` (authored against a `<button>` in markup) on a dynamicall
 `UIKit.Container` (`OptionDropdown.renderDynamic()`) left its text left-justified instead of
 centered — the button's implicit center-alignment isn't part of the shared class, only the button
 element itself. Fix: set `justifyContent`/`alignItems: 'center'` explicitly on the container.
+
+---
+
+## A click's `event.object` can go stale mid-bubble if a handler's own `rerender()` destroys/recreates that exact node
+
+**Symptom:** An outside-click/sibling-close listener on `doc.rootElement` (bubble-phase, mirroring
+desktop's `Dropdown` — see `ThreeCP/Analysis/lessons/desktop-dom.md`) worked reliably when opening
+a trigger via its chevron icon, but clicking the trigger's *label text* sometimes immediately
+re-closed the dropdown it had just opened.
+
+**Root cause:** The trigger's `onClick` toggles `menuOpen` and calls `rerender()` *synchronously*,
+before the click event finishes bubbling up to root. `rerender()` re-runs `setTriggerLabel()`,
+which unconditionally destroys and recreates the label's `Text` node every call (deliberate — see
+the next entry down for why). If the click landed on that label, `slot.remove(node)` nulls the
+node's `.parent` mid-bubble — so by the time the root listener's `doc.isDescendantOf(target,
+trigger)` containment check runs, `target`'s parent chain is already severed and reads as
+"outside," closing the dropdown it just opened. The chevron icons are static (`display`-toggled
+only, never destroyed), so clicking them never hit this.
+
+**Fix:** don't trust a click's original target's *identity* to survive past a handler that might
+destructively rerender that very node. A trigger click is definitionally "inside" its own
+dropdown — added a one-shot `justOpenedByOwnClick` flag, set the instant the trigger's own
+`onClick` opens it (before calling `rerender()`), consumed first thing in the outside-click check
+to skip the now-unreliable identity check entirely for that click.
+
+**How to avoid next time:** before wiring any check against a `PointerEvent`'s `object`/`target`
+that runs *after* another handler for the same event may have already fired (bubble phase, by
+definition), ask whether that earlier handler's own side effects (destroy+recreate patterns
+especially) could invalidate the very node being checked.
