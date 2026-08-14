@@ -3,7 +3,9 @@ import type { App, IScreen } from "./App";
 import type { SongIndexEntry, SongIndexPart } from "../shared/SongIndex";
 import type { ISongSource } from "../shared/SongSource";
 import { PART_LABEL, resolveDefaultPart } from "../shared/InstrumentSelect";
+import { difficultyOptionLabel, difficultyPercentLabel, nearestRankForPercentage } from "../shared/DifficultyDisplay";
 import { loadSettings, saveSettings } from "../shared/Settings";
+import { Dropdown } from "./Dropdown";
 import { ActiveSceneScreen } from "./ActiveSceneScreen";
 
 function esc(s: string): string {
@@ -16,7 +18,10 @@ export class PreSceneScreen implements IScreen {
     private source: ISongSource;
     private entry: SongIndexEntry;
     private selectedPart: SongIndexPart;
+    private selectedDifficulty: number | null = null;
     private container: HTMLElement | null = null;
+    private instrumentDropdown: Dropdown | null = null;
+    private difficultyDropdown: Dropdown | null = null;
 
     constructor(app: App, texture: THREE.Texture, source: ISongSource, entry: SongIndexEntry) {
         this.app = app;
@@ -51,16 +56,10 @@ export class PreSceneScreen implements IScreen {
                     <div class="pre-song-name">${esc(this.entry.songName)}</div>
                     <div class="pre-artist-name">${esc(this.entry.artistName)}</div>
 
-                    ${playableParts.length > 1 ? `
-                    <div class="pre-section-label">Instrument</div>
-                    <div class="pre-parts" id="pre-parts">
-                        ${playableParts.map(p => `
-                            <button class="pre-part-btn${p.name === this.selectedPart.name ? ' active' : ''}"
-                                data-part-name="${esc(p.name)}">
-                                <span class="pre-part-type">${esc(PART_LABEL[p.type] ?? p.type)}</span>
-                                ${p.tuning ? `<span class="pre-part-tuning">${esc(p.tuning)}</span>` : ''}
-                            </button>`).join('')}
-                    </div>` : ''}
+                    <div class="dropdown-row">
+                        <div class="dropdown-row-item" id="pre-instrument-slot"></div>
+                        <div class="dropdown-row-item" id="pre-difficulty-slot"></div>
+                    </div>
 
                     <div class="pre-action-row">
                         <button class="pre-tune-btn${this.selectedPart.tuningOffsets ? '' : ' hidden'}"
@@ -80,17 +79,31 @@ export class PreSceneScreen implements IScreen {
             });
         });
 
-        // Instrument selector
-        container.querySelector('#pre-parts')?.addEventListener('click', e => {
-            const btn = (e.target as HTMLElement).closest<HTMLElement>('[data-part-name]');
-            if (!btn) return;
-            const part = this.entry.parts.find(p => p.name === btn.dataset.partName);
-            if (!part) return;
-            this.selectedPart = part;
-            container.querySelectorAll('.pre-part-btn').forEach(b =>
-                b.classList.toggle('active', (b as HTMLElement).dataset.partName === part.name));
-            container.querySelector('#pre-tune')?.classList.toggle('hidden', !part.tuningOffsets);
+        // Instrument dropdown — hidden entirely (no dropdown, no label) when there's only one
+        // playable part, same gating as XR's XRPreScene.
+        if (playableParts.length > 1) {
+            const slot = container.querySelector<HTMLElement>('#pre-instrument-slot')!;
+            this.instrumentDropdown = new Dropdown(slot, '', (value) => {
+                const part = playableParts.find(p => p.name === value);
+                if (!part) return;
+                this.selectInstrument(part);
+                this.refreshInstrumentDropdown(playableParts);
+                this.refreshDifficultyDropdown();
+                container.querySelector('#pre-tune')?.classList.toggle('hidden', !part.tuningOffsets);
+            });
+            this.instrumentDropdown.root.classList.add('dropdown-fill');
+            this.refreshInstrumentDropdown(playableParts);
+        }
+
+        // Difficulty dropdown — hidden entirely when the selected part has no AvailableDifficulties
+        // (e.g. Keys). Built once, visibility re-derived per selection via refreshDifficultyDropdown.
+        const difficultySlot = container.querySelector<HTMLElement>('#pre-difficulty-slot')!;
+        this.difficultyDropdown = new Dropdown(difficultySlot, '', (value) => {
+            this.selectedDifficulty = Number(value);
+            this.refreshDifficultyDropdown();
         });
+        this.difficultyDropdown.root.classList.add('dropdown-fill');
+        this.refreshDifficultyDropdown();
 
         // Tune button — explicit tune request, always goes through tuner
         container.querySelector('#pre-tune')!.addEventListener('click', () => {
@@ -127,7 +140,64 @@ export class PreSceneScreen implements IScreen {
     }
 
     unmount(): void {
+        this.instrumentDropdown?.destroy();
+        this.difficultyDropdown?.destroy();
+        this.instrumentDropdown = null;
+        this.difficultyDropdown = null;
         if (this.container) this.container.innerHTML = '';
         this.container = null;
+    }
+
+    // Switching Instrument retargets Difficulty to the option in the new part's list whose
+    // percentage is closest to the old selection's, rather than resetting to 100% — same logic
+    // as XR's XRPreScene._selectInstrument().
+    private selectInstrument(part: SongIndexPart): void {
+        const oldDifficulties = this.selectedPart.availableDifficulties;
+        const newDifficulties = part.availableDifficulties;
+
+        if (oldDifficulties?.length && this.selectedDifficulty != null && newDifficulties?.length) {
+            const oldSorted = [...oldDifficulties].sort((a, b) => a - b);
+            const newSorted = [...newDifficulties].sort((a, b) => a - b);
+            const oldRank = oldSorted.indexOf(this.selectedDifficulty) + 1;
+            const newRank = nearestRankForPercentage(oldRank, oldSorted.length, newSorted.length);
+            this.selectedDifficulty = newSorted[newRank - 1];
+        } else {
+            this.selectedDifficulty = null;
+        }
+
+        this.selectedPart = part;
+    }
+
+    private refreshInstrumentDropdown(playableParts: SongIndexPart[]): void {
+        if (!this.instrumentDropdown) return;
+        const label = (p: SongIndexPart) => PART_LABEL[p.type] ?? p.type;
+        this.instrumentDropdown.setTriggerLabel(`Instrument: ${label(this.selectedPart)}`);
+        this.instrumentDropdown.setOptions(playableParts.map(p => ({
+            label: label(p),
+            value: p.name,
+            selected: p.name === this.selectedPart.name,
+        })));
+    }
+
+    private refreshDifficultyDropdown(): void {
+        if (!this.difficultyDropdown) return;
+        const available = this.selectedPart.availableDifficulties ?? [];
+        if (available.length === 0) {
+            this.difficultyDropdown.setVisible(false);
+            return;
+        }
+        this.difficultyDropdown.setVisible(true);
+
+        const sorted = [...available].sort((a, b) => a - b);
+        const count = sorted.length;
+        if (this.selectedDifficulty == null) this.selectedDifficulty = sorted[sorted.length - 1];
+
+        const rankOf = (value: number) => sorted.indexOf(value) + 1;
+        this.difficultyDropdown.setTriggerLabel(difficultyPercentLabel(rankOf(this.selectedDifficulty), count));
+        this.difficultyDropdown.setOptions(sorted.map((value, i) => ({
+            label: difficultyOptionLabel(i + 1, count),
+            value: String(value),
+            selected: value === this.selectedDifficulty,
+        })));
     }
 }

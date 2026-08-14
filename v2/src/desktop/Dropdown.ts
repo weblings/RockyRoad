@@ -18,6 +18,8 @@ export class Dropdown {
     private readonly trigger: HTMLButtonElement;
     private readonly labelEl: HTMLElement;
     private readonly menu: HTMLElement;
+    private readonly chevronDown: HTMLImageElement;
+    private readonly chevronUp: HTMLImageElement;
     private _open = false;
 
     constructor(container: HTMLElement, initialLabel: string, onSelect: (value: string) => void) {
@@ -32,11 +34,20 @@ export class Dropdown {
         this.labelEl.className = 'dropdown-label';
         this.labelEl.textContent = initialLabel;
 
-        const chevron = document.createElement('span');
-        chevron.className = 'dropdown-chevron';
-        chevron.innerHTML = '&#9662;';
+        // Two swapped SVGs, not a single rotated glyph — same assets/approach as XR's
+        // .option-chevron (ui/play.uikitml, ui/song.uikitml).
+        this.chevronDown = document.createElement('img');
+        this.chevronDown.className = 'dropdown-chevron';
+        this.chevronDown.src = '/chevron-down.svg';
+        this.chevronDown.alt = '';
 
-        this.trigger.append(this.labelEl, chevron);
+        this.chevronUp = document.createElement('img');
+        this.chevronUp.className = 'dropdown-chevron';
+        this.chevronUp.src = '/chevron-up.svg';
+        this.chevronUp.alt = '';
+        this.chevronUp.style.display = 'none';
+
+        this.trigger.append(this.labelEl, this.chevronDown, this.chevronUp);
 
         this.menu = document.createElement('div');
         this.menu.className = 'dropdown-menu';
@@ -70,15 +81,26 @@ export class Dropdown {
     openMenu(): void {
         this._open = true;
         this.root.classList.add('open');
+        this.chevronDown.style.display = 'none';
+        this.chevronUp.style.display = '';
     }
 
     close(): void {
         this._open = false;
         this.root.classList.remove('open');
+        this.chevronDown.style.display = '';
+        this.chevronUp.style.display = 'none';
     }
 
     setTriggerLabel(text: string): void {
         this.labelEl.textContent = text;
+    }
+
+    // Closes the menu too if hiding — a hidden-but-still-open dropdown would otherwise pop back
+    // open with no trigger click the next time it's shown.
+    setVisible(visible: boolean): void {
+        if (!visible) this.close();
+        this.root.style.display = visible ? '' : 'none';
     }
 
     // Full destroy+recreate of the option list on every call — same "destroy and recreate"
