@@ -27,7 +27,8 @@ const MAX_TITLE_CHARS    = 20;
 const MAX_SUBTITLE_CHARS = 24;
 
 function truncate(s: string, max: number): string {
-    // ASCII periods, not '…' — uikit's Inter MSDF atlas doesn't cover every glyph (UikitLessonsLearned.md).
+    // ASCII periods, not '…' — uikit's Inter MSDF atlas doesn't cover every glyph
+    // (ThreeCP/Analysis/lessons/ui-toolkit/text-rendering.md).
     return s.length > max ? s.slice(0, max - 3) + '...' : s;
 }
 

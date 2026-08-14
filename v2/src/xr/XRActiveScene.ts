@@ -32,7 +32,8 @@ const OPTION_MENU_LAYOUT: OptionMenuLayout = {
 };
 
 function truncate(s: string, max: number): string {
-    // ASCII periods, not '…' — uikit's Inter MSDF atlas doesn't cover every glyph (UikitLessonsLearned.md).
+    // ASCII periods, not '…' — uikit's Inter MSDF atlas doesn't cover every glyph
+    // (ThreeCP/Analysis/lessons/ui-toolkit/text-rendering.md).
     return s.length > max ? s.slice(0, max - 3) + '...' : s;
 }
 
@@ -353,7 +354,8 @@ export class XRActiveScene {
 
         // track.worldToLocal(event.point), not event.localPoint — the latter is relative to
         // whichever sub-element was actually hit (thumb/fill/tick/track), so its reference frame
-        // shifts depending on what was grabbed; see UikitLessonsLearned.md. Local space is
+        // shifts depending on what was grabbed; see
+        // ThreeCP/Analysis/lessons/ui-toolkit/pointer-interaction.md. Local space is
         // centered/normalized (x=0 is the track's center, ±0.5 its edges), hence the "+ 0.5" —
         // the established uikit drag-math pattern (mirroring scroll.js), not a guess.
         const pointerFraction = (e: WorldPointerEvent): number | null => {

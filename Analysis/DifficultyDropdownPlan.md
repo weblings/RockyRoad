@@ -96,7 +96,7 @@ the refactor," not new functionality):
 - Other panel elements don't receive stray hover/clicks while a drag is in progress.
 - Selecting an option actually changes `songPlayer.playbackRate` — functional correctness, not just
   visual.
-- The known-unresolved two-line-wrap glitch (see `UikitLessonsLearned.md`) should be **unchanged**
+- The known-unresolved two-line-wrap glitch (see `lessons/ui-toolkit/text-rendering.md`) should be **unchanged**
   in frequency/character, not better or worse — call this out explicitly so it isn't misattributed
   to the refactor either way if it's noticed during testing.
 

@@ -612,7 +612,8 @@ export class CalibrationSystem extends createSystem({}) {
     }
 
     // All uikit panels share the same grabBarEntity slot; only one is ever visible, and
-    // every show-path elsewhere hides its siblings first (see UikitLessonsLearned.md).
+    // every show-path elsewhere hides its siblings first (see
+    // ThreeCP/Analysis/lessons/ui-toolkit/panels-visibility-lifecycle.md).
     // This is calibration's equivalent, kept here since only CalibrationSystem knows a
     // panel is about to show — only Keys' paths call this; Guitar is always instant/no-panel.
     //

@@ -7,8 +7,9 @@ import type { SourcedEntry } from "../shared/SongSource";
 // onClick/setProperties per element on every _render().
 //
 // Search is intentionally inert — no onClick on #lib-search-display, no real <input>.
-// No OS keyboard is reachable from an active WebXR session (see UikitLessonsLearned.md's
-// "No system/OS text-entry keyboard" entry); real fix is a future on-screen uikit keyboard.
+// No OS keyboard is reachable from an active WebXR session, and no fix exists at the
+// IWSDK/browser level; real fix is a future on-screen uikit keyboard (tracked as a
+// follow-up, not a retrospective lesson).
 // searchQuery/_getFiltered() are kept as-is (always '') so that follow-up only wires input.
 
 const SORT_OPTIONS = [
@@ -25,7 +26,7 @@ type SortValue = (typeof SORT_OPTIONS)[number]['value'];
 
 // Rows append a few frames at a time, not all at once — avoids a confirmed Yoga bug
 // where a burst of brand-new text glyphs corrupts an unrelated element's layout
-// elsewhere in the doc (see UikitLessonsLearned.md's async-text-burst entry).
+// elsewhere in the doc (see ThreeCP/Analysis/lessons/ui-toolkit/text-rendering.md).
 const ROW_BATCH_SIZE = 12;
 
 function truncate(s: string, max: number): string {

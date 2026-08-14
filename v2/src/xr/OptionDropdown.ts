@@ -177,7 +177,8 @@ export class OptionDropdown {
 
     // Custom drag-to-scroll, replacing overflow:scroll — its capture/release object mismatch
     // wedges scroll permanently once a drag starts on a child button (nearly every gesture at this
-    // popover's size). See UikitLessonsLearned.md. Deliberately doesn't capture on every
+    // popover's size). See ThreeCP/Analysis/lessons/ui-toolkit/scrolling-and-dropdowns.md.
+    // Deliberately doesn't capture on every
     // pointerdown like _wireSeekDrag does: native click synthesis requires down/up to land on the
     // same object, so eager capture would break every option's onClick. Capture is deferred until
     // real drag distance is confirmed.
