@@ -57,7 +57,7 @@ import type {
 // independent of anything it might be used to debug. See
 // ThreeCP/Analysis/lessons/engine/dev-environment.md's
 // "Debugging JS console from Quest Browser on PC" entry.
-const DEBUG_CONSOLE_ENABLED = true;
+const DEBUG_CONSOLE_ENABLED = false;
 
 const debugLines: string[] = [];
 const DEBUG_MAX_LINES = 22;
