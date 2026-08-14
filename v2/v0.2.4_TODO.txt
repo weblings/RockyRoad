@@ -1,0 +1,7 @@
+- [ ] Speed sound fix (.\ThreeCP\Analysis\SoundTouchSpeedPlan.md)
+- [ ] Desktop countdown before starting play like xr
+- [ ] note number -> size
+- [ ] piano reposition ux tweak
+- [ ] xr padding (library occasional bug, scrubber + play button in play screen)
+- [ ] Add Fur Elise to Sample Songs
+- [ ] Add sample guitar song with chords 

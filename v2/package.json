@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@iwsdk/core": "0.3.1",
+    "@soundtouchjs/audio-worklet": "^2.1.1",
     "html2canvas": "^1.4.1",
     "three": "npm:super-three@0.181.0"
   },
