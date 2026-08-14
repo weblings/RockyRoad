@@ -183,4 +183,13 @@ one).
 - [x] Phase B: Song's Instrument + Difficulty dropdowns.
 - [x] Phase C: Song→Play `selectedDifficulty` piping (`PreSceneScreen`/`TunerScreen`/`ActiveSceneScreen`).
 - [x] Phase D: Play's Speed + Difficulty dropdowns, highway rebuild, `NoteDetector` recreation.
-- [ ] Phase E: outside-click/sibling-close fix, desktop then XR.
+- [x] Phase E, desktop: outside-click/sibling-close fix — turned out to be one unified mechanism
+      (drop `stopPropagation()` on the trigger, add one lazily-installed document-level bubble-
+      phase click listener over `Dropdown.instances`), not two, since removing the trigger's
+      `stopPropagation()` lets a trigger click reach the same listener that handles outside
+      clicks. Single-file change (`Dropdown.ts`) — Library, Song, and Play all inherit it via the
+      shared class, no other file touched.
+- [ ] Phase E, XR: port the same shape to `OptionDropdown` — not started. Uikit's synthetic
+      pointer-events system has no literal `document`-level click to bubble to and no
+      `stopPropagation()`-equivalent blocking it today, so the desktop fix's exact shape won't
+      carry over directly; needs its own investigation.

@@ -10,9 +10,9 @@ export interface DropdownOption {
 }
 
 export class Dropdown {
-    // Unused until the outside-click/sibling-close fix — every instance registers here so that
-    // fix needs no changes to this class later, just one document-level listener reading this.
+    // Backs the outside-click/sibling-close listener below — every instance registers here.
     private static instances: Dropdown[] = [];
+    private static outsideClickListenerInstalled = false;
 
     readonly root: HTMLElement;
     private readonly trigger: HTMLButtonElement;
@@ -55,8 +55,10 @@ export class Dropdown {
         this.root.append(this.trigger, this.menu);
         container.appendChild(this.root);
 
-        this.trigger.addEventListener('click', (e) => {
-            e.stopPropagation();
+        // No stopPropagation — letting this bubble to the document-level listener installed
+        // below is what makes opening one dropdown close any other that's already open, for
+        // free. See that listener's own comment for the full reasoning.
+        this.trigger.addEventListener('click', () => {
             this.toggle();
         });
 
@@ -68,6 +70,28 @@ export class Dropdown {
         });
 
         Dropdown.instances.push(this);
+        Dropdown.ensureOutsideClickListener();
+    }
+
+    // Installed once, lazily, on first Dropdown construction — never removed, since it's a
+    // single stateless global listener regardless of how many instances come and go.
+    //
+    // Bubble phase (default), not capture, is required: a trigger's own click handler (attached
+    // directly to the trigger, so it always runs first) has already toggled that dropdown's open
+    // state by the time this listener sees the same event on its way up to document. So for
+    // "dropdown A open, click dropdown B's trigger": B is already open with the click target
+    // inside its own root by the time this runs (stays open); A is open with the click target
+    // outside its root (closes). The same containment check also covers genuine outside clicks
+    // (anywhere that isn't part of any dropdown) — one mechanism, not two.
+    private static ensureOutsideClickListener(): void {
+        if (Dropdown.outsideClickListenerInstalled) return;
+        Dropdown.outsideClickListenerInstalled = true;
+        document.addEventListener('click', (e) => {
+            if (!(e.target instanceof Node)) return;
+            for (const dropdown of Dropdown.instances) {
+                if (dropdown.isOpen && !dropdown.root.contains(e.target)) dropdown.close();
+            }
+        });
     }
 
     get isOpen(): boolean {
