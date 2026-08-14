@@ -14,7 +14,8 @@ merge rationale if you're curious why the source is organized the way it is.
 
 For environment setup (Node, HTTPS certs, running the dev server, feeding it a song
 library), see [`Setup.md`](../../Setup.md) at the repo root. For gotchas hit while
-building this project, see [`LessonsLearned.md`](LessonsLearned.md).
+building this project, see [`../Analysis/lessons/README.md`](../Analysis/lessons/README.md)
+— the repo's single lessons-learned location, not a doc local to this subproject.
 
 ## Two entry points, one build
 

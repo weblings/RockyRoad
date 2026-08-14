@@ -234,7 +234,20 @@ myself, same as any other skill.
       at the new tree — these weren't in the original disposition list but were found via grep
       during execution.
 
-**Found during execution, out of the original scope of this plan:** `ThreeCP/v2/LessonsLearned.md`
-is a *third*, separate lessons file (Combined-project build/merge gotchas) that this plan's own
-discovery grep never surfaced, since it lives outside `ThreeCP/Analysis/`. Left untouched — flagged
-to the user as a follow-up decision, not folded in here.
+**Follow-up pass — `ThreeCP/v2/LessonsLearned.md` folded in (done):** this third, separate lessons
+file (Combined-project build/merge gotchas) was found via a repo-wide `find . -iname "*lesson*"`
+sweep after the fact, since it lived outside `ThreeCP/Analysis/` and this plan's own discovery grep
+never surfaced it. Applied the same razor to its 23 entries: 15 landed in the existing tree
+(`engine/xr-3d-rendering.md` +1, `engine/runtime-apis.md` +3, `engine/dev-environment.md` +6,
+`ui-toolkit/assets-tooling-debugging.md` +1, `engineering-hygiene.md` +4 — no new files needed),
+7 omitted (4 tied to the now-fully-removed html2canvas pipeline with no forward value, 3 stale/
+low-value entries documenting completed one-time migration decisions rather than durable gotchas),
+1 genericization candidate (an artificial-throttle-cap entry) considered and let go rather than
+manufactured into an entry. File deleted; `ThreeCP/v2/README.md`'s pointer updated.
+
+Added a standing guardrail against this recurring: `CLAUDE.md` and `lessons/README.md` both now
+state explicitly that `ThreeCP/Analysis/lessons/` is the repo's **only** lessons-learned location,
+for every subproject, and instruct checking `find . -iname "*lesson*"` before ever creating a new
+one. (`ThreeCP/Analysis/TabToChartLessons.md` was also found by that sweep but left standalone —
+it's music-notation-to-chart-format domain knowledge, not a code/tooling gotcha, so it doesn't fit
+this razor at all; it's a different category of document, not a miss.)

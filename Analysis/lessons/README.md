@@ -3,6 +3,13 @@
 Gotchas, non-obvious findings, and hard-won decisions that aren't obvious from reading the code or
 planning docs. Add here whenever something costs more than 30 minutes to diagnose.
 
+**This directory is the only lessons-learned location in the repo** — for every subproject
+(`ThreeCP/v2/`, `ThreeCP/XRProto/`, etc.), not just `ThreeCP/Analysis/` itself. Don't start a new
+`LessonsLearned.md` next to a subproject because it's convenient — file into this tree instead,
+even if the fact is specific to that one subproject (there's no rule that every entry must apply
+project-wide, only that they all live in one place). If you're unsure whether a relevant doc
+already exists, `find . -iname "*lesson*"` from the repo root before creating anything.
+
 ## Where a lesson lives
 
 1. Is this about *my own* verification/reliability habits, not code or design? → persistent memory

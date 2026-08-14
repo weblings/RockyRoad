@@ -21,7 +21,8 @@ editing `.uikitml` or XR panel/dropdown/screen code.
   (`worldToLocal(event.point)`), `setPointerCapture`/`releasePointerCapture`, `pointerEvents`
   inheritance.
 - [`assets-tooling-debugging.md`](assets-tooling-debugging.md) — SVG icons, the `.uikitml`→JSON
-  fetch/cache-busting gotcha, missing-image handling, `currentColor` breaking the SVG loader.
+  fetch/cache-busting gotcha, missing-image handling, `currentColor` breaking the SVG loader, the
+  `compileUIKit` plugin crashing the dev server if its source directory is missing.
 
 ## Cross-listed (touches more than one topic)
 

@@ -65,3 +65,18 @@ standalone SVG parsing has none. Every other icon already in this project uses a
 **Fix:** Any new icon SVG must use a literal hex fill, never `currentColor`. Same category as the
 missing-glyph character list in `text-rendering.md` — check for this on sight before wiring in a
 new icon, don't wait for the bug report.
+
+---
+
+## `compileUIKit` plugin crashes the dev server if the `.uikitml` source directory is missing
+
+**Symptom:** `npm run dev` starts but no page loads at all — not just the uikit screens, everything.
+
+**Root cause:** `compileUIKit({ sourceDir: "ui" })` in `vite.config.ts` expects that directory to
+exist at project root. If it's absent, the plugin throws during Vite startup, silently preventing
+any page from being served — the failure mode gives no hint that a missing uikit source folder is
+the cause of an apparently unrelated total outage.
+
+**Fix:** Ensure the `.uikitml` source directory (and any assets the compiled panels reference,
+e.g. sprite sheets/icons) exist before first `npm run dev` in a fresh checkout or after a project
+restructure.

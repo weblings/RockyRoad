@@ -85,7 +85,7 @@ Between "roam" (end of line 1) and the pickup "Where" (start of line 2), there a
 
 ## A silent `song.ogg` (or absent audio) still lets you verify the chart visually
 
-A chart with no audio file will still render and scroll in the app (confirmed: `SongPlayer.play()` works as a pure timer when no buffer is loaded — see `LessonsLearned.md`). For a hand-authored demo song without a recording, you can verify the note timing visually by watching notes scroll past the now-line at the expected rate before sourcing or generating audio.
+A chart with no audio file will still render and scroll in the app (confirmed: `SongPlayer.play()` works as a pure timer when no buffer is loaded — see `lessons/engine/xr-3d-rendering.md`). For a hand-authored demo song without a recording, you can verify the note timing visually by watching notes scroll past the now-line at the expected rate before sourcing or generating audio.
 
 ---
 

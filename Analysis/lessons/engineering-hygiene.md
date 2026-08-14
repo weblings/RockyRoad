@@ -63,3 +63,44 @@ causing a still-hidden panel to become silently clickable.
 **Fix:** keep resource-caching helpers free of side effects entirely — interactivity (or any other
 side effect) should only ever be toggled by the explicit setter built for that purpose, never as a
 byproduct of an unrelated read.
+
+---
+
+## Shared-module code can't rely on assets living next to mode-specific code
+
+**Symptom:** `import pianoImageUrl from './assets/piano.png'` failed inside a shared scene-building
+module because the file actually lived under a desktop-only assets folder.
+
+**Fix:** Any asset a shared module imports must itself live somewhere the shared module can reach
+(e.g. its own `src/shared/assets/`) — copy it there rather than reaching across into a
+mode-specific directory, even if that's where the asset happened to originate.
+
+---
+
+## Tag each item with its source at load time, not at use time
+
+**Why:** Once items from multiple sources are merged into one flat list, there's no reliable way
+to look up which source an item came from unless it was stored upfront — matching back by some
+derived key (e.g. folder path) at use time is fragile once two sources can produce colliding keys.
+
+**Pattern:** Wrap each item with its originating source at the point where sources are merged
+(`{ entry, source }`), and have all downstream code read `source` off the wrapper instead of
+re-deriving or looking it up later.
+
+---
+
+## `Promise.allSettled`, not `Promise.all`, when independent sources shouldn't fail each other
+
+Loading from several independent sources (e.g. a bundled library plus an optional remote one) with
+`Promise.all` means one source being unreachable fails the entire load. `Promise.allSettled` keeps
+each source independent — a failing one logs a warning while every other source's results still
+come through.
+
+---
+
+## Precompute a cheap existence flag instead of probing for a resource at render time
+
+**Pattern:** If an optional per-item resource's existence can be determined once at build/index
+time (e.g. `hasArt: existsSync(path)`), store that flag on the item instead of having every
+consumer either fire a pre-flight existence check or handle a runtime 404/`onerror`. The consumer
+becomes a synchronous branch on the flag instead of an async or error-handling path.
