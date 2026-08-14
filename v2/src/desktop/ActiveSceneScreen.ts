@@ -408,9 +408,11 @@ export class ActiveSceneScreen implements IScreen {
         });
 
         // Speed dropdown — preset-only (20%–200% in 20% steps), same values and same shape as
-        // XR's as-speed-dropdown. No more fine +/- stepping now that the stepper buttons are gone.
+        // XR's as-speed-dropdown. Percentage labels, not "1×" multiplier notation — matches both
+        // XR's Speed dropdown and this bar's own Difficulty dropdown. No more fine +/- stepping
+        // now that the stepper buttons are gone.
         const SPEED_PRESET_STEP = 0.2, SPEED_MAX = 2.0;
-        const speedLabel = (v: number) => (Math.round(v * 100) / 100).toString().replace(/\.?0+$/, '') + '×';
+        const speedLabel = (v: number) => `${Math.round(v * 100)}%`;
         const speedPresets: number[] = [];
         for (let r = SPEED_PRESET_STEP; r <= SPEED_MAX + 0.001; r += SPEED_PRESET_STEP) {
             speedPresets.push(Math.round(r / SPEED_PRESET_STEP) * SPEED_PRESET_STEP);
