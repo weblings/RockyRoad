@@ -40,6 +40,7 @@ export class ActiveSceneScreen implements IScreen {
     private source: ISongSource;
     private entry: SongIndexEntry;
     private part: SongIndexPart;
+    private selectedDifficulty: number | null;
     private mockKeyHandler: ((e: KeyboardEvent) => void) | null = null;
 
     // Pitch detection — optional; null if mic was denied or not a stringed instrument.
@@ -55,6 +56,7 @@ export class ActiveSceneScreen implements IScreen {
         source: ISongSource,
         entry: SongIndexEntry,
         part: SongIndexPart,
+        selectedDifficulty: number | null = null,
         pitchDetector: PitchDetector | null = null,
     ) {
         this.app = app;
@@ -62,6 +64,7 @@ export class ActiveSceneScreen implements IScreen {
         this.source = source;
         this.entry = entry;
         this.part = part;
+        this.selectedDifficulty = selectedDifficulty;
         this.pitchDetector = pitchDetector;
     }
 
@@ -106,9 +109,7 @@ export class ActiveSceneScreen implements IScreen {
             const instrumentPart =
                 songInfo.InstrumentParts.find(p => p.InstrumentName === this.part.name) ??
                 songInfo.InstrumentParts[0];
-            // No Difficulty selector on desktop yet — null is a no-op, returns instrumentNotes.Notes
-            // unchanged. Wired now so this call site is already correct once desktop gets one.
-            const resolvedNotes = { ...instrumentNotes, Notes: resolveNotesForDifficulty(instrumentNotes, null) };
+            const resolvedNotes = { ...instrumentNotes, Notes: resolveNotesForDifficulty(instrumentNotes, this.selectedDifficulty) };
             this.scene = new FretPlayerScene3D(
                 this.app.renderer, this.texture, songStructure, resolvedNotes, instrumentPart,
             );

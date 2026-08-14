@@ -41,6 +41,7 @@ export class TunerScreen implements IScreen {
     private entry: SongIndexEntry;
     private part: SongIndexPart;
     private context: TunerContext;
+    private selectedDifficulty: number | null;
     private pausedAt: number;   // only relevant for mid-song
 
     private offsets: number[];
@@ -77,6 +78,7 @@ export class TunerScreen implements IScreen {
         entry: SongIndexEntry,
         part: SongIndexPart,
         context: TunerContext,
+        selectedDifficulty: number | null = null,
         pausedAt = 0,
     ) {
         this.app = app;
@@ -85,6 +87,7 @@ export class TunerScreen implements IScreen {
         this.entry = entry;
         this.part = part;
         this.context = context;
+        this.selectedDifficulty = selectedDifficulty;
         this.pausedAt = pausedAt;
 
         this.offsets = part.tuningOffsets ?? [];
@@ -348,7 +351,8 @@ export class TunerScreen implements IScreen {
                 this.detector = null;
                 import('./ActiveSceneScreen').then(({ ActiveSceneScreen }) => {
                     this.app.navigate(new ActiveSceneScreen(
-                        this.app, this.texture, this.source, this.entry, this.part, det,
+                        this.app, this.texture, this.source, this.entry, this.part,
+                        this.selectedDifficulty, det,
                     ));
                 });
                 break;

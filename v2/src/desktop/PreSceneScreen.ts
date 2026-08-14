@@ -116,6 +116,7 @@ export class PreSceneScreen implements IScreen {
             import('./TunerScreen').then(({ TunerScreen }) => {
                 this.app.navigate(new TunerScreen(
                     this.app, this.texture, this.source, this.entry, this.selectedPart, 'song-flow',
+                    this.selectedDifficulty,
                 ));
             });
         });
@@ -127,11 +128,14 @@ export class PreSceneScreen implements IScreen {
                 import('./TunerScreen').then(({ TunerScreen }) => {
                     this.app.navigate(new TunerScreen(
                         this.app, this.texture, this.source, this.entry, this.selectedPart, 'song-flow',
+                        this.selectedDifficulty,
                     ));
                 });
             } else {
                 this.app.navigate(
-                    new ActiveSceneScreen(this.app, this.texture, this.source, this.entry, this.selectedPart),
+                    new ActiveSceneScreen(
+                        this.app, this.texture, this.source, this.entry, this.selectedPart, this.selectedDifficulty,
+                    ),
                 );
             }
         });

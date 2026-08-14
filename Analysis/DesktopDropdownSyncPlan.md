@@ -179,8 +179,8 @@ one).
 
 ## Execution checklist (not yet done)
 
-- [ ] Phase A: `src/desktop/Dropdown.ts`, CSS rename, Library Sort refactored onto it.
-- [ ] Phase B: Song's Instrument + Difficulty dropdowns.
-- [ ] Phase C: Song→Play `selectedDifficulty` piping (`PreSceneScreen`/`TunerScreen`/`ActiveSceneScreen`).
+- [x] Phase A: `src/desktop/Dropdown.ts`, CSS rename, Library Sort refactored onto it.
+- [x] Phase B: Song's Instrument + Difficulty dropdowns.
+- [x] Phase C: Song→Play `selectedDifficulty` piping (`PreSceneScreen`/`TunerScreen`/`ActiveSceneScreen`).
 - [ ] Phase D: Play's Speed + Difficulty dropdowns, highway rebuild, `NoteDetector` recreation.
 - [ ] Phase E: outside-click/sibling-close fix, desktop then XR.
