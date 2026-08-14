@@ -9,10 +9,10 @@
         "type": "LeadGuitar"
       }
     ],
-    "hasArt": false
+    "hasArt": true
   },
   {
-    "folder": "Mary Had a Little Lamb",
+    "folder": "MaryHadaLittleLamb",
     "title": "Mary Had a Little Lamb",
     "artist": "Sarah Josepha Hale",
     "parts": [
@@ -21,6 +21,6 @@
         "type": "Keys"
       }
     ],
-    "hasArt": false
+    "hasArt": true
   }
 ]
