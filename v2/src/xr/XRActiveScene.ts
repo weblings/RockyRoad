@@ -14,9 +14,8 @@ const MAX_TITLE_CHARS    = 26;
 const MAX_SUBTITLE_CHARS = 30;
 
 // Note-hit streaks have no backing data model yet (see Stretch Goal B) — the row is already
-// built in ui/play.uikitml, just gated off until the real feature lands. Difficulty is real
-// now (see ThreeCP/Analysis/DifficultyDropdownPlan.md) — its own visibility is per-song,
-// driven by whether the loaded part actually has AvailableDifficulties.
+// built in ui/play.uikitml, just gated off until the real feature lands. Difficulty's own
+// visibility is per-song, driven by whether the loaded part actually has AvailableDifficulties.
 const STATS_ROW_ENABLED = false;
 
 // Matches desktop's SPEED_PRESET_STEP: 20% steps, 20%-200%. No separate fine

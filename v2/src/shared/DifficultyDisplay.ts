@@ -1,7 +1,7 @@
-// Pure Difficulty display/retarget math, shared by XR's Play and Song dropdowns today and
-// intended for desktop's eventual equivalent (see ThreeCP/Analysis/DifficultyDropdownPlan.md) —
-// kept here rather than in src/xr/OptionDropdown.ts so desktop can reuse it without reaching into
-// XR-only code, same reasoning as PART_LABEL/resolveDefaultPart living in InstrumentSelect.ts.
+// Pure Difficulty display/retarget math, used by XR's Play and Song dropdowns — kept here
+// rather than in src/xr/OptionDropdown.ts so desktop's own dropdowns can reuse it without
+// reaching into XR-only code, same reasoning as PART_LABEL/resolveDefaultPart living in
+// InstrumentSelect.ts.
 
 // rank/count, not raw value/max — raw Difficulty values are an arbitrary per-song scale that can
 // start at 0, which would otherwise show the easiest option as a misleading "0%". 1-based rank

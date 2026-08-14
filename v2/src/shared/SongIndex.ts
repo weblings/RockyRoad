@@ -22,8 +22,8 @@ export interface SongIndexPart {
     tuning?: string;
     // Raw StringSemitoneOffsets from song.json. Only set for stringed instruments.
     tuningOffsets?: number[];
-    // Distinct dynamic-difficulty tiers, from song.json's AvailableDifficulties. Not the same as
-    // difficulty above (a flat per-song rating) — see DifficultyDropdownPlan.md.
+    // Distinct dynamic-difficulty tiers (selectable, from song.json's AvailableDifficulties) —
+    // not the same as difficulty above, which is a single flat per-song rating used for sorting.
     availableDifficulties?: number[];
 }
 

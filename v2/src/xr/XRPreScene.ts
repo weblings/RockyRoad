@@ -114,8 +114,7 @@ export class XRPreScene {
         if (artUrl) artEl?.setProperties({ display: 'flex', src: artUrl });
         else        artEl?.setProperties({ display: 'none' });
 
-        // Vocals excluded before considering a default — matches desktop's PreSceneScreen.ts
-        // (previously a latent XR gap; see DifficultyDropdownPlan.md's "Desktop comparison").
+        // Vocals excluded before considering a default — matches desktop's PreSceneScreen.ts.
         const playableParts = entry.parts.filter(p => p.type !== 'Vocals');
         const hasPart = playableParts.length > 0;
 
