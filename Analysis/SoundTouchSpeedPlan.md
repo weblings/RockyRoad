@@ -66,9 +66,25 @@ console errors (playback graph itself untouched yet).
 
 ### Phase B — Rewire the playback graph, prove parity at 1.0x
 
-- Change `SongPlayer`'s graph from `source → destination` to
-  `source → SoundTouchNode → destination`. `source.playbackRate` keeps being driven exactly as
-  today (no pinning to 1.0 — that assumption was wrong, see Decisions above).
+- `stNode` and `source` have different lifetimes — `stNode` is constructed once per `loadSong()`
+  (Phase A), but `play()` creates a fresh `AudioBufferSourceNode` on every call, including every
+  `seekTo()` (which stops the old source and calls `play()` again). So the graph change is two
+  separate edits, not one:
+  - `stNode.connect(this.context.destination)` — **once**, right after `this.stNode = new
+    SoundTouchNode(...)` in `loadSong()`.
+  - In `play()`, replace `this.source.connect(this.context.destination)` with a fallback-aware
+    connect: `if (this.stNode) this.source.connect(this.stNode); else
+    this.source.connect(this.context.destination);` — this is also where the graceful-degradation
+    fallback from Decisions actually gets implemented (Phase A only left `stNode` `null` on
+    failure; nothing reads that yet).
+- Right after constructing `stNode` in `loadSong()`, also set
+  `this.stNode.playbackRate.value = this._playbackRate`. The setter only writes to `stNode` when
+  it's *called* — if `_playbackRate` is ever non-default before `stNode` exists, the AudioParam
+  would otherwise sit at its default `1.0` until the next Speed change, silently skipping pitch
+  compensation on first playback. Today's two call sites (`ActiveSceneScreen.ts`,
+  `XRActiveScene.ts`) happen to only allow Speed changes after `loadSong()` resolves, so this isn't
+  an active bug, but that safety is implicit and coupled across two files — make it explicit here
+  since it costs one line.
 - `playbackRate` setter keeps `source.playbackRate.value = rate` and additionally sets
   `stNode.playbackRate.value = rate` (mirror, new line) so the processor's internal pitch
   compensation matches.

@@ -2,14 +2,14 @@ import { SoundTouchNode } from '@soundtouchjs/audio-worklet';
 import soundTouchProcessorUrl from '@soundtouchjs/audio-worklet/processor?url';
 
 // ISongPlayer is the stable interface both playback backends must implement.
-// SongPlayer uses AudioBufferSourceNode.playbackRate (pitch shifts proportionally today).
-// A SoundTouch AudioWorklet is being phased in to pitch-correct that — see
-// ThreeCP/Analysis/SoundTouchSpeedPlan.md for the phased rollout; not yet wired into playback.
+// SongPlayer drives speed via AudioBufferSourceNode.playbackRate, routed through a SoundTouch
+// AudioWorklet that compensates pitch — see ThreeCP/Analysis/SoundTouchSpeedPlan.md for the
+// phased rollout. Falls back to uncorrected native playbackRate if the worklet fails to load.
 export interface ISongPlayer {
     readonly isPlaying: boolean;
     readonly currentSecond: number;
     readonly duration: number;
-    playbackRate: number;   // 0.25–2.0; Option A changes pitch; Option B will not
+    playbackRate: number;   // 0.25–2.0; pitch-corrected via SoundTouch when the worklet is available
     play(): void;
     pause(): void;
     seekTo(seconds: number): void;
@@ -62,8 +62,8 @@ export class SongPlayer implements ISongPlayer {
     private pausedAt = 0;   // song position (seconds) at which playback was last paused/started
     private _playing = false;
     private _playbackRate = 1;
-    // Constructed once the worklet module registers; not yet connected into the playback graph
-    // (Phase A only proves registration + construction work — Phase B wires it in).
+    // Pitch-corrects speed changes; sits between source and destination. Null if the worklet
+    // failed to register — playback then falls back to uncorrected native playbackRate.
     private stNode: SoundTouchNode | null = null;
 
     get isPlaying(): boolean { return this._playing; }
@@ -90,6 +90,7 @@ export class SongPlayer implements ISongPlayer {
         }
         this._playbackRate = rate;
         if (this.source) this.source.playbackRate.value = rate;
+        if (this.stNode) this.stNode.playbackRate.value = rate;
     }
 
     async loadSong(url: string): Promise<void> {
@@ -98,6 +99,10 @@ export class SongPlayer implements ISongPlayer {
             try {
                 await SoundTouchNode.register(this.context, soundTouchProcessorUrl);
                 this.stNode = new SoundTouchNode({ context: this.context });
+                this.stNode.connect(this.context.destination);
+                // Sync in case playbackRate was already set before this song's stNode existed
+                // (e.g. inherited state) — AudioParam otherwise sits at its default of 1.0.
+                this.stNode.playbackRate.value = this._playbackRate;
             } catch (err) {
                 // Graceful degradation — playback continues on native playbackRate, uncorrected.
                 console.warn('SoundTouch worklet failed to load; pitch will shift with speed', err);
@@ -124,7 +129,8 @@ export class SongPlayer implements ISongPlayer {
             this.source = this.context.createBufferSource();
             this.source.buffer = this.buffer;
             this.source.playbackRate.value = this._playbackRate;
-            this.source.connect(this.context.destination);
+            if (this.stNode) this.source.connect(this.stNode);
+            else this.source.connect(this.context.destination);
             this.source.start(0, this.pausedAt);
 
             const thisSource = this.source;
