@@ -98,10 +98,14 @@ identical to before (no added latency/glitches/volume change perceivable at 1.0x
 
 ### Phase C — Real speed changes, confirm pitch preservation
 
-- Wire actual non-1x `playbackRate` values through to both `source.playbackRate` and the mirrored
-  `stNode.playbackRate`.
+- No source changes — Phase B's setter mirrors every rate unconditionally (it doesn't branch on
+  the value), so non-1x rates already flow through both `source.playbackRate` and
+  `stNode.playbackRate` exactly like 1.0x did in Phase B's test. This phase is pure verification.
 - Confirm pitch genuinely stays constant by ear at a few presets (e.g. 0.6x, 1.4x) — the actual
-  point of this whole effort.
+  point of this whole effort. (Our approach — native `source.playbackRate` driving speed,
+  `stNode` only correcting pitch — is also the pattern the package's own README recommends
+  specifically to avoid audible gaps at higher speeds from the worklet's small per-block buffer;
+  a `tempo`-only approach would have risked that, ours shouldn't.)
 - Sanity-check the note highway / seek bar stays in sync with the audio at non-1x speeds (the
   `currentSecond` formula itself isn't expected to need changes, per Decisions above, but the
   worklet does add processing latency that could show up as drift even with the formula correct).
@@ -110,25 +114,47 @@ identical to before (no added latency/glitches/volume change perceivable at 1.0x
 
 **Testing:** Manual, in both desktop and XR: change speed mid-playback via the existing Speed
 dropdown (no UI changes needed — same control, new backend), confirm pitch is stable and the
-highway stays synced.
+highway stays synced. **Confirmed** (both desktop and XR): pitch stays correct across the whole
+tested range; audio quality itself degrades into "crunchy" WSOLA artifacts at ~40% and below
+(pitch still correct even then), clean at 60%+ and at 200%. Matches the WSOLA-degradation risk
+flagged in Decisions — feeds directly into Phase E's extreme-preset assessment, not a Phase C
+regression.
 
 ### Phase D — Seek and rate-change robustness
 
-- Seeking today just restarts a fresh `AudioBufferSourceNode` at the target offset. With a
-  `SoundTouchNode` in the chain, its internal WSOLA analysis-window state goes stale after a jump
-  — seeking needs to recreate the `SoundTouchNode` alongside the source, not just the source
-  alone.
-- Confirm changing `stNode.playbackRate`/`source.playbackRate` **without** a seek (a live speed
-  change mid-playback) does not need the same node-recreation treatment — they're real
-  `AudioParam`s, so a plain value change should be sufficient; verify this rather than assuming it.
-- Re-verify the existing pause / resume-with-countdown / scrub-seek flows (`ActiveSceneScreen.ts`
-  and `XRActiveScene.ts` already drive these through the unchanged `ISongPlayer` surface) still
-  behave correctly through the new graph — this is regression-proofing existing behavior, not new
-  design.
+- **The trigger isn't "a seek" — it's "`play()` building a fresh `source`," which happens on every
+  resume path, seek or not.** Traced all of them in `ActiveSceneScreen.ts`/`XRActiveScene.ts`:
+  plain pause→resume, resume-with-countdown (`onSongRollback`'s `seekTo()` while stopped, then
+  `onSongResume`'s `seekTo()` + `play()`), and click-to-seek/scrub-release (`seekTo()` calling
+  `play()` itself) all funnel through the identical fresh-`AudioBufferSourceNode`-construction
+  branch in `play()`. None of them is a special case — whatever `stNode` has buffered/analyzed
+  internally (WSOLA lookahead) goes stale relative to a new source stream regardless of *why* that
+  source is new.
+- **Fix: pair `stNode`'s lifetime 1:1 with `source`'s, not with the song's.** Move `stNode`
+  *construction* out of `loadSong()` into `play()`'s buffer branch, right alongside where `source`
+  itself is constructed — a fresh `stNode` is built every single `play()` call, unconditionally.
+  `loadSong()` keeps doing the one-time-per-`AudioContext` worklet *module registration*
+  (`SoundTouchNode.register()` — that part genuinely is one-time), but stops holding a persistent
+  node. This removes any need to reason about which resume paths count as "a jump" — there's no
+  cross-segment state to go stale if nothing ever crosses a segment boundary.
+- **Two implementation details this surfaces, absent from earlier phases:**
+  - The old `stNode` needs an explicit `.disconnect()` before being replaced — reassigning the
+    field alone doesn't sever its connection to `destination`; left alone, every pause/seek over a
+    session accumulates another orphaned worklet processor idling on silence.
+  - The construct → connect → sync-`playbackRate` sequence (the same one-time dance Phase B added
+    in `loadSong()`) now runs on every `play()` call instead of once — pull it into one small
+    private helper so it isn't duplicated, and so the "sync the AudioParam explicitly, don't rely
+    on the setter alone" gotcha from Phase B doesn't need re-solving here.
+- Confirm changing `stNode.playbackRate`/`source.playbackRate` **without** a source rebuild (a
+  live speed change mid-playback, no pause/seek involved) does not need node recreation — they're
+  real `AudioParam`s, a plain value change should be sufficient; verify this rather than assuming
+  it, since it's the one case that genuinely doesn't go through `play()`.
 
-**Testing:** Manual: seek via the seek bar (both click-to-seek and drag-scrub) at both 1.0x and a
-non-1x speed, confirm no stale-audio artifacts and `currentSecond` lands correctly after each.
-Confirm pause/resume-with-countdown still works unchanged.
+**Testing:** Manual, in both desktop and XR: (1) seek via the seek bar, both click-to-seek and
+drag-scrub, at 1.0x and a non-1x speed — confirm no stale-audio artifacts and `currentSecond` lands
+correctly after each; (2) plain pause then resume with **no** seek in between — same check, this is
+the path most likely to get skipped if only the seek bar is tested; (3) resume-with-countdown —
+confirm unchanged behavior end to end.
 
 ### Phase E — Assess the deferred concerns, now that it works
 
@@ -154,7 +180,10 @@ fallback to Option A at extreme presets) be scoped — deliberately not designed
       package's README promised. In-browser console-error check (dev server, load a song) still
       needs a manual pass before calling this fully done.
 - [ ] Phase B: playback graph rewired, 1.0x parity confirmed.
-- [ ] Phase C: real speed changes wired, pitch stability and highway sync confirmed.
+- [x] Phase C: real speed changes wired, pitch stability and highway sync confirmed. No source
+      changes needed (Phase B's mirroring is unconditional). Confirmed by ear, desktop + XR: pitch
+      stays correct at every tested speed; audio itself gets "crunchy" (WSOLA artifacts) at ~40%
+      and below, clean at 60%+ and 200% — expected, feeds Phase E, not a regression.
 - [ ] Phase D: seek/rate-change robustness, existing pause/resume/scrub flows re-verified.
 - [ ] Phase E: performance, extreme-range quality, and latency assessed; mitigations (if any)
       scoped as follow-up, not built preemptively.

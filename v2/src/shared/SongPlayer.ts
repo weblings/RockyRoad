@@ -62,8 +62,12 @@ export class SongPlayer implements ISongPlayer {
     private pausedAt = 0;   // song position (seconds) at which playback was last paused/started
     private _playing = false;
     private _playbackRate = 1;
-    // Pitch-corrects speed changes; sits between source and destination. Null if the worklet
-    // failed to register — playback then falls back to uncorrected native playbackRate.
+    // True once the worklet module has registered on this.context (one-time per context).
+    private soundTouchRegistered = false;
+    // Pitch-corrects speed changes; sits between source and destination. Rebuilt on every play()
+    // alongside source (not long-lived) — a fresh source means stNode's internal WSOLA analysis
+    // state would otherwise go stale, whether that's from a seek, a plain pause/resume, or first
+    // play. Null if the worklet never registered — playback then falls back to native playbackRate.
     private stNode: SoundTouchNode | null = null;
 
     get isPlaying(): boolean { return this._playing; }
@@ -95,14 +99,10 @@ export class SongPlayer implements ISongPlayer {
 
     async loadSong(url: string): Promise<void> {
         if (!this.context) this.context = new AudioContext();
-        if (!this.stNode) {
+        if (!this.soundTouchRegistered) {
             try {
                 await SoundTouchNode.register(this.context, soundTouchProcessorUrl);
-                this.stNode = new SoundTouchNode({ context: this.context });
-                this.stNode.connect(this.context.destination);
-                // Sync in case playbackRate was already set before this song's stNode existed
-                // (e.g. inherited state) — AudioParam otherwise sits at its default of 1.0.
-                this.stNode.playbackRate.value = this._playbackRate;
+                this.soundTouchRegistered = true;
             } catch (err) {
                 // Graceful degradation — playback continues on native playbackRate, uncorrected.
                 console.warn('SoundTouch worklet failed to load; pitch will shift with speed', err);
@@ -112,6 +112,19 @@ export class SongPlayer implements ISongPlayer {
         if (!response.ok) throw new Error(`HTTP ${response.status} fetching ${url}`);
         const arrayBuffer = await response.arrayBuffer();
         this.buffer = await this.context.decodeAudioData(arrayBuffer);
+    }
+
+    // Builds a fresh SoundTouchNode wired to destination, rate synced from current state.
+    // Called once per play() so a new source is never paired with a stale one (see stNode's
+    // field comment). Returns null if the worklet never registered.
+    private createSoundTouchNode(): SoundTouchNode | null {
+        if (!this.soundTouchRegistered || !this.context) return null;
+        const node = new SoundTouchNode({ context: this.context });
+        node.connect(this.context.destination);
+        // AudioParams reset to their default (1.0) on construction — sync explicitly rather than
+        // relying on the playbackRate setter, which only fires on a subsequent rate change.
+        node.playbackRate.value = this._playbackRate;
+        return node;
     }
 
     play(): void {
@@ -129,8 +142,14 @@ export class SongPlayer implements ISongPlayer {
             this.source = this.context.createBufferSource();
             this.source.buffer = this.buffer;
             this.source.playbackRate.value = this._playbackRate;
+
+            // Old stNode (if any) belonged to the previous source — disconnect it before
+            // replacing, otherwise it stays wired to destination forever, idling on silence.
+            this.stNode?.disconnect();
+            this.stNode = this.createSoundTouchNode();
             if (this.stNode) this.source.connect(this.stNode);
             else this.source.connect(this.context.destination);
+
             this.source.start(0, this.pausedAt);
 
             const thisSource = this.source;
