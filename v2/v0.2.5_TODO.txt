@@ -1,0 +1,9 @@
+v0.2.5
+- [ ] xr padding (library occasional bug, scrubber + play button in play screen)
+- [ ] Add sample guitar song with chords
+- [ ] XR Guitar color lines only visible below. Make thicker or change how they render? (The slide visuals seem thin too)
+- [ ] Loading feedback from Song page (XR)
+- [ ] Some guitar songs can start playing before the notes are all visible in the highway (XR)
+- [ ] Mobile - Desktop library page shows library as a single slidable row instead of a grid
+- [ ] Desktop - Adjust song page to use xr song model, works better for mobile
+- [ ] Mobile - Explore fullscreen option, could put where VR button usually goes

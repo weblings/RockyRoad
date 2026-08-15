@@ -1,3 +1,9 @@
+v0.2.4:
+- Refactored song speed logic, audio stays same pitch when speed is adjusted now
+- XR - Piano Full Reposition UX improvement
+- Note numbers size now an adjustable setting
+- Fur Elise added to default songs
+
 v0.2.3:
 - If a song has variable difficulty, it can now be adjusted in XR and Desktop
 - Default songs have thumbnails and audio
