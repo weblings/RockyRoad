@@ -9,11 +9,12 @@ to do before touching XR scene graph, input, rendering internals, or build/dev s
   `THREE.Sprite` crashing IWSDK's pointer system, `Entity.dispose()`/`createTransformEntity`
   scene-graph facts, `visual.model.visible` reset-every-frame, Web Audio objects needing an
   explicit stop, IWSDK owning the XR render loop (`QuadBatch.flush()` vs `draw()`), `super-three`
-  version pinning (0.184.0 breaks CanvasTextures in multiview).
+  version pinning (0.184.0 breaks CanvasTextures in multiview), `CanvasTexture`'s `NoColorSpace`
+  default washing out dark colors.
 - [`xr-3d-rendering.md`](xr-3d-rendering.md) — this project's own coordinate/rendering internals:
   the local-Z refactor, audio-less charts freezing the highway, `getFretPosition()`'s
   non-linearity, `QuadBatch`'s known buffer-upload inefficiency, `Scene3D.xrMode` construction
-  ordering.
+  ordering, why resizing a canvas backing a live `CanvasTexture` at runtime is unreliable.
 - [`dev-environment.md`](dev-environment.md) — Windows/Vite/TypeScript build setup: `/@fs/`
   cross-drive failures, IWER's missing device-mode button, remote-debugging a Quest from PC,
   logging `Error` objects correctly, `verbatimModuleSyntax`/`noUnusedLocals` gotchas, two-entry

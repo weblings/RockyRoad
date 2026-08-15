@@ -79,6 +79,19 @@ for icon buttons/thumbs/dots — the only things that tend to need a true circle
 
 ---
 
+## Adding a fixed-height sibling above `flex-grow: 1` centered content needs no layout math
+
+**Finding:** Adding a new header row (e.g. a back button) above an existing section that was
+already `flex-grow: 1` with `align-items/justify-content: center` required no changes to that
+section at all — it automatically shrank to fill and re-center within whatever space the new
+sibling left behind. Flexbox already owns that recompute.
+
+**How to apply:** Don't manually offset/recenter existing centered content when inserting a new
+fixed-size sibling above it in a column flex container — check whether it's already `flex-grow: 1`
+and self-centering first, since it usually already is in this codebase's panels.
+
+---
+
 ## No CSS Grid — `@pmndrs/uikit`'s flex schema is Yoga-based, flexbox only
 
 **Symptom:** Considering how to port a 3-column `grid-template-columns: repeat(3, 1fr)` song list

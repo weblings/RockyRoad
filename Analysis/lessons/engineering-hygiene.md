@@ -104,3 +104,16 @@ come through.
 time (e.g. `hasArt: existsSync(path)`), store that flag on the item instead of having every
 consumer either fire a pre-flight existence check or handle a runtime 404/`onerror`. The consumer
 becomes a synchronous branch on the flag instead of an async or error-handling path.
+
+---
+
+## A flow's own state machine needs explicit reset on every exit path, not just its normal completion path
+
+A "back to Library" handler for an in-progress multi-step calibration flow hid the relevant panel
+but never reset the flow's own `state` field — so the per-frame system driving that flow kept
+running its full step logic (including a world-space label that tracked the user's hand) well
+after the user had navigated away, until the next time the flow was properly restarted.
+
+**Fix:** Any exit path that isn't the flow's own designed completion (a back/cancel/navigate-away
+button, in particular) needs to explicitly reset whatever state the flow's per-frame update reads
+— hiding the UI doesn't imply the logic driving it has stopped.

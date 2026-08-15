@@ -96,6 +96,24 @@ reference alone doesn't stop it, unlike garbage-collectable state in general.
 
 ---
 
+## `CanvasTexture` defaults to `NoColorSpace` — dark colors render much lighter than drawn
+
+**Symptom:** A canvas 2D background fill of `#0a0a0a` (matching every other panel's near-black)
+rendered on a `Sprite` as a noticeably lighter gray, close to `#333333`.
+
+**Root cause:** `Texture`'s (and therefore `CanvasTexture`'s) default `colorSpace` is `NoColorSpace`
+— the renderer never sRGB-decodes the canvas's pixel values on read, so a value meant to already be
+in sRGB terms gets treated as linear instead. It then gets sRGB-*encoded* on output regardless,
+which disproportionately brightens small (dark) values — the double-conversion. This happens even
+on fully unlit materials like `SpriteMaterial` (confirmed directly in its shader: zero lighting
+includes, but `colorspace_fragment` still runs), so "it's unlit" doesn't rule this out.
+
+**Fix:** Set `texture.colorSpace = THREE.SRGBColorSpace` on any `CanvasTexture` drawn with normal
+web colors. Bright/white content is far less visibly affected (the curve barely moves values near
+1.0) — this mostly shows up as an unexplained washed-out look on dark fills specifically.
+
+---
+
 ## `super-three@0.184.0` breaks all CanvasTextures in XR multiview mode
 
 **Symptom:** Every CanvasTexture-based element invisible on Quest device: grab bar not visible, IWSDK ray cursor not visible, panel content disappears after any screen navigation. No errors in DevTools. Everything works fine in the browser emulator (IWER).

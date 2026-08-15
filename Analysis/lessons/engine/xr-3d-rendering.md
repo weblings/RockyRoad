@@ -45,6 +45,28 @@ surface). See [`INDEX.md`](INDEX.md) for the full engine map.
 
 ---
 
+## Resizing a canvas backing a live `CanvasTexture` at runtime is unreliable — build fixed presets instead
+
+**Symptom:** A world-space label `Sprite` whose canvas was resized-to-fit on every text change (to
+avoid clipping long strings) would stop visually updating after the first draw — computed text was
+correct (logged), no exception thrown, `tex.needsUpdate = true` was set, yet the old bitmap stayed
+on screen.
+
+**Root cause:** Not conclusively pinned down. Two targeted fixes were tried and neither resolved
+it: (1) Chromium-based browsers can skip the implicit clear/context-reset that `canvas.width = x`
+normally triggers when `x` equals the current width — added an explicit `clearRect()`, no change;
+(2) changing a texture's base pixel dimensions after creation is a known rough edge for WebGL
+mipmap regeneration, more so on mobile GPUs — disabled `generateMipmaps`/set `minFilter =
+LinearFilter`, no change. The actual fix was structural, not a patch: stop resizing at runtime.
+
+**Fix:** When a canvas-backed texture's content is one of a small, known set of possibilities
+(e.g. a handful of instruction strings), render each to its own fixed-size canvas/texture **once**
+at startup and swap which texture the material's `.map` points at, rather than mutating one
+shared canvas's dimensions and redrawing it live. Never resized after creation, this class of bug
+can't happen at all.
+
+---
+
 ## `Scene3D.xrMode = true` must be set before any scene construction
 
 **Symptom:** XR scenes create an owned `THREE.Scene`, add the QuadBatch mesh to it, then fail when IWSDK tries to register the same mesh — or the mesh renders twice.

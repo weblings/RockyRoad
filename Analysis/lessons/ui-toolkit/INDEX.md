@@ -6,7 +6,8 @@ editing `.uikitml` or XR panel/dropdown/screen code.
 
 - [`syntax-and-styling.md`](syntax-and-styling.md) — `.uikitml` markup/CSS-like property gotchas:
   no shorthand, flex-container defaults, button centering, `classList`, `border-radius`, no CSS
-  Grid, `UIKit.*` constructor shape, silently-unmatched classes.
+  Grid, `UIKit.*` constructor shape, silently-unmatched classes, `flex-grow: 1` centered content
+  auto-adapting to a new sibling with no layout math needed.
 - [`text-rendering.md`](text-rendering.md) — fonts/glyphs/wrapping: `inter` weights, text-burst
   layout corruption, missing glyphs, empty-element `setProperties`, multi-styled text, `whiteSpace`
   vs. `wordBreak`, the unresolved cross-subtree wrap bug.
