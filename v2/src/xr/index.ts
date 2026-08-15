@@ -25,6 +25,7 @@ import {
     Raycaster,
     RayInteractable,
     SessionMode,
+    SRGBColorSpace,
     Vector3,
     World,
     createSystem,
@@ -462,6 +463,9 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         const tex = new CanvasTexture(canvas);
         tex.generateMipmaps = false;
         tex.minFilter = LinearFilter;
+        // CanvasTexture defaults to NoColorSpace — without this, dark canvas colors get
+        // sRGB-encoded a second time on output and render much lighter than drawn.
+        tex.colorSpace = SRGBColorSpace;
         return { tex, aspect: canvas.width / canvas.height };
     }
 

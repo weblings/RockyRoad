@@ -1,7 +1,8 @@
 - [x] Speed sound fix (.\ThreeCP\Analysis\SoundTouchSpeedPlan.md)
 - [x] Desktop countdown before starting play like xr
 - [x] note number -> size
-- [ ] piano reposition ux tweak
+- [x] piano reposition ux tweak
 - [ ] xr padding (library occasional bug, scrubber + play button in play screen)
 - [ ] Add Fur Elise to Sample Songs
-- [ ] Add sample guitar song with chords 
+- [ ] Add sample guitar song with chords
+- [ ] XR Guitar color lines only visible below. Make thicker or change how they render? 
