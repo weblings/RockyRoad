@@ -150,7 +150,6 @@ export class ActiveSceneScreen implements IScreen {
 
         this.app.activeScene = this.scene ?? this.keysScene;
         this.app.activeInstrumentType = this.part.type;
-        this.songPlayer.play();
 
         this.setupNoteDetection();
 
@@ -196,6 +195,11 @@ export class ActiveSceneScreen implements IScreen {
         };
 
         this.buildOverlay(container);
+
+        // Countdown before first playback, matching XR's entry behavior — same rollback+3-2-1
+        // flow already used elsewhere in this screen (play/pause button, seek release, settings
+        // close), just also triggered here rather than starting audio immediately on mount.
+        this.app.resumeWithCountdown(0);
 
         // Press M to toggle mock detection (2 hits / 1 miss cycle).
         this.mockKeyHandler = (e: KeyboardEvent) => {
