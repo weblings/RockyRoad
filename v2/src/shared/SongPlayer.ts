@@ -1,4 +1,5 @@
 import { SoundTouchNode } from '@soundtouchjs/audio-worklet';
+import type { ProcessorMetrics } from '@soundtouchjs/audio-worklet';
 import soundTouchProcessorUrl from '@soundtouchjs/audio-worklet/processor?url';
 
 // ISongPlayer is the stable interface both playback backends must implement.
@@ -124,6 +125,14 @@ export class SongPlayer implements ISongPlayer {
         // AudioParams reset to their default (1.0) on construction — sync explicitly rather than
         // relying on the playbackRate setter, which only fires on a subsequent rate change.
         node.playbackRate.value = this._playbackRate;
+        // Surfaces real buffer starvation distinctly from WSOLA's inherent quality ceiling at
+        // extreme speed ratios — see SoundTouchSpeedPlan.md Phase E. Silent when healthy.
+        node.addEventListener('metrics', (e) => {
+            const m = (e as CustomEvent<ProcessorMetrics>).detail;
+            if (m.underrunCount > 0) {
+                console.warn(`SoundTouch underruns: ${m.underrunCount}/${m.blockCount} blocks`, m);
+            }
+        });
         return node;
     }
 

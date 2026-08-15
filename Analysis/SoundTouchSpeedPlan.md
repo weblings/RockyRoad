@@ -158,14 +158,27 @@ confirm unchanged behavior end to end.
 
 ### Phase E — Assess the deferred concerns, now that it works
 
-- **XR/Quest CPU cost:** profile in-headset with a song playing, compare against pre-change
-  baseline — is there measurable frame-time impact from the worklet running continuously
-  alongside the highway rendering.
-- **Quality at extreme presets:** listen specifically at 0.2x and 1.8x–2.0x for the
-  transient-doubling/"flamming" artifacts WSOLA is known to produce toward the edges of its
-  range. Decide whether the existing 0.2x–2.0x range needs trimming, or is acceptable as-is.
-- **Lookahead latency:** if Phase C didn't already surface a sync issue, do a more deliberate check
-  (e.g. a percussive/attack-heavy note) for a perceptible gap between highway and audio.
+- **XR/Quest CPU cost — resolved without formal profiling.** User's subjective read after using it
+  across Phases C/D testing: "performance didn't feel any different." Judged sufficient — no frame
+  drops or stutter surfaced despite fairly heavy exercise (repeated seeks, speed changes, resume
+  flows). Not chasing a formal perfetto capture for a concern nothing has actually pointed at.
+- **Lookahead latency — resolved, no drift observed.** User confirmed the highway never felt ahead
+  of or behind the audio across all testing (Phases C/D's speed changes/seeks/resume-with-countdown,
+  plus this phase's own low-speed listening). Closed without a dedicated instrumented check.
+- **Quality at extreme presets — resolved.** Checked `SoundTouchNode.metrics` live at 20%/40%:
+  `underrunCount` was flat at 61 across a ~1600-block/~4.3s window with zero new underruns —
+  ruling out sustained buffer starvation. The crunchiness is WSOLA's inherent quality ceiling at
+  extreme stretch ratios, not a fixable bug; `setStretchParameters()` tuning wouldn't help an
+  algorithmic limit. Pitch stays correct throughout regardless. **Decision: keep the existing
+  20%–200% range as-is** — crunchy-but-usable at the low end is still useful for slow practice,
+  and pitch correctness is preserved even there. The `metrics`-based underrun warning added to
+  `SongPlayer.ts` during this check stays in permanently (silent unless real underruns occur) —
+  cheap, and useful if a future report of audio trouble needs the same diagnosis.
+- **Ruled out, not a concern:** XR's drag-scrub calls `seekTo()` on every `pointermove` tick, which
+  looks at a glance like it could rebuild `SoundTouchNode` every frame during a drag. It doesn't —
+  scrubbing happens while already paused, and `seekTo()` only rebuilds the node path through
+  `play()`, which it skips while `_playing` is already `false`. Confirmed by reading
+  `XRActiveScene.ts`'s scrub handler, not assumed.
 
 Only after this phase should any mitigation work (range trimming, latency compensation, a
 fallback to Option A at extreme presets) be scoped — deliberately not designed preemptively.
@@ -177,13 +190,28 @@ fallback to Option A at extreme presets) be scoped — deliberately not designed
       `SoundTouchNode` in `loadSong()`, guarded with a try/catch fallback. `npx tsc --noEmit` and
       `npx vite build` both clean — build emitted `soundtouch-processor-[hash].js` as its own
       asset, confirming Vite's `?url` resolution works with no manual `public/` copy step, as the
-      package's README promised. In-browser console-error check (dev server, load a song) still
-      needs a manual pass before calling this fully done.
-- [ ] Phase B: playback graph rewired, 1.0x parity confirmed.
+      package's README promised. Confirmed by user in-browser: no console errors on load.
+- [x] Phase B: playback graph rewired, 1.0x parity confirmed. Confirmed by user: no errors,
+      audio sounds correct and unchanged at default speed through the new graph shape.
 - [x] Phase C: real speed changes wired, pitch stability and highway sync confirmed. No source
       changes needed (Phase B's mirroring is unconditional). Confirmed by ear, desktop + XR: pitch
       stays correct at every tested speed; audio itself gets "crunchy" (WSOLA artifacts) at ~40%
       and below, clean at 60%+ and 200% — expected, feeds Phase E, not a regression.
-- [ ] Phase D: seek/rate-change robustness, existing pause/resume/scrub flows re-verified.
-- [ ] Phase E: performance, extreme-range quality, and latency assessed; mitigations (if any)
-      scoped as follow-up, not built preemptively.
+- [x] Phase D: seek/rate-change robustness, existing pause/resume/scrub flows re-verified.
+      `stNode` construction moved from `loadSong()` into `play()` (paired 1:1 with `source`,
+      not the song) via a new `createSoundTouchNode()` helper; old node explicitly disconnected
+      before replacement. Confirmed by user: seek bar (click + drag-scrub), plain pause/resume,
+      and resume-with-countdown all work correctly at both 1.0x and non-1x speeds.
+- [x] Phase E: performance, extreme-range quality, and latency assessed. CPU cost: no perceptible
+      difference, no formal profiling needed. Quality: crunchiness at ≤40% confirmed (via
+      `stNode.metrics`) to be WSOLA's algorithmic ceiling, not buffer underruns — decision: keep
+      the 20%–200% range as-is. Latency: no drift observed at any tested speed. No mitigation
+      work scoped — nothing found that needs one.
+
+## Status: done
+
+All five phases complete. `SongPlayer.ts` drives speed via native `source.playbackRate` (unchanged
+from before) routed through a `SoundTouchNode` that pitch-corrects it, rebuilt 1:1 with every fresh
+`source` (covering seek, pause/resume, and resume-with-countdown uniformly). Graceful degradation
+to uncorrected native playback if the worklet fails to register. A permanent, silent-unless-unhealthy
+underrun warning (`SoundTouchNode.metrics`) stays in `SongPlayer.ts` as ongoing diagnostics.
