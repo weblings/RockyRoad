@@ -1,4 +1,4 @@
-- [ ] Speed sound fix (.\ThreeCP\Analysis\SoundTouchSpeedPlan.md)
+- [x] Speed sound fix (.\ThreeCP\Analysis\SoundTouchSpeedPlan.md)
 - [ ] Desktop countdown before starting play like xr
 - [ ] note number -> size
 - [ ] piano reposition ux tweak
