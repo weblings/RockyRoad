@@ -8,8 +8,8 @@ export interface Settings {
     boldText: boolean;          // high-contrast #E8E8E8 labels (default on)
     invertStrings: boolean;     // flip string order vertically
     leftyMode: boolean;         // mirror the fretboard horizontally
-    noteNumbersDesktop: boolean; // desktop: show fret-number labels on/under notes (default on)
-    noteNumbersXR: boolean;      // xr: show fret-number labels on/under notes (default off — clutter in the small volume)
+    noteNumbersDesktop: number;  // desktop: fret-number label size, 0–2 (0%–200%; 0 = hidden, default 1 = 100%)
+    noteNumbersXR: number;       // xr: fret-number label size, 0–2 (0%–200%; default 0 — clutter in the small volume)
     guitarHighwayScale: number; // xr guitar: highway size multiplier, 0.25–3 in 0.25 steps (default 1.75)
     tunerAutoAdvance: boolean;  // auto-proceed after "In tune!" (default on)
     inputGain: number;          // mic gain multiplier 1–8 (default 1)
@@ -26,8 +26,8 @@ const DEFAULTS: Settings = {
     boldText: true,
     invertStrings: false,
     leftyMode: false,
-    noteNumbersDesktop: false,
-    noteNumbersXR: false,
+    noteNumbersDesktop: 1,
+    noteNumbersXR: 0,
     guitarHighwayScale: 1.75,
     tunerAutoAdvance: true,
     inputGain: 1,

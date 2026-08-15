@@ -16,6 +16,14 @@ const GUITAR_HIGHWAY_SCALE_STEP = 0.25;
 const highwaySizeLabel = (v: number) =>
     (Math.round(v * 100) / 100).toString().replace(/\.?0+$/, '') + 'x';
 
+// Note Numbers — percentage stepper (0%–200% in 20% steps), same step convention as
+// desktop's equivalent dropdown (App.ts).
+const NOTE_NUMBER_SCALE_MIN  = 0;
+const NOTE_NUMBER_SCALE_MAX  = 2;
+const NOTE_NUMBER_SCALE_STEP = 0.2;
+
+const noteNumberLabel = (v: number) => `${Math.round(v * 100)}%`;
+
 const COLOR_PRESETS: { hex: string }[] = [
     { hex: '#2E71D6' },
     { hex: '#E33737' },
@@ -75,8 +83,19 @@ export class XRSettingsScene {
         if (isGuitar) {
             this._setToggle(doc, 'ss-invert-off',  'ss-invert-on',  s.invertStrings, v => { s.invertStrings = v; rerender(); });
             this._setToggle(doc, 'ss-lefty-off',   'ss-lefty-on',   s.leftyMode,     v => { s.leftyMode = v; rerender(); });
+
             // XR-specific setting — points at noteNumbersXR, not noteNumbersDesktop.
-            this._setToggle(doc, 'ss-notenum-off', 'ss-notenum-on', s.noteNumbersXR, v => { s.noteNumbersXR = v; rerender(); });
+            this._setClick(doc, 'ss-notenum-dec', () => {
+                s.noteNumbersXR = Math.max(NOTE_NUMBER_SCALE_MIN,
+                    Math.round((s.noteNumbersXR - NOTE_NUMBER_SCALE_STEP) / NOTE_NUMBER_SCALE_STEP) * NOTE_NUMBER_SCALE_STEP);
+                rerender();
+            });
+            this._setClick(doc, 'ss-notenum-inc', () => {
+                s.noteNumbersXR = Math.min(NOTE_NUMBER_SCALE_MAX,
+                    Math.round((s.noteNumbersXR + NOTE_NUMBER_SCALE_STEP) / NOTE_NUMBER_SCALE_STEP) * NOTE_NUMBER_SCALE_STEP);
+                rerender();
+            });
+            doc.getElementById('ss-notenum-val')?.setProperties({ text: noteNumberLabel(s.noteNumbersXR) });
 
             this._setClick(doc, 'ss-hwsize-dec', () => {
                 s.guitarHighwayScale = Math.max(GUITAR_HIGHWAY_SCALE_MIN,

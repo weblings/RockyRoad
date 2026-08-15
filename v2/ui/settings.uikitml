@@ -302,9 +302,10 @@
       </div>
 
       <span class="setting-title">Note Numbers</span>
-      <div class="toggle-group">
-        <button id="ss-notenum-off" class="toggle-btn toggle-active">Off</button>
-        <button id="ss-notenum-on" class="toggle-btn toggle-inactive">On</button>
+      <div class="stepper-row">
+        <button id="ss-notenum-dec" class="stepper-btn">-</button>
+        <span id="ss-notenum-val" class="stepper-val">0%</span>
+        <button id="ss-notenum-inc" class="stepper-btn">+</button>
       </div>
 
       <span class="setting-title">Highway Size</span>

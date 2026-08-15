@@ -379,29 +379,41 @@
                     "sourceTag": "button",
                     "type": "custom",
                     "children": [
-                      "Off"
+                      "-"
                     ],
                     "properties": {
-                      "id": "ss-notenum-off",
-                      "class": "toggle-btn toggle-active"
+                      "id": "ss-notenum-dec",
+                      "class": "stepper-btn"
                     },
                     "dataUid": "uid-39"
+                  },
+                  {
+                    "sourceTag": "span",
+                    "type": "custom",
+                    "children": [
+                      "0%"
+                    ],
+                    "properties": {
+                      "id": "ss-notenum-val",
+                      "class": "stepper-val"
+                    },
+                    "dataUid": "uid-40"
                   },
                   {
                     "sourceTag": "button",
                     "type": "custom",
                     "children": [
-                      "On"
+                      "+"
                     ],
                     "properties": {
-                      "id": "ss-notenum-on",
-                      "class": "toggle-btn toggle-inactive"
+                      "id": "ss-notenum-inc",
+                      "class": "stepper-btn"
                     },
-                    "dataUid": "uid-40"
+                    "dataUid": "uid-41"
                   }
                 ],
                 "properties": {
-                  "class": "toggle-group"
+                  "class": "stepper-row"
                 },
                 "dataUid": "uid-38"
               },
@@ -414,7 +426,7 @@
                 "properties": {
                   "class": "setting-title"
                 },
-                "dataUid": "uid-41"
+                "dataUid": "uid-42"
               },
               {
                 "type": "container",
@@ -430,7 +442,7 @@
                       "id": "ss-hwsize-dec",
                       "class": "stepper-btn"
                     },
-                    "dataUid": "uid-43"
+                    "dataUid": "uid-44"
                   },
                   {
                     "sourceTag": "span",
@@ -442,7 +454,7 @@
                       "id": "ss-hwsize-val",
                       "class": "stepper-val"
                     },
-                    "dataUid": "uid-44"
+                    "dataUid": "uid-45"
                   },
                   {
                     "sourceTag": "button",
@@ -454,13 +466,13 @@
                       "id": "ss-hwsize-inc",
                       "class": "stepper-btn"
                     },
-                    "dataUid": "uid-45"
+                    "dataUid": "uid-46"
                   }
                 ],
                 "properties": {
                   "class": "stepper-row"
                 },
-                "dataUid": "uid-42"
+                "dataUid": "uid-43"
               }
             ],
             "properties": {
@@ -978,7 +990,7 @@
         "column": 0
       },
       "end": {
-        "line": 318,
+        "line": 319,
         "column": 6
       }
     },
@@ -1028,7 +1040,7 @@
         "column": 2
       },
       "end": {
-        "line": 317,
+        "line": 318,
         "column": 8
       }
     },
@@ -1248,7 +1260,7 @@
         "column": 4
       },
       "end": {
-        "line": 315,
+        "line": 316,
         "column": 10
       }
     },
@@ -1348,7 +1360,7 @@
         "column": 6
       },
       "end": {
-        "line": 307,
+        "line": 308,
         "column": 12
       }
     },
@@ -1359,7 +1371,7 @@
       },
       "end": {
         "line": 305,
-        "column": 81
+        "column": 66
       }
     },
     "uid-40": {
@@ -1369,17 +1381,17 @@
       },
       "end": {
         "line": 306,
-        "column": 81
+        "column": 63
       }
     },
     "uid-41": {
       "start": {
-        "line": 309,
-        "column": 6
+        "line": 307,
+        "column": 8
       },
       "end": {
-        "line": 309,
-        "column": 53
+        "line": 307,
+        "column": 66
       }
     },
     "uid-42": {
@@ -1388,18 +1400,18 @@
         "column": 6
       },
       "end": {
-        "line": 314,
-        "column": 12
+        "line": 310,
+        "column": 53
       }
     },
     "uid-43": {
       "start": {
         "line": 311,
-        "column": 8
+        "column": 6
       },
       "end": {
-        "line": 311,
-        "column": 65
+        "line": 315,
+        "column": 12
       }
     },
     "uid-44": {
@@ -1419,6 +1431,16 @@
       },
       "end": {
         "line": 313,
+        "column": 65
+      }
+    },
+    "uid-46": {
+      "start": {
+        "line": 314,
+        "column": 8
+      },
+      "end": {
+        "line": 314,
         "column": 65
       }
     }

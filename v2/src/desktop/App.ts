@@ -2,10 +2,20 @@ import * as THREE from "three";
 import type { Scene3D } from "../shared/Scene3D";
 import { loadSettings, saveSettings, type Settings } from "../shared/Settings";
 import type { SongIndexPart } from "../shared/SongIndex";
+import { Dropdown, type DropdownOption } from "./Dropdown";
 
 export interface IScreen {
     mount(container: HTMLElement): void | Promise<void>;
     unmount(): void;
+}
+
+// Note Numbers — percentage dropdown (0%–200% in 20% steps), same shape/step convention as
+// ActiveSceneScreen's Speed dropdown.
+const NOTE_NUM_STEP = 0.2, NOTE_NUM_MAX = 2.0;
+const noteNumLabel = (v: number) => `${Math.round(v * 100)}%`;
+const noteNumPresets: number[] = [];
+for (let r = 0; r <= NOTE_NUM_MAX + 0.001; r += NOTE_NUM_STEP) {
+    noteNumPresets.push(Math.round(r / NOTE_NUM_STEP) * NOTE_NUM_STEP);
 }
 
 export class App {
@@ -49,6 +59,7 @@ export class App {
     private countdownOverlay: HTMLElement;
     private songPausedBySettings = false;
     private pausedAtSeconds = 0;
+    private noteNumbersDropdown: Dropdown | null = null;
 
     constructor(canvas: HTMLCanvasElement) {
         this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -71,7 +82,6 @@ export class App {
             s.invertStrings      = (document.getElementById("s-invert-strings")  as HTMLInputElement).checked;
             s.boldText           = (document.getElementById("s-bold-text")        as HTMLInputElement).checked;
             s.leftyMode          = (document.getElementById("s-lefty-mode")       as HTMLInputElement).checked;
-            s.noteNumbersDesktop = (document.getElementById("s-note-numbers")     as HTMLInputElement).checked;
             s.fullKeyboard       = (document.getElementById("s-full-keyboard")    as HTMLInputElement).checked;
             s.keysTopDown        = (document.getElementById("s-keys-top-down")    as HTMLInputElement).checked;
             s.keysRightHandColor = (document.getElementById("s-keys-right-color") as HTMLInputElement).value;
@@ -82,11 +92,25 @@ export class App {
         document.getElementById("s-invert-strings")!  .addEventListener("change", onToggle);
         document.getElementById("s-bold-text")!        .addEventListener("change", onToggle);
         document.getElementById("s-lefty-mode")!       .addEventListener("change", onToggle);
-        document.getElementById("s-note-numbers")!     .addEventListener("change", onToggle);
         document.getElementById("s-full-keyboard")!    .addEventListener("change", onToggle);
         document.getElementById("s-keys-top-down")!    .addEventListener("change", onToggle);
         document.getElementById("s-keys-right-color")! .addEventListener("input",  onToggle);
         document.getElementById("s-keys-left-color")!  .addEventListener("input",  onToggle);
+
+        // Note Numbers — built here (not per-screen) since the Settings overlay itself is
+        // App-owned and persists across every screen mount/unmount.
+        this.noteNumbersDropdown = new Dropdown(
+            document.getElementById("s-note-numbers-slot")!, '',
+            (value) => {
+                const v = Number(value);
+                const s = loadSettings();
+                s.noteNumbersDesktop = v;
+                saveSettings(s);
+                this.onSettingsChange?.(s);
+                this.refreshNoteNumbersDropdown(v);
+            },
+        );
+        this.refreshNoteNumbersDropdown(loadSettings().noteNumbersDesktop);
 
         // DEBUG — press H to download the current screen HTML for inspection / Figma reference.
         // Remove before shipping.
@@ -127,6 +151,13 @@ export class App {
         this.startCountdown(() => this.onSongResume!(resumeAt));
     }
 
+    private refreshNoteNumbersDropdown(v: number): void {
+        this.noteNumbersDropdown?.setTriggerLabel(noteNumLabel(v));
+        this.noteNumbersDropdown?.setOptions(noteNumPresets.map((p): DropdownOption => ({
+            label: noteNumLabel(p), value: p.toFixed(2), selected: Math.abs(p - v) < 0.001,
+        })));
+    }
+
     openSettings(): void {
         this.songPausedBySettings = false;
         if (this.onSongPause) {
@@ -147,7 +178,7 @@ export class App {
         (document.getElementById("s-invert-strings")  as HTMLInputElement).checked = s.invertStrings;
         (document.getElementById("s-bold-text")        as HTMLInputElement).checked = s.boldText;
         (document.getElementById("s-lefty-mode")       as HTMLInputElement).checked = s.leftyMode;
-        (document.getElementById("s-note-numbers")     as HTMLInputElement).checked = s.noteNumbersDesktop;
+        this.refreshNoteNumbersDropdown(s.noteNumbersDesktop);
         (document.getElementById("s-full-keyboard")    as HTMLInputElement).checked = s.fullKeyboard;
         (document.getElementById("s-keys-top-down")    as HTMLInputElement).checked = s.keysTopDown;
         (document.getElementById("s-keys-right-color") as HTMLInputElement).value   = s.keysRightHandColor;

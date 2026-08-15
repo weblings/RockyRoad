@@ -48,6 +48,17 @@ const LABEL_GREY: UIColor = { r: 0.4, g: 0.4, b: 0.4, a: 1 };
 const XR_FRET_RULER_SCALE = 2.25;
 const XR_NOTE_LABEL_SCALE = 2;
 
+// Desktop's Note Numbers control shows/stores 0–200% (Settings.noteNumbersDesktop, 0–2) but
+// actually renders across 0–400% — the displayed range stays compact/simple while the real
+// effect is punchier. Purely a render-time factor; the setting value and UI are unaffected.
+const DESKTOP_NOTE_LABEL_STRETCH = 2;
+
+// XR's Note Numbers control shows/stores 0–200% (Settings.noteNumbersXR, 0–2), stretched so
+// displayed 100% renders at what used to require 120% (found to feel best in-headset) — i.e.
+// displayed D now renders at the old D * 1.2. Purely a render-time factor, same idea as
+// DESKTOP_NOTE_LABEL_STRETCH above; the setting value and UI are unaffected.
+const XR_NOTE_LABEL_STRETCH = 1.2;
+
 // ─── Technique helpers ────────────────────────────────────────────────────────
 
 // Build name→value lookup once from the ESongNoteTechnique const object
@@ -96,15 +107,24 @@ export class FretPlayerScene3D extends ChartScene3D {
     // Mirror the fretboard horizontally — delegates to FretCamera's mirrorLeftRight.
     set leftyMode(v: boolean) { this.fretCamera.mirrorLeftRight = v; }
 
-    // Fret-number labels drawn on/under notes — set from Settings.noteNumbersDesktop
-    // / Settings.noteNumbersXR by the caller; showNoteNumbers below picks whichever
-    // applies to the mode actually running (desktop's camera-frustum-clipped view
-    // reads fine with these on; XR's small close-up volume reads as clutter).
-    noteNumbersDesktop = false;
-    noteNumbersXR = false;
+    // Fret-number labels drawn on/under notes — size multiplier (0–2, 0 = hidden) set from
+    // Settings.noteNumbersDesktop / Settings.noteNumbersXR by the caller; noteNumberScale below
+    // picks whichever applies to the mode actually running (desktop's camera-frustum-clipped view
+    // reads fine with these on; XR's small close-up volume reads as clutter at full size).
+    noteNumbersDesktop = 1;
+    noteNumbersXR = 0;
 
-    private get showNoteNumbers(): boolean {
+    private get noteNumberScale(): number {
         return Scene3D.xrMode ? this.noteNumbersXR : this.noteNumbersDesktop;
+    }
+
+    // Combines the user's size multiplier with a fixed per-mode boost (XR's close-up scale, or
+    // desktop's displayed-vs-actual stretch — see their const comments) into the single
+    // scaleOverride drawVerticalText expects.
+    private get noteNumberLabelScale(): number {
+        return Scene3D.xrMode
+            ? XR_NOTE_LABEL_SCALE * XR_NOTE_LABEL_STRETCH * this.noteNumberScale
+            : DESKTOP_NOTE_LABEL_STRETCH * this.noteNumberScale;
     }
 
     // When non-null, notes whose TimeOffset < gracePeriodEndTime are drawn as grace notes
@@ -474,10 +494,10 @@ export class FretPlayerScene3D extends ChartScene3D {
                 this.drawChordOutline(note, false);
             }
         } else {
-            // Fret-number label on single notes — gated by showNoteNumbers. Chords
+            // Fret-number label on single notes — gated by noteNumberScale. Chords
             // still get labeled via drawChordOutline/drawChordNotesFull below.
-            if (this.showNoteNumbers && note.TimeOffset > this.currentTime && note.Fret > 0 && this.nonRepeatNotes.has(note.TimeOffset)) {
-                this.drawVerticalText(note.Fret.toString(), note.Fret - 0.5, 0, note.TimeOffset, LABEL_WHITE, 0.12, false, Scene3D.xrMode ? XR_NOTE_LABEL_SCALE : undefined);
+            if (this.noteNumberScale > 0 && note.TimeOffset > this.currentTime && note.Fret > 0 && this.nonRepeatNotes.has(note.TimeOffset)) {
+                this.drawVerticalText(note.Fret.toString(), note.Fret - 0.5, 0, note.TimeOffset, LABEL_WHITE, 0.12, false, this.noteNumberLabelScale);
             }
             this.drawSingleNote(note, false, false);
         }
@@ -650,20 +670,20 @@ export class FretPlayerScene3D extends ChartScene3D {
             }
 
             // Finger/fret-number labels drawn on the notes themselves are gated by
-            // showNoteNumbers — the chord name to the side (drawChordOutline) is
+            // noteNumberScale — the chord name to the side (drawChordOutline) is
             // separate and always available regardless of this setting.
             if (drawCurrent) {
                 this.drawVerticalImageCentered(getImage("FingerOutline"), drawFret - 0.5, this.currentTime, this.getNoteHeadHeight(chordNote), { r: 1, g: 1, b: 1, a: 1 }, 0.05);
-                if (this.showNoteNumbers && chord.Fingers[str] > 0) {
-                    this.drawVerticalText(chord.Fingers[str].toString(), drawFret - 0.5, this.getNoteHeadHeight(chordNote), this.currentTime, LABEL_WHITE, 0.05, false, Scene3D.xrMode ? XR_NOTE_LABEL_SCALE : undefined);
+                if (this.noteNumberScale > 0 && chord.Fingers[str] > 0) {
+                    this.drawVerticalText(chord.Fingers[str].toString(), drawFret - 0.5, this.getNoteHeadHeight(chordNote), this.currentTime, LABEL_WHITE, 0.05, false, this.noteNumberLabelScale);
                 }
             }
 
             if (!drawCurrent) {
                 this.drawSingleNote(chordNote, false, isGhost);
 
-                if (this.showNoteNumbers && this.nonRepeatNotes.has(note.TimeOffset) && note.TimeOffset > this.currentTime && chordNote.Fret > 0) {
-                    this.drawVerticalText(chordNote.Fret.toString(), chordNote.Fret - 0.5, 0, note.TimeOffset, LABEL_WHITE, 0.12, false, Scene3D.xrMode ? XR_NOTE_LABEL_SCALE : undefined);
+                if (this.noteNumberScale > 0 && this.nonRepeatNotes.has(note.TimeOffset) && note.TimeOffset > this.currentTime && chordNote.Fret > 0) {
+                    this.drawVerticalText(chordNote.Fret.toString(), chordNote.Fret - 0.5, 0, note.TimeOffset, LABEL_WHITE, 0.12, false, this.noteNumberLabelScale);
                 }
             }
         }
