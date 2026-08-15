@@ -1,0 +1,11 @@
+{
+  "SongName": "Fur Elise",
+  "ArtistName": "Beethoven",
+  "SongLengthSeconds": 55.6241432,
+  "InstrumentParts": [
+    {
+      "InstrumentName": "keys",
+      "InstrumentType": "Keys"
+    }
+  ]
+}

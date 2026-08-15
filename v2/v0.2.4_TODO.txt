@@ -3,6 +3,6 @@
 - [x] note number -> size
 - [x] piano reposition ux tweak
 - [ ] xr padding (library occasional bug, scrubber + play button in play screen)
-- [ ] Add Fur Elise to Sample Songs
+- [x] Add Fur Elise to Sample Songs
 - [ ] Add sample guitar song with chords
 - [ ] XR Guitar color lines only visible below. Make thicker or change how they render? 
