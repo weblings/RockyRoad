@@ -14,6 +14,7 @@ import {
     DistanceGrabbable,
     Hovered,
     InputComponent,
+    LinearFilter,
     Mesh,
     MeshBasicMaterial,
     MovementMode,
@@ -431,22 +432,71 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     // positions it every frame from tipPosition()'s raw world-space coordinates, which
     // are meaningless relative to the highway's anchor transform, especially before
     // first-time calibration when that transform isn't set up yet.
-    const calHintCanvas = document.createElement('canvas');
-    calHintCanvas.width  = 1024;
-    calHintCanvas.height = 200;
-    const calHintTex = new CanvasTexture(calHintCanvas);
+    //
+    // Four fixed presets (hand-tracking vs controller wording, x left vs right), rendered
+    // once here and never resized afterward — CalibrationSystem just swaps which one the
+    // sprite's material points at based on input mode and step. An earlier version
+    // regenerated canvas content (and its pixel dimensions, to fit the varying wording) on
+    // every redraw; changing a texture's base dimensions after creation ran into a WebGL
+    // texture-update bug that
+    // survived several targeted fixes. Presets sidestep the whole category: each texture's
+    // dimensions are fixed for its entire lifetime, never touched after this runs.
+    function buildHintTexture(text: string): { tex: CanvasTexture; aspect: number } {
+        const canvas = document.createElement('canvas');
+        const font = 'bold 48px sans-serif';
+        const measureCtx = canvas.getContext('2d')!;
+        measureCtx.font = font;
+        const padding = 40;
+        canvas.width  = Math.ceil(measureCtx.measureText(text).width) + padding * 2;
+        canvas.height = 200;
+
+        const ctx = canvas.getContext('2d')!;
+        const r = 24;
+        ctx.beginPath();
+        ctx.moveTo(r, 0);
+        ctx.lineTo(canvas.width - r, 0);
+        ctx.arcTo(canvas.width, 0, canvas.width, r, r);
+        ctx.lineTo(canvas.width, canvas.height - r);
+        ctx.arcTo(canvas.width, canvas.height, canvas.width - r, canvas.height, r);
+        ctx.lineTo(r, canvas.height);
+        ctx.arcTo(0, canvas.height, 0, canvas.height - r, r);
+        ctx.lineTo(0, r);
+        ctx.arcTo(0, 0, r, 0, r);
+        ctx.closePath();
+        ctx.fillStyle = 'rgba(0,0,0,0.55)';
+        ctx.fill();
+
+        ctx.font         = font;
+        ctx.fillStyle    = '#ffffff';
+        ctx.textAlign    = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+
+        const tex = new CanvasTexture(canvas);
+        tex.generateMipmaps = false;
+        tex.minFilter = LinearFilter;
+        return { tex, aspect: canvas.width / canvas.height };
+    }
+
+    // Four presets — hand/controller x left/right — covering every combination
+    // CalibrationSystem needs, each still built once and never resized afterward.
+    const calHintPresets = {
+        handLeft:        buildHintTexture('Move hand just above leftmost key and pinch'),
+        handRight:       buildHintTexture('Move hand just above rightmost key and pinch'),
+        controllerLeft:  buildHintTexture('Move controller just above leftmost key and pull trigger'),
+        controllerRight: buildHintTexture('Move controller just above rightmost key and pull trigger'),
+    };
+
     const calHintSprite = new Sprite(
-        new SpriteMaterial({ map: calHintTex, transparent: true, depthTest: false }),
+        new SpriteMaterial({ map: calHintPresets.handLeft.tex, transparent: true, depthTest: false }),
     );
-    // World-space size in meters — tune by eye in-headset. center.set(0.5, 0) anchors at
-    // bottom-center so the label sits above whatever world position it's placed at.
-    calHintSprite.scale.set(0.25, 0.25 * (calHintCanvas.height / calHintCanvas.width), 1);
+    // center.set(0.5, 0) anchors at bottom-center so the label sits above whatever world
+    // position it's placed at.
     calHintSprite.center.set(0.5, 0);
     calHintSprite.visible = false;
     world.createTransformEntity(calHintSprite, { parent: world.sceneEntity, persistent: true });
-    world.globals.calHintSprite = calHintSprite;
-    world.globals.calHintCanvas = calHintCanvas;
-    world.globals.calHintTex    = calHintTex;
+    world.globals.calHintSprite  = calHintSprite;
+    world.globals.calHintPresets = calHintPresets;
 
     const grabBarCanvas = document.createElement('canvas');
     grabBarCanvas.width  = 200;

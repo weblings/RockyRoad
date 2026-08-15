@@ -38,6 +38,10 @@ const PINCH_THRESHOLD_SQ = 0.020 * 0.020; // 20 mm
 // eyeballed, tune in-headset.
 const HINT_VERTICAL_OFFSET = 0.12;
 
+// Fixed on-screen height for the hint label; width follows each preset texture's own
+// (fixed, precomputed at build time — see index.ts's buildHintTexture()) aspect ratio.
+const HINT_WORLD_HEIGHT = 0.25 * (200 / 1024);
+
 // Guitar/Bass has no physical instrument to size-match — scale is a settings-driven
 // multiplier instead, reusing the piano's per-unit scale as the 1x reference so a full
 // 24-fret neck lands at a real-guitar-plausible ~0.65m.
@@ -76,7 +80,9 @@ export class CalibrationSystem extends createSystem({}) {
     // Separate from scratchPos (used only on confirm frames) — this one is written every
     // frame the prompt is showing, regardless of confirm, to drive the floating hint label.
     private _hintPos = new THREE.Vector3();
-    private _lastHintText: string | null = null;
+    // 'handLeft' / 'handRight' / 'controllerLeft' / 'controllerRight' — matches the keys
+    // of world.globals.calHintPresets (built once in index.ts).
+    private _lastHintKey: string | null = null;
 
     private _calMid   = new THREE.Vector3();
     private _calQuat  = new THREE.Quaternion();
@@ -595,28 +601,19 @@ export class CalibrationSystem extends createSystem({}) {
     }
 
     // Panel text is now just a pointer at which hand/controller to look at — the actual
-    // instruction lives in the world-space label that follows it, see hintLabelText()
-    // and updateCalibrationHint() below.
+    // instruction lives in the world-space label that follows it, see
+    // updateCalibrationHint() below.
     private promptBody(): string {
         const side = this.state === 'prompt_right' ? 'right' : 'left';
         const noun = this.hasHandInputSources() ? 'hand' : 'controller';
         return `Look at your ${side} ${noun}`;
     }
 
-    // Text for the floating world-space label that follows the tracked hand/controller
-    // tip — see updateCalibrationHint().
-    private hintLabelText(): string {
-        const keyPos = this.state === 'prompt_right' ? 'rightmost' : 'leftmost';
-        const isHand = this.hasHandInputSources();
-        const noun   = isHand ? 'hand' : 'controller';
-        const action = isHand ? 'pinch' : 'pull trigger';
-        return `Move ${noun} just above ${keyPos} key and ${action}`;
-    }
-
     // Positions the world-space hint Sprite (world.globals.calHintSprite, created in
-    // index.ts) above whichever hand/controller is currently active, every frame. Only
-    // redraws the canvas when the text actually changes (left→right step), matching the
-    // countdown mesh's own redraw-on-change pattern in HighwaySystem.update().
+    // index.ts) above whichever hand/controller is currently active, every frame, and
+    // swaps its texture between the four fixed presets (world.globals.calHintPresets —
+    // hand/controller x left/right) when the active combination changes — no runtime
+    // canvas drawing, no resizing.
     private updateCalibrationHint(): void {
         const isLeftStep = this.state === 'prompt_left';
         const gotPos = this.tipPosition(isLeftStep ? 'left' : 'right', this._hintPos);
@@ -630,47 +627,27 @@ export class CalibrationSystem extends createSystem({}) {
         sprite.position.y += HINT_VERTICAL_OFFSET;
         sprite.visible = true;
 
-        const text = this.hintLabelText();
-        if (text !== this._lastHintText) {
-            this._lastHintText = text;
-            this.drawCalibrationHintText(text);
+        const mode = this.hasHandInputSources() ? 'hand' : 'controller';
+        const side = isLeftStep ? 'Left' : 'Right';
+        const key = `${mode}${side}`; // handLeft / handRight / controllerLeft / controllerRight
+        if (key !== this._lastHintKey) {
+            this._lastHintKey = key;
+            const presets = this.world.globals.calHintPresets as
+                Record<string, { tex: THREE.CanvasTexture; aspect: number }> | undefined;
+            const preset = presets?.[key];
+            if (preset) {
+                const mat = sprite.material as THREE.SpriteMaterial;
+                mat.map = preset.tex;
+                mat.needsUpdate = true;
+                sprite.scale.set(HINT_WORLD_HEIGHT * preset.aspect, HINT_WORLD_HEIGHT, 1);
+            }
         }
     }
 
     private hideCalibrationHint(): void {
         const sprite = this.world.globals.calHintSprite as THREE.Sprite | undefined;
         if (sprite) sprite.visible = false;
-        this._lastHintText = null;
-    }
-
-    private drawCalibrationHintText(text: string): void {
-        const cv  = this.world.globals.calHintCanvas as HTMLCanvasElement | undefined;
-        const tex = this.world.globals.calHintTex as THREE.CanvasTexture | undefined;
-        if (!cv || !tex) return;
-        const ctx = cv.getContext('2d')!;
-        ctx.clearRect(0, 0, cv.width, cv.height);
-
-        const r = 24;
-        ctx.beginPath();
-        ctx.moveTo(r, 0);
-        ctx.lineTo(cv.width - r, 0);
-        ctx.arcTo(cv.width, 0, cv.width, r, r);
-        ctx.lineTo(cv.width, cv.height - r);
-        ctx.arcTo(cv.width, cv.height, cv.width - r, cv.height, r);
-        ctx.lineTo(r, cv.height);
-        ctx.arcTo(0, cv.height, 0, cv.height - r, r);
-        ctx.lineTo(0, r);
-        ctx.arcTo(0, 0, r, 0, r);
-        ctx.closePath();
-        ctx.fillStyle = 'rgba(0,0,0,0.55)';
-        ctx.fill();
-
-        ctx.font         = `bold ${Math.round(cv.height * 0.24)}px sans-serif`;
-        ctx.fillStyle    = '#ffffff';
-        ctx.textAlign    = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(text, cv.width / 2, cv.height / 2);
-        tex.needsUpdate = true;
+        this._lastHintKey = null;
     }
 
     private updatePanel(): void {
