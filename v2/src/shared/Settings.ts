@@ -14,7 +14,7 @@ export interface Settings {
     tunerAutoAdvance: boolean;  // auto-proceed after "In tune!" (default on)
     inputGain: number;          // mic gain multiplier 1–8 (default 1)
     fullKeyboard: boolean;      // keys: always show full 88-key range (default on)
-    keysTopDown: boolean;       // keys: top-down piano-roll camera (default off)
+    keysTopDown: boolean;       // keys: top-down piano-roll camera (default on)
     keysRightHandColor: string; // hex color for right-hand notes
     keysLeftHandColor: string;  // hex color for left-hand notes
     remoteServerUrl: string;    // base URL for the remote song server; empty = none
@@ -32,9 +32,9 @@ const DEFAULTS: Settings = {
     tunerAutoAdvance: true,
     inputGain: 1,
     fullKeyboard: true,
-    keysTopDown: false,
-    keysRightHandColor: '#2E71D6',
-    keysLeftHandColor: '#E33737',
+    keysTopDown: true,
+    keysRightHandColor: '#2E71D6',  // blue
+    keysLeftHandColor: '#E33737', // red
     remoteServerUrl: '',
     lastInstrumentType: null,
 };
