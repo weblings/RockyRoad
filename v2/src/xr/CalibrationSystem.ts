@@ -484,6 +484,7 @@ export class CalibrationSystem extends createSystem({}) {
                 doc.getElementById('cal-prompt')?.setProperties({ display: 'flex' });
                 doc.getElementById('cal-prompt-heading')?.setProperties({ text: this.promptHeading() });
                 doc.getElementById('cal-prompt-text')?.setProperties({ text: this.promptBody() });
+                doc.getElementById('cal-back')?.setProperties({ onClick: () => this.backToLibrary() });
             });
             return;
         }
@@ -491,6 +492,7 @@ export class CalibrationSystem extends createSystem({}) {
         this._withDoc(doc => {
             doc.getElementById('cal-prompt')?.setProperties({ display: 'none' });
             doc.getElementById('cal-finetune')?.setProperties({ display: 'flex' });
+            doc.getElementById('cal-back')?.setProperties({ onClick: () => this.backToLibrary() });
 
             const incr = () => INCR_STEPS[this._ftIncrIdx];
             const reg = (id: string, onClick: () => void): void => {
@@ -598,6 +600,7 @@ export class CalibrationSystem extends createSystem({}) {
             doc.getElementById('cal-prompt')?.setProperties({ display: 'flex' });
             doc.getElementById('cal-prompt-heading')?.setProperties({ text: this.promptHeading() });
             doc.getElementById('cal-prompt-text')?.setProperties({ text: this.promptBody() });
+            doc.getElementById('cal-back')?.setProperties({ onClick: () => this.backToLibrary() });
         });
     }
 
@@ -609,6 +612,12 @@ export class CalibrationSystem extends createSystem({}) {
     // world.globals since index.ts's countdown closure isn't otherwise reachable here.
     private cancelCountdown(): void {
         (this.world.globals.cancelCountdown as (() => void) | undefined)?.();
+    }
+
+    // Library back button (header, both #cal-prompt and #cal-finetune) — showLibrary()
+    // already hides/cleans up this panel itself, so nothing else needs doing here first.
+    private backToLibrary(): void {
+        (this.world.globals.showLibrary as (() => void) | undefined)?.();
     }
 
     // All uikit panels share the same grabBarEntity slot; only one is ever visible, and

@@ -19,13 +19,10 @@
        typographic characters already found bad elsewhere (uikit's prebuilt
        Inter MSDF atlas is Latin-only, emoji are outside it); dropped rather
        than guess-and-check.
-     - No decorative icons on the action buttons (original had inline SVG
-       restart/checkmark glyphs) — inline <svg> is already confirmed to
-       corrupt sibling properties when compiled here (its viewBox attribute
-       leaks into uikit's strict property schema, see
-       UikitLessonsLearned.md), and there's no icon *file* for these two
-       yet like the other screens' back-arrow/play/pause/etc. Plain text
-       buttons ("Full Reposition", "Play", "Done") instead. */
+     - Action-button icons use the same recal-icon/play-icon files as the other
+       migrated screens (originally deferred — inline <svg> corrupts sibling
+       properties when compiled here, see UikitLessonsLearned.md — but the
+       icon files themselves already exist, so <img> works fine). */
 
   .panel {
     width: 40;
@@ -37,6 +34,36 @@
     font-family: inter;
     font-weight: medium;
     pointer-events: none;
+  }
+
+  /* Library back button — same .header/.back-btn shape as song.uikitml, always
+     visible above whichever of #cal-prompt/#cal-finetune is currently shown
+     (they're both flex-grow:1 and already self-center, so they automatically
+     fill and center in whatever space is left below this row). */
+  .header {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    flex-grow: 0;
+    flex-shrink: 0;
+    padding-top: 1;
+    padding-right: 1;
+    padding-bottom: 0;
+    padding-left: 1;
+  }
+  .back-btn {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    flex-grow: 0;
+    flex-shrink: 0;
+    gap-row: 0.2;
+    gap-column: 0.2;
+    padding: 0.8;
+    border-radius: 0.5;
+    font-size: 1.2;
+    cursor: pointer;
   }
 
   /* ── #cal-prompt: shared by the first-time 2-touch calibration steps AND
@@ -214,6 +241,13 @@
 </style>
 
 <div class="panel">
+  <div class="header">
+    <button id="cal-back" class="back-btn primary-dark">
+      <img src="/back-arrow.svg" class="icon" />
+      <span class="icon-label">Library</span>
+    </button>
+  </div>
+
   <div class="prompt-section" id="cal-prompt">
     <div class="prompt-content">
       <span class="prompt-heading" id="cal-prompt-heading">Step 1 of 2</span>

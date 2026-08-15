@@ -782,6 +782,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         disposeHighway();
         library.show(libraryPanelEntity, showPreScene);
     }
+    world.globals.showLibrary = showLibrary;
 
     function showPreScene(sourced: SourcedEntry): void {
         libraryPanelObj.visible = false;
