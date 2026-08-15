@@ -195,6 +195,16 @@
     font-weight: medium;
     cursor: pointer;
   }
+  .icon {
+    width: 1;
+    height: 1;
+    margin-left: -0.1;
+  }
+  .icon-label {
+    position-type: relative;
+    margin-left: 0.4;
+    position-top: -0.05;
+  }
   .primary-dark { background-color: #333333; color: #ffffff; }
   .primary-dark:hover  { background-color: #515151; }
   .primary-dark:active { background-color: #7c7c7c; }
@@ -265,8 +275,14 @@
       </div>
     </div>
     <div class="actions">
-      <button id="cal-restart" class="action-btn primary-dark">Full Reposition</button>
-      <button id="cal-done" class="action-btn primary-light">Play</button>
+      <button id="cal-restart" class="action-btn primary-dark">
+        <img src="/recal-icon.svg" class="icon" />
+        <span class="icon-label">Full Reposition</span>
+      </button>
+      <button id="cal-done" class="action-btn primary-light">
+        <img src="/play-icon.svg" class="icon" />
+        <span class="icon-label">Play</span>
+      </button>
     </div>
   </div>
 </div>
