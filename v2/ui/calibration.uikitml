@@ -19,10 +19,8 @@
        typographic characters already found bad elsewhere (uikit's prebuilt
        Inter MSDF atlas is Latin-only, emoji are outside it); dropped rather
        than guess-and-check.
-     - Action-button icons use the same recal-icon/play-icon files as the other
-       migrated screens (originally deferred — inline <svg> corrupts sibling
-       properties when compiled here, see UikitLessonsLearned.md — but the
-       icon files themselves already exist, so <img> works fine). */
+     - Action-button icons reuse recal-icon.svg/play-icon.svg (inline <svg> corrupts
+       sibling properties when compiled here — see UikitLessonsLearned.md). */
 
   .panel {
     width: 40;
@@ -36,10 +34,9 @@
     pointer-events: none;
   }
 
-  /* Library back button — same .header/.back-btn shape as song.uikitml, always
-     visible above whichever of #cal-prompt/#cal-finetune is currently shown
-     (they're both flex-grow:1 and already self-center, so they automatically
-     fill and center in whatever space is left below this row). */
+  /* Library back button — same .header/.back-btn shape as song.uikitml. #cal-prompt/
+     #cal-finetune below are both flex-grow:1 + self-centered, so they automatically
+     fill and center in whatever space is left under this row. */
   .header {
     display: flex;
     flex-direction: column;

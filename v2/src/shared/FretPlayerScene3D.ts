@@ -53,10 +53,8 @@ const XR_NOTE_LABEL_SCALE = 2;
 // effect is punchier. Purely a render-time factor; the setting value and UI are unaffected.
 const DESKTOP_NOTE_LABEL_STRETCH = 2;
 
-// XR's Note Numbers control shows/stores 0–200% (Settings.noteNumbersXR, 0–2), stretched so
-// displayed 100% renders at what used to require 120% (found to feel best in-headset) — i.e.
-// displayed D now renders at the old D * 1.2. Purely a render-time factor, same idea as
-// DESKTOP_NOTE_LABEL_STRETCH above; the setting value and UI are unaffected.
+// Same idea as DESKTOP_NOTE_LABEL_STRETCH, tuned by feel — displayed 100% renders at what
+// used to require 120% (found to work best in-headset).
 const XR_NOTE_LABEL_STRETCH = 1.2;
 
 // ─── Technique helpers ────────────────────────────────────────────────────────

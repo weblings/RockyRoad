@@ -3,9 +3,8 @@ import type { ProcessorMetrics } from '@soundtouchjs/audio-worklet';
 import soundTouchProcessorUrl from '@soundtouchjs/audio-worklet/processor?url';
 
 // ISongPlayer is the stable interface both playback backends must implement.
-// SongPlayer drives speed via AudioBufferSourceNode.playbackRate, routed through a SoundTouch
-// AudioWorklet that compensates pitch — see ThreeCP/Analysis/SoundTouchSpeedPlan.md for the
-// phased rollout. Falls back to uncorrected native playbackRate if the worklet fails to load.
+// SongPlayer's playbackRate is pitch-compensated via a SoundTouch AudioWorklet (see
+// SoundTouchSpeedPlan.md), falling back to uncorrected native playback if it fails to load.
 export interface ISongPlayer {
     readonly isPlaying: boolean;
     readonly currentSecond: number;
@@ -65,10 +64,9 @@ export class SongPlayer implements ISongPlayer {
     private _playbackRate = 1;
     // True once the worklet module has registered on this.context (one-time per context).
     private soundTouchRegistered = false;
-    // Pitch-corrects speed changes; sits between source and destination. Rebuilt on every play()
-    // alongside source (not long-lived) — a fresh source means stNode's internal WSOLA analysis
-    // state would otherwise go stale, whether that's from a seek, a plain pause/resume, or first
-    // play. Null if the worklet never registered — playback then falls back to native playbackRate.
+    // Pitch-corrects speed changes; rebuilt alongside source on every play() (not long-lived)
+    // since a fresh source would otherwise leave its internal WSOLA state stale. Null if the
+    // worklet never registered — playback then falls back to native playbackRate.
     private stNode: SoundTouchNode | null = null;
 
     get isPlaying(): boolean { return this._playing; }

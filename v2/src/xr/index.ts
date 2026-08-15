@@ -424,23 +424,10 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     world.createTransformEntity(keysCountdownMesh, { parent: anchorEntity, persistent: true });
 
     // ── Calibration hint label (world-space, follows the tracked hand/controller) ──────
-    // A Sprite, not @iwsdk/core's Mesh like the countdown above — Sprite auto-billboards
-    // toward the camera every frame, which a label tracking a moving hand actually needs
-    // (the countdown mesh above doesn't billboard at all; it just sits at a fixed
-    // anchor-relative spot that happens to face the calibrated player position).
-    // Parented to world.sceneEntity (true world root), NOT anchorEntity — CalibrationSystem
-    // positions it every frame from tipPosition()'s raw world-space coordinates, which
-    // are meaningless relative to the highway's anchor transform, especially before
-    // first-time calibration when that transform isn't set up yet.
-    //
-    // Four fixed presets (hand-tracking vs controller wording, x left vs right), rendered
-    // once here and never resized afterward — CalibrationSystem just swaps which one the
-    // sprite's material points at based on input mode and step. An earlier version
-    // regenerated canvas content (and its pixel dimensions, to fit the varying wording) on
-    // every redraw; changing a texture's base dimensions after creation ran into a WebGL
-    // texture-update bug that
-    // survived several targeted fixes. Presets sidestep the whole category: each texture's
-    // dimensions are fixed for its entire lifetime, never touched after this runs.
+    // Sprite (auto-billboards to the camera), unlike the countdown mesh above which just
+    // sits at a fixed anchor-relative spot. Parented to world.sceneEntity (true world root,
+    // not anchorEntity) since CalibrationSystem positions it from tipPosition()'s raw
+    // world-space coordinates — meaningless relative to the highway's own anchor transform.
     function buildHintTexture(text: string): { tex: CanvasTexture; aspect: number } {
         const canvas = document.createElement('canvas');
         const font = 'bold 48px sans-serif';
@@ -463,7 +450,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         ctx.lineTo(0, r);
         ctx.arcTo(0, 0, r, 0, r);
         ctx.closePath();
-        ctx.fillStyle = 'rgba(0,0,0,0.55)';
+        ctx.fillStyle = '#0a0a0a'; // matches every other XR panel's background
         ctx.fill();
 
         ctx.font         = font;

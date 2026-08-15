@@ -609,11 +609,9 @@ export class CalibrationSystem extends createSystem({}) {
         return `Look at your ${side} ${noun}`;
     }
 
-    // Positions the world-space hint Sprite (world.globals.calHintSprite, created in
-    // index.ts) above whichever hand/controller is currently active, every frame, and
-    // swaps its texture between the four fixed presets (world.globals.calHintPresets —
-    // hand/controller x left/right) when the active combination changes — no runtime
-    // canvas drawing, no resizing.
+    // Positions the hint Sprite (world.globals.calHintSprite) above the active hand/
+    // controller every frame, swapping its texture between the four fixed presets
+    // (calHintPresets — hand/controller x left/right) when the combination changes.
     private updateCalibrationHint(): void {
         const isLeftStep = this.state === 'prompt_left';
         const gotPos = this.tipPosition(isLeftStep ? 'left' : 'right', this._hintPos);
@@ -674,10 +672,8 @@ export class CalibrationSystem extends createSystem({}) {
     // Library back button (header, both #cal-prompt and #cal-finetune) — showLibrary()
     // already hides/cleans up this panel itself, so nothing else needs doing here first.
     private backToLibrary(): void {
-        // Without resetting state, update() would keep running full prompt_left/prompt_right
-        // logic (including the hint label chasing the hand) after navigating away — state
-        // only otherwise resets on the next genuine startCalibration()/recalibrate() call,
-        // leaving a dangling window in between. Same for the hint label specifically.
+        // Reset explicitly — otherwise update() keeps running prompt_left/prompt_right logic
+        // (incl. the hint label chasing the hand) until the next startCalibration() call.
         this.state = 'idle';
         this.hideCalibrationHint();
         (this.world.globals.showLibrary as (() => void) | undefined)?.();
