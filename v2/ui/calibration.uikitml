@@ -100,7 +100,6 @@
     text-align: center;
     white-space: pre-line;
   }
-
   /* ── #cal-finetune: the numeric axis grid ── */
   .finetune-wrap {
     flex-grow: 1;
@@ -251,7 +250,11 @@
   <div class="prompt-section" id="cal-prompt">
     <div class="prompt-content">
       <span class="prompt-heading" id="cal-prompt-heading">Step 1 of 2</span>
-      <span class="prompt-text" id="cal-prompt-text">Touch the leftmost key</span>
+
+      <!-- The actual instruction now lives in a world-space label that follows the
+           tracked hand/controller (see CalibrationSystem.ts) — this is just a pointer
+           to which one to look at. -->
+      <span class="prompt-text" id="cal-prompt-text">Look at your left hand</span>
     </div>
   </div>
 

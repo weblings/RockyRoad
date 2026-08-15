@@ -28,6 +28,9 @@ import {
     World,
     createSystem,
 } from "@iwsdk/core";
+// @iwsdk/core doesn't re-export Sprite — imported directly from three, same as
+// CalibrationSystem.ts/TextBatch.ts already do for THREE APIs outside its re-export surface.
+import { Sprite, SpriteMaterial } from "three";
 
 // Must be set before any scene classes are constructed.
 import { Scene3D } from "../shared/Scene3D";
@@ -418,6 +421,32 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     keysCountdownMesh.position.set(204, 125, -100);
     keysCountdownMesh.visible = false;
     world.createTransformEntity(keysCountdownMesh, { parent: anchorEntity, persistent: true });
+
+    // ── Calibration hint label (world-space, follows the tracked hand/controller) ──────
+    // A Sprite, not @iwsdk/core's Mesh like the countdown above — Sprite auto-billboards
+    // toward the camera every frame, which a label tracking a moving hand actually needs
+    // (the countdown mesh above doesn't billboard at all; it just sits at a fixed
+    // anchor-relative spot that happens to face the calibrated player position).
+    // Parented to world.sceneEntity (true world root), NOT anchorEntity — CalibrationSystem
+    // positions it every frame from tipPosition()'s raw world-space coordinates, which
+    // are meaningless relative to the highway's anchor transform, especially before
+    // first-time calibration when that transform isn't set up yet.
+    const calHintCanvas = document.createElement('canvas');
+    calHintCanvas.width  = 1024;
+    calHintCanvas.height = 200;
+    const calHintTex = new CanvasTexture(calHintCanvas);
+    const calHintSprite = new Sprite(
+        new SpriteMaterial({ map: calHintTex, transparent: true, depthTest: false }),
+    );
+    // World-space size in meters — tune by eye in-headset. center.set(0.5, 0) anchors at
+    // bottom-center so the label sits above whatever world position it's placed at.
+    calHintSprite.scale.set(0.25, 0.25 * (calHintCanvas.height / calHintCanvas.width), 1);
+    calHintSprite.center.set(0.5, 0);
+    calHintSprite.visible = false;
+    world.createTransformEntity(calHintSprite, { parent: world.sceneEntity, persistent: true });
+    world.globals.calHintSprite = calHintSprite;
+    world.globals.calHintCanvas = calHintCanvas;
+    world.globals.calHintTex    = calHintTex;
 
     const grabBarCanvas = document.createElement('canvas');
     grabBarCanvas.width  = 200;
