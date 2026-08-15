@@ -1,7 +1,10 @@
+import { SoundTouchNode } from '@soundtouchjs/audio-worklet';
+import soundTouchProcessorUrl from '@soundtouchjs/audio-worklet/processor?url';
+
 // ISongPlayer is the stable interface both playback backends must implement.
-// SongPlayer uses AudioBufferSourceNode.playbackRate (Option A — pitch shifts proportionally).
-// A future TimestretcSongPlayer can implement the same interface using a WASM time-stretcher
-// (SoundTouch.js or similar) and drop in with no changes to callers.
+// SongPlayer uses AudioBufferSourceNode.playbackRate (pitch shifts proportionally today).
+// A SoundTouch AudioWorklet is being phased in to pitch-correct that — see
+// ThreeCP/Analysis/SoundTouchSpeedPlan.md for the phased rollout; not yet wired into playback.
 export interface ISongPlayer {
     readonly isPlaying: boolean;
     readonly currentSecond: number;
@@ -59,6 +62,9 @@ export class SongPlayer implements ISongPlayer {
     private pausedAt = 0;   // song position (seconds) at which playback was last paused/started
     private _playing = false;
     private _playbackRate = 1;
+    // Constructed once the worklet module registers; not yet connected into the playback graph
+    // (Phase A only proves registration + construction work — Phase B wires it in).
+    private stNode: SoundTouchNode | null = null;
 
     get isPlaying(): boolean { return this._playing; }
 
@@ -88,6 +94,15 @@ export class SongPlayer implements ISongPlayer {
 
     async loadSong(url: string): Promise<void> {
         if (!this.context) this.context = new AudioContext();
+        if (!this.stNode) {
+            try {
+                await SoundTouchNode.register(this.context, soundTouchProcessorUrl);
+                this.stNode = new SoundTouchNode({ context: this.context });
+            } catch (err) {
+                // Graceful degradation — playback continues on native playbackRate, uncorrected.
+                console.warn('SoundTouch worklet failed to load; pitch will shift with speed', err);
+            }
+        }
         const response = await fetch(url);
         if (!response.ok) throw new Error(`HTTP ${response.status} fetching ${url}`);
         const arrayBuffer = await response.arrayBuffer();

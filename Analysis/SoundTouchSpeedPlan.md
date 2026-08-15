@@ -13,23 +13,31 @@ either screen. `SilentPlayer` (no-audio charts) is untouched either way.
 
 ## Decisions (settled)
 
-- **Use `SoundTouchNode.tempo`, not `.rate` or native `AudioBufferSourceNode.playbackRate`.**
-  `tempo` changes speed with pitch held constant — the actual goal. `rate` reproduces today's
-  pitch-shifting behavior; native `playbackRate` is today's Option A. The source node's own
-  `playbackRate` stays at `1.0` always; `SoundTouchNode.tempo` becomes the single place speed is
-  driven from.
-- **Keep the `playbackRate` property name on `ISongPlayer`/`SongPlayer`**, even though it'll now
-  drive `tempo` internally rather than native rate. Renaming would touch both screens' call sites
-  for no functional benefit — the whole point of the interface boundary was to avoid that. Update
-  the doc comment (already says "Option A changes pitch; Option B will not" — flip to describe
-  the shipped behavior) rather than the name.
-- **Timing formula (`currentSecond = pausedAt + elapsedRealTime × playbackRate`) is expected to
-  carry over unchanged** — `tempo` is defined the same way as rate (output-duration ÷
-  input-duration), so the existing analytic formula should still hold. Treated as a hypothesis to
-  confirm in Phase C, not re-derived from scratch.
+- **Corrected from an earlier draft of this plan:** the installed `@soundtouchjs/audio-worklet@2.1.1`
+  has no `tempo` AudioParam. Confirmed directly from `.dist/SoundTouchNode.d.ts` (only `pitch`,
+  `pitchSemitones`, `playbackRate` are exposed) and `SoundTouchProcessorBase.js`'s render loop:
+  `this._pipe.pitch = (pitch * 2**(pitchSemitones/12)) / playbackRate`. The intended usage is the
+  opposite of what was first assumed: let **native** `source.playbackRate` do the actual speed
+  change (exactly what `SongPlayer.ts` already does today), and mirror that same value onto
+  `stNode.playbackRate`. The processor then divides its internal pitch correction by that value,
+  canceling the pitch shift the native rate change introduces — net effect is speed changes, pitch
+  doesn't. `stNode.pitch`/`pitchSemitones` stay at their defaults (`1.0`/`0`) throughout; they're
+  for deliberate transposition, not tempo compensation.
+- **`source.playbackRate` keeps being the value driven by `ISongPlayer.playbackRate`** — unchanged
+  from today's Option A. The only new state is mirroring that same value onto `stNode.playbackRate`
+  whenever it's set.
+- **Keep the `playbackRate` property name on `ISongPlayer`/`SongPlayer`** — its meaning and the
+  value it's set to don't change at all, only that a second node now mirrors it. Update the doc
+  comment (already says "Option A changes pitch; Option B will not" — flip to describe the shipped
+  behavior).
+- **Timing formula (`currentSecond = pausedAt + elapsedRealTime × playbackRate`) needs no
+  hypothesis-confirmation in Phase C** — `source.playbackRate` is identical to today by
+  construction, so the formula that already reads it is unaffected. (Worklet lookahead latency is
+  still a separate, real concern — still deferred to Phase E, see below.)
 - **Graceful degradation:** if `audioWorklet.addModule()` fails (unsupported browser, blocked
-  module load), fall back to today's native-`playbackRate` behavior rather than breaking playback
-  entirely. Cheap to add, avoids a hard dependency on the worklet loading successfully.
+  module load), fall back to today's plain `source → destination` graph (no `stNode`) rather than
+  breaking playback entirely. Cheap to add, avoids a hard dependency on the worklet loading
+  successfully.
 - **Performance (XR/Quest CPU budget), quality at the extreme presets (0.2x especially — WSOLA is
   known to degrade toward "flamming"/stutter on transients past roughly 4x/0.25x), and the
   worklet's inherent lookahead latency's effect on highway sync are explicitly deferred to Phase E
@@ -43,14 +51,12 @@ our build) lands first, before any playback-graph rewiring depends on it.
 
 ### Phase A — Worklet asset pipeline + module registration
 
-- Get `@soundtouchjs/audio-worklet`'s processor file served as a static asset. Likely needs
-  copying into `public/` (Vite dev server won't serve library-internal files via a normal
-  `import`, same category of issue already hit with the sibling project's psarc `dotnet.js`
-  loading, and documented in `ThreeCP/Analysis/lessons/engine/dev-environment.md`) — confirm the
-  exact mechanism (static copy step vs. a Vite plugin) once looking at the package's actual dist
-  layout.
-- Write a small loader that calls `audioContext.audioWorklet.addModule(url)` once per
-  `AudioContext`, awaited before any `SoundTouchNode` is constructed.
+- The package exposes a documented Vite-native path — `@soundtouchjs/audio-worklet/processor?url`
+  resolves to the correct served URL via Vite's `?url` import convention, no manual `public/` copy
+  step needed (confirmed against this project's installed Vite 7.3.6, and against the package's own
+  README, which documents this exact case). Use `SoundTouchNode.register(context, processorUrl)`
+  (static method, wraps `audioWorklet.addModule()`) once per `AudioContext`, awaited before any
+  `SoundTouchNode` is constructed.
 - Prove it in isolation: construct a `SoundTouchNode` against `SongPlayer`'s existing
   `AudioContext` and confirm no load/registration errors — before wiring it into the real
   playback graph. Cheapest possible checkpoint for "does this work in our setup at all."
@@ -61,25 +67,30 @@ console errors (playback graph itself untouched yet).
 ### Phase B — Rewire the playback graph, prove parity at 1.0x
 
 - Change `SongPlayer`'s graph from `source → destination` to
-  `source → SoundTouchNode → destination`, source `playbackRate` pinned at `1.0`.
-- `playbackRate` setter now sets `stNode.tempo.value = rate` instead of
-  `source.playbackRate.value = rate`.
-- Deliberately do **not** touch anything else yet (seek, `currentSecond`) — this phase is purely
-  "does audio still sound correct and unchanged at the default 1.0x speed" through the new graph
-  shape, isolating graph-wiring mistakes from speed-logic mistakes.
+  `source → SoundTouchNode → destination`. `source.playbackRate` keeps being driven exactly as
+  today (no pinning to 1.0 — that assumption was wrong, see Decisions above).
+- `playbackRate` setter keeps `source.playbackRate.value = rate` and additionally sets
+  `stNode.playbackRate.value = rate` (mirror, new line) so the processor's internal pitch
+  compensation matches.
+- Deliberately do **not** verify pitch-preservation yet — this phase is purely "does audio still
+  sound correct and unchanged at the default 1.0x speed" through the new graph shape, isolating
+  graph-wiring mistakes from speed-logic mistakes. At 1.0x the mirrored value is `1.0` either way,
+  so this phase can't yet tell working pitch-compensation apart from a no-op — that's Phase C.
 
 **Testing:** Manual: play a song at default speed through the new graph, confirm audio is
 identical to before (no added latency/glitches/volume change perceivable at 1.0x).
 
-### Phase C — Real speed changes, confirm the timing hypothesis
+### Phase C — Real speed changes, confirm pitch preservation
 
-- Wire actual non-1x `playbackRate` values through to `stNode.tempo`.
+- Wire actual non-1x `playbackRate` values through to both `source.playbackRate` and the mirrored
+  `stNode.playbackRate`.
 - Confirm pitch genuinely stays constant by ear at a few presets (e.g. 0.6x, 1.4x) — the actual
   point of this whole effort.
-- Confirm `currentSecond`'s existing formula still keeps the note highway / seek bar in sync with
-  the audio at non-1x speeds, per the Decisions section's hypothesis. If it drifts, that's the
-  worklet's lookahead latency showing up sooner than expected — note it, but don't rabbit-hole
-  into compensating for it yet (that's Phase E's job if it turns out to matter).
+- Sanity-check the note highway / seek bar stays in sync with the audio at non-1x speeds (the
+  `currentSecond` formula itself isn't expected to need changes, per Decisions above, but the
+  worklet does add processing latency that could show up as drift even with the formula correct).
+  If it drifts, note it, but don't rabbit-hole into compensating for it yet (that's Phase E's job
+  if it turns out to matter).
 
 **Testing:** Manual, in both desktop and XR: change speed mid-playback via the existing Speed
 dropdown (no UI changes needed — same control, new backend), confirm pitch is stable and the
@@ -91,9 +102,9 @@ highway stays synced.
   `SoundTouchNode` in the chain, its internal WSOLA analysis-window state goes stale after a jump
   — seeking needs to recreate the `SoundTouchNode` alongside the source, not just the source
   alone.
-- Confirm changing `.tempo` **without** a seek (a live speed change mid-playback) does not need
-  the same node-recreation treatment — it's a real `AudioParam`, so a plain value change should be
-  sufficient; verify this rather than assuming it.
+- Confirm changing `stNode.playbackRate`/`source.playbackRate` **without** a seek (a live speed
+  change mid-playback) does not need the same node-recreation treatment — they're real
+  `AudioParam`s, so a plain value change should be sufficient; verify this rather than assuming it.
 - Re-verify the existing pause / resume-with-countdown / scrub-seek flows (`ActiveSceneScreen.ts`
   and `XRActiveScene.ts` already drive these through the unchanged `ISongPlayer` surface) still
   behave correctly through the new graph — this is regression-proofing existing behavior, not new
@@ -119,9 +130,15 @@ fallback to Option A at extreme presets) be scoped — deliberately not designed
 
 ## Execution checklist
 
-- [ ] Phase A: worklet asset pipeline + module registration, proven in isolation.
+- [x] Phase A: worklet asset pipeline + module registration, proven in isolation. `SongPlayer.ts`
+      registers `@soundtouchjs/audio-worklet/processor?url` and constructs an unconnected
+      `SoundTouchNode` in `loadSong()`, guarded with a try/catch fallback. `npx tsc --noEmit` and
+      `npx vite build` both clean — build emitted `soundtouch-processor-[hash].js` as its own
+      asset, confirming Vite's `?url` resolution works with no manual `public/` copy step, as the
+      package's README promised. In-browser console-error check (dev server, load a song) still
+      needs a manual pass before calling this fully done.
 - [ ] Phase B: playback graph rewired, 1.0x parity confirmed.
-- [ ] Phase C: real speed changes wired, pitch-stability and sync hypothesis confirmed.
+- [ ] Phase C: real speed changes wired, pitch stability and highway sync confirmed.
 - [ ] Phase D: seek/rate-change robustness, existing pause/resume/scrub flows re-verified.
 - [ ] Phase E: performance, extreme-range quality, and latency assessed; mitigations (if any)
       scoped as follow-up, not built preemptively.
