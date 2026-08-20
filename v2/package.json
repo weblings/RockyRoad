@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "npm run bake && vite",
-    "dev:device": "npm run bake && vite --mode device",
+    "dev": "npm run bake && concurrently -n vite,songs -c blue,green \"vite\" \"npm:serve-songs\"",
+    "dev:device": "npm run bake && concurrently -n vite,songs -c blue,green \"vite --mode device\" \"npm:serve-songs\"",
     "build": "npm run bake && tsc && vite build",
     "preview": "vite preview",
     "bake": "tsx tools/bake-songs.ts",
@@ -24,6 +24,7 @@
     "@meta-quest/hzdb": "^1.0.0",
     "@types/three": "*",
     "@types/wicg-file-system-access": "^2023.10.7",
+    "concurrently": "^10.0.5",
     "cross-env": "^10.1.0",
     "tsx": "^4.21.0",
     "typescript": "^5.9.0",
