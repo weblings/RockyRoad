@@ -1,21 +1,16 @@
 # ChartPlayer — v2 (Web / WebXR client)
 
-A distiled version of [ChartPlayer](https://github.com/mikeoliphant/ChartPlayer) into Typescript, ThreeJS, and WebXR to run natively in browser and on XR headsets.
+A distilled version of [ChartPlayer](https://github.com/mikeoliphant/ChartPlayer) into Typescript, ThreeJS, and WebXR to run natively in browser and on XR headsets.
 
-It reads the same
-[OpenSongChart](https://github.com/mikeoliphant/OpenSongChart)-format songs as the
-VST/Jack app documented at the repo root.
-
-This project (originally named "Combined") merges what used to be two separate
-prototypes (`ThreeCP/Project`, a flat browser app, and `ThreeCP/XRProto`, a
-Quest-only WebXR app) into a single Vite build with two entry points. See
-[`../Analysis/CombinedProjectPlan.md`](../Analysis/CombinedProjectPlan.md) for the
-merge rationale if you're curious why the source is organized the way it is.
+It reads the same [OpenSongChart](https://github.com/mikeoliphant/OpenSongChart)-format songs as
+the original desktop `ChartPlayer`/`ChartConverter` apps this was distilled from.
 
 For environment setup (Node, HTTPS certs, running the dev server, feeding it a song
-library), see [`Setup.md`](../../Setup.md) at the repo root. For gotchas hit while
-building this project, see [`../Analysis/lessons/README.md`](../Analysis/lessons/README.md)
-— the repo's single lessons-learned location, not a doc local to this subproject.
+library), see ["Play your own songs"](../README.md#play-your-own-songs) at the repo root.
+For gotchas hit while building this project, see
+[`../Analysis/lessons/README.md`](../Analysis/lessons/README.md) — the repo's single
+lessons-learned location, not a doc local to this subproject. It's written primarily for AI
+coding agents working in this repo, but worth a skim if you're a human onboarding too.
 
 ## Two entry points, one build
 
@@ -34,15 +29,16 @@ from one to the other is a full page load back to that mode's library screen.
 - [Three.js](https://threejs.org/) (via the `super-three` fork) for the 3D scene
 - A custom `QuadBatch` renderer (`src/shared/QuadBatch.ts`) batches the note-highway
   sprites/text into a handful of draw calls
-- `html2canvas` snapshots desktop-style DOM UI panels onto textures so they can be
-  displayed as XR panels
 
 **XR**
 - [`@iwsdk/core`](https://github.com/facebook/immersive-web-sdk) (Immersive Web SDK) —
   Meta's WebXR framework, providing the ECS, controller input, and session lifecycle
   used under `src/xr/`
 - [`@iwsdk/vite-plugin-uikitml`](https://github.com/facebook/immersive-web-sdk) compiles
-  the `ui/*.uikitml` panel sources into runtime UI assets under `public/ui`
+  the `ui/*.uikitml` panel sources into runtime UI assets under `public/ui` — every XR
+  screen (library, settings, pre-scene, active, calibration) is uikit-based; an earlier
+  `html2canvas`-based panel-snapshot approach was fully migrated away (the dependency is
+  still in `package.json` but unused — see `Analysis/lessons/` for why)
 - The IWSDK dev plugin (`@iwsdk/vite-plugin-dev`) adds an in-browser XR emulator
   (IWER) for testing without a headset
 
@@ -59,10 +55,10 @@ from one to the other is a full page load back to that mode's library screen.
   to bake it from, so it's hand-maintained if the sprite sheet ever changes
 
 **Song data**
-- Two small demo songs ship in `public/songs/` for a working app out of the box
+- A handful of demo songs ship in `public/songs/` for a working app out of the box
 - `tools/song-server.ts` is a standalone HTTP(S) server (with CORS) for pointing the
   app at a full local song library without bundling it into the build — see
-  [`Setup.md`](../../Setup.md) for how to configure and run it
+  ["Play your own songs"](../README.md#play-your-own-songs) for how to configure and run it
 
 ## Directory layout
 
