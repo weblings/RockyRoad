@@ -389,7 +389,12 @@ export class FretPlayerScene3D extends ChartScene3D {
             if (note.TimeOffset > this.currentTime) continue;
 
             if (hasTech(note, ESongNoteTechnique.Chord)) {
-                if (this.currentChordNote === null) this.currentChordNote = note;
+                // Chord marker notes from psarc-sourced charts often have no TimeLength (Rocksmith
+                // doesn't track chord sustain) — Math.max(undefined, 0.2) is NaN, so default to 0
+                // rather than letting the whole check silently fail.
+                if (this.currentChordNote === null && note.TimeOffset + Math.max(note.TimeLength ?? 0, 0.2) > this.currentTime) {
+                    this.currentChordNote = note;
+                }
             } else {
                 const str = note.String;
                 if (str >= 0 && str < this.numStrings && this.currentStringNotes[str] === null) {
@@ -463,7 +468,27 @@ export class FretPlayerScene3D extends ChartScene3D {
             this.drawChordOutline(this.currentChordNote, true);
             if (!hasTech(this.currentChordNote, ESongNoteTechnique.ChordNote)) {
                 const chord = this.getChord(this.currentChordNote.ChordID);
-                if (chord) this.drawChordNotesFull(this.currentChordNote, chord, true, false);
+                if (chord) {
+                    this.drawChordNotesFull(this.currentChordNote, chord, true, false);
+
+                    // Strings with no known finger (or an open string) get no dot above -
+                    // show them as an ordinary held note instead, same as a single note.
+                    for (let str = 0; str < chord.Frets.length; str++) {
+                        if (chord.Frets[str] === -1 || chord.Frets[str] >= NUM_FRETS) continue;
+                        if (chord.Fingers[str] > 0 && chord.Frets[str] !== 0) continue;
+                        if (this.currentStringNotes[str] !== null) continue;
+
+                        this.currentStringNotes[str] = {
+                            TimeOffset: this.currentChordNote.TimeOffset,
+                            TimeLength: this.currentChordNote.TimeLength,
+                            EndTime: this.currentChordNote.EndTime,
+                            Fret: chord.Frets[str],
+                            String: str,
+                            HandFret: this.currentChordNote.HandFret,
+                            ChordID: this.currentChordNote.ChordID,
+                        };
+                    }
+                }
             }
         }
 
@@ -669,8 +694,10 @@ export class FretPlayerScene3D extends ChartScene3D {
 
             // Finger/fret-number labels drawn on the notes themselves are gated by
             // noteNumberScale — the chord name to the side (drawChordOutline) is
-            // separate and always available regardless of this setting.
-            if (drawCurrent) {
+            // separate and always available regardless of this setting. Open strings
+            // and strings with no known finger data show a held note instead (see
+            // the "current chord" overlay in the caller), not a dot here.
+            if (drawCurrent && chordNote.Fret !== 0 && chord.Fingers[str] > 0) {
                 this.drawVerticalImageCentered(getImage("FingerOutline"), drawFret - 0.5, this.currentTime, this.getNoteHeadHeight(chordNote), { r: 1, g: 1, b: 1, a: 1 }, 0.05);
                 if (this.noteNumberScale > 0 && chord.Fingers[str] > 0) {
                     this.drawVerticalText(chord.Fingers[str].toString(), drawFret - 0.5, this.getNoteHeadHeight(chordNote), this.currentTime, LABEL_WHITE, 0.05, false, this.noteNumberLabelScale);
