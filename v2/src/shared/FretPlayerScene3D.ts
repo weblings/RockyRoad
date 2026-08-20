@@ -895,6 +895,17 @@ export class FretPlayerScene3D extends ChartScene3D {
             new THREE.Vector3(ex, heightOffset, z - half), color,
             new THREE.Vector3(ex, heightOffset, z + half), color,
         );
+
+        // Companion riser, standing up at a constant Z like drawFretVerticalLine — a flat
+        // line lying in the XZ plane is nearly edge-on to a head-on camera looking down Z;
+        // this face is oriented the same way the (already-visible) fret dividers are.
+        const riser = 0.6;
+        this.drawQuad(img,
+            new THREE.Vector3(sx, heightOffset - riser, z), color,
+            new THREE.Vector3(sx, heightOffset + riser, z), color,
+            new THREE.Vector3(ex, heightOffset + riser, z), color,
+            new THREE.Vector3(ex, heightOffset - riser, z), color,
+        );
     }
 
     private drawFretVerticalLine(fretCenter: number, time: number, startHeight: number, endHeight: number, color: UIColor, imageScale: number): void {
