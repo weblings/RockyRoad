@@ -28,6 +28,14 @@ const INSTRUMENT_TYPE: Record<InstrumentFilter, string> = {
     Bass: 'BassGuitar', Keys: 'Keys', Drums: 'Drums',
 };
 const STRINGED = new Set(['LeadGuitar', 'RhythmGuitar', 'BassGuitar']);
+
+// Instrument badges shown on each library card, in display order. No Drums entry —
+// unsupported everywhere in this app, so there's no icon for it to show.
+const BADGE_ICONS: { types: string[]; src: string; alt: string }[] = [
+    { types: ['BassGuitar'],                 src: '/Bass_White.svg',    alt: 'Bass' },
+    { types: ['Keys'],                       src: '/Keyboard_White.svg', alt: 'Keys' },
+    { types: ['LeadGuitar', 'RhythmGuitar'], src: '/Guitar_White.svg',   alt: 'Guitar' },
+];
 const STATE_KEY = 'chartplayer-library-state';
 const DEFAULT_STATE: LibraryState = {
     sort: 'title-asc', instrumentFilter: 'All', tuningFilter: 'All', searchQuery: '',
@@ -204,6 +212,7 @@ export class SongLibraryScreen implements IScreen {
 
         grid.innerHTML = filtered.map(({ sourced, origIdx }) => {
             const artUrl = sourced.source.getAlbumArtUrl(sourced.entry);
+            const badges = this.instrumentBadges(sourced.entry);
             return `
                 <button class="lib-song-entry" data-song-idx="${origIdx}" type="button">
                     <div class="lib-art-thumb">
@@ -214,8 +223,18 @@ export class SongLibraryScreen implements IScreen {
                         <p class="lib-song-album">${esc(sourced.entry.albumName ?? '')}</p>
                         <p class="lib-song-artist">${esc(sourced.entry.artistName)}</p>
                     </div>
+                    ${badges.length ? `
+                        <div class="lib-instrument-badges">
+                            ${badges.map(b => `<img src="${b.src}" alt="${b.alt}" title="${b.alt}" />`).join('')}
+                        </div>` : ''}
                 </button>`;
         }).join('');
+    }
+
+    // Which instrument badges apply to a song, in BADGE_ICONS' display order.
+    private instrumentBadges(entry: SourcedEntry['entry']): { src: string; alt: string }[] {
+        const partTypes = new Set(entry.parts.map(p => p.type));
+        return BADGE_ICONS.filter(b => b.types.some(t => partTypes.has(t)));
     }
 
     private filteredSongs(): { sourced: SourcedEntry; origIdx: number }[] {

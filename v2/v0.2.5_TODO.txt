@@ -9,7 +9,7 @@ v0.2.5
 - [x] Some guitar songs can start playing before the notes are all visible in the highway (XR)
 - [ ] xr padding (library occasional bug, scrubber + play button in play screen)
 
-- [ ] Mobile - Desktop library page shows library as a single slidable row instead of a grid
+- [x] Mobile - Desktop library page shows library as a single slidable row instead of a grid
 - [ ] Desktop - Adjust song page to use xr song model, works better for mobile
 - [ ] Mobile - Explore fullscreen option, could put where VR button usually goes
 
