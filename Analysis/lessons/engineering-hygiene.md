@@ -107,6 +107,19 @@ becomes a synchronous branch on the flag instead of an async or error-handling p
 
 ---
 
+## Recurring, inconsequential git noise from a file is a gitignore case, not a "check the diff" habit
+
+`public/songs/manifest.json` and `public/ui/*.json` showed up "modified" almost every session that
+touched `dev`/`build` (both regenerate them from source every run) — never a real change, always LF
+vs. the repo's CRLF convention, but still costing a manual diff each time to confirm that. Once a
+tracked file goes stale-and-harmless-yet-dirty on a recurring basis, the fix isn't reviewing it more
+carefully before each commit — it's removing it from git's view entirely.
+
+**Fix:** if a tracked file keeps showing up dirty for content that's regenerated, inconsequential to
+diff, or not meant to be reviewed, gitignore it rather than re-verifying it's noise every time.
+
+---
+
 ## A flow's own state machine needs explicit reset on every exit path, not just its normal completion path
 
 A "back to Library" handler for an in-progress multi-step calibration flow hid the relevant panel
