@@ -496,7 +496,12 @@ export class ActiveSceneScreen implements IScreen {
             }
 
             const playing = this.songPlayer.isPlaying;
-            playBtn.innerHTML = playing ? PAUSE_SVG : PLAY_SVG;
+            if (playing !== prevIsPlaying) {
+                // Only swap the icon on an actual state change - replacing it every frame
+                // destroys/recreates the <svg> node under the pointer, which can swallow a
+                // click that started on the icon before this ran again.
+                playBtn.innerHTML = playing ? PAUSE_SVG : PLAY_SVG;
+            }
 
             // Song just ended naturally — show bar so user can navigate away
             if (prevIsPlaying && !playing) showBar();
