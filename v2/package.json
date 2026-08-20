@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "npm run bake && concurrently -n vite,songs -c blue,green \"vite\" \"npm:serve-songs\"",
     "dev:device": "npm run bake && concurrently -n vite,songs -c blue,green \"vite --mode device\" \"npm:serve-songs\"",
+    "dev:demo": "cross-env VITE_DEMO_MODE=true npm run dev",
     "build": "npm run bake && tsc && vite build",
+    "build:demo": "cross-env VITE_DEMO_MODE=true npm run build",
     "preview": "vite preview",
     "bake": "tsx tools/bake-songs.ts",
     "serve-songs": "tsx tools/song-server.ts"

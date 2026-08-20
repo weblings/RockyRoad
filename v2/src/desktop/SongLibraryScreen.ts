@@ -128,6 +128,13 @@ export class SongLibraryScreen implements IScreen {
                         </div>
                         ${isStringed ? this.buildTuningSelect(typeFilter) : ''}
                     </div>
+                    ${import.meta.env.VITE_DEMO_MODE === 'true' ? `
+                        <p class="lib-browser-note">
+                            <strong>DEMO:</strong> To play more songs: 1)
+                            <a href="https://github.com/weblings/RockyRoadImport" target="_blank" rel="noopener noreferrer">Convert songs to OpenSongFormat</a>,
+                            2) <a href="https://github.com/weblings/RockyRoad" target="_blank" rel="noopener noreferrer">Self-host RockyRoad</a>
+                            and point its server to your converted songs.
+                        </p>` : ''}
                 </div>
                 <div class="lib-song-list" id="lib-grid"></div>
             </div>`);
