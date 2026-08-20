@@ -93,7 +93,11 @@ export class ChartScene3D extends Scene3D {
     }
 
     protected drawBeat(timeOffset: number, isMeasure: boolean): void {
-        const alpha = isMeasure ? 0.5 : 0.25;
+        // XR (passthrough, no controlled background) needs more contrast than desktop's
+        // original values, which already read fine against its opaque canvas.
+        const alpha = Scene3D.xrMode
+            ? (isMeasure ? 0.85 : 0.55)
+            : (isMeasure ? 0.5  : 0.25);
         const color = makeColor(1, 1, 1, alpha);
         const thickness = isMeasure ? 0.12 : 0.08;
 

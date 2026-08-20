@@ -57,6 +57,14 @@ const DESKTOP_NOTE_LABEL_STRETCH = 2;
 // used to require 120% (found to work best in-headset).
 const XR_NOTE_LABEL_STRETCH = 1.2;
 
+// XR-only contrast tuning — passthrough (ImmersiveAR) has no controlled background, unlike
+// desktop's opaque canvas, so thin fretboard lines and floor fills need more presence there.
+// Desktop keeps its original values (see Scene3D.xrMode checks at each call site).
+const FRET_LINE_THICKNESS_DESKTOP = 0.03;
+const FRET_LINE_THICKNESS_XR = 0.05;
+const HAND_POS_COLOR_DESKTOP = makeColor(1, 1, 1, 32 / 255);
+const HAND_POS_COLOR_XR = makeColor(0.75, 0.75, 0.75, 90 / 255);
+
 // ─── Technique helpers ────────────────────────────────────────────────────────
 
 // Build name→value lookup once from the ESongNoteTechnique const object
@@ -355,7 +363,7 @@ export class FretPlayerScene3D extends ChartScene3D {
         );
 
         // ── 4. Hand position areas (forward pass) ─────────────────────────────
-        const handPosColor = makeColor(1, 1, 1, 32 / 255);
+        const handPosColor = Scene3D.xrMode ? HAND_POS_COLOR_XR : HAND_POS_COLOR_DESKTOP;
         const singleWhitePixel = getImage("SingleWhitePixel");
 
         let lastHandFret = -1;
@@ -428,7 +436,11 @@ export class FretPlayerScene3D extends ChartScene3D {
         // ── 8. Fret vertical lines + fret number labels at the "now" face ────
         for (let fret = 1; fret < NUM_FRETS; fret++) {
             if (!this.inVolumeFret(fret - 1)) continue;
-            this.drawFretVerticalLine(fret - 1, this.startTime, this.getStringHeight(0), this.getStringHeight(this.numStrings - 1), WHITE_HALF, 0.03);
+            this.drawFretVerticalLine(
+                fret - 1, this.startTime, this.getStringHeight(0), this.getStringHeight(this.numStrings - 1), WHITE_HALF,
+                Scene3D.xrMode ? FRET_LINE_THICKNESS_XR : FRET_LINE_THICKNESS_DESKTOP,
+                Scene3D.xrMode ? 'x' : 'none',
+            );
         }
         // Cast breaks CFA narrowing: TSC narrows firstNote to null after the
         // explicit reset at step 2, unaware that drawSingleNote reassigns it.
@@ -874,7 +886,7 @@ export class FretPlayerScene3D extends ChartScene3D {
         const sz = this.toZ(startTime);
         const ez = this.toZ(endTime);
         const img = getImage("VerticalFretLine");
-        const half = img.width * 0.03;
+        const half = img.width * (Scene3D.xrMode ? FRET_LINE_THICKNESS_XR : FRET_LINE_THICKNESS_DESKTOP);
         this.drawQuad(img,
             new THREE.Vector3(cx - half, height, sz), color,
             new THREE.Vector3(cx - half, height, ez), color,
@@ -896,19 +908,22 @@ export class FretPlayerScene3D extends ChartScene3D {
             new THREE.Vector3(ex, heightOffset, z + half), color,
         );
 
-        // Companion riser, standing up at a constant Z like drawFretVerticalLine — a flat
-        // line lying in the XZ plane is nearly edge-on to a head-on camera looking down Z;
-        // this face is oriented the same way the (already-visible) fret dividers are.
-        const riser = 0.6;
-        this.drawQuad(img,
-            new THREE.Vector3(sx, heightOffset - riser, z), color,
-            new THREE.Vector3(sx, heightOffset + riser, z), color,
-            new THREE.Vector3(ex, heightOffset + riser, z), color,
-            new THREE.Vector3(ex, heightOffset - riser, z), color,
-        );
+        // XR-only companion riser, standing up at a constant Z like drawFretVerticalLine — a
+        // flat line lying in the XZ plane is nearly edge-on to a head-on camera looking down Z.
+        // Desktop's contrast is already fine (opaque background, tuned camera), so it skips this.
+        if (Scene3D.xrMode) {
+            const riser = 0.6;
+            this.drawQuad(img,
+                new THREE.Vector3(sx, heightOffset - riser, z), color,
+                new THREE.Vector3(sx, heightOffset + riser, z), color,
+                new THREE.Vector3(ex, heightOffset + riser, z), color,
+                new THREE.Vector3(ex, heightOffset - riser, z), color,
+                'y', // riser's short axis is height — outline top/bottom
+            );
+        }
     }
 
-    private drawFretVerticalLine(fretCenter: number, time: number, startHeight: number, endHeight: number, color: UIColor, imageScale: number): void {
+    private drawFretVerticalLine(fretCenter: number, time: number, startHeight: number, endHeight: number, color: UIColor, imageScale: number, outlineAxis: 'none' | 'y' | 'x' = 'none'): void {
         const cx = getFretPosition(fretCenter);
         const z  = this.toZ(time);
         const img = getImage("VerticalFretLine");
@@ -918,6 +933,7 @@ export class FretPlayerScene3D extends ChartScene3D {
             new THREE.Vector3(cx - half, endHeight,   z), color,
             new THREE.Vector3(cx + half, endHeight,   z), color,
             new THREE.Vector3(cx + half, startHeight, z), color,
+            outlineAxis,
         );
     }
 

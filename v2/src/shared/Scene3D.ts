@@ -128,6 +128,11 @@ export class Scene3D {
         topLeft:    THREE.Vector3, tlColor: UIColor,
         topRight:   THREE.Vector3, trColor: UIColor,
         bottomRight:THREE.Vector3, brColor: UIColor,
+        // Dark-edge outline (see QuadBatch's shader) across whichever pair of edges is this
+        // quad's *short* axis — 'y' for a wide/flat quad (darkens top+bottom), 'x' for a
+        // tall/thin one (darkens left+right). Picking the wrong axis darkens the two ends
+        // of the shape instead of its actual thin edges.
+        outlineAxis: 'none' | 'y' | 'x' = 'none',
     ): void {
         const aw = image.actualWidth;
         const ah = image.actualHeight;
@@ -136,11 +141,17 @@ export class Scene3D {
         const v0 = image.yOffset / ah;              // top of image in atlas
         const v1 = (image.yOffset + image.height) / ah; // bottom of image in atlas
 
+        // 'y': bottom edge (bl/br) = 0, top edge (tl/tr) = 1. 'x': left edge (bl/tl) = 0,
+        // right edge (tr/br) = 1.
+        const [blT, tlT, trT, brT] = outlineAxis === 'y' ? [0, 1, 1, 0]
+            : outlineAxis === 'x' ? [0, 0, 1, 1]
+            : [-1, -1, -1, -1];
+
         this.quadBatch.addQuad([
-            { position: bottomLeft,  color: blColor, uv: new THREE.Vector2(u0, v1) },
-            { position: topLeft,     color: tlColor, uv: new THREE.Vector2(u0, v0) },
-            { position: topRight,    color: trColor, uv: new THREE.Vector2(u1, v0) },
-            { position: bottomRight, color: brColor, uv: new THREE.Vector2(u1, v1) },
+            { position: bottomLeft,  color: blColor, uv: new THREE.Vector2(u0, v1), edgeT: blT },
+            { position: topLeft,     color: tlColor, uv: new THREE.Vector2(u0, v0), edgeT: tlT },
+            { position: topRight,    color: trColor, uv: new THREE.Vector2(u1, v0), edgeT: trT },
+            { position: bottomRight, color: brColor, uv: new THREE.Vector2(u1, v1), edgeT: brT },
         ]);
     }
 
