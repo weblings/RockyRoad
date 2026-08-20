@@ -26,6 +26,13 @@ export class FretCamera extends Camera3D {
     // offset instead (see FretPlayerScene3D.contentOffsetX).
     get positionFret(): number { return this._positionFret; }
 
+    // Seeds positionFret instantly instead of waiting for update()'s lerp — call once per new
+    // song. Without it, XR notes outside the still-converging volume window (inVolumeFret)
+    // don't render until the lerp catches up; desktop has no culling, so it's cosmetic there.
+    snapToFret(fret: number): void {
+        this._positionFret = clamp(fret, 3.5, 24) - 1;
+    }
+
     // Call every frame with the fret window computed during note drawing.
     // focusY = 0 in local-Z mode (now-line always at Z=0).
     update(minFret: number, maxFret: number, targetFocusFret: number, focusY: number, dt: number): void {

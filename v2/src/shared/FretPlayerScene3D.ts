@@ -212,6 +212,10 @@ export class FretPlayerScene3D extends ChartScene3D {
             return (b.String ?? 0) - (a.String ?? 0);
         });
 
+        // Start the camera/content-offset at the song's actual opening position, not the
+        // fret-3 default — see FretCamera.snapToFret's own comment for why this matters.
+        this.fretCamera.snapToFret(instrumentNotes.Notes[0]?.HandFret ?? 3);
+
         // Build nonRepeat maps with one pass over the sorted notes
         this.nonRepeatChords = new Set<number>();
         this.nonRepeatNotes  = new Set<number>();
