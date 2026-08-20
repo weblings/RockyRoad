@@ -1,6 +1,6 @@
 # RockyRoad
 
-- A web browser note-highway music app for guitar and piano with full support for XR headsets
+- A web browser note-highway music app for guitar and piano with full support for WebXR-capable headsets
 - Note-highway logic and visuals distilled from [ChartPlayer](https://github.com/mikeoliphant/ChartPlayer) into Typescript, ThreeJS, and WebXR
 
 **To play more songs: 1) [Convert songs to OpenSongFormat](https://github.com/weblings/RockyRoadImport),
@@ -64,6 +64,11 @@ Try it out with the demo songs it ships with, before bringing in your own librar
 - Confirm that folder actually contains converted song folders (each with a `song.json` inside),
   not the original, unconverted files.
 - Restart `npm run dev` after any change to `song-server.config.json` — it's only read at startup.
+
+**How do I enter the Immersive App?**
+- Your headset's browser needs to support WebXR (Quest / Horizon OS, Android XR, and Vision OS all should)
+- When you visit the xr.html page, a button in your browser's UI should appear saying something like "Enter VR". Click that button to launch the immersive app
+- The "Enter VR" button visible in RockyRoad's UI in desktop.html will not launch an Immersive app on your headset. That is a shortcut to get to xr.html.
 
 ## FAQ
 

@@ -1,7 +1,8 @@
 v0.2.5
 - [x] "npm run dev" also calls "npm run serve-songs"
-- [ ] README
+- [x] README
 - [x] GitHub Pages build process and disclaimer
+- [ ] Update web pages to use RockyRoad branding
 - [ ] XR Guitar color lines only visible below. Make thicker or change how they render? (The slide visuals seem thin too)
 - [ ] Loading feedback for Song page (XR)
 - [ ] Add sample guitar song with chords (https://www.guitarnick.com/loch-lomond-easy-guitar-song-beginners-tab.html)
