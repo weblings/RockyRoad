@@ -197,9 +197,10 @@
       border-radius: 6px; color: #fff; font-size: 13px; cursor: pointer; font-family: inherit;
     }
 
-    /* Song list — 3-column horizontal rows */
+    /* Song list — column count scales with window width, unlike XR's fixed-width
+       panel (which can hardcode 3) — desktop's window has no such fixed size. */
     .lib-song-list {
-      display: grid; grid-template-columns: repeat(9, 1fr);
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
       align-content: start; gap: 4px; padding: 10px;
       flex: 1; overflow-y: auto;
     }
