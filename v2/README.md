@@ -1,6 +1,6 @@
 # ChartPlayer — v2 (Web / WebXR client)
 
-A distilled version of [ChartPlayer](https://github.com/mikeoliphant/ChartPlayer) into Typescript, ThreeJS, and WebXR to run natively in browser and on XR headsets.
+A distilled version of [ChartPlayer](https://github.com/mikeoliphant/ChartPlayer) into Typescript, ThreeJS to run natively in browser. IWSDK and WebXR then add support for XR headsets.
 
 It reads the same [OpenSongChart](https://github.com/mikeoliphant/OpenSongChart)-format songs as
 the original desktop `ChartPlayer`/`ChartConverter` apps this was distilled from.

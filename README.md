@@ -1,8 +1,8 @@
 # RockyRoad
 
 - A web browser note-highway music app for guitar and piano with full support for WebXR-capable headsets
-- Note-highway logic and visuals distilled from [ChartPlayer](https://github.com/mikeoliphant/ChartPlayer) into Typescript, ThreeJS, and WebXR
-- Self-hosted and runs entirely on your own machine — your song library never leaves your computer or local network
+- Note-highway logic and visuals distilled from [ChartPlayer](https://github.com/mikeoliphant/ChartPlayer) into Typescript and ThreeJS
+- Intended for you to self-host and runs entirely on your machine — your song library never leaves your computer or local network
 
 **To play more songs: 1) [Convert songs to OpenSongFormat](https://github.com/weblings/RockyRoadImport),
 2) Self-host RockyRoad and [point its server to your converted songs](#play-your-own-songs).**
