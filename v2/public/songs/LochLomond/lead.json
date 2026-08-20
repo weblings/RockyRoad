@@ -1,0 +1,946 @@
+{
+  "Sections": [],
+  "Chords": [
+    {
+      "Name": "",
+      "Frets": [
+        -1,
+        -1,
+        3,
+        2,
+        1,
+        -1
+      ],
+      "Fingers": [
+        -1,
+        -1,
+        0,
+        0,
+        0,
+        -1
+      ]
+    },
+    {
+      "Name": "",
+      "Frets": [
+        -1,
+        -1,
+        -1,
+        0,
+        0,
+        1
+      ],
+      "Fingers": [
+        -1,
+        -1,
+        -1,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "Name": "",
+      "Frets": [
+        -1,
+        -1,
+        -1,
+        0,
+        1,
+        0
+      ],
+      "Fingers": [
+        -1,
+        -1,
+        -1,
+        0,
+        0,
+        0
+      ]
+    }
+  ],
+  "Notes": [
+    {
+      "TimeOffset": 1.5,
+      "TimeLength": 0.5,
+      "EndTime": 2,
+      "Fret": 3,
+      "String": 0,
+      "HandFret": 3
+    },
+    {
+      "TimeOffset": 2,
+      "TimeLength": 0.5,
+      "EndTime": 2.5,
+      "Fret": 3,
+      "String": 1,
+      "HandFret": 3
+    },
+    {
+      "TimeOffset": 2.5,
+      "TimeLength": 0.25,
+      "EndTime": 2.75,
+      "Fret": 3,
+      "String": 1,
+      "HandFret": 3
+    },
+    {
+      "TimeOffset": 2.75,
+      "TimeLength": 0.25,
+      "EndTime": 3,
+      "Fret": 0,
+      "String": 2,
+      "HandFret": 3
+    },
+    {
+      "TimeOffset": 3,
+      "TimeLength": 0.5,
+      "EndTime": 3.5,
+      "Fret": 2,
+      "String": 2,
+      "HandFret": 2
+    },
+    {
+      "TimeOffset": 3.5,
+      "TimeLength": 0.25,
+      "EndTime": 3.75,
+      "Fret": 0,
+      "String": 2,
+      "HandFret": 2
+    },
+    {
+      "TimeOffset": 3.75,
+      "TimeLength": 0.25,
+      "EndTime": 4,
+      "Fret": 3,
+      "String": 1,
+      "HandFret": 3
+    },
+    {
+      "TimeOffset": 4,
+      "TimeLength": 0.5,
+      "EndTime": 4.5,
+      "Fret": 0,
+      "String": 2,
+      "HandFret": 3
+    },
+    {
+      "TimeOffset": 4.5,
+      "TimeLength": 0.25,
+      "EndTime": 4.75,
+      "Fret": 0,
+      "String": 2,
+      "HandFret": 3
+    },
+    {
+      "TimeOffset": 4.75,
+      "TimeLength": 0.25,
+      "EndTime": 5,
+      "Fret": 3,
+      "String": 1,
+      "HandFret": 3
+    },
+    {
+      "TimeOffset": 5,
+      "TimeLength": 0.5,
+      "EndTime": 5.5,
+      "Fret": 0,
+      "String": 1,
+      "HandFret": 3
+    },
+    {
+      "TimeOffset": 5.5,
+      "TimeLength": 0.25,
+      "EndTime": 5.75,
+      "Fret": 3,
+      "String": 0,
+      "HandFret": 3
+    },
+    {
+      "TimeOffset": 5.75,
+      "TimeLength": 0.25,
+      "EndTime": 6,
+      "Fret": 0,
+      "String": 1,
+      "HandFret": 3
+    },
+    {
+      "TimeOffset": 6,
+      "TimeLength": 0.5,
+      "EndTime": 6.5,
+      "Fret": 3,
+      "String": 1,
+      "HandFret": 3
+    },
+    {
+      "TimeOffset": 6.5,
+      "TimeLength": 0.5,
+      "EndTime": 7,
+      "Fret": 3,
+      "String": 1,
+      "HandFret": 3
+    },
+    {
+      "TimeOffset": 7,
+      "TimeLength": 0.5,
+      "EndTime": 7.5,
+      "Fret": 3,
+      "String": 1,
+      "HandFret": 3
+    },
+    {
+      "TimeOffset": 7.5,
+      "TimeLength": 0.25,
+      "EndTime": 7.75,
+      "Fret": 2,
+      "String": 2,
+      "HandFret": 2
+    },
+    {
+      "TimeOffset": 7.75,
+      "TimeLength": 0.25,
+      "EndTime": 8,
+      "Fret": 0,
+      "String": 3,
+      "HandFret": 2
+    },
+    {
+      "TimeOffset": 8,
+      "TimeLength": 0.5,
+      "EndTime": 8.5,
+      "Fret": 2,
+      "String": 3,
+      "HandFret": 2
+    },
+    {
+      "TimeOffset": 8.5,
+      "TimeLength": 0.5,
+      "EndTime": 9,
+      "Fret": 1,
+      "String": 4,
+      "HandFret": 1,
+      "Techniques": "Chord",
+      "ChordID": 0
+    },
+    {
+      "TimeOffset": 8.5,
+      "TimeLength": 0.5,
+      "EndTime": 9,
+      "Fret": 2,
+      "String": 3,
+      "HandFret": 1,
+      "Techniques": "ChordNote",
+      "ChordID": 0
+    },
+    {
+      "TimeOffset": 8.5,
+      "TimeLength": 0.5,
+      "EndTime": 9,
+      "Fret": 3,
+      "String": 2,
+      "HandFret": 1,
+      "Techniques": "ChordNote",
+      "ChordID": 0
+    },
+    {
+      "TimeOffset": 9,
+      "TimeLength": 0.5,
+      "EndTime": 9.5,
+      "Fret": 0,
+      "String": 3,
+      "HandFret": 1
+    },
+    {
+      "TimeOffset": 9.5,
+      "TimeLength": 0.5,
+      "EndTime": 10,
+      "Fret": 0,
+      "String": 3,
+      "HandFret": 1
+    },
+    {
+      "TimeOffset": 10,
+      "TimeLength": 0.5,
+      "EndTime": 10.5,
+      "Fret": 2,
+      "String": 3,
+      "HandFret": 2
+    },
+    {
+      "TimeOffset": 10.5,
+      "TimeLength": 0.25,
+      "EndTime": 10.75,
+      "Fret": 2,
+      "String": 3,
+      "HandFret": 2
+    },
+    {
+      "TimeOffset": 10.75,
+      "TimeLength": 0.25,
+      "EndTime": 11,
+      "Fret": 0,
+      "String": 3,
+      "HandFret": 2
+    },
+    {
+      "TimeOffset": 11,
+      "TimeLength": 0.5,
+      "EndTime": 11.5,
+      "Fret": 2,
+      "String": 2,
+      "HandFret": 2
+    },
+    {
+      "TimeOffset": 11.5,
+      "TimeLength": 0.25,
+      "EndTime": 11.75,
+      "Fret": 2,
+      "String": 2,
+      "HandFret": 2
+    },
+    {
+      "TimeOffset": 11.75,
+      "TimeLength": 0.25,
+      "EndTime": 12,
+      "Fret": 0,
+      "String": 3,
+      "HandFret": 2
+    },
+    {
+      "TimeOffset": 12,
+      "TimeLength": 0.25,
+      "EndTime": 12.25,
+      "Fret": 3,
+      "String": 2,
+      "HandFret": 3
+    },
+    {
+      "TimeOffset": 12.25,
+      "TimeLength": 0.25,
+      "EndTime": 12.5,
+      "Fret": 2,
+      "String": 2,
+      "HandFret": 2
+    },
+    {
+      "TimeOffset": 12.5,
+      "TimeLength": 0.25,
+      "EndTime": 12.75,
+      "Fret": 0,
+      "String": 2,
+      "HandFret": 2
+    },
+    {
+      "TimeOffset": 12.75,
+      "TimeLength": 0.25,
+      "EndTime": 13,
+      "Fret": 3,
+      "String": 1,
+      "HandFret": 3
+    },
+    {
+      "TimeOffset": 13,
+      "TimeLength": 0.5,
+      "EndTime": 13.5,
+      "Fret": 0,
+      "String": 1,
+      "HandFret": 3
+    },
+    {
+      "TimeOffset": 13.5,
+      "TimeLength": 0.25,
+      "EndTime": 13.75,
+      "Fret": 3,
+      "String": 0,
+      "HandFret": 3
+    },
+    {
+      "TimeOffset": 13.75,
+      "TimeLength": 0.25,
+      "EndTime": 14,
+      "Fret": 0,
+      "String": 1,
+      "HandFret": 3
+    },
+    {
+      "TimeOffset": 14,
+      "TimeLength": 0.25,
+      "EndTime": 14.25,
+      "Fret": 3,
+      "String": 1,
+      "HandFret": 3
+    },
+    {
+      "TimeOffset": 14.25,
+      "TimeLength": 0.25,
+      "EndTime": 14.5,
+      "Fret": 3,
+      "String": 1,
+      "HandFret": 3
+    },
+    {
+      "TimeOffset": 14.5,
+      "TimeLength": 0.25,
+      "EndTime": 14.75,
+      "Fret": 2,
+      "String": 2,
+      "HandFret": 2
+    },
+    {
+      "TimeOffset": 14.75,
+      "TimeLength": 0.25,
+      "EndTime": 15,
+      "Fret": 0,
+      "String": 3,
+      "HandFret": 2
+    },
+    {
+      "TimeOffset": 15,
+      "TimeLength": 0.5,
+      "EndTime": 15.5,
+      "Fret": 2,
+      "String": 3,
+      "HandFret": 2
+    },
+    {
+      "TimeOffset": 15.5,
+      "TimeLength": 0.25,
+      "EndTime": 15.75,
+      "Fret": 0,
+      "String": 3,
+      "HandFret": 2
+    },
+    {
+      "TimeOffset": 15.75,
+      "TimeLength": 0.25,
+      "EndTime": 16,
+      "Fret": 2,
+      "String": 2,
+      "HandFret": 2
+    },
+    {
+      "TimeOffset": 16,
+      "TimeLength": 0.5,
+      "EndTime": 16.5,
+      "Fret": 0,
+      "String": 2,
+      "HandFret": 2
+    },
+    {
+      "TimeOffset": 16.5,
+      "TimeLength": 0.5,
+      "EndTime": 17,
+      "Fret": 1,
+      "String": 5,
+      "HandFret": 1,
+      "Techniques": "Chord",
+      "ChordID": 1
+    },
+    {
+      "TimeOffset": 16.5,
+      "TimeLength": 0.5,
+      "EndTime": 17,
+      "Fret": 0,
+      "String": 4,
+      "HandFret": 1,
+      "Techniques": "ChordNote",
+      "ChordID": 1
+    },
+    {
+      "TimeOffset": 16.5,
+      "TimeLength": 0.5,
+      "EndTime": 17,
+      "Fret": 0,
+      "String": 3,
+      "HandFret": 1,
+      "Techniques": "ChordNote",
+      "ChordID": 1
+    },
+    {
+      "TimeOffset": 17,
+      "TimeLength": 0.5,
+      "EndTime": 17.5,
+      "Fret": 3,
+      "String": 1,
+      "HandFret": 3
+    },
+    {
+      "TimeOffset": 17.5,
+      "TimeLength": 0.5,
+      "EndTime": 18,
+      "Fret": 0,
+      "String": 3,
+      "HandFret": 3
+    },
+    {
+      "TimeOffset": 18,
+      "TimeLength": 0.5,
+      "EndTime": 18.5,
+      "Fret": 1,
+      "String": 4,
+      "HandFret": 1
+    },
+    {
+      "TimeOffset": 18.5,
+      "TimeLength": 0.25,
+      "EndTime": 18.75,
+      "Fret": 1,
+      "String": 4,
+      "HandFret": 1
+    },
+    {
+      "TimeOffset": 18.75,
+      "TimeLength": 0.25,
+      "EndTime": 19,
+      "Fret": 3,
+      "String": 4,
+      "HandFret": 3
+    },
+    {
+      "TimeOffset": 19,
+      "TimeLength": 0.5,
+      "EndTime": 19.5,
+      "Fret": 0,
+      "String": 5,
+      "HandFret": 1,
+      "Techniques": "Chord",
+      "ChordID": 2
+    },
+    {
+      "TimeOffset": 19,
+      "TimeLength": 0.5,
+      "EndTime": 19.5,
+      "Fret": 1,
+      "String": 4,
+      "HandFret": 1,
+      "Techniques": "ChordNote",
+      "ChordID": 2
+    },
+    {
+      "TimeOffset": 19,
+      "TimeLength": 0.5,
+      "EndTime": 19.5,
+      "Fret": 0,
+      "String": 3,
+      "HandFret": 1,
+      "Techniques": "ChordNote",
+      "ChordID": 2
+    },
+    {
+      "TimeOffset": 19.5,
+      "TimeLength": 0.25,
+      "EndTime": 19.75,
+      "Fret": 3,
+      "String": 4,
+      "HandFret": 3
+    },
+    {
+      "TimeOffset": 19.75,
+      "TimeLength": 0.25,
+      "EndTime": 20,
+      "Fret": 1,
+      "String": 4,
+      "HandFret": 1
+    },
+    {
+      "TimeOffset": 20,
+      "TimeLength": 0.5,
+      "EndTime": 20.5,
+      "Fret": 3,
+      "String": 4,
+      "HandFret": 3
+    },
+    {
+      "TimeOffset": 20.5,
+      "TimeLength": 0.25,
+      "EndTime": 20.75,
+      "Fret": 3,
+      "String": 4,
+      "HandFret": 3
+    },
+    {
+      "TimeOffset": 20.75,
+      "TimeLength": 0.25,
+      "EndTime": 21,
+      "Fret": 1,
+      "String": 4,
+      "HandFret": 1
+    },
+    {
+      "TimeOffset": 21,
+      "TimeLength": 0.5,
+      "EndTime": 21.5,
+      "Fret": 2,
+      "String": 3,
+      "HandFret": 2
+    },
+    {
+      "TimeOffset": 21.5,
+      "TimeLength": 0.25,
+      "EndTime": 21.75,
+      "Fret": 0,
+      "String": 3,
+      "HandFret": 2
+    },
+    {
+      "TimeOffset": 21.75,
+      "TimeLength": 0.25,
+      "EndTime": 22,
+      "Fret": 2,
+      "String": 3,
+      "HandFret": 2
+    },
+    {
+      "TimeOffset": 22,
+      "TimeLength": 0.5,
+      "EndTime": 22.5,
+      "Fret": 1,
+      "String": 4,
+      "HandFret": 1
+    },
+    {
+      "TimeOffset": 22.5,
+      "TimeLength": 0.5,
+      "EndTime": 23,
+      "Fret": 0,
+      "String": 5,
+      "HandFret": 1,
+      "Techniques": "Chord",
+      "ChordID": 2
+    },
+    {
+      "TimeOffset": 22.5,
+      "TimeLength": 0.5,
+      "EndTime": 23,
+      "Fret": 1,
+      "String": 4,
+      "HandFret": 1,
+      "Techniques": "ChordNote",
+      "ChordID": 2
+    },
+    {
+      "TimeOffset": 22.5,
+      "TimeLength": 0.5,
+      "EndTime": 23,
+      "Fret": 0,
+      "String": 3,
+      "HandFret": 1,
+      "Techniques": "ChordNote",
+      "ChordID": 2
+    },
+    {
+      "TimeOffset": 23,
+      "TimeLength": 0.5,
+      "EndTime": 23.5,
+      "Fret": 1,
+      "String": 4,
+      "HandFret": 1
+    },
+    {
+      "TimeOffset": 23.5,
+      "TimeLength": 0.25,
+      "EndTime": 23.75,
+      "Fret": 2,
+      "String": 2,
+      "HandFret": 2
+    },
+    {
+      "TimeOffset": 23.75,
+      "TimeLength": 0.25,
+      "EndTime": 24,
+      "Fret": 0,
+      "String": 3,
+      "HandFret": 2
+    },
+    {
+      "TimeOffset": 24,
+      "TimeLength": 0.5,
+      "EndTime": 24.5,
+      "Fret": 2,
+      "String": 3,
+      "HandFret": 2
+    },
+    {
+      "TimeOffset": 24.5,
+      "TimeLength": 0.5,
+      "EndTime": 25,
+      "Fret": 1,
+      "String": 4,
+      "HandFret": 1,
+      "Techniques": "Chord",
+      "ChordID": 0
+    },
+    {
+      "TimeOffset": 24.5,
+      "TimeLength": 0.5,
+      "EndTime": 25,
+      "Fret": 2,
+      "String": 3,
+      "HandFret": 1,
+      "Techniques": "ChordNote",
+      "ChordID": 0
+    },
+    {
+      "TimeOffset": 24.5,
+      "TimeLength": 0.5,
+      "EndTime": 25,
+      "Fret": 3,
+      "String": 2,
+      "HandFret": 1,
+      "Techniques": "ChordNote",
+      "ChordID": 0
+    },
+    {
+      "TimeOffset": 25,
+      "TimeLength": 0.5,
+      "EndTime": 25.5,
+      "Fret": 0,
+      "String": 3,
+      "HandFret": 1
+    },
+    {
+      "TimeOffset": 25.5,
+      "TimeLength": 0.5,
+      "EndTime": 26,
+      "Fret": 0,
+      "String": 3,
+      "HandFret": 1
+    },
+    {
+      "TimeOffset": 26,
+      "TimeLength": 0.5,
+      "EndTime": 26.5,
+      "Fret": 2,
+      "String": 3,
+      "HandFret": 2
+    },
+    {
+      "TimeOffset": 26.5,
+      "TimeLength": 0.25,
+      "EndTime": 26.75,
+      "Fret": 2,
+      "String": 3,
+      "HandFret": 2
+    },
+    {
+      "TimeOffset": 26.75,
+      "TimeLength": 0.25,
+      "EndTime": 27,
+      "Fret": 0,
+      "String": 3,
+      "HandFret": 2
+    },
+    {
+      "TimeOffset": 27,
+      "TimeLength": 0.5,
+      "EndTime": 27.5,
+      "Fret": 2,
+      "String": 2,
+      "HandFret": 2
+    },
+    {
+      "TimeOffset": 27.5,
+      "TimeLength": 0.25,
+      "EndTime": 27.75,
+      "Fret": 2,
+      "String": 2,
+      "HandFret": 2
+    },
+    {
+      "TimeOffset": 27.75,
+      "TimeLength": 0.25,
+      "EndTime": 28,
+      "Fret": 0,
+      "String": 3,
+      "HandFret": 2
+    },
+    {
+      "TimeOffset": 28,
+      "TimeLength": 0.25,
+      "EndTime": 28.25,
+      "Fret": 3,
+      "String": 2,
+      "HandFret": 3
+    },
+    {
+      "TimeOffset": 28.25,
+      "TimeLength": 0.25,
+      "EndTime": 28.5,
+      "Fret": 2,
+      "String": 2,
+      "HandFret": 2
+    },
+    {
+      "TimeOffset": 28.5,
+      "TimeLength": 0.25,
+      "EndTime": 28.75,
+      "Fret": 0,
+      "String": 2,
+      "HandFret": 2
+    },
+    {
+      "TimeOffset": 28.75,
+      "TimeLength": 0.25,
+      "EndTime": 29,
+      "Fret": 3,
+      "String": 1,
+      "HandFret": 3
+    },
+    {
+      "TimeOffset": 29,
+      "TimeLength": 0.5,
+      "EndTime": 29.5,
+      "Fret": 0,
+      "String": 1,
+      "HandFret": 3
+    },
+    {
+      "TimeOffset": 29.5,
+      "TimeLength": 0.25,
+      "EndTime": 29.75,
+      "Fret": 3,
+      "String": 0,
+      "HandFret": 3
+    },
+    {
+      "TimeOffset": 29.75,
+      "TimeLength": 0.25,
+      "EndTime": 30,
+      "Fret": 0,
+      "String": 1,
+      "HandFret": 3
+    },
+    {
+      "TimeOffset": 30,
+      "TimeLength": 0.25,
+      "EndTime": 30.25,
+      "Fret": 3,
+      "String": 1,
+      "HandFret": 3
+    },
+    {
+      "TimeOffset": 30.25,
+      "TimeLength": 0.25,
+      "EndTime": 30.5,
+      "Fret": 3,
+      "String": 1,
+      "HandFret": 3
+    },
+    {
+      "TimeOffset": 30.5,
+      "TimeLength": 0.25,
+      "EndTime": 30.75,
+      "Fret": 2,
+      "String": 2,
+      "HandFret": 2
+    },
+    {
+      "TimeOffset": 30.75,
+      "TimeLength": 0.25,
+      "EndTime": 31,
+      "Fret": 0,
+      "String": 3,
+      "HandFret": 2
+    },
+    {
+      "TimeOffset": 31,
+      "TimeLength": 0.5,
+      "EndTime": 31.5,
+      "Fret": 2,
+      "String": 3,
+      "HandFret": 2
+    },
+    {
+      "TimeOffset": 31.5,
+      "TimeLength": 0.25,
+      "EndTime": 31.75,
+      "Fret": 0,
+      "String": 3,
+      "HandFret": 2
+    },
+    {
+      "TimeOffset": 31.75,
+      "TimeLength": 0.25,
+      "EndTime": 32,
+      "Fret": 2,
+      "String": 2,
+      "HandFret": 2
+    },
+    {
+      "TimeOffset": 32,
+      "TimeLength": 0.5,
+      "EndTime": 32.5,
+      "Fret": 0,
+      "String": 2,
+      "HandFret": 2
+    },
+    {
+      "TimeOffset": 32.5,
+      "TimeLength": 0.5,
+      "EndTime": 33,
+      "Fret": 1,
+      "String": 5,
+      "HandFret": 1,
+      "Techniques": "Chord",
+      "ChordID": 1
+    },
+    {
+      "TimeOffset": 32.5,
+      "TimeLength": 0.5,
+      "EndTime": 33,
+      "Fret": 0,
+      "String": 4,
+      "HandFret": 1,
+      "Techniques": "ChordNote",
+      "ChordID": 1
+    },
+    {
+      "TimeOffset": 32.5,
+      "TimeLength": 0.5,
+      "EndTime": 33,
+      "Fret": 0,
+      "String": 3,
+      "HandFret": 1,
+      "Techniques": "ChordNote",
+      "ChordID": 1
+    },
+    {
+      "TimeOffset": 33,
+      "TimeLength": 0.5,
+      "EndTime": 33.5,
+      "Fret": 3,
+      "String": 1,
+      "HandFret": 3
+    },
+    {
+      "TimeOffset": 33.5,
+      "TimeLength": 0.5,
+      "EndTime": 34,
+      "Fret": 0,
+      "String": 5,
+      "HandFret": 1,
+      "Techniques": "Chord",
+      "ChordID": 2
+    },
+    {
+      "TimeOffset": 33.5,
+      "TimeLength": 0.5,
+      "EndTime": 34,
+      "Fret": 1,
+      "String": 4,
+      "HandFret": 1,
+      "Techniques": "ChordNote",
+      "ChordID": 2
+    },
+    {
+      "TimeOffset": 33.5,
+      "TimeLength": 0.5,
+      "EndTime": 34,
+      "Fret": 0,
+      "String": 3,
+      "HandFret": 1,
+      "Techniques": "ChordNote",
+      "ChordID": 2
+    }
+  ]
+}

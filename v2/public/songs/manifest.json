@@ -24,6 +24,18 @@
     "hasArt": true
   },
   {
+    "folder": "LochLomond",
+    "title": "Loch Lomond",
+    "artist": "Traditional",
+    "parts": [
+      {
+        "name": "lead",
+        "type": "LeadGuitar"
+      }
+    ],
+    "hasArt": true
+  },
+  {
     "folder": "MaryHadaLittleLamb",
     "title": "Mary Had a Little Lamb",
     "artist": "Sarah Josepha Hale",

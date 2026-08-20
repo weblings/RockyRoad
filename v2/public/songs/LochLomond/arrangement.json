@@ -1,0 +1,277 @@
+{
+  "Sections": [],
+  "Beats": [
+    {
+      "TimeOffset": 0,
+      "IsMeasure": true
+    },
+    {
+      "TimeOffset": 0.5,
+      "IsMeasure": false
+    },
+    {
+      "TimeOffset": 1,
+      "IsMeasure": false
+    },
+    {
+      "TimeOffset": 1.5,
+      "IsMeasure": false
+    },
+    {
+      "TimeOffset": 2,
+      "IsMeasure": true
+    },
+    {
+      "TimeOffset": 2.5,
+      "IsMeasure": false
+    },
+    {
+      "TimeOffset": 3,
+      "IsMeasure": false
+    },
+    {
+      "TimeOffset": 3.5,
+      "IsMeasure": false
+    },
+    {
+      "TimeOffset": 4,
+      "IsMeasure": true
+    },
+    {
+      "TimeOffset": 4.5,
+      "IsMeasure": false
+    },
+    {
+      "TimeOffset": 5,
+      "IsMeasure": false
+    },
+    {
+      "TimeOffset": 5.5,
+      "IsMeasure": false
+    },
+    {
+      "TimeOffset": 6,
+      "IsMeasure": true
+    },
+    {
+      "TimeOffset": 6.5,
+      "IsMeasure": false
+    },
+    {
+      "TimeOffset": 7,
+      "IsMeasure": false
+    },
+    {
+      "TimeOffset": 7.5,
+      "IsMeasure": false
+    },
+    {
+      "TimeOffset": 8,
+      "IsMeasure": true
+    },
+    {
+      "TimeOffset": 8.5,
+      "IsMeasure": false
+    },
+    {
+      "TimeOffset": 9,
+      "IsMeasure": false
+    },
+    {
+      "TimeOffset": 9.5,
+      "IsMeasure": false
+    },
+    {
+      "TimeOffset": 10,
+      "IsMeasure": true
+    },
+    {
+      "TimeOffset": 10.5,
+      "IsMeasure": false
+    },
+    {
+      "TimeOffset": 11,
+      "IsMeasure": false
+    },
+    {
+      "TimeOffset": 11.5,
+      "IsMeasure": false
+    },
+    {
+      "TimeOffset": 12,
+      "IsMeasure": true
+    },
+    {
+      "TimeOffset": 12.5,
+      "IsMeasure": false
+    },
+    {
+      "TimeOffset": 13,
+      "IsMeasure": false
+    },
+    {
+      "TimeOffset": 13.5,
+      "IsMeasure": false
+    },
+    {
+      "TimeOffset": 14,
+      "IsMeasure": true
+    },
+    {
+      "TimeOffset": 14.5,
+      "IsMeasure": false
+    },
+    {
+      "TimeOffset": 15,
+      "IsMeasure": false
+    },
+    {
+      "TimeOffset": 15.5,
+      "IsMeasure": false
+    },
+    {
+      "TimeOffset": 16,
+      "IsMeasure": true
+    },
+    {
+      "TimeOffset": 16.5,
+      "IsMeasure": false
+    },
+    {
+      "TimeOffset": 17,
+      "IsMeasure": false
+    },
+    {
+      "TimeOffset": 17.5,
+      "IsMeasure": false
+    },
+    {
+      "TimeOffset": 18,
+      "IsMeasure": true
+    },
+    {
+      "TimeOffset": 18.5,
+      "IsMeasure": false
+    },
+    {
+      "TimeOffset": 19,
+      "IsMeasure": false
+    },
+    {
+      "TimeOffset": 19.5,
+      "IsMeasure": false
+    },
+    {
+      "TimeOffset": 20,
+      "IsMeasure": true
+    },
+    {
+      "TimeOffset": 20.5,
+      "IsMeasure": false
+    },
+    {
+      "TimeOffset": 21,
+      "IsMeasure": false
+    },
+    {
+      "TimeOffset": 21.5,
+      "IsMeasure": false
+    },
+    {
+      "TimeOffset": 22,
+      "IsMeasure": true
+    },
+    {
+      "TimeOffset": 22.5,
+      "IsMeasure": false
+    },
+    {
+      "TimeOffset": 23,
+      "IsMeasure": false
+    },
+    {
+      "TimeOffset": 23.5,
+      "IsMeasure": false
+    },
+    {
+      "TimeOffset": 24,
+      "IsMeasure": true
+    },
+    {
+      "TimeOffset": 24.5,
+      "IsMeasure": false
+    },
+    {
+      "TimeOffset": 25,
+      "IsMeasure": false
+    },
+    {
+      "TimeOffset": 25.5,
+      "IsMeasure": false
+    },
+    {
+      "TimeOffset": 26,
+      "IsMeasure": true
+    },
+    {
+      "TimeOffset": 26.5,
+      "IsMeasure": false
+    },
+    {
+      "TimeOffset": 27,
+      "IsMeasure": false
+    },
+    {
+      "TimeOffset": 27.5,
+      "IsMeasure": false
+    },
+    {
+      "TimeOffset": 28,
+      "IsMeasure": true
+    },
+    {
+      "TimeOffset": 28.5,
+      "IsMeasure": false
+    },
+    {
+      "TimeOffset": 29,
+      "IsMeasure": false
+    },
+    {
+      "TimeOffset": 29.5,
+      "IsMeasure": false
+    },
+    {
+      "TimeOffset": 30,
+      "IsMeasure": true
+    },
+    {
+      "TimeOffset": 30.5,
+      "IsMeasure": false
+    },
+    {
+      "TimeOffset": 31,
+      "IsMeasure": false
+    },
+    {
+      "TimeOffset": 31.5,
+      "IsMeasure": false
+    },
+    {
+      "TimeOffset": 32,
+      "IsMeasure": true
+    },
+    {
+      "TimeOffset": 32.5,
+      "IsMeasure": false
+    },
+    {
+      "TimeOffset": 33,
+      "IsMeasure": false
+    },
+    {
+      "TimeOffset": 33.5,
+      "IsMeasure": false
+    }
+  ]
+}
