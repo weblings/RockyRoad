@@ -7,15 +7,29 @@ render, and the authoring workflow that produces it.
 
 ---
 
-## Claude's default image/PDF parsing isn't accurate enough for guitar-tab digit-level transcription — CSV dictation is the working fallback
+## Recommended path: notate in TuxGuitar, export GP5, convert via RockyRoadImport
+
+Hand-authoring chart JSON from a tab (below) is superseded — see
+[`RockyRoadImport/README.md`](../../../RockyRoadImport/README.md#converting-guitar-pro-gp3gp4gp5-files)
+for the current recommended workflow (notate in TuxGuitar, export `.gp5`, convert with
+RockyRoadImport's Guitar Pro tab). That tool's `gpConverter.ts` already handles string-indexing,
+duration-to-seconds conversion, and JSON generation, so the manual techniques below are mostly
+historical now.
+
+---
+
+## Claude's default image/PDF parsing isn't accurate enough for guitar-tab digit-level transcription
 
 **Finding:** Reading fret/string digits directly off a tab image or PDF — even from a clean,
 zoomed, user-provided crop of just a few measures — produced outright wrong digits, not just
 ambiguous readings (confirmed by the user checking against the source). See
-`feedback_no_tab_image_parsing` in persistent memory for that finding itself. What actually
-worked: the user hand-transcribed each measure into a CSV, one measure per block, rows = the 6 tab
-strings (1 = highest), columns = note slots within the measure, cell = `fret, note-value` (blank =
-no note on that string/slot). E.g. measure 24 of a "held note resolves, then a new note" measure:
+`feedback_no_tab_image_parsing` in persistent memory. This is why the TuxGuitar path above exists —
+a human notating directly in a real tab editor sidesteps the problem rather than working around it.
+
+**Historical, archived for reference:** before GP5 support existed, the working fallback was
+hand-transcribing each measure into a CSV — rows = the 6 tab strings (1 = highest), columns = note
+slots, cell = `fret, note-value` (blank = no note). E.g. measure 24 of a "held note resolves, then a
+new note" measure:
 
 ```
 Measure 24,Note 1,Note 2,Note 3
@@ -28,15 +42,8 @@ Tab Strings,,,
 6,,,
 ```
 
-`(end hold)` / `(start hold)` suffixes on the value mark a note tied across the barline (see the
-duration-conversion entry below for how these get merged into one note object). This arrangement
-had no chords — every note slot had at most one string filled — so this format's handling of
-genuinely simultaneous multi-string notes is unexercised; revisit if a future transcription needs
-it.
-
-**Unexplored:** dedicated music-notation/guitar-tab OCR tooling as a possible intermediary, to
-turn a source PDF into structured data directly instead of needing manual CSV dictation for every
-future transcription. Worth investigating before the next one of these comes up.
+`(end hold)` / `(start hold)` suffixes marked a note tied across the barline. This never got
+exercised against a chord (every note slot had at most one string filled).
 
 ---
 
@@ -49,24 +56,12 @@ line). Confirmed from this codebase's own runtime logic (`NoteDetector.ts`'s
 render-height ordering) since the original C# source isn't checked out in this repo to consult
 directly.
 
-**How to apply:** When transcribing from tab (string 1 = high e on top), convert via
-`appString = 6 - tabStringNumber` before writing `String` into the JSON.
+The GP5 path handles this conversion automatically (`gpConverter.ts`) — this only matters now if
+hand-editing a `lead.json`/`bass.json` directly: `appString = 6 - tabStringNumber`.
 
 ---
 
-## Note durations dictated as fraction-of-whole-note need converting to seconds via the song's actual BPM
-
-**Finding:** The most reliable way to get duration data out of a human transcribing a tab by hand
-is fraction-of-whole-note (0.25=quarter, 0.5=half, 0.125=eighth, 0.375=dotted quarter, 0.75=dotted
-half) — matches how musicians already think about note values, unlike literal seconds. Convert via
-`seconds = fraction × 4 × (60 / BPM)`.
-
-**How to apply:** Get BPM and time signature from the source (or the audio track) before
-transcribing anything — every other time computation depends on it.
-
----
-
-## Total song duration is a free, powerful sanity check before trusting any note-level data
+## Total song duration is a free, powerful sanity check on any chart, regardless of source
 
 **Finding:** `measureCount × beatsPerMeasure × secondsPerBeat` should equal the track's actual
 length almost exactly. For a piece with a pickup (anacrusis), the *final* measure is conventionally
@@ -74,34 +69,22 @@ shortened by the same beat count the pickup borrowed — confirmed here when 32 
 0.5s (120 BPM) landed on exactly 48.0s, matching the given track length, with the last measure's
 notation showing only 2 beats instead of 3.
 
-**How to apply:** Do this arithmetic check *before* transcribing note-by-note — a mismatch means a
-wrong BPM, a miscounted measure, or a missed pickup/anacrusis, all worth fixing before the fine
-detail work.
+**How to apply:** Check a chart's total duration against the real track length before trusting it —
+still useful as a cheap catch for a wrong BPM/time-signature baked into a source file (TuxGuitar or
+otherwise), not just hand-transcribed data.
 
 ---
 
-## A known key signature makes most fret/string transcription errors self-evident, for free
+## A known key signature makes most fret/string errors self-evident, for free
 
 **Finding:** Given standard tuning and a diatonic key, only certain (open-string-pitch, fret)
 combinations land in-key — e.g. fret 1 is diatonic on the B string (→C) but not on any of the
-other 5 strings in G major. Cross-checking transcribed (String, Fret) pairs against this caught a
-real mistranscription (two measures had their string numbers swapped) before it reached the chart.
+other 5 strings in G major. Cross-checking (String, Fret) pairs against this caught a real
+mistranscription (two measures had their string numbers swapped) before it reached the chart.
 
-**How to apply:** Before trusting a batch of tab-derived (string, fret) data, check each pair
-against the song's key signature — an off-key result is a strong signal of a swapped string or
-misread digit, worth flagging back to whoever transcribed it rather than assuming it's a deliberate
-chromatic passing tone.
-
----
-
-## Script-generate bulk chart JSON from a compact source table instead of hand-authoring each note object
-
-**Finding:** A ~30-second chart is 70-90+ individual note objects with precise cumulative timing —
-hand-typing that risks silent arithmetic drift. Encoding the source data (string/fret/duration per
-measure, as dictated) into a small array and writing a script to compute cumulative
-`TimeOffset`/`TimeLength`/`EndTime` (and merge tied/held notes across barlines into one note object)
-is far safer, and its output is cheap to sanity-check (total note count, final `EndTime`, spot-check
-specific notes) before writing the real file.
+**How to apply:** Less critical now that notation happens in a real tab editor with audio playback
+rather than blind CSV cell-typing, but still a cheap check on any chart's (String, Fret) data — an
+off-key result is a strong signal of a swapped string or encoding mistake worth investigating.
 
 ---
 
