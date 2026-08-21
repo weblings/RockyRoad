@@ -10,7 +10,7 @@ v0.2.5
 - [ ] xr padding (library occasional bug, scrubber + play button in play screen)
 
 - [x] Mobile - Desktop library page shows library as a single slidable row instead of a grid
-- [ ] Desktop - Adjust song page to use xr song model, works better for mobile
+- [x] Desktop - Adjust song page to use xr song model, works better for mobile
 - [ ] Mobile - Explore fullscreen option, could put where VR button usually goes
 
 - [ ] Explore if old folderpath options works for desktop

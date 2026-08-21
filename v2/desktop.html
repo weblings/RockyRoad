@@ -271,14 +271,55 @@
       display: flex; flex-direction: column; align-items: center;
       gap: 12px; width: 100%; max-width: 360px; padding: 60px 24px 32px;
     }
+    /* Groups art + title/artist so the pair can flip from the default centered "hero" stack
+       to a compact side-by-side row under .pre-header's own media query below, without
+       touching the dropdowns/action-row that follow — see desktop-dom.md. */
+    .pre-header {
+      display: flex; flex-direction: column; align-items: center;
+      gap: 12px; width: 100%;
+    }
     .pre-art {
       width: 180px; height: 180px; border-radius: 10px; overflow: hidden;
       background: #242424; margin-bottom: 4px; flex-shrink: 0;
     }
     .pre-art img { width: 100%; height: 100%; object-fit: cover; display: block; }
     .pre-art-placeholder { width: 100%; height: 100%; background: #242424; }
-    .pre-song-name { font-size: 22px; font-weight: 700; text-align: center; line-height: 1.2; }
-    .pre-artist-name { font-size: 15px; color: #8c8c8c; text-align: center; margin-bottom: 4px; }
+    /* Explicit width, not shrink-to-fit — .pre-header's align-items:center otherwise hugs
+       this to its content's own size, letting a long title grow past the container instead
+       of triggering the ellipsis rules below. */
+    .pre-header-text { width: 100%; min-width: 0; }
+    .pre-song-name {
+      font-size: 22px; font-weight: 700; text-align: center; line-height: 1.2;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .pre-artist-name {
+      font-size: 15px; color: #8c8c8c; text-align: center; margin-bottom: 4px;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+
+    /* Fallback for constrained vertical room (e.g. landscape on mobile), where the full-size
+       hero art pushes Play off-screen: shrink art to a thumbnail and lay it out beside the
+       title/artist instead of above them, same compact row shape as the library card and
+       XR's song-row. Keyed on actual available height, not device orientation — a landscape
+       tablet has plenty of height and shouldn't trigger this (same reasoning as the library
+       grid's width-based column count). */
+    @media (max-height: 480px) {
+      .pre-content { padding: 44px 24px 24px; gap: 8px; }
+      /* Card container like XR's song-row / the library entry, instead of the thumb+text
+         floating directly on the screen background — reads as a distinct row, not stray
+         leftover content once it's this small. */
+      .pre-header {
+        flex-direction: row; align-items: center; gap: 12px;
+        background: #333333; border-radius: 8px; padding: 10px 12px; width: 100%;
+      }
+      .pre-art { width: 56px; height: 56px; margin-bottom: 0; }
+      /* flex:1 instead of the default width:100% — beside the thumb (not above it) now,
+         so it needs to fill the row's remaining space, not the whole container. */
+      .pre-header-text { width: auto; flex: 1 1 0; min-width: 0; text-align: left; }
+      .pre-song-name, .pre-artist-name { text-align: left; }
+      .pre-song-name { font-size: 16px; }
+      .pre-artist-name { font-size: 13px; margin-bottom: 0; }
+    }
     .pre-toggles { display: flex; flex-direction: column; width: 100%; }
     .pre-toggle-row {
       display: flex; align-items: center; justify-content: space-between;

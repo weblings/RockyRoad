@@ -50,11 +50,15 @@ export class PreSceneScreen implements IScreen {
                     <span>Library</span>
                 </button>
                 <div class="pre-content">
-                    <div class="pre-art" id="pre-art">
-                        <div class="pre-art-placeholder"></div>
+                    <div class="pre-header">
+                        <div class="pre-art" id="pre-art">
+                            <div class="pre-art-placeholder"></div>
+                        </div>
+                        <div class="pre-header-text">
+                            <div class="pre-song-name">${esc(this.entry.songName)}</div>
+                            <div class="pre-artist-name">${esc(this.entry.artistName)}</div>
+                        </div>
                     </div>
-                    <div class="pre-song-name">${esc(this.entry.songName)}</div>
-                    <div class="pre-artist-name">${esc(this.entry.artistName)}</div>
 
                     <div class="dropdown-row">
                         <div class="dropdown-row-item" id="pre-instrument-slot"></div>
