@@ -15,7 +15,7 @@
                 "type": "svg",
                 "sourceTag": "img",
                 "properties": {
-                  "src": "/back-arrow.svg",
+                  "src": "back-arrow.svg",
                   "class": "back-icon"
                 },
                 "dataUid": "uid-4"
@@ -1021,7 +1021,7 @@
       },
       "end": {
         "line": 253,
-        "column": 53
+        "column": 52
       }
     },
     "uid-5": {

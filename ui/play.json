@@ -15,7 +15,7 @@
                 "type": "svg",
                 "sourceTag": "img",
                 "properties": {
-                  "src": "/back-arrow.svg",
+                  "src": "back-arrow.svg",
                   "class": "icon"
                 },
                 "dataUid": "uid-4"
@@ -103,7 +103,7 @@
                 "type": "svg",
                 "sourceTag": "img",
                 "properties": {
-                  "src": "/settings-gear-icon.svg",
+                  "src": "settings-gear-icon.svg",
                   "class": "icon"
                 },
                 "dataUid": "uid-12"
@@ -225,7 +225,7 @@
                     "properties": {
                       "id": "as-play-icon",
                       "class": "play-pause-icon",
-                      "src": "/play-icon.svg"
+                      "src": "play-icon.svg"
                     },
                     "dataUid": "uid-24"
                   },
@@ -235,7 +235,7 @@
                     "properties": {
                       "id": "as-pause-icon",
                       "class": "play-pause-icon",
-                      "src": "/pause-icon.svg"
+                      "src": "pause-icon.svg"
                     },
                     "dataUid": "uid-25"
                   }
@@ -342,7 +342,7 @@
                         "properties": {
                           "id": "as-speed-chevron-down",
                           "class": "option-chevron",
-                          "src": "/chevron-down.svg"
+                          "src": "chevron-down.svg"
                         },
                         "dataUid": "uid-36"
                       },
@@ -352,7 +352,7 @@
                         "properties": {
                           "id": "as-speed-chevron-up",
                           "class": "option-chevron",
-                          "src": "/chevron-up.svg"
+                          "src": "chevron-up.svg"
                         },
                         "dataUid": "uid-37"
                       }
@@ -534,7 +534,7 @@
                         "properties": {
                           "id": "as-difficulty-chevron-down",
                           "class": "option-chevron",
-                          "src": "/chevron-down.svg"
+                          "src": "chevron-down.svg"
                         },
                         "dataUid": "uid-53"
                       },
@@ -544,7 +544,7 @@
                         "properties": {
                           "id": "as-difficulty-chevron-up",
                           "class": "option-chevron",
-                          "src": "/chevron-up.svg"
+                          "src": "chevron-up.svg"
                         },
                         "dataUid": "uid-54"
                       }
@@ -607,7 +607,7 @@
                 "type": "svg",
                 "sourceTag": "img",
                 "properties": {
-                  "src": "/recal-icon.svg",
+                  "src": "recal-icon.svg",
                   "class": "icon"
                 },
                 "dataUid": "uid-59"
@@ -1515,7 +1515,7 @@
       },
       "end": {
         "line": 502,
-        "column": 48
+        "column": 47
       }
     },
     "uid-5": {
@@ -1595,7 +1595,7 @@
       },
       "end": {
         "line": 512,
-        "column": 56
+        "column": 55
       }
     },
     "uid-13": {
@@ -1715,7 +1715,7 @@
       },
       "end": {
         "line": 530,
-        "column": 78
+        "column": 77
       }
     },
     "uid-25": {
@@ -1725,7 +1725,7 @@
       },
       "end": {
         "line": 531,
-        "column": 80
+        "column": 79
       }
     },
     "uid-26": {
@@ -1835,7 +1835,7 @@
       },
       "end": {
         "line": 549,
-        "column": 91
+        "column": 90
       }
     },
     "uid-37": {
@@ -1845,7 +1845,7 @@
       },
       "end": {
         "line": 550,
-        "column": 87
+        "column": 86
       }
     },
     "uid-38": {
@@ -2005,7 +2005,7 @@
       },
       "end": {
         "line": 570,
-        "column": 96
+        "column": 95
       }
     },
     "uid-54": {
@@ -2015,7 +2015,7 @@
       },
       "end": {
         "line": 571,
-        "column": 92
+        "column": 91
       }
     },
     "uid-55": {
@@ -2065,7 +2065,7 @@
       },
       "end": {
         "line": 582,
-        "column": 48
+        "column": 47
       }
     },
     "uid-60": {

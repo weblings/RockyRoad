@@ -60,7 +60,7 @@
                         "properties": {
                           "id": "sort-chevron-down",
                           "class": "sort-chevron",
-                          "src": "/chevron-down.svg"
+                          "src": "chevron-down.svg"
                         },
                         "dataUid": "uid-9"
                       },
@@ -70,7 +70,7 @@
                         "properties": {
                           "id": "sort-chevron-up",
                           "class": "sort-chevron",
-                          "src": "/chevron-up.svg"
+                          "src": "chevron-up.svg"
                         },
                         "dataUid": "uid-10"
                       }
@@ -942,7 +942,7 @@
       },
       "end": {
         "line": 346,
-        "column": 85
+        "column": 84
       }
     },
     "uid-10": {
@@ -952,7 +952,7 @@
       },
       "end": {
         "line": 347,
-        "column": 81
+        "column": 80
       }
     },
     "uid-11": {

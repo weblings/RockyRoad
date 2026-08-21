@@ -15,7 +15,7 @@
                 "type": "svg",
                 "sourceTag": "img",
                 "properties": {
-                  "src": "/back-arrow.svg",
+                  "src": "back-arrow.svg",
                   "class": "icon"
                 },
                 "dataUid": "uid-4"
@@ -527,7 +527,7 @@
                     "type": "svg",
                     "sourceTag": "img",
                     "properties": {
-                      "src": "/recal-icon.svg",
+                      "src": "recal-icon.svg",
                       "class": "icon"
                     },
                     "dataUid": "uid-51"
@@ -558,7 +558,7 @@
                     "type": "svg",
                     "sourceTag": "img",
                     "properties": {
-                      "src": "/play-icon.svg",
+                      "src": "play-icon.svg",
                       "class": "icon"
                     },
                     "dataUid": "uid-54"
@@ -1132,7 +1132,7 @@
       },
       "end": {
         "line": 241,
-        "column": 48
+        "column": 47
       }
     },
     "uid-5": {
@@ -1602,7 +1602,7 @@
       },
       "end": {
         "line": 312,
-        "column": 50
+        "column": 49
       }
     },
     "uid-52": {
@@ -1632,7 +1632,7 @@
       },
       "end": {
         "line": 316,
-        "column": 49
+        "column": 48
       }
     },
     "uid-55": {

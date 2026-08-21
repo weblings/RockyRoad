@@ -15,7 +15,7 @@
                 "type": "svg",
                 "sourceTag": "img",
                 "properties": {
-                  "src": "/back-arrow.svg",
+                  "src": "back-arrow.svg",
                   "class": "icon"
                 },
                 "dataUid": "uid-4"
@@ -138,7 +138,7 @@
                         "properties": {
                           "id": "ps-instrument-chevron-down",
                           "class": "option-chevron",
-                          "src": "/chevron-down.svg"
+                          "src": "chevron-down.svg"
                         },
                         "dataUid": "uid-17"
                       },
@@ -148,7 +148,7 @@
                         "properties": {
                           "id": "ps-instrument-chevron-up",
                           "class": "option-chevron",
-                          "src": "/chevron-up.svg"
+                          "src": "chevron-up.svg"
                         },
                         "dataUid": "uid-18"
                       }
@@ -210,7 +210,7 @@
                         "properties": {
                           "id": "ps-difficulty-chevron-down",
                           "class": "option-chevron",
-                          "src": "/chevron-down.svg"
+                          "src": "chevron-down.svg"
                         },
                         "dataUid": "uid-24"
                       },
@@ -220,7 +220,7 @@
                         "properties": {
                           "id": "ps-difficulty-chevron-up",
                           "class": "option-chevron",
-                          "src": "/chevron-up.svg"
+                          "src": "chevron-up.svg"
                         },
                         "dataUid": "uid-25"
                       }
@@ -283,7 +283,7 @@
                 "type": "svg",
                 "sourceTag": "img",
                 "properties": {
-                  "src": "/recal-icon.svg",
+                  "src": "recal-icon.svg",
                   "class": "icon"
                 },
                 "dataUid": "uid-30"
@@ -314,7 +314,7 @@
                 "type": "svg",
                 "sourceTag": "img",
                 "properties": {
-                  "src": "/play-icon.svg",
+                  "src": "play-icon.svg",
                   "class": "icon"
                 },
                 "dataUid": "uid-33"
@@ -985,7 +985,7 @@
       },
       "end": {
         "line": 344,
-        "column": 48
+        "column": 47
       }
     },
     "uid-5": {
@@ -1115,7 +1115,7 @@
       },
       "end": {
         "line": 364,
-        "column": 96
+        "column": 95
       }
     },
     "uid-18": {
@@ -1125,7 +1125,7 @@
       },
       "end": {
         "line": 365,
-        "column": 92
+        "column": 91
       }
     },
     "uid-19": {
@@ -1185,7 +1185,7 @@
       },
       "end": {
         "line": 374,
-        "column": 96
+        "column": 95
       }
     },
     "uid-25": {
@@ -1195,7 +1195,7 @@
       },
       "end": {
         "line": 375,
-        "column": 92
+        "column": 91
       }
     },
     "uid-26": {
@@ -1245,7 +1245,7 @@
       },
       "end": {
         "line": 386,
-        "column": 48
+        "column": 47
       }
     },
     "uid-31": {
@@ -1275,7 +1275,7 @@
       },
       "end": {
         "line": 390,
-        "column": 47
+        "column": 46
       }
     },
     "uid-34": {
