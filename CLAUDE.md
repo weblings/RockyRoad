@@ -23,7 +23,7 @@ exists somewhere, `find . -iname "*lesson*"` before creating one.
 
 **Part 2 of any lessons-capture pass: check docs, not just gotchas.** After filing whatever
 gotcha prompted the capture, also check whether that same session's code change made any
-README (root, `v2/README.md`, `RockyRoadImport/README.md`) claim stale — a moved/removed
+README/doc (root, `v2/ARCHITECTURE.md`, `RockyRoadImport/README.md`) claim stale — a moved/removed
 feature, a changed tech-stack detail, a broken link — and fix it in the same pass rather than
-leaving it for a later cleanup. This is how `v2/README.md` accumulated a dead `html2canvas`
-claim and a broken `Setup.md` link in the first place.
+leaving it for a later cleanup. This is how `v2/ARCHITECTURE.md` (then still named `README.md`)
+accumulated a dead `html2canvas` claim and a broken `Setup.md` link in the first place.

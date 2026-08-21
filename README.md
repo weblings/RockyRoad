@@ -104,7 +104,7 @@ needed either way, so there's no simpler prebuilt alternative today.
 
 ## For developers
 
-For the tech stack, architecture, and directory layout, see [`v2/README.md`](v2/README.md).
+For the tech stack, architecture, and directory layout, see [`v2/ARCHITECTURE.md`](v2/ARCHITECTURE.md).
 
 For gotchas hit while building this project, see
 [`Analysis/lessons/README.md`](Analysis/lessons/README.md) — written primarily for AI coding
