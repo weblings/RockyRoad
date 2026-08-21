@@ -10,6 +10,8 @@
 
 **To play more songs: 1) [Convert songs to OpenSongFormat](https://github.com/weblings/RockyRoadImport),
 2) Self-host RockyRoad and [point its server to your converted songs](#play-your-own-songs).**
+(Trying the hosted demo instead of self-hosting? Its library page has its own upload button for
+trying converted songs directly in the browser — session-only, no self-hosting needed.)
 
 ## Quick Start
 
@@ -79,7 +81,8 @@ Try it out with the demo songs it ships with, before bringing in your own librar
 
 **Can I play my own songs — Rocksmith 2014, piano MIDI, etc.?**
 Yes — convert them first with [RockyRoadImport](https://github.com/weblings/RockyRoadImport), then
-follow ["Play your own songs"](#play-your-own-songs) above.
+follow ["Play your own songs"](#play-your-own-songs) above. On the hosted demo, its upload button
+lets you try converted songs directly instead — no self-hosting needed.
 
 **What's OpenSongChart / ChartPlayer / ChartConverter?**
 
