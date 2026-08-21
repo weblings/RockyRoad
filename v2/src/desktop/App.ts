@@ -1,8 +1,9 @@
 import * as THREE from "three";
 import type { Scene3D } from "../shared/Scene3D";
 import { loadSettings, saveSettings, type Settings } from "../shared/Settings";
-import type { SongIndexPart } from "../shared/SongIndex";
+import type { SongIndexEntry, SongIndexPart } from "../shared/SongIndex";
 import { Dropdown, type DropdownOption } from "./Dropdown";
+import type { LocalUploadSource } from "./LocalUploadSource";
 
 export interface IScreen {
     mount(container: HTMLElement): void | Promise<void>;
@@ -29,6 +30,10 @@ export class App {
 
     // Called each frame before draw — ActiveSceneScreen uses this to inject currentSecond.
     onPreDraw: (() => void) | null = null;
+
+    // Demo-mode local folder upload — held here since SongLibraryScreen is recreated fresh on
+    // every back-navigation to Library, but App survives across screens.
+    localLibrary: { source: LocalUploadSource; entries: SongIndexEntry[] } | null = null;
 
     // Set by ActiveSceneScreen so App can pause/resume during settings.
     // onSongPause: pause the song and return current position, or null if not playing.

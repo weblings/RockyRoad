@@ -98,7 +98,7 @@ export function tuningDisplayString(offsets: number[]): string {
 
 // ── Shared entry builder ──────────────────────────────────────────────────────
 
-function entryFromJson(folderPath: string, json: Record<string, unknown>): SongIndexEntry {
+export function entryFromJson(folderPath: string, json: Record<string, unknown>): SongIndexEntry {
     const rawParts = (json.InstrumentParts as Record<string, unknown>[] | undefined) ?? [];
     const parts: SongIndexPart[] = rawParts.map(p => {
         const type = String(p.InstrumentType ?? '');

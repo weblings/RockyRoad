@@ -5,6 +5,7 @@ import { loadSettings } from "../shared/Settings";
 import { BADGE_LABELS } from "../shared/InstrumentSelect";
 import { PreSceneScreen } from "./PreSceneScreen";
 import { Dropdown, type DropdownOption } from "./Dropdown";
+import { LocalUploadSource } from "./LocalUploadSource";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -79,6 +80,10 @@ export class SongLibraryScreen implements IScreen {
         this.renderLoading();
         const { remoteServerUrl } = loadSettings();
         this.songs = await loadAllSources(remoteServerUrl);
+        if (this.app.localLibrary) {
+            const { source, entries } = this.app.localLibrary;
+            this.songs.push(...entries.map(entry => ({ entry, source })));
+        }
         this.renderLibrary();
     }
 
@@ -87,6 +92,22 @@ export class SongLibraryScreen implements IScreen {
         this.sortDropdown = null;
         if (this.container) this.container.innerHTML = '';
         this.container = null;
+    }
+
+    // Demo-mode-only: pick a local folder, replacing (not accumulating on top of) whatever the
+    // previous pick contributed. App.localLibrary — not a field here — is what survives a later
+    // back-navigation to a fresh SongLibraryScreen instance.
+    private async pickLocalFolder(): Promise<void> {
+        const picked = await LocalUploadSource.pick();
+        if (!picked) return;
+
+        const oldSource = this.app.localLibrary?.source;
+        const entries = await picked.getManifest();
+        this.app.localLibrary = { source: picked, entries };
+        this.songs = this.songs.filter(s => s.source !== oldSource)
+            .concat(entries.map(entry => ({ entry, source: picked })));
+        oldSource?.dispose();
+        this.renderLibrary();
     }
 
     // ── Render states ─────────────────────────────────────────────────────────
@@ -134,6 +155,11 @@ export class SongLibraryScreen implements IScreen {
                             placeholder="Search songs, artists, albums…"
                             value="${esc(this.state.searchQuery)}" />
                         <div id="lib-sort-slot"></div>
+                        ${import.meta.env.VITE_DEMO_MODE === 'true' ? `
+                            <button id="lib-upload" class="lib-upload-btn" type="button"
+                                    aria-label="Upload a local song folder">
+                                <img src="/Add.svg" alt="" />
+                            </button>` : ''}
                         <button id="enter-vr" class="dropdown-trigger" style="display:none"
                                 type="button" onclick="location.href='xr.html'">Enter VR</button>
                     </div>
@@ -166,6 +192,10 @@ export class SongLibraryScreen implements IScreen {
                 }
             });
         }
+
+        this.container!.querySelector('#lib-upload')?.addEventListener('click', () => {
+            this.pickLocalFolder();
+        });
 
         const search = this.container!.querySelector<HTMLInputElement>('#lib-search')!;
         search.addEventListener('input', () => {
@@ -225,7 +255,7 @@ export class SongLibraryScreen implements IScreen {
             return `
                 <button class="lib-song-entry" data-song-idx="${origIdx}" type="button">
                     <div class="lib-art-thumb">
-                        ${artUrl ? `<img src="${esc(artUrl)}" alt="" onerror="this.style.display='none'" />` : ''}
+                        ${artUrl ? `<img src="${esc(artUrl)}" alt="" loading="lazy" onerror="this.style.display='none'" />` : ''}
                     </div>
                     <div class="lib-song-meta">
                         <p class="lib-song-title">${esc(sourced.entry.songName)}</p>
