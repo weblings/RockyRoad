@@ -94,9 +94,9 @@ if (DEBUG_CONSOLE_ENABLED) {
 
 // ── Asset paths ───────────────────────────────────────────────────────────────
 
-const ATLAS_URL = "/UISheet0.png";
+const ATLAS_URL = `${import.meta.env.BASE_URL}UISheet0.png`;
 
-const IMAGE_MANIFEST_URL = "/ImageManifest.json";
+const IMAGE_MANIFEST_URL = `${import.meta.env.BASE_URL}ImageManifest.json`;
 
 // ── Panel billboard ───────────────────────────────────────────────────────────
 let PANEL_BILLBOARD_LOW_OFFSET  = 0.375;
@@ -548,7 +548,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     // RayInteractable starts absent (panel starts hidden), added/removed by
     // setSettingsPanelInteractive() below to fully exclude it from ray-cursor targets.
     settingsPanelEntity.addComponent(PanelUI, {
-        config: '/ui/settings.json',
+        config: `${import.meta.env.BASE_URL}ui/settings.json`,
         maxWidth: 0.4,
         maxHeight: 0.3,
     });
@@ -591,7 +591,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         persistent: true,
     });
     preScenePanelEntity.addComponent(PanelUI, {
-        config: '/ui/song.json',
+        config: `${import.meta.env.BASE_URL}ui/song.json`,
         maxWidth: 0.4,
         maxHeight: 0.3,
     });
@@ -625,7 +625,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         persistent: true,
     });
     playPanelEntity.addComponent(PanelUI, {
-        config: '/ui/play.json',
+        config: `${import.meta.env.BASE_URL}ui/play.json`,
         maxWidth: 0.4,
         maxHeight: 0.3,
     });
@@ -662,7 +662,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         persistent: true,
     });
     libraryPanelEntity.addComponent(PanelUI, {
-        config: '/ui/library.json',
+        config: `${import.meta.env.BASE_URL}ui/library.json`,
         maxWidth: 1.0,
         maxHeight: 0.525,
     });
@@ -699,7 +699,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         persistent: true,
     });
     calibrationPanelEntity.addComponent(PanelUI, {
-        config: '/ui/calibration.json',
+        config: `${import.meta.env.BASE_URL}ui/calibration.json`,
         maxWidth: 0.4,
         maxHeight: 0.3,
     });

@@ -39,9 +39,9 @@ type BadgeStyle = 'none' | 'text' | 'icon';
 const BADGE_STYLE: BadgeStyle = 'icon';
 
 const BADGE_ICONS: { types: string[]; src: string; alt: string }[] = [
-    { types: ['BassGuitar'],                 src: '/Bass_White.svg',  alt: 'Bass' },
-    { types: ['Keys'],                       src: '/Keys_White.svg',  alt: 'Keys' },
-    { types: ['LeadGuitar', 'RhythmGuitar'], src: '/Guitar_White.svg', alt: 'Guitar' },
+    { types: ['BassGuitar'],                 src: `${import.meta.env.BASE_URL}Bass_White.svg`,  alt: 'Bass' },
+    { types: ['Keys'],                       src: `${import.meta.env.BASE_URL}Keys_White.svg`,  alt: 'Keys' },
+    { types: ['LeadGuitar', 'RhythmGuitar'], src: `${import.meta.env.BASE_URL}Guitar_White.svg`, alt: 'Guitar' },
 ];
 // Phone check, if needed again: navigator.userAgentData.mobile, falling back to
 // /Mobi|Android|iPhone|iPod/i.test(navigator.userAgent). A fullscreen button built on this
@@ -158,7 +158,7 @@ export class SongLibraryScreen implements IScreen {
                         ${import.meta.env.VITE_DEMO_MODE === 'true' ? `
                             <button id="lib-upload" class="lib-upload-btn" type="button"
                                     aria-label="Upload a local song folder" title="Load local songs">
-                                <img src="/AddFolder.svg" alt="" />
+                                <img src="${import.meta.env.BASE_URL}AddFolder.svg" alt="" />
                             </button>` : ''}
                         <button id="enter-vr" class="dropdown-trigger" style="display:none"
                                 type="button" onclick="location.href='xr.html'">Enter VR</button>

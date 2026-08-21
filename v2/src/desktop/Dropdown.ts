@@ -38,12 +38,12 @@ export class Dropdown {
         // .option-chevron (ui/play.uikitml, ui/song.uikitml).
         this.chevronDown = document.createElement('img');
         this.chevronDown.className = 'dropdown-chevron';
-        this.chevronDown.src = '/chevron-down.svg';
+        this.chevronDown.src = `${import.meta.env.BASE_URL}chevron-down.svg`;
         this.chevronDown.alt = '';
 
         this.chevronUp = document.createElement('img');
         this.chevronUp.className = 'dropdown-chevron';
-        this.chevronUp.src = '/chevron-up.svg';
+        this.chevronUp.src = `${import.meta.env.BASE_URL}chevron-up.svg`;
         this.chevronUp.alt = '';
         this.chevronUp.style.display = 'none';
 

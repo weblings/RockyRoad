@@ -7,8 +7,8 @@ async function main() {
     const canvas = document.getElementById("canvas") as HTMLCanvasElement;
     const app = new App(canvas);
 
-    await loadManifest("/ImageManifest.json");
-    const texture = await new THREE.TextureLoader().loadAsync("/UISheet0.png");
+    await loadManifest(`${import.meta.env.BASE_URL}ImageManifest.json`);
+    const texture = await new THREE.TextureLoader().loadAsync(`${import.meta.env.BASE_URL}UISheet0.png`);
 
     app.navigate(new SongLibraryScreen(app, texture));
 }

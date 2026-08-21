@@ -46,18 +46,18 @@ export class BakedSource implements ISongSource {
     readonly label = 'Demo Songs';
 
     async getManifest(): Promise<SongIndexEntry[]> {
-        const resp = await fetch('/songs/manifest.json');
+        const resp = await fetch(`${import.meta.env.BASE_URL}songs/manifest.json`);
         if (!resp.ok) return [];
         return (await resp.json() as ManifestEntry[]).map(fromManifest);
     }
 
     getFileUrl(entry: SongIndexEntry, filename: string): string {
-        return `/songs/${encodeURI(entry.folderPath)}/${filename}`;
+        return `${import.meta.env.BASE_URL}songs/${encodeURI(entry.folderPath)}/${filename}`;
     }
 
     getAlbumArtUrl(entry: SongIndexEntry): string | null {
         if (!entry.hasArt) return null;
-        return `/songs/${encodeURI(entry.folderPath)}/albumart.png`;
+        return `${import.meta.env.BASE_URL}songs/${encodeURI(entry.folderPath)}/albumart.png`;
     }
 }
 
