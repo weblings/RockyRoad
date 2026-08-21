@@ -1,6 +1,7 @@
 import type { Entity, UIKitDocument } from "@iwsdk/core";
 import { PanelDocument, UIKit } from "@iwsdk/core";
 import type { SourcedEntry } from "../shared/SongSource";
+import { BADGE_LABELS } from "../shared/InstrumentSelect";
 
 // uikit-based (see ui/library.uikitml), migrated off html2canvas — same idiom as
 // XRSettingsScene.ts/XRActiveScene.ts: poll for the PanelDocument once, then wire
@@ -184,6 +185,14 @@ export class XRSongLibrary {
         meta.add(new UIKit.Text({ text: truncate(sourced.entry.songName, 20) },   ['song-title']));
         meta.add(new UIKit.Text({ text: truncate(sourced.entry.artistName, 24) }, ['song-artist']));
         row.add(meta);
+
+        const partTypes = new Set(sourced.entry.parts.map(p => p.type));
+        const badges = BADGE_LABELS.filter(b => b.types.some(t => partTypes.has(t)));
+        if (badges.length) {
+            const badgeRow = new UIKit.Container({}, ['song-badges']);
+            for (const b of badges) badgeRow.add(new UIKit.Text({ text: b.label }, ['song-badge']));
+            row.add(badgeRow);
+        }
 
         return row;
     }

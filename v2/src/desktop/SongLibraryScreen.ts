@@ -2,6 +2,7 @@ import * as THREE from "three";
 import type { App, IScreen } from "./App";
 import { loadAllSources, type SourcedEntry } from "../shared/SongSource";
 import { loadSettings } from "../shared/Settings";
+import { BADGE_LABELS } from "../shared/InstrumentSelect";
 import { PreSceneScreen } from "./PreSceneScreen";
 import { Dropdown, type DropdownOption } from "./Dropdown";
 
@@ -36,11 +37,6 @@ const STRINGED = new Set(['LeadGuitar', 'RhythmGuitar', 'BassGuitar']);
 type BadgeStyle = 'none' | 'text' | 'icon';
 const BADGE_STYLE: BadgeStyle = 'text';
 
-const BADGE_LABELS: { types: string[]; label: string }[] = [
-    { types: ['BassGuitar'],                 label: 'Bass' },
-    { types: ['Keys'],                       label: 'Keys' },
-    { types: ['LeadGuitar', 'RhythmGuitar'], label: 'Guitar' },
-];
 const BADGE_ICONS: { types: string[]; src: string; alt: string }[] = [
     { types: ['BassGuitar'],                 src: '/Bass_White4.svg',  alt: 'Bass' },
     { types: ['Keys'],                       src: '/Keys_White3.svg',  alt: 'Keys' },

@@ -237,13 +237,22 @@
     flex-shrink: 0;
     display: flex;
     flex-direction: row;
-    align-items: flex-start;
+    /* stretch, not flex-start — lets .song-badges center itself vertically against
+       whatever height a wrapped 2-line title/artist ends up giving the row, and
+       .song-art-thumb/.song-meta both ignore it (thumb has its own fixed height,
+       meta has no visual size dependence on stretch either way). */
+    align-items: stretch;
     background-color: #242424;
     border-radius: 0.5;
     padding-top: 0.8;
     padding-right: 0.8;
     padding-bottom: 0.8;
     padding-left: 0.8;
+    /* Gap between thumb/meta/badges. Split with .song-meta's own padding-left below
+       instead of relying on one or the other alone — two independent sources for the
+       thumb→text gap, so the confirmed glyph-burst Yoga corruption (text-rendering.md)
+       scribbling one doesn't collapse it to zero. */
+    gap-column: 0.4;
     cursor: pointer;
   }
   .song-entry:hover  { background-color: #2e2e2e; }
@@ -274,7 +283,8 @@
     flex-basis: 0;
     display: flex;
     flex-direction: column;
-    padding-left: 0.8;
+    justify-content: center;
+    padding-left: 0.4;
     gap-row: 0.1;
     gap-column: 0.1;
   }
@@ -282,7 +292,11 @@
   /* No native text-overflow:ellipsis in uikit — truncated with a manually
      appended "..." in XRSongLibrary.ts before being set here, reusing the
      same truncate() helper XRActiveScene.ts already has for Play HUD's song
-     title/artist, rather than re-deriving it. */
+     title/artist, rather than re-deriving it. Left uncapped-enough to wrap
+     to a second line rather than tuned to never wrap — .song-entry's
+     align-items: stretch (above) is what keeps every entry in the same
+     flex-wrap row the same height regardless, so a wrapped 2-line row
+     doesn't read as ragged next to its 1-line neighbors. */
   .song-title {
     color: #ffffff;
     font-size: 1.2;
@@ -292,6 +306,32 @@
     color: #8c8c8c;
     font-size: 1.0;
     font-weight: medium;
+  }
+
+  /* Which instruments this song supports — own hug-sized flex row (bottom-right of the
+     entry, matching desktop's badge placement), so .song-meta's flex-grow:1; flex-basis:0
+     automatically claims whatever width is left, no manual measurement needed (unlike
+     desktop's position:absolute badges, which had nothing accounting for their width until
+     SongLibraryScreen.ts measured it after the fact). */
+  .song-badges {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-end;
+    justify-content: flex-end;
+    flex-grow: 0;
+    flex-shrink: 0;
+    gap-column: 0.24;
+  }
+  .song-badge {
+    color: #ffffff;
+    background-color: #333333;
+    font-size: 0.84;
+    font-weight: medium;
+    padding-top: 0.18;
+    padding-right: 0.48;
+    padding-bottom: 0.18;
+    padding-left: 0.48;
+    border-radius: 0.36;
   }
 </style>
 
