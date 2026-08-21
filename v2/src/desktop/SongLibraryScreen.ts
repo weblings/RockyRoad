@@ -32,9 +32,9 @@ const STRINGED = new Set(['LeadGuitar', 'RhythmGuitar', 'BassGuitar']);
 // Instrument badges shown on each library card, in display order. No Drums entry —
 // unsupported everywhere in this app, so there's no icon for it to show.
 const BADGE_ICONS: { types: string[]; src: string; alt: string }[] = [
-    { types: ['BassGuitar'],                 src: '/Bass_White.svg',    alt: 'Bass' },
-    { types: ['Keys'],                       src: '/Keyboard_White.svg', alt: 'Keys' },
-    { types: ['LeadGuitar', 'RhythmGuitar'], src: '/Guitar_White.svg',   alt: 'Guitar' },
+    { types: ['BassGuitar'],                 src: '/Bass_White4.svg',    alt: 'Bass' },
+    { types: ['Keys'],                       src: '/Keys_White3.svg', alt: 'Keys' },
+    { types: ['LeadGuitar', 'RhythmGuitar'], src: '/Guitar_White4.svg',   alt: 'Guitar' },
 ];
 const STATE_KEY = 'chartplayer-library-state';
 const DEFAULT_STATE: LibraryState = {
