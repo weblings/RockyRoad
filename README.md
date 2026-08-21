@@ -8,10 +8,9 @@
 - Note-highway logic and visuals distilled from [ChartPlayer](https://github.com/mikeoliphant/ChartPlayer) into Typescript and ThreeJS
 - Intended for you to self-host and runs entirely on your machine — your song library never leaves your computer or local network
 
-**To play more songs: 1) [Convert songs to OpenSongFormat](https://github.com/weblings/RockyRoadImport),
-2) Self-host RockyRoad and [point its server to your converted songs](#play-your-own-songs).**
-(Trying the hosted demo instead of self-hosting? Its library page has its own upload button for
-trying converted songs directly in the browser — session-only, no self-hosting needed.)
+**To play more songs** 
+1. [Convert songs to OpenSongFormat](https://github.com/weblings/RockyRoadImport)
+2. Try the demo website or self-host and load your converted songs. [(When you self-host load them this way)](#play-your-own-songs)
 
 ## Quick Start
 
@@ -28,7 +27,7 @@ Try it out with the demo songs it ships with, before bringing in your own librar
 
    Or just grab the installer for your OS from the link above if you'd rather not use a package
    manager.
-2. **Get the code.** Either:
+2. **Get this repo's code.** Either:
    - `git clone https://github.com/weblings/RockyRoad.git`, or
    - on the [GitHub repo page](https://github.com/weblings/RockyRoad), click the green **Code**
      button → **Download ZIP**, then unzip it — no git required. (This downloads the source code,

@@ -157,7 +157,7 @@ export class SongLibraryScreen implements IScreen {
                         <div id="lib-sort-slot"></div>
                         ${import.meta.env.VITE_DEMO_MODE === 'true' ? `
                             <button id="lib-upload" class="lib-upload-btn" type="button"
-                                    aria-label="Upload a local song folder">
+                                    aria-label="Upload a local song folder" title="Load local songs">
                                 <img src="/AddFolder.svg" alt="" />
                             </button>` : ''}
                         <button id="enter-vr" class="dropdown-trigger" style="display:none"
