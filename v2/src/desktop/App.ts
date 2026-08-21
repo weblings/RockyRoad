@@ -10,6 +10,10 @@ export interface IScreen {
     unmount(): void;
 }
 
+// Tuner + Play note-hit feedback, off for now (planned to return later) — hardcoded rather
+// than left to tuningOffsets happening to be absent/present per source.
+export const TUNER_ENABLED = false;
+
 // Note Numbers — percentage dropdown (0%–200% in 20% steps), same shape/step convention as
 // ActiveSceneScreen's Speed dropdown.
 const NOTE_NUM_STEP = 0.2, NOTE_NUM_MAX = 2.0;
@@ -53,7 +57,7 @@ export class App {
     // Returns true if the tuner should auto-fire before playing this part.
     // False for non-stringed instruments or if tuning hasn't changed since last time.
     shouldAutoTune(part: SongIndexPart): boolean {
-        if (!part.tuningOffsets) return false;
+        if (!TUNER_ENABLED || !part.tuningOffsets) return false;
         return this.lastTuningKey !== JSON.stringify(part.tuningOffsets);
     }
 

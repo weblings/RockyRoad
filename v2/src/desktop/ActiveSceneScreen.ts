@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import type { App, IScreen } from "./App";
+import { TUNER_ENABLED } from "./App";
 import { FretPlayerScene3D } from "../shared/FretPlayerScene3D";
 import { resolveNotesForDifficulty } from "../shared/DifficultyResolve";
 import { KeysPlayerScene3D } from "../shared/KeysPlayerScene3D";
@@ -235,7 +236,7 @@ export class ActiveSceneScreen implements IScreen {
     // Stringed instruments only. Called at mount and again after a difficulty rebuild — the mic
     // open is guarded by micRequested so a rebuild never fires a second concurrent request.
     private setupNoteDetection(): void {
-        if (!this.part.tuningOffsets || !this.scene) return;
+        if (!TUNER_ENABLED || !this.part.tuningOffsets || !this.scene) return;
         const { notes, notesDetected } = this.scene.detectionState();
         this.noteDetector = new NoteDetector(
             notes, this.part,
