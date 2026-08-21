@@ -104,6 +104,9 @@ const IMAGE_MANIFEST_URL = "/ImageManifest.json";
 let PANEL_BILLBOARD_LOW_OFFSET  = 0.375;
 let PANEL_BILLBOARD_HIGH_OFFSET = 0.375;
 let PANEL_PITCH_TWEEN_SECS      = 0.5;
+// Continuous damping, not a from/to/duration tween like pitch — yaw's target moves every
+// frame while dragging, so there's no fixed endpoint to ease toward. Lower = snappier.
+let PANEL_YAW_SMOOTH_TIME       = 0.06;
 
 // ── IWSDK HighwaySystem ───────────────────────────────────────────────────────
 
@@ -122,6 +125,8 @@ class HighwaySystem extends createSystem({}) {
     private pitchTarget       = 0;
     private pitchAnimProgress = 1;
     private pitchAnimFrom     = 0;
+    private yawCurrent        = 0;
+    private yawTarget         = 0;
 
     // Guitar/Bass highway grab bar — position via IWSDK DistanceGrabbable,
     // yaw-only billboard while grabbed (no pitch snap — the volume always
@@ -257,7 +262,7 @@ class HighwaySystem extends createSystem({}) {
             if (this.isGrabbed) {
                 grabBarHit.getWorldPosition(this.panelPos);
                 this.player.head.getWorldPosition(this.headPos);
-                grabBarHit.rotation.y = Math.atan2(
+                this.yawTarget = Math.atan2(
                     this.headPos.x - this.panelPos.x,
                     this.headPos.z - this.panelPos.z,
                 );
@@ -272,6 +277,17 @@ class HighwaySystem extends createSystem({}) {
                     this.pitchTarget       = newTarget;
                     this.pitchAnimProgress = 0;
                 }
+            }
+
+            // Damps toward yawTarget continuously, not gated on isGrabbed — same as pitch's
+            // tween below, this keeps settling into place for a moment after release too,
+            // instead of freezing instantly the moment the trigger comes up.
+            const twoPi = Math.PI * 2;
+            let yawDelta = this.yawTarget - this.yawCurrent;
+            yawDelta = ((yawDelta + Math.PI) % twoPi + twoPi) % twoPi - Math.PI;
+            if (Math.abs(yawDelta) > 0.0001) {
+                this.yawCurrent += yawDelta * (1 - Math.exp(-delta / PANEL_YAW_SMOOTH_TIME));
+                grabBarHit.rotation.y = this.yawCurrent;
             }
 
             if (this.pitchAnimProgress < 1) {
