@@ -20,7 +20,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -40,12 +40,12 @@
      id="namedview4580"
      showgrid="false"
      inkscape:zoom="12.715278"
-     inkscape:cx="34.31942"
+     inkscape:cx="19.022861"
      inkscape:cy="35.401815"
      inkscape:window-x="-11"
      inkscape:window-y="-11"
      inkscape:window-maximized="1"
-     inkscape:current-layer="g12159" />
+     inkscape:current-layer="line" />
   <g
      id="color">
     <rect
@@ -124,7 +124,7 @@
          y="12.0702"
          x="45.8769" />
       <line
-         style="fill:none;stroke:#ffffff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;stroke-opacity:1"
+         style="fill:none;stroke:#ffffff;stroke-width:4.02512864;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;stroke-opacity:1;stroke-dasharray:none"
          id="line4572"
          stroke-miterlimit="10"
          y2="59.741798"
@@ -132,7 +132,7 @@
          x2="24.5448"
          x1="24.5448" />
       <line
-         style="fill:none;stroke:#ffffff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;stroke-opacity:1"
+         style="fill:none;stroke:#ffffff;stroke-width:4.02512864;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;stroke-opacity:1;stroke-dasharray:none"
          id="line4574"
          stroke-miterlimit="10"
          y2="59.741798"
@@ -140,7 +140,7 @@
          x2="36.460201"
          x1="36.460201" />
       <line
-         style="fill:none;stroke:#ffffff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;stroke-opacity:1"
+         style="fill:none;stroke:#ffffff;stroke-width:4.02512864;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;stroke-opacity:1;stroke-dasharray:none"
          id="line4576"
          stroke-miterlimit="10"
          y2="59.741798"

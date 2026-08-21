@@ -36,12 +36,12 @@ const STRINGED = new Set(['LeadGuitar', 'RhythmGuitar', 'BassGuitar']);
 // Flip this to switch styles (or 'none' to drop badges entirely) without re-deriving the
 // markup/CSS each time — both styles' data and rendering stay live side by side.
 type BadgeStyle = 'none' | 'text' | 'icon';
-const BADGE_STYLE: BadgeStyle = 'text';
+const BADGE_STYLE: BadgeStyle = 'icon';
 
 const BADGE_ICONS: { types: string[]; src: string; alt: string }[] = [
-    { types: ['BassGuitar'],                 src: '/Bass_White4.svg',  alt: 'Bass' },
-    { types: ['Keys'],                       src: '/Keys_White3.svg',  alt: 'Keys' },
-    { types: ['LeadGuitar', 'RhythmGuitar'], src: '/Guitar_White4.svg', alt: 'Guitar' },
+    { types: ['BassGuitar'],                 src: '/Bass_White.svg',  alt: 'Bass' },
+    { types: ['Keys'],                       src: '/Keys_White.svg',  alt: 'Keys' },
+    { types: ['LeadGuitar', 'RhythmGuitar'], src: '/Guitar_White.svg', alt: 'Guitar' },
 ];
 // Phone check, if needed again: navigator.userAgentData.mobile, falling back to
 // /Mobi|Android|iPhone|iPod/i.test(navigator.userAgent). A fullscreen button built on this

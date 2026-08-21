@@ -1,0 +1,5 @@
+v0.2.6
+- [ ] Tuner screen return
+- [ ] Score display on Play page
+- [ ] Explore if Keyboard MIDI can be received for keys score
+- [ ] XR - Custom keyboard needed?
