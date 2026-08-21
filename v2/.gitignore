@@ -1,0 +1,15 @@
+node_modules/
+dist/
+song-server.config.json
+
+# Regenerated on every `npm run dev`/`npm run build` (compile-uikitml runs first in both
+# scripts) - committed copies only ever get overwritten, never read as-is.
+public/ui/*.json
+
+# Written by the iwsdkDev Vite plugin on every dev-server start. Bakes in an absolute local
+# filesystem path plus whatever port the server actually bound to (auto-increments if 8081
+# is taken) - never portable to another checkout, and can churn from run to run on this one.
+.codex/config.toml
+.mcp.json
+.cursor/mcp.json
+.vscode/mcp.json

@@ -1,0 +1,50 @@
+{
+  "Beats": [
+    {
+      "TimeOffset": 0,
+      "IsMeasure": true
+    },
+    {
+      "TimeOffset": 1.5
+    },
+    {
+      "TimeOffset": 3
+    },
+    {
+      "TimeOffset": 4.5
+    },
+    {
+      "TimeOffset": 6,
+      "IsMeasure": true
+    },
+    {
+      "TimeOffset": 7.5
+    },
+    {
+      "TimeOffset": 9
+    },
+    {
+      "TimeOffset": 10.5
+    },
+    {
+      "TimeOffset": 12,
+      "IsMeasure": true
+    },
+    {
+      "TimeOffset": 13.5
+    },
+    {
+      "TimeOffset": 15
+    },
+    {
+      "TimeOffset": 16.5
+    },
+    {
+      "TimeOffset": 18,
+      "IsMeasure": true
+    },
+    {
+      "TimeOffset": 19.5
+    }
+  ]
+}

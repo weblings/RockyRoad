@@ -1,0 +1,651 @@
+{
+  "Sections": [
+    {
+      "Name": "Verse 1",
+      "StartTime": 0,
+      "EndTime": 12.5
+    },
+    {
+      "Name": "Verse 2",
+      "StartTime": 12.5,
+      "EndTime": 24.5
+    },
+    {
+      "Name": "Bridge",
+      "StartTime": 24.5,
+      "EndTime": 36.5
+    },
+    {
+      "Name": "Verse 3",
+      "StartTime": 36.5,
+      "EndTime": 48
+    }
+  ],
+  "Chords": [],
+  "Notes": [
+    {
+      "TimeOffset": 0,
+      "TimeLength": 0.5,
+      "EndTime": 0.5,
+      "String": 2,
+      "Fret": 0,
+      "HandFret": 0
+    },
+    {
+      "TimeOffset": 0.5,
+      "TimeLength": 0.5,
+      "EndTime": 1,
+      "String": 2,
+      "Fret": 0,
+      "HandFret": 0
+    },
+    {
+      "TimeOffset": 1,
+      "TimeLength": 0.5,
+      "EndTime": 1.5,
+      "String": 4,
+      "Fret": 0,
+      "HandFret": 0
+    },
+    {
+      "TimeOffset": 1.5,
+      "TimeLength": 0.5,
+      "EndTime": 2,
+      "String": 4,
+      "Fret": 2,
+      "HandFret": 0
+    },
+    {
+      "TimeOffset": 2,
+      "TimeLength": 1,
+      "EndTime": 3,
+      "String": 4,
+      "Fret": 0,
+      "HandFret": 0
+    },
+    {
+      "TimeOffset": 3,
+      "TimeLength": 0.25,
+      "EndTime": 3.25,
+      "String": 3,
+      "Fret": 0,
+      "HandFret": 0
+    },
+    {
+      "TimeOffset": 3.25,
+      "TimeLength": 0.25,
+      "EndTime": 3.5,
+      "String": 2,
+      "Fret": 4,
+      "HandFret": 0
+    },
+    {
+      "TimeOffset": 3.5,
+      "TimeLength": 0.5,
+      "EndTime": 4,
+      "String": 2,
+      "Fret": 2,
+      "HandFret": 0
+    },
+    {
+      "TimeOffset": 4,
+      "TimeLength": 0.5,
+      "EndTime": 4.5,
+      "String": 4,
+      "Fret": 1,
+      "HandFret": 0
+    },
+    {
+      "TimeOffset": 4.5,
+      "TimeLength": 0.5,
+      "EndTime": 5,
+      "String": 4,
+      "Fret": 1,
+      "HandFret": 0
+    },
+    {
+      "TimeOffset": 5,
+      "TimeLength": 1,
+      "EndTime": 6,
+      "String": 4,
+      "Fret": 1,
+      "HandFret": 0
+    },
+    {
+      "TimeOffset": 6,
+      "TimeLength": 0.25,
+      "EndTime": 6.25,
+      "String": 4,
+      "Fret": 1,
+      "HandFret": 0
+    },
+    {
+      "TimeOffset": 6.25,
+      "TimeLength": 0.25,
+      "EndTime": 6.5,
+      "String": 4,
+      "Fret": 1,
+      "HandFret": 0
+    },
+    {
+      "TimeOffset": 6.5,
+      "TimeLength": 1,
+      "EndTime": 7.5,
+      "String": 4,
+      "Fret": 3,
+      "HandFret": 0
+    },
+    {
+      "TimeOffset": 7.5,
+      "TimeLength": 0.25,
+      "EndTime": 7.75,
+      "String": 3,
+      "Fret": 0,
+      "HandFret": 0
+    },
+    {
+      "TimeOffset": 7.75,
+      "TimeLength": 0.25,
+      "EndTime": 8,
+      "String": 3,
+      "Fret": 0,
+      "HandFret": 0
+    },
+    {
+      "TimeOffset": 8,
+      "TimeLength": 0.5,
+      "EndTime": 8.5,
+      "String": 3,
+      "Fret": 0,
+      "HandFret": 0
+    },
+    {
+      "TimeOffset": 8.5,
+      "TimeLength": 0.5,
+      "EndTime": 9,
+      "String": 2,
+      "Fret": 4,
+      "HandFret": 0
+    },
+    {
+      "TimeOffset": 9,
+      "TimeLength": 0.5,
+      "EndTime": 9.5,
+      "String": 3,
+      "Fret": 0,
+      "HandFret": 0
+    },
+    {
+      "TimeOffset": 9.5,
+      "TimeLength": 2.5,
+      "EndTime": 12,
+      "String": 3,
+      "Fret": 2,
+      "HandFret": 0
+    },
+    {
+      "TimeOffset": 12,
+      "TimeLength": 0.5,
+      "EndTime": 12.5,
+      "String": 2,
+      "Fret": 0,
+      "HandFret": 0
+    },
+    {
+      "TimeOffset": 12.5,
+      "TimeLength": 0.5,
+      "EndTime": 13,
+      "String": 2,
+      "Fret": 0,
+      "HandFret": 0
+    },
+    {
+      "TimeOffset": 13,
+      "TimeLength": 0.5,
+      "EndTime": 13.5,
+      "String": 3,
+      "Fret": 0,
+      "HandFret": 0
+    },
+    {
+      "TimeOffset": 13.5,
+      "TimeLength": 0.5,
+      "EndTime": 14,
+      "String": 3,
+      "Fret": 2,
+      "HandFret": 0
+    },
+    {
+      "TimeOffset": 14,
+      "TimeLength": 1,
+      "EndTime": 15,
+      "String": 4,
+      "Fret": 0,
+      "HandFret": 0
+    },
+    {
+      "TimeOffset": 15,
+      "TimeLength": 0.25,
+      "EndTime": 15.25,
+      "String": 3,
+      "Fret": 0,
+      "HandFret": 0
+    },
+    {
+      "TimeOffset": 15.25,
+      "TimeLength": 0.25,
+      "EndTime": 15.5,
+      "String": 2,
+      "Fret": 4,
+      "HandFret": 0
+    },
+    {
+      "TimeOffset": 15.5,
+      "TimeLength": 0.5,
+      "EndTime": 16,
+      "String": 2,
+      "Fret": 2,
+      "HandFret": 0
+    },
+    {
+      "TimeOffset": 16,
+      "TimeLength": 0.5,
+      "EndTime": 16.5,
+      "String": 4,
+      "Fret": 1,
+      "HandFret": 0
+    },
+    {
+      "TimeOffset": 16.5,
+      "TimeLength": 0.5,
+      "EndTime": 17,
+      "String": 4,
+      "Fret": 1,
+      "HandFret": 0
+    },
+    {
+      "TimeOffset": 17,
+      "TimeLength": 1,
+      "EndTime": 18,
+      "String": 4,
+      "Fret": 1,
+      "HandFret": 0
+    },
+    {
+      "TimeOffset": 18,
+      "TimeLength": 0.25,
+      "EndTime": 18.25,
+      "String": 4,
+      "Fret": 1,
+      "HandFret": 0
+    },
+    {
+      "TimeOffset": 18.25,
+      "TimeLength": 0.25,
+      "EndTime": 18.5,
+      "String": 4,
+      "Fret": 1,
+      "HandFret": 0
+    },
+    {
+      "TimeOffset": 18.5,
+      "TimeLength": 0.75,
+      "EndTime": 19.25,
+      "String": 4,
+      "Fret": 0,
+      "HandFret": 0
+    },
+    {
+      "TimeOffset": 19.25,
+      "TimeLength": 0.25,
+      "EndTime": 19.5,
+      "String": 3,
+      "Fret": 2,
+      "HandFret": 0
+    },
+    {
+      "TimeOffset": 19.5,
+      "TimeLength": 0.5,
+      "EndTime": 20,
+      "String": 3,
+      "Fret": 0,
+      "HandFret": 0
+    },
+    {
+      "TimeOffset": 20,
+      "TimeLength": 0.5,
+      "EndTime": 20.5,
+      "String": 2,
+      "Fret": 4,
+      "HandFret": 0
+    },
+    {
+      "TimeOffset": 20.5,
+      "TimeLength": 0.5,
+      "EndTime": 21,
+      "String": 3,
+      "Fret": 0,
+      "HandFret": 0
+    },
+    {
+      "TimeOffset": 21,
+      "TimeLength": 0.5,
+      "EndTime": 21.5,
+      "String": 3,
+      "Fret": 2,
+      "HandFret": 0
+    },
+    {
+      "TimeOffset": 21.5,
+      "TimeLength": 1.5,
+      "EndTime": 23,
+      "String": 3,
+      "Fret": 0,
+      "HandFret": 0
+    },
+    {
+      "TimeOffset": 23,
+      "TimeLength": 0.5,
+      "EndTime": 23.5,
+      "String": 3,
+      "Fret": 0,
+      "HandFret": 0
+    },
+    {
+      "TimeOffset": 23.5,
+      "TimeLength": 0.5,
+      "EndTime": 24,
+      "String": 3,
+      "Fret": 2,
+      "HandFret": 0
+    },
+    {
+      "TimeOffset": 24,
+      "TimeLength": 0.5,
+      "EndTime": 24.5,
+      "String": 4,
+      "Fret": 0,
+      "HandFret": 0
+    },
+    {
+      "TimeOffset": 24.5,
+      "TimeLength": 1.5,
+      "EndTime": 26,
+      "String": 4,
+      "Fret": 3,
+      "HandFret": 0
+    },
+    {
+      "TimeOffset": 26,
+      "TimeLength": 0.5,
+      "EndTime": 26.5,
+      "String": 4,
+      "Fret": 1,
+      "HandFret": 0
+    },
+    {
+      "TimeOffset": 26.5,
+      "TimeLength": 0.75,
+      "EndTime": 27.25,
+      "String": 4,
+      "Fret": 0,
+      "HandFret": 0
+    },
+    {
+      "TimeOffset": 27.25,
+      "TimeLength": 0.25,
+      "EndTime": 27.5,
+      "String": 3,
+      "Fret": 2,
+      "HandFret": 0
+    },
+    {
+      "TimeOffset": 27.5,
+      "TimeLength": 2.5,
+      "EndTime": 30,
+      "String": 4,
+      "Fret": 0,
+      "HandFret": 0
+    },
+    {
+      "TimeOffset": 30,
+      "TimeLength": 0.25,
+      "EndTime": 30.25,
+      "String": 2,
+      "Fret": 0,
+      "HandFret": 0
+    },
+    {
+      "TimeOffset": 30.25,
+      "TimeLength": 0.25,
+      "EndTime": 30.5,
+      "String": 2,
+      "Fret": 0,
+      "HandFret": 0
+    },
+    {
+      "TimeOffset": 30.5,
+      "TimeLength": 0.5,
+      "EndTime": 31,
+      "String": 3,
+      "Fret": 0,
+      "HandFret": 0
+    },
+    {
+      "TimeOffset": 31,
+      "TimeLength": 0.5,
+      "EndTime": 31.5,
+      "String": 3,
+      "Fret": 0,
+      "HandFret": 0
+    },
+    {
+      "TimeOffset": 31.5,
+      "TimeLength": 0.5,
+      "EndTime": 32,
+      "String": 3,
+      "Fret": 0,
+      "HandFret": 0
+    },
+    {
+      "TimeOffset": 32,
+      "TimeLength": 0.5,
+      "EndTime": 32.5,
+      "String": 3,
+      "Fret": 0,
+      "HandFret": 0
+    },
+    {
+      "TimeOffset": 32.5,
+      "TimeLength": 0.5,
+      "EndTime": 33,
+      "String": 2,
+      "Fret": 4,
+      "HandFret": 0
+    },
+    {
+      "TimeOffset": 33,
+      "TimeLength": 0.5,
+      "EndTime": 33.5,
+      "String": 3,
+      "Fret": 0,
+      "HandFret": 0
+    },
+    {
+      "TimeOffset": 33.5,
+      "TimeLength": 2.5,
+      "EndTime": 36,
+      "String": 3,
+      "Fret": 2,
+      "HandFret": 0
+    },
+    {
+      "TimeOffset": 36,
+      "TimeLength": 0.5,
+      "EndTime": 36.5,
+      "String": 2,
+      "Fret": 0,
+      "HandFret": 0
+    },
+    {
+      "TimeOffset": 36.5,
+      "TimeLength": 0.5,
+      "EndTime": 37,
+      "String": 2,
+      "Fret": 0,
+      "HandFret": 0
+    },
+    {
+      "TimeOffset": 37,
+      "TimeLength": 0.5,
+      "EndTime": 37.5,
+      "String": 3,
+      "Fret": 0,
+      "HandFret": 0
+    },
+    {
+      "TimeOffset": 37.5,
+      "TimeLength": 0.5,
+      "EndTime": 38,
+      "String": 3,
+      "Fret": 2,
+      "HandFret": 0
+    },
+    {
+      "TimeOffset": 38,
+      "TimeLength": 1,
+      "EndTime": 39,
+      "String": 4,
+      "Fret": 0,
+      "HandFret": 0
+    },
+    {
+      "TimeOffset": 39,
+      "TimeLength": 0.25,
+      "EndTime": 39.25,
+      "String": 3,
+      "Fret": 0,
+      "HandFret": 0
+    },
+    {
+      "TimeOffset": 39.25,
+      "TimeLength": 0.25,
+      "EndTime": 39.5,
+      "String": 2,
+      "Fret": 4,
+      "HandFret": 0
+    },
+    {
+      "TimeOffset": 39.5,
+      "TimeLength": 0.5,
+      "EndTime": 40,
+      "String": 2,
+      "Fret": 2,
+      "HandFret": 0
+    },
+    {
+      "TimeOffset": 40,
+      "TimeLength": 0.5,
+      "EndTime": 40.5,
+      "String": 4,
+      "Fret": 1,
+      "HandFret": 0
+    },
+    {
+      "TimeOffset": 40.5,
+      "TimeLength": 0.5,
+      "EndTime": 41,
+      "String": 4,
+      "Fret": 1,
+      "HandFret": 0
+    },
+    {
+      "TimeOffset": 41,
+      "TimeLength": 1,
+      "EndTime": 42,
+      "String": 4,
+      "Fret": 1,
+      "HandFret": 0
+    },
+    {
+      "TimeOffset": 42,
+      "TimeLength": 0.25,
+      "EndTime": 42.25,
+      "String": 4,
+      "Fret": 1,
+      "HandFret": 0
+    },
+    {
+      "TimeOffset": 42.25,
+      "TimeLength": 0.25,
+      "EndTime": 42.5,
+      "String": 4,
+      "Fret": 1,
+      "HandFret": 0
+    },
+    {
+      "TimeOffset": 42.5,
+      "TimeLength": 0.75,
+      "EndTime": 43.25,
+      "String": 4,
+      "Fret": 0,
+      "HandFret": 0
+    },
+    {
+      "TimeOffset": 43.25,
+      "TimeLength": 0.25,
+      "EndTime": 43.5,
+      "String": 3,
+      "Fret": 2,
+      "HandFret": 0
+    },
+    {
+      "TimeOffset": 43.5,
+      "TimeLength": 0.5,
+      "EndTime": 44,
+      "String": 3,
+      "Fret": 0,
+      "HandFret": 0
+    },
+    {
+      "TimeOffset": 44,
+      "TimeLength": 0.5,
+      "EndTime": 44.5,
+      "String": 2,
+      "Fret": 4,
+      "HandFret": 0
+    },
+    {
+      "TimeOffset": 44.5,
+      "TimeLength": 0.5,
+      "EndTime": 45,
+      "String": 3,
+      "Fret": 0,
+      "HandFret": 0
+    },
+    {
+      "TimeOffset": 45,
+      "TimeLength": 0.5,
+      "EndTime": 45.5,
+      "String": 3,
+      "Fret": 2,
+      "HandFret": 0
+    },
+    {
+      "TimeOffset": 45.5,
+      "TimeLength": 1.5,
+      "EndTime": 47,
+      "String": 3,
+      "Fret": 0,
+      "HandFret": 0
+    },
+    {
+      "TimeOffset": 47,
+      "TimeLength": 1,
+      "EndTime": 48,
+      "String": 5,
+      "Fret": 3,
+      "HandFret": 0
+    }
+  ]
+}

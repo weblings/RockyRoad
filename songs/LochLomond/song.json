@@ -1,0 +1,21 @@
+{
+  "SongName": "Loch Lomond",
+  "ArtistName": "Traditional",
+  "SongLengthSeconds": 34,
+  "InstrumentParts": [
+    {
+      "InstrumentName": "lead",
+      "InstrumentType": "LeadGuitar",
+      "Tuning": {
+        "StringSemitoneOffsets": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    }
+  ]
+}

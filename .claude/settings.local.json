@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run:*)",
+      "Bash(python3 -c \":*)",
+      "Bash(npx tsc:*)",
+      "Bash(curl -sk https://localhost:8081 -o /dev/null -w \"%{http_code}\")",
+      "Read(//home/andrew/.vite-plugin-mkcert/**)",
+      "Read(//home/andrew/.local/share/**)"
+    ]
+  }
+}
