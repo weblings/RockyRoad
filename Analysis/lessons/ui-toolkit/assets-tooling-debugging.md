@@ -68,6 +68,26 @@ new icon, don't wait for the bug report.
 
 ---
 
+## `@pmndrs/uikit`'s `Image` defaults to `keepAspectRatio: true`, which reflows the element after its texture loads — fighting an explicit fixed-size CSS rule
+
+**Symptom:** A library row's album-art thumbnail and its neighboring text padding intermittently
+looked wrong, timing-dependent on when the row's image finished loading — no static CSS change
+fixed it reliably.
+
+**Root cause:** Confirmed by reading `@pmndrs/uikit`'s actual `Image` component source
+(`node_modules/@pmndrs/uikit/dist/components/image.js`): `keepAspectRatio` defaults to `true`, and
+an internal signal only resolves the real image's aspect ratio once its `TextureLoader.loadAsync()`
+call finishes — asynchronously, per element, on its own schedule. That resolved ratio then adjusts
+the element's box size to match, even when the `.uikitml` CSS gives it an explicit fixed
+`width`/`height` — so the box silently resizes itself the moment the texture loads, regardless of
+what the authored CSS says.
+
+**Fix:** Pass `keepAspectRatio: false` explicitly on any `Image` where a fixed CSS size (with
+`objectFit: 'cover'`/`'fill'`) is the actual intent — don't rely on the default, and don't assume an
+explicit CSS width/height alone is authoritative for this component.
+
+---
+
 ## `compileUIKit` plugin crashes the dev server if the `.uikitml` source directory is missing
 
 **Symptom:** `npm run dev` starts but no page loads at all — not just the uikit screens, everything.

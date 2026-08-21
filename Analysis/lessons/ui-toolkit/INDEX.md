@@ -24,7 +24,8 @@ editing `.uikitml` or XR panel/dropdown/screen code.
   inheritance.
 - [`assets-tooling-debugging.md`](assets-tooling-debugging.md) — SVG icons, the `.uikitml`→JSON
   fetch/cache-busting gotcha, missing-image handling, `currentColor` breaking the SVG loader, the
-  `compileUIKit` plugin crashing the dev server if its source directory is missing.
+  `compileUIKit` plugin crashing the dev server if its source directory is missing, `Image`'s
+  `keepAspectRatio: true` default reflowing an element after its texture loads.
 
 ## Cross-listed (touches more than one topic)
 

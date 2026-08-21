@@ -120,6 +120,21 @@ diff, or not meant to be reviewed, gitignore it rather than re-verifying it's no
 
 ---
 
+## A shared low-level render helper's hardcoded behavior silently applies to every caller, not just the one you're changing
+
+**Symptom:** Adding a dark-edge outline to the fret-position divider lines also changed the
+appearance of two unrelated hit/miss flash lines and the note-to-fretboard connector line.
+
+**Root cause:** `drawFretVerticalLine` has four call sites (the fret grid, two flash-line uses, one
+connector line); the outline was hardcoded inside the shared function body instead of being a
+parameter, so every caller got it whether it wanted it or not.
+
+**Fix:** Made the outline axis a parameter defaulting to "off," and only the intended call site
+opts in. When changing a shared render primitive for one specific use, grep every call site before
+assuming the change is scoped to the one you're looking at.
+
+---
+
 ## A flow's own state machine needs explicit reset on every exit path, not just its normal completion path
 
 A "back to Library" handler for an in-progress multi-step calibration flow hid the relevant panel

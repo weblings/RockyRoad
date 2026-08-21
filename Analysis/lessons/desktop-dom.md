@@ -59,6 +59,24 @@ handler.
 
 ---
 
+## A fixed `grid-template-columns: repeat(N, ...)` doesn't wrap until item count exceeds N — with few items it just looks like one row, not a grid
+
+**Symptom:** The library's song grid rendered as what looked like a single horizontal row instead
+of a multi-row grid.
+
+**Root cause:** `.lib-song-list` was `repeat(9, 1fr)`, but the bundled demo library only has 4
+songs. CSS Grid only wraps into a second row once you exceed the declared column count — with fewer
+items than columns, there's no wrapping to ever make it read as a grid, regardless of how correct
+the `display: grid` declaration is. The actual regression was a stale code comment ("3-column")
+sitting next to code that said 9 — a good sign to diff comment against code when something looks
+subtly wrong rather than trust either alone.
+
+**Fix:** Switched to `repeat(auto-fill, minmax(260px, 1fr))` so column count scales with actual
+available width instead of a hardcoded number tuned for a different (or no longer accurate) item
+count.
+
+---
+
 ## Prefer an element's own `margin` over a shared flex `gap` when the goal is "always this much space above me," not "space between every visible pair"
 
 **Symptom:** Doubling a flex container's `gap` to add visible space above one specific button had no

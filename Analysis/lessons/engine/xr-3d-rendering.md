@@ -67,6 +67,46 @@ can't happen at all.
 
 ---
 
+## XR's fixed-volume culling turns a cosmetic camera-convergence lag into actually-missing notes
+
+**Symptom:** A song opening far up the neck (`HandFret` ~10-12) rendered no notes or fret numbers
+for the first several seconds in XR, catching up gradually. Identical song played correctly from
+the start on desktop.
+
+**Root cause:** `FretPlayerScene3D.inVolumeFret()` culls anything outside a fixed AR volume window
+in XR, but is unconditionally `true` on desktop (`if (!Scene3D.xrMode) return true;` — desktop
+relies on the camera frustum instead). `FretCamera.positionFret` starts at a hardcoded default (`3`)
+and only lerps toward the real target over time; on desktop that lag is just a cosmetic pan, but in
+XR any note outside the still-converging volume during that lag is never drawn at all.
+
+**Fix:** Added `FretCamera.snapToFret()`, called once from `FretPlayerScene3D`'s constructor with
+the first note's `HandFret`, so the position starts correct instead of lerping there from a
+one-size-fits-all default.
+
+---
+
+## A flat "ground decal" quad is nearly invisible near-parallel to the camera — and XR has nothing behind it to fall back on
+
+**Symptom:** String-color fretboard lines and highway lane lines read as extremely thin/low-contrast
+in XR, much more so than on desktop.
+
+**Root cause:** These lines are quads lying flat in the XZ plane (`heightOffset` constant across all
+4 vertices) — effectively decals painted on the fretboard surface. The camera's view direction is
+dominated by -Z with only a shallow pitch (desktop: ~15°), so a flat decal's on-screen height is
+proportional to `thickness × sin(pitch)` — small by construction, and literally zero at a true
+head-on view. XR (`SessionMode.ImmersiveAR`) also has no scrim or background of any kind behind the
+highway, unlike desktop's opaque canvas, so there's nothing to give these elements contrast even
+when some sliver of them is visible.
+
+**Fix:** Gave the string-color lines a companion quad standing upright at a constant Z — the same
+orientation already used by the correctly-visible `drawFretVerticalLine` fret dividers, just running
+along X instead of Y. Elements whose *length* runs along Z (sustain trails, slides) hit the same
+problem from a harder angle — a single companion wall doesn't fix a truly head-on view for those,
+since the length axis itself is the near-parallel one; that needs real cross-sectional extrusion or
+camera-facing billboarding, not yet done.
+
+---
+
 ## `Scene3D.xrMode = true` must be set before any scene construction
 
 **Symptom:** XR scenes create an owned `THREE.Scene`, add the QuadBatch mesh to it, then fail when IWSDK tries to register the same mesh — or the mesh renders twice.

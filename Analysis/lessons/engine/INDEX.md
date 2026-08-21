@@ -14,7 +14,9 @@ to do before touching XR scene graph, input, rendering internals, or build/dev s
 - [`xr-3d-rendering.md`](xr-3d-rendering.md) — this project's own coordinate/rendering internals:
   the local-Z refactor, audio-less charts freezing the highway, `getFretPosition()`'s
   non-linearity, `QuadBatch`'s known buffer-upload inefficiency, `Scene3D.xrMode` construction
-  ordering, why resizing a canvas backing a live `CanvasTexture` at runtime is unreliable.
+  ordering, why resizing a canvas backing a live `CanvasTexture` at runtime is unreliable, XR's
+  fixed-volume culling turning camera-convergence lag into missing notes, why a flat "ground decal"
+  quad is nearly invisible near-parallel to the camera with XR having no background to fall back on.
 - [`dev-environment.md`](dev-environment.md) — Windows/Vite/TypeScript build setup: `/@fs/`
   cross-drive failures, IWER's missing device-mode button, remote-debugging a Quest from PC,
   logging `Error` objects correctly, `verbatimModuleSyntax`/`noUnusedLocals` gotchas, two-entry
