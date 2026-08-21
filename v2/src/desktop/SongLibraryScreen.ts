@@ -30,11 +30,11 @@ const INSTRUMENT_TYPE: Record<InstrumentFilter, string> = {
 const STRINGED = new Set(['LeadGuitar', 'RhythmGuitar', 'BassGuitar']);
 
 // Instrument badges shown on each library card, in display order. No Drums entry —
-// unsupported everywhere in this app, so there's no icon for it to show.
-const BADGE_ICONS: { types: string[]; src: string; alt: string }[] = [
-    { types: ['BassGuitar'],                 src: '/Bass_White4.svg',    alt: 'Bass' },
-    { types: ['Keys'],                       src: '/Keys_White3.svg', alt: 'Keys' },
-    { types: ['LeadGuitar', 'RhythmGuitar'], src: '/Guitar_White4.svg',   alt: 'Guitar' },
+// unsupported everywhere in this app, so there's no badge for it to show.
+const BADGE_LABELS: { types: string[]; label: string }[] = [
+    { types: ['BassGuitar'],                 label: 'Bass' },
+    { types: ['Keys'],                       label: 'Keys' },
+    { types: ['LeadGuitar', 'RhythmGuitar'], label: 'Guitar' },
 ];
 const STATE_KEY = 'chartplayer-library-state';
 const DEFAULT_STATE: LibraryState = {
@@ -225,16 +225,16 @@ export class SongLibraryScreen implements IScreen {
                     </div>
                     ${badges.length ? `
                         <div class="lib-instrument-badges">
-                            ${badges.map(b => `<img src="${b.src}" alt="${b.alt}" title="${b.alt}" />`).join('')}
+                            ${badges.map(b => `<span class="lib-badge">${esc(b.label)}</span>`).join('')}
                         </div>` : ''}
                 </button>`;
         }).join('');
     }
 
-    // Which instrument badges apply to a song, in BADGE_ICONS' display order.
-    private instrumentBadges(entry: SourcedEntry['entry']): { src: string; alt: string }[] {
+    // Which instrument badges apply to a song, in BADGE_LABELS' display order.
+    private instrumentBadges(entry: SourcedEntry['entry']): { label: string }[] {
         const partTypes = new Set(entry.parts.map(p => p.type));
-        return BADGE_ICONS.filter(b => b.types.some(t => partTypes.has(t)));
+        return BADGE_LABELS.filter(b => b.types.some(t => partTypes.has(t)));
     }
 
     private filteredSongs(): { sourced: SourcedEntry; origIdx: number }[] {
