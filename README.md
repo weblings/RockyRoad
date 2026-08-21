@@ -2,6 +2,13 @@
   <img src="v2/public/README/RockyRoadLogo.png" alt="RockyRoad logo" width="324" />
 </p>
 
+<p align="center">
+  <img src="v2/public/README/Desktop_Guitar_2.0.4-ezgif.com-crop.gif" width="200" />
+  <img src="v2/public/README/XR_Guitar_2.0.4-ezgif.com-optimize.gif" width="200" />
+  <img src="v2/public/README/Desktop_Piano_2.0.4-ezgif.com-crop (2).gif" width="200" />
+  <img src="v2/public/README/XR_Piano_2.0.4-ezgif.com-optimize.gif" width="200" />
+</p>
+
 # RockyRoad
 
 - A web browser note-highway music app for guitar and piano with full support for WebXR-capable headsets
