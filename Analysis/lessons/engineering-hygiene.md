@@ -163,3 +163,27 @@ the real drag functionality, not a redundant duplicate of it.
 the same job, check precisely which properties that code actually assigns versus merely reads —
 "looks self-contained" and "is self-contained" aren't the same claim, and the two can look identical
 until checked.
+
+---
+
+## A visual "wrong by one" symptom can be a data bug, a render bug, or both — check which before fixing
+
+**Symptom:** A guitar highway's hand-position highlight excluded a fret that had a real note on it.
+Fixing that (populating the chart's until-then-constant placeholder `HandFret` field) then exposed a
+*second*, previously-invisible symptom: a `-1` fret briefly appearing in the same highlight.
+
+**Root cause:** Two independent bugs that happened to look like the same "off by one" thing. First,
+the chart data itself was degenerate — a deprecated converter had hardcoded `HandFret: 0` for every
+note, so the highlight's `HandFret + 3` upper bound never moved regardless of what was actually
+played. Once that was fixed with real per-note values, a second, pre-existing gap in the *rendering*
+code surfaced: `HandFret - 1` was used as a draw coordinate in six places with no lower clamp, so a
+genuinely correct `HandFret: 0` (the song legitimately opens in open position) produced a `-1`
+coordinate that had simply never been exercised by any chart before.
+
+**Fix:** Don't assume a "wrong by one" visual matches a single root cause. Trace whether the
+*value* feeding a computation is actually correct data first (compare against a known-good
+reference — here, a different song's real `HandFret` values) before concluding the *code* is wrong,
+and don't stop after finding one cause if fixing it changes what's actually being exercised. Once
+found, clamp values from external/authored data to their real valid domain at the point they're
+used for positioning (`Math.max(0, ...)`/`Math.min(NUM_FRETS, ...)`) rather than trusting the data
+to always stay in range.

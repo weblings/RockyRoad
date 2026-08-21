@@ -18,12 +18,14 @@ to do before touching XR scene graph, input, rendering internals, or build/dev s
   fixed-volume culling turning camera-convergence lag into missing notes, why a flat "ground decal"
   quad is nearly invisible near-parallel to the camera with XR having no background to fall back on,
   why an isolated single-object raycast is occlusion-blind compared to the real scene-aware pointer
-  system, continuous damping vs. discrete tweens for a moving-target billboard.
+  system, continuous damping vs. discrete tweens for a moving-target billboard, why flipping a mesh
+  visible has to wait until its transform is actually correct, not just mounted.
 - [`dev-environment.md`](dev-environment.md) — Windows/Vite/TypeScript build setup: `/@fs/`
   cross-drive failures, IWER's missing device-mode button, debugging the JS console from a Quest
   (in-scene `DEBUG_CONSOLE_ENABLED` panel preferred over unreliable chrome://inspect),
   logging `Error` objects correctly, `verbatimModuleSyntax`/`noUnusedLocals` gotchas, two-entry
-  Vite builds, dev-proxying a plain-HTTP server, import-path conventions.
+  Vite builds, dev-proxying a plain-HTTP server, import-path conventions, `base: "./"` not rewriting
+  hardcoded absolute-root paths in runtime strings (GitHub Pages subpath deploys).
 - [`web-audio-worklets.md`](web-audio-worklets.md) — adopting an AudioWorklet-based library
   (pitch-preserving speed via `@soundtouchjs/audio-worklet`): Vite's `?url` + package subpath
   exports serving a worklet file with no manual copy step, verifying a third-party audio

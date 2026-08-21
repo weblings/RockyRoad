@@ -154,3 +154,25 @@ angular gap to the live target (`1 - Math.exp(-delta / smoothTime)`), rather tha
 two fixed endpoints. Applying the damping unconditionally (not gated on "is grabbed") lets it settle
 naturally for a moment after release too, matching how the pitch tween already behaves outside its
 own grabbed-check.
+
+---
+
+## Flipping a mesh visible at mount time isn't the same as flipping it once its transform is correct
+
+**Symptom:** Starting a guitar/bass song in XR showed the highway (and its countdown mesh, a
+sibling under the same grab bar) briefly rendered enormous and mispositioned for a frame or two
+before snapping to the right size/place.
+
+**Root cause:** `buildGuitarHighway()` set `guitarGrabBarHit.visible = true` the instant the mesh
+mounted, on the assumption that the bar's actual placement (`placeGuitarBar()` +
+`applyGuitarHighwayScale()`, both in `CalibrationSystem`) was "instant enough" not to matter. But
+the bar defaults to `Object3D`'s identity transform (position `(0,0,0)`, scale `1`) until something
+explicitly places it, and that placement genuinely happens *after* the mesh-mount promise chain
+unwinds back up to the caller — a real gap, not a same-tick guarantee, so at least one frame could
+render at the stale/identity transform.
+
+**Fix:** Don't flip visibility at mount time at all — let whichever caller actually corrects the
+transform be the one to reveal it (`CalibrationSystem`'s `setGuitarBarVisible(true)`, already
+correctly sequenced after placement in every calibration path). The one caller that doesn't go
+through calibration (`onDifficultyChange`, mid-play) re-shows the bar itself right after rebuilding,
+since its transform is already known-valid by that point.

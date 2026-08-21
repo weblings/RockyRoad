@@ -100,3 +100,43 @@ the cause of an apparently unrelated total outage.
 **Fix:** Ensure the `.uikitml` source directory (and any assets the compiled panels reference,
 e.g. sprite sheets/icons) exist before first `npm run dev` in a fresh checkout or after a project
 restructure.
+
+---
+
+## `Svg` only renders fill geometry — a stroke-only icon needs `Image` instead
+
+**Symptom:** Porting desktop's icon-style library badges (three SVGs) to XR via `new UIKit.Svg({
+src }, [...])` — two rendered fine, one (a piano-keyboard glyph) came out visually broken/missing
+detail.
+
+**Root cause:** Read `@pmndrs/uikit`'s `Svg` component source
+(`node_modules/@pmndrs/uikit/dist/components/svg.js`): it converts each parsed path via
+`SVGLoader.createShapes(path)` into a `ShapeGeometry`, colored by the path's *fill*. There is no
+stroke-to-geometry step at all. The two working icons are built entirely from filled `<path>`
+elements; the broken one is built from `<rect>`/`<line>` primitives whose visible detail is almost
+entirely `stroke`-only (`fill:none;stroke:#fff`) — all of that silently doesn't exist as far as
+`Svg` is concerned.
+
+**Fix:** Use `Image` (already used elsewhere here for raster album art), not `Svg`, for any icon
+whose look depends on strokes. `Image` rasterizes via `THREE.TextureLoader`, i.e. the browser's own
+SVG renderer — same as a plain `<img>` tag, strokes and all — rather than re-parsing the vector
+geometry by hand. This directly qualifies the "`<img src="....svg">` is the safe way" entry above:
+that's true for the *authoring* convenience (uikitml routes it to `Svg` automatically), but not a
+guarantee it'll render correctly — check whether the specific icon's detail is stroke-based first.
+
+---
+
+## An SVG loaded via bare `new Image()` (no CSS context) needs explicit `width`/`height`, not just `viewBox`
+
+**Symptom:** Switched the same badge icons from `Svg` to `Image` to fix the above — all three
+promptly disappeared instead.
+
+**Root cause:** The icon files only had `viewBox="0 0 72 72"`, no `width`/`height` attribute on the
+root `<svg>`. That's harmless for a real in-DOM `<img>` tag — CSS `width`/`height` on the element
+always wins regardless. But `THREE.TextureLoader` loads via an offscreen `new Image()` that's never
+inserted into the DOM and has no CSS applied to it at all — with no explicit intrinsic size to fall
+back on, it decoded to an unusable/zero-size texture.
+
+**Fix:** Any SVG destined to be loaded via `Image`/`TextureLoader` (as opposed to a plain `<img>` in
+markup) needs explicit `width`/`height` attributes on its root `<svg>` element, matching the
+`viewBox`, not just the `viewBox` alone.

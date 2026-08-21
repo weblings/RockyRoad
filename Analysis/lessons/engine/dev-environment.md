@@ -144,3 +144,13 @@ The browser (including Quest via Quest Link) hits `https://localhost:8081/remote
 **Root cause:** Porting code that used `.js` extensions on imports (Node16 ESM style) into a Vite project — Vite's bundler resolves `.ts` files directly, so `.js` suffixes on cross-file imports are not needed and cause resolution failures when the file is `.ts`.
 
 **Fix:** Remove all `.js` extensions from imports. Mode-local imports stay `./Foo`, shared imports become `../shared/Foo`.
+
+---
+
+## `base: "./"` doesn't rewrite hardcoded absolute-root paths in runtime strings
+
+**Symptom:** Deployed to GitHub Pages under `/RockyRoad/` (a project subpath, not domain root) — album art, the UI atlas texture, uikit panel configs, and several icons all silently 404'd, even though `vite.config.ts` already has `base: "./"`.
+
+**Root cause:** `base` only rewrites asset references Vite's own HTML/module-graph processing actually sees — `<script src>`, `<link href>`, imported assets. It has no way to find (and can't rewrite) a plain string like `'/UISheet0.png'` or `'/ui/library.json'` sitting in a `.ts` file, used later at runtime via `fetch()`/`.src =`/a component's `config:` prop. Those resolve against whatever origin the page is served from, ignoring `base` entirely.
+
+**Fix:** Any such hardcoded absolute-root path needs manual prefixing: `` `${import.meta.env.BASE_URL}UISheet0.png` `` instead of `'/UISheet0.png'`. Found ~15 call sites across `desktop/main.ts`, `xr/index.ts`, `desktop/SongLibraryScreen.ts`, `desktop/Dropdown.ts`, and `shared/SongSource.ts`'s `BakedSource` — grep the whole `src/` tree for `'/[A-Za-z]` when setting up a non-root deployment target, not just the files you expect to be affected.

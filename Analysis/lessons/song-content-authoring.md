@@ -61,6 +61,20 @@ hand-editing a `lead.json`/`bass.json` directly: `appString = 6 - tabStringNumbe
 
 ---
 
+## A deprecated converter can emit syntactically-valid but semantically-empty data — cross-check against a known-good chart, don't guess
+
+**Finding:** `home-on-the-range` (CSV pipeline) had `HandFret` hardcoded to `0` on every note — a
+valid-looking field, never actually computed, so the hand-position highlight never moved.
+
+**How to apply:** Diff against a real chart (LochLomond) to find the rule instead of guessing:
+`HandFret` matches the note's own `Fret`, carried forward through open-string notes — but only
+move it when the new fret actually falls outside the current `[HandFret-1, HandFret+3]` window,
+not on every fretted note. A passing note already in reach should keep the existing hand position
+rather than jump to match it and immediately jump back — otherwise the camera/highlight flickers
+for no reason.
+
+---
+
 ## Total song duration is a free, powerful sanity check on any chart, regardless of source
 
 **Finding:** `measureCount × beatsPerMeasure × secondsPerBeat` should equal the track's actual

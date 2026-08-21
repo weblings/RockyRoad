@@ -77,7 +77,7 @@
       "EndTime": 3.5,
       "String": 2,
       "Fret": 4,
-      "HandFret": 4
+      "HandFret": 2
     },
     {
       "TimeOffset": 3.5,
@@ -237,7 +237,7 @@
       "EndTime": 15.5,
       "String": 2,
       "Fret": 4,
-      "HandFret": 4
+      "HandFret": 2
     },
     {
       "TimeOffset": 15.5,
@@ -533,7 +533,7 @@
       "EndTime": 39.5,
       "String": 2,
       "Fret": 4,
-      "HandFret": 4
+      "HandFret": 2
     },
     {
       "TimeOffset": 39.5,
