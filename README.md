@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="v2/public/README/RockyRoadLogo.png" alt="RockyRoad logo" width="324" />
+</p>
+
 # RockyRoad
 
 - A web browser note-highway music app for guitar and piano with full support for WebXR-capable headsets
