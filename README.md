@@ -91,7 +91,7 @@ lets you try converted songs directly instead — no self-hosting needed.
 **What's OpenSongChart / ChartPlayer / ChartConverter?**
 
 Repos by [Mike Oliphant](https://github.com/mikeoliphant). Without this amazing tech foundation, I would not have even attempted this project!
-- [OpenSongChart](https://github.com/mikeoliphant/OpenSongFormat) is an open format for song charts
+- [OpenSongChart](https://github.com/mikeoliphant/OpenSongChart) is an open format for song charts
 - [ChartPlayer](https://github.com/mikeoliphant/ChartPlayer) is a cross-platform application for playing along to OpenSongChart charts
 - [ChartConverter](https://github.com/mikeoliphant/ChartConverter) is an app for converting Rocksmith PSARC to OpenSongChart format
 
@@ -116,3 +116,9 @@ For the tech stack, architecture, and directory layout, see [`v2/ARCHITECTURE.md
 For gotchas hit while building this project, see
 [`Analysis/lessons/README.md`](Analysis/lessons/README.md) — written primarily for AI coding
 agents working in this repo, but worth a skim if you're a human developer onboarding too.
+
+## License
+
+RockyRoad is licensed under the [GNU General Public License v3.0 or later](LICENSE). Its
+note-highway logic and visuals are distilled from [ChartPlayer](https://github.com/mikeoliphant/ChartPlayer)
+(also GPL-3.0), so this project carries the same license forward.

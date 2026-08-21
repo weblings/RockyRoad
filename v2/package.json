@@ -2,6 +2,7 @@
   "name": "Rocky Road",
   "version": "0.2.5",
   "private": true,
+  "license": "GPL-3.0-or-later",
   "type": "module",
   "scripts": {
     "dev": "npm run bake && concurrently -n vite,songs -c blue,green \"vite\" \"npm:serve-songs\"",
