@@ -181,9 +181,12 @@ export class XRSongLibrary {
         }
         row.add(artThumb);
 
+        // 20/24 predate wrapping being an option (align-items: stretch, above) — they were
+        // tuned as the one-line fit, cutting normal titles short instead of letting them wrap.
+        // Raised to a safety net against pathological lengths only.
         const meta = new UIKit.Container({}, ['song-meta']);
-        meta.add(new UIKit.Text({ text: truncate(sourced.entry.songName, 20) },   ['song-title']));
-        meta.add(new UIKit.Text({ text: truncate(sourced.entry.artistName, 24) }, ['song-artist']));
+        meta.add(new UIKit.Text({ text: truncate(sourced.entry.songName, 40) },   ['song-title']));
+        meta.add(new UIKit.Text({ text: truncate(sourced.entry.artistName, 48) }, ['song-artist']));
         row.add(meta);
 
         const partTypes = new Set(sourced.entry.parts.map(p => p.type));
