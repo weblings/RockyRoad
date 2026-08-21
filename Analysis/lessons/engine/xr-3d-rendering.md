@@ -114,3 +114,43 @@ camera-facing billboarding, not yet done.
 **Root cause:** `Scene3D.xrMode` is a static flag checked in the constructor. Any code path that constructs a `Scene3D` subclass before the flag is set will create a `THREE.Scene` and add the mesh to it.
 
 **Fix:** Set `Scene3D.xrMode = true` at the very top of `src/xr/index.ts`, before any other imports that could transitively construct a scene. It's the first executable line in the XR entry point.
+
+---
+
+## A hand-rolled `raycaster.intersectObject(x)` test has no concept of occlusion — it can "hit" X even when something closer actually blocks the ray
+
+**Symptom:** Tapping almost anywhere on a uikit panel (not just near the visible grab-bar handle)
+would occasionally trigger the grab bar's billboard-rotation for a single frame — worse at panel
+edges, worse still on the much-wider Library panel than the standard 0.4m panels.
+
+**Root cause:** The custom grab-detection code polled `pad.getButtonDown(Trigger)` each frame and
+tested `raycaster.intersectObject(grabBarHit)` in isolation — a raw geometric test against that one
+small plane, with no concept that the panel (parented in front of/above it) should occlude the ray
+first. An edge-aimed ray from a hand held low/in front is far more likely to geometrically cross the
+bar's plane en route to a wide panel's far edge than a ray aimed at the panel's center. IWSDK's own
+`RayInteractable`/`DistanceGrabbable` on the same object — which do real scene-wide nearest-hit
+resolution — never made this mistake, confirmed by adding a real `pointerdown` listener alongside
+the custom code and finding it never fired in the false-positive cases.
+
+**Fix:** Replaced the per-frame poll + isolated raycast with real `pointerdown`/`pointerup`
+listeners on the object itself (`grabBarHit.addEventListener(...)`) — the same event-driven,
+occlusion-aware hit-test the framework's own grab component already relies on, instead of a
+hand-rolled reimplementation of "was this clicked" that silently ignored anything in front of the
+target.
+
+---
+
+## A continuously-moving target needs continuous damping, not a discrete from/to/duration tween
+
+**Finding:** The grab bar's pitch billboard snaps between exactly three discrete states (tilt
+up/level/tilt down), so a from/to/duration eased tween (remember a start value, ease to a fixed end
+over a fixed time) fits it well. Yaw is a different shape of problem — `atan2(head, bar)` produces a
+new target every single frame while the bar is being actively dragged, since both head and bar
+position keep changing. Reusing the discrete-tween pattern for yaw would mean restarting a new short
+tween every frame as the target keeps sliding away — jittery, not smooth.
+
+**Fix:** Used continuous exponential damping instead — each frame, close a fraction of the *current*
+angular gap to the live target (`1 - Math.exp(-delta / smoothTime)`), rather than animating between
+two fixed endpoints. Applying the damping unconditionally (not gated on "is grabbed") lets it settle
+naturally for a moment after release too, matching how the pitch tween already behaves outside its
+own grabbed-check.

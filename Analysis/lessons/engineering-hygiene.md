@@ -145,3 +145,21 @@ after the user had navigated away, until the next time the flow was properly res
 **Fix:** Any exit path that isn't the flow's own designed completion (a back/cancel/navigate-away
 button, in particular) needs to explicitly reset whatever state the flow's per-frame update reads
 — hiding the UI doesn't imply the logic driving it has stopped.
+
+---
+
+## Custom code sitting next to a component doesn't make the component redundant — check exactly what the custom code reads vs. writes first
+
+**Symptom:** Mid-investigation, proposed removing an entity's `DistanceGrabbable` component as
+apparently redundant, since custom code right next to it already seemed to handle "grab this bar
+and reposition the panel."
+
+**Root cause:** The custom code only ever *read* the object's current world position
+(`getWorldPosition`) to compute billboard rotation — it never wrote position at all.
+`DistanceGrabbable` was the only thing actually moving the object; removing it would have deleted
+the real drag functionality, not a redundant duplicate of it.
+
+**Fix:** Before calling any component "redundant" next to hand-written code that looks like it does
+the same job, check precisely which properties that code actually assigns versus merely reads —
+"looks self-contained" and "is self-contained" aren't the same claim, and the two can look identical
+until checked.

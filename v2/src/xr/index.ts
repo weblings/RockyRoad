@@ -13,7 +13,6 @@ import {
     CanvasTexture,
     DistanceGrabbable,
     Hovered,
-    InputComponent,
     LinearFilter,
     Mesh,
     MeshBasicMaterial,
@@ -22,7 +21,6 @@ import {
     PanelDocument,
     PanelUI,
     PlaneGeometry,
-    Raycaster,
     RayInteractable,
     SessionMode,
     SRGBColorSpace,
@@ -111,10 +109,6 @@ let PANEL_YAW_SMOOTH_TIME       = 0.06;
 // ── IWSDK HighwaySystem ───────────────────────────────────────────────────────
 
 class HighwaySystem extends createSystem({}) {
-    private raycaster!: Raycaster;
-    private rayOrigin!: Vector3;
-    private rayDir!: Vector3;
-
     private lastCountdownN: number | undefined = undefined;
 
     private isGrabbed        = false;
@@ -131,14 +125,13 @@ class HighwaySystem extends createSystem({}) {
     // Guitar/Bass highway grab bar — position via IWSDK DistanceGrabbable,
     // yaw-only billboard while grabbed (no pitch snap — the volume always
     // stays upright with the ground plane).
-    private guitarIsGrabbed       = false;
-    private guitarGrabbingHandIdx = -1;
+    private guitarIsGrabbed = false;
+    private guitarGrabPointerId: number | null = null;
     private guitarBarPos!: Vector3;
+    private guitarYawCurrent = 0;
+    private guitarYawTarget  = 0;
 
     init(): void {
-        this.raycaster    = new Raycaster();
-        this.rayOrigin    = new Vector3();
-        this.rayDir       = new Vector3();
         this.panelPos     = new Vector3();
         this.headPos      = new Vector3();
         this.guitarBarPos = new Vector3();
@@ -156,6 +149,21 @@ class HighwaySystem extends createSystem({}) {
             if (e.pointerId !== this.grabPointerId) return;
             this.isGrabbed     = false;
             this.grabPointerId = null;
+            (this.input.multiPointers.left  as unknown as { ray: { visual: { enabled: boolean } } }).ray.visual.enabled = true;
+            (this.input.multiPointers.right as unknown as { ray: { visual: { enabled: boolean } } }).ray.visual.enabled = true;
+        });
+
+        const guitarGrabBarHit = this.world.globals.guitarGrabBarHit as Mesh | undefined;
+        guitarGrabBarHit?.addEventListener('pointerdown', (e) => {
+            this.guitarIsGrabbed     = true;
+            this.guitarGrabPointerId = e.pointerId ?? null;
+            (this.input.multiPointers.left  as unknown as { ray: { visual: { enabled: boolean } } }).ray.visual.enabled = false;
+            (this.input.multiPointers.right as unknown as { ray: { visual: { enabled: boolean } } }).ray.visual.enabled = false;
+        });
+        guitarGrabBarHit?.addEventListener('pointerup', (e) => {
+            if (e.pointerId !== this.guitarGrabPointerId) return;
+            this.guitarIsGrabbed     = false;
+            this.guitarGrabPointerId = null;
             (this.input.multiPointers.left  as unknown as { ray: { visual: { enabled: boolean } } }).ray.visual.enabled = true;
             (this.input.multiPointers.right as unknown as { ray: { visual: { enabled: boolean } } }).ray.visual.enabled = true;
         });
@@ -249,12 +257,6 @@ class HighwaySystem extends createSystem({}) {
             if (rightHandVisual) rightHandVisual.model.visible = false;
         }
 
-        // ── Ray hit-test: scrub drag and button clicks ────────────────────────
-        const hands = [
-            { pad: this.input.gamepads.left,  ray: this.player.raySpaces.left },
-            { pad: this.input.gamepads.right, ray: this.player.raySpaces.right },
-        ] as const;
-
         // ── Billboard (isGrabbed maintained by real pointerdown/pointerup listeners set up
         // in init(), not polled here) ──────────────────────────────────────────
         const grabBarHit = this.world.globals.grabBarHit as Mesh | undefined;
@@ -299,39 +301,25 @@ class HighwaySystem extends createSystem({}) {
         }
 
         // ── Guitar highway grab bar: grab + yaw-only billboard (no pitch snap — ──
-        // the volume always stays upright with the ground plane) ────────────────
+        // the volume always stays upright with the ground plane). guitarIsGrabbed is
+        // maintained by real pointerdown/pointerup listeners set up in init(). ───────
         const guitarGrabBarHit = this.world.globals.guitarGrabBarHit as Mesh | undefined;
         if (guitarGrabBarHit && guitarGrabBarHit.visible) {
-            if (!this.guitarIsGrabbed) {
-                for (let i = 0; i < hands.length; i++) {
-                    const { pad, ray } = hands[i];
-                    if (!pad?.getButtonDown(InputComponent.Trigger) || !ray) continue;
-                    ray.updateMatrixWorld();
-                    ray.getWorldPosition(this.rayOrigin);
-                    this.rayDir.set(0, 0, -1).transformDirection(ray.matrixWorld);
-                    this.raycaster.set(this.rayOrigin, this.rayDir);
-                    if (this.raycaster.intersectObject(guitarGrabBarHit).length > 0) {
-                        this.guitarIsGrabbed       = true;
-                        this.guitarGrabbingHandIdx = i;
-                        (this.input.multiPointers[i === 0 ? 'left' : 'right'] as unknown as { ray: { visual: { enabled: boolean } } }).ray.visual.enabled = false;
-                        break;
-                    }
-                }
-            } else if (this.guitarGrabbingHandIdx >= 0) {
-                if (hands[this.guitarGrabbingHandIdx].pad?.getButtonUp(InputComponent.Trigger)) {
-                    (this.input.multiPointers[this.guitarGrabbingHandIdx === 0 ? 'left' : 'right'] as unknown as { ray: { visual: { enabled: boolean } } }).ray.visual.enabled = true;
-                    this.guitarIsGrabbed       = false;
-                    this.guitarGrabbingHandIdx = -1;
-                }
-            }
-
             if (this.guitarIsGrabbed) {
                 guitarGrabBarHit.getWorldPosition(this.guitarBarPos);
                 this.player.head.getWorldPosition(this.headPos);
-                guitarGrabBarHit.rotation.y = Math.atan2(
+                this.guitarYawTarget = Math.atan2(
                     this.headPos.x - this.guitarBarPos.x,
                     this.headPos.z - this.guitarBarPos.z,
                 );
+            }
+
+            const twoPi = Math.PI * 2;
+            let guitarYawDelta = this.guitarYawTarget - this.guitarYawCurrent;
+            guitarYawDelta = ((guitarYawDelta + Math.PI) % twoPi + twoPi) % twoPi - Math.PI;
+            if (Math.abs(guitarYawDelta) > 0.0001) {
+                this.guitarYawCurrent += guitarYawDelta * (1 - Math.exp(-delta / PANEL_YAW_SMOOTH_TIME));
+                guitarGrabBarHit.rotation.y = this.guitarYawCurrent;
             }
         }
 

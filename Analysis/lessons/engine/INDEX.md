@@ -16,9 +16,12 @@ to do before touching XR scene graph, input, rendering internals, or build/dev s
   non-linearity, `QuadBatch`'s known buffer-upload inefficiency, `Scene3D.xrMode` construction
   ordering, why resizing a canvas backing a live `CanvasTexture` at runtime is unreliable, XR's
   fixed-volume culling turning camera-convergence lag into missing notes, why a flat "ground decal"
-  quad is nearly invisible near-parallel to the camera with XR having no background to fall back on.
+  quad is nearly invisible near-parallel to the camera with XR having no background to fall back on,
+  why an isolated single-object raycast is occlusion-blind compared to the real scene-aware pointer
+  system, continuous damping vs. discrete tweens for a moving-target billboard.
 - [`dev-environment.md`](dev-environment.md) — Windows/Vite/TypeScript build setup: `/@fs/`
-  cross-drive failures, IWER's missing device-mode button, remote-debugging a Quest from PC,
+  cross-drive failures, IWER's missing device-mode button, debugging the JS console from a Quest
+  (in-scene `DEBUG_CONSOLE_ENABLED` panel preferred over unreliable chrome://inspect),
   logging `Error` objects correctly, `verbatimModuleSyntax`/`noUnusedLocals` gotchas, two-entry
   Vite builds, dev-proxying a plain-HTTP server, import-path conventions.
 - [`web-audio-worklets.md`](web-audio-worklets.md) — adopting an AudioWorklet-based library

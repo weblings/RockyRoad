@@ -31,7 +31,14 @@ Windows/dev-server/debugging technique, independent of any particular screen or 
 
 **Problem:** `console.log` output from a WebXR app running in Meta Quest Browser is not accessible — no DevTools on-device and the Quest can't inspect itself.
 
-**Solution:** Connect the Quest via USB with ADB enabled (Settings → Developer Mode), then:
+**Preferred solution — in-scene debug console:** flip `DEBUG_CONSOLE_ENABLED` to `true` near the
+top of `v2/src/xr/index.ts`. This monkey-patches `console.log`/`warn`/`error` and
+`window.onerror`/`unhandledrejection` to also draw each line onto a `CanvasTexture` plane in the
+scene, readable directly in-headset. No USB/ADB, no external dependency, works every time. Flip it
+back to `false` when done — it's off by default.
+
+**Alternative — chrome://inspect, often unreliable:** connect the Quest via USB with ADB enabled
+(Settings → Developer Mode), then:
 
 ```powershell
 # 1. Forward the Chrome DevTools port
@@ -41,18 +48,14 @@ Windows/dev-server/debugging technique, independent of any particular screen or 
 chrome://inspect
 ```
 
-The app tab appears in the list. Click **inspect** for full DevTools — console, network, breakpoints. Works with Meta Quest Browser (Chromium-based).
+The app tab appears in the list. Click **inspect** for full DevTools — console, network,
+breakpoints. Has repeatedly proven unreliable in this project (hence the in-scene console above
+being built and preferred) — try it only if the in-scene console itself isn't an option.
 
 **ADB path on this machine (Andrew's PC):**
 `C:\Program Files\Unity\Hub\Editor\6000.0.30f1\Editor\Data\PlaybackEngines\AndroidPlayer\SDK\platform-tools\adb.exe`
 
-**Note:** `adb logcat -s chromium` shows XR session lifecycle events but NOT `console.log` output from JS. Use `chrome://inspect` instead.
-
-**Fallback when USB/chrome://inspect isn't cooperating:** a plain `CanvasTexture` plane in the
-scene, positioned at a fixed world location, with `console.log`/`warn`/`error` and
-`window.onerror`/`unhandledrejection` monkey-patched to also draw each line onto it. Zero
-external dependency, works regardless of remote-debugging state. Used successfully in the
-uikit migration session to find a runtime error that USB debugging couldn't surface reliably.
+**Note:** `adb logcat -s chromium` shows XR session lifecycle events but NOT `console.log` output from JS.
 
 ---
 
