@@ -296,6 +296,15 @@ export class FretPlayerScene3D extends ChartScene3D {
         return Math.abs(getFretPosition(fret) + this.contentOffsetX) <= VOLUME_HALF_WIDTH;
     }
 
+    // Hand-span visuals extend one fret below / three above HandFret — clamp both to the
+    // neck's real range so an anchor near either end can't draw off it.
+    private handSpanLow(handFret: number): number {
+        return Math.max(0, handFret - 1);
+    }
+    private handSpanHigh(handFret: number): number {
+        return Math.min(NUM_FRETS, handFret + 3);
+    }
+
     // ─── Mock detection ───────────────────────────────────────────────────────
 
     private evaluateMockDetection(): void {
@@ -379,13 +388,13 @@ export class FretPlayerScene3D extends ChartScene3D {
             if (note.TimeOffset > this.endTime) break;
 
             if (note.TimeOffset > this.currentTime && lastHandFret !== -1 && lastHandFret !== note.HandFret) {
-                this.drawFlatImageFull(singleWhitePixel, lastHandFret - 1, lastHandFret + 3, lastHandTime, note.TimeOffset, 0, handPosColor);
+                this.drawFlatImageFull(singleWhitePixel, this.handSpanLow(lastHandFret), this.handSpanHigh(lastHandFret), lastHandTime, note.TimeOffset, 0, handPosColor);
                 lastHandTime = note.TimeOffset;
             }
             lastHandFret = note.HandFret;
         }
         if (lastHandFret !== -1) {
-            this.drawFlatImageFull(singleWhitePixel, lastHandFret - 1, lastHandFret + 3, lastHandTime, this.endTime, 0, handPosColor);
+            this.drawFlatImageFull(singleWhitePixel, this.handSpanLow(lastHandFret), this.handSpanHigh(lastHandFret), lastHandTime, this.endTime, 0, handPosColor);
         }
 
         // ── 5. Find "current" notes for overlay ───────────────────────────────
@@ -616,7 +625,7 @@ export class FretPlayerScene3D extends ChartScene3D {
             }
 
             if (!isCurrent || drawCurrent) {
-                this.drawVerticalImage(this.stringNoteImages[note.String], note.HandFret - 1, note.HandFret + 3, noteHeadTime, this.getStringHeight(stringOffset), stringColor, 0.04);
+                this.drawVerticalImage(this.stringNoteImages[note.String], this.handSpanLow(note.HandFret), this.handSpanHigh(note.HandFret), noteHeadTime, this.getStringHeight(stringOffset), stringColor, 0.04);
             }
         } else {
             // ── Fretted note ─────────────────────────────────────────────────
@@ -746,14 +755,14 @@ export class FretPlayerScene3D extends ChartScene3D {
 
         if (showFull) {
             const endH = this.getStringHeight(this.numStrings);
-            this.drawVerticalNinePatch(getImage("ChordOutline"), note.HandFret - 1, note.HandFret + 3, timeOffset, 0, endH, color);
+            this.drawVerticalNinePatch(getImage("ChordOutline"), this.handSpanLow(note.HandFret), this.handSpanHigh(note.HandFret), timeOffset, 0, endH, color);
             const chord = this.getChord(chordID);
             if (chord?.Name) {
-                this.drawVerticalText(chord.Name, note.HandFret - 1.02, this.getStringHeight(this.numStrings - 1), timeOffset, LABEL_WHITE, 0.09, true);
+                this.drawVerticalText(chord.Name, Math.max(0, note.HandFret - 1.02), this.getStringHeight(this.numStrings - 1), timeOffset, LABEL_WHITE, 0.09, true);
             }
         } else {
             const shortH = this.getStringHeight(2);
-            this.drawVerticalNinePatch(getImage("ChordOutline"), note.HandFret - 1, note.HandFret + 3, timeOffset, 0, shortH, color);
+            this.drawVerticalNinePatch(getImage("ChordOutline"), this.handSpanLow(note.HandFret), this.handSpanHigh(note.HandFret), timeOffset, 0, shortH, color);
 
             if (hasTech(note, ESongNoteTechnique.PalmMute) || hasTech(note, ESongNoteTechnique.FretHandMute)) {
                 const img = hasTech(note, ESongNoteTechnique.PalmMute) ? getImage("NotePalmMute") : getImage("NoteMute");
