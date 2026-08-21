@@ -42,6 +42,10 @@ const BADGE_ICONS: { types: string[]; src: string; alt: string }[] = [
     { types: ['Keys'],                       src: '/Keys_White3.svg',  alt: 'Keys' },
     { types: ['LeadGuitar', 'RhythmGuitar'], src: '/Guitar_White4.svg', alt: 'Guitar' },
 ];
+// Phone check, if needed again: navigator.userAgentData.mobile, falling back to
+// /Mobi|Android|iPhone|iPod/i.test(navigator.userAgent). A fullscreen button built on this
+// was removed — iOS WebKit (all iOS browsers) has no Fullscreen API for non-video elements.
+
 const STATE_KEY = 'chartplayer-library-state';
 const DEFAULT_STATE: LibraryState = {
     sort: 'title-asc', instrumentFilter: 'All', tuningFilter: 'All', searchQuery: '',
