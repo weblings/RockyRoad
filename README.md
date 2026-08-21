@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="v2/public/README/RockyRoadLogo.png" alt="RockyRoad logo" width="324" />
+</p>
+
 # RockyRoad
 
 - A web browser note-highway music app for guitar and piano with full support for WebXR-capable headsets
@@ -100,7 +104,7 @@ needed either way, so there's no simpler prebuilt alternative today.
 
 ## For developers
 
-For the tech stack, architecture, and directory layout, see [`v2/README.md`](v2/README.md).
+For the tech stack, architecture, and directory layout, see [`v2/ARCHITECTURE.md`](v2/ARCHITECTURE.md).
 
 For gotchas hit while building this project, see
 [`Analysis/lessons/README.md`](Analysis/lessons/README.md) — written primarily for AI coding

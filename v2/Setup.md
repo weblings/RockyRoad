@@ -1,7 +1,7 @@
 # Setup — ThreeCP/v2
 
 Environment setup for the desktop + WebXR client. For what this project is and how
-it's put together, see [`README.md`](README.md).
+it's put together, see [`ARCHITECTURE.md`](ARCHITECTURE.md).
 
 Assumes you've already cloned the `MusicThing` repo and installed Node.js — see the
 repo-root [`Setup.md`](../../Setup.md) for those steps.
