@@ -235,6 +235,16 @@ export class SongLibraryScreen implements IScreen {
                     ${this.renderBadges(sourced.entry)}
                 </button>`;
         }).join('');
+
+        // Reserve just enough room on the artist line (the only line the badge overlay
+        // actually sits over) for THIS card's own badges — measured from the real rendered
+        // markup rather than a flat worst-case constant, so a song with fewer/shorter badges
+        // (or none) doesn't lose text width it doesn't need to give up.
+        grid.querySelectorAll<HTMLElement>('.lib-song-entry').forEach(card => {
+            const badges = card.querySelector<HTMLElement>('.lib-instrument-badges');
+            const artist = card.querySelector<HTMLElement>('.lib-song-artist');
+            if (artist) artist.style.paddingRight = badges ? `${badges.offsetWidth + 14}px` : '0px';
+        });
     }
 
     // Renders the instrument-badges markup per BADGE_STYLE — '' for 'none' or a song with

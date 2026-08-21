@@ -220,9 +220,7 @@
     .lib-art-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
     .lib-song-meta {
       display: flex; flex-direction: column;
-      /* 130px reserved for BADGE_STYLE: 'text' (words are wider than icons) — drop this
-         back toward ~60px if switching to 'icon', or 8px (no right padding) for 'none'. */
-      padding: 0 130px 0 8px; flex: 1; min-width: 0;
+      padding: 0 0 0 8px; flex: 1; min-width: 0;
     }
     /* Which instruments a song supports — bottom-right of the entry, over the
        reserved padding above so long titles never render underneath them. */
@@ -248,6 +246,10 @@
     .lib-song-artist {
       color: rgba(140,140,140,0.784); font-size: 10px; font-weight: 400;
       overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      /* Only the last line sits under the bottom-right badge overlay, so only it needs to
+         reserve space for them. SongLibraryScreen.refreshCards() sets padding-right inline
+         per-card, sized to that card's *actual* rendered badge width — a flat worst-case
+         value here would waste space on every song with fewer/shorter badges than the max. */
     }
 
     /* ── Pre-scene screen ──────────────────────────────────────────────────── */
