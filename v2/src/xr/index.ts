@@ -930,11 +930,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         world.globals.highwayScene = scene;
         world.globals.songPlayer   = songPlayer;
 
-        // Placement is instant/synchronous (unlike Keys' multi-step pointing
-        // flow), so there's no in-between state to hide — show it as soon as
-        // it's mounted, regardless of which caller runs next (direct Play,
-        // Reposition, first-time calibrate, or a mid-play Difficulty change).
-        guitarGrabBarHit.visible = true;
+        // Not shown yet — callers reveal it once the bar's actually placed.
 
         const sections = instrumentNotes.Sections?.length > 0
             ? instrumentNotes.Sections
@@ -1116,6 +1112,8 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
             disposeHighway();
             const result = await buildGuitarHighway(entry, partName, newDifficulty, songPlayer);
             if (!result) { showLibrary(); return; }
+            // Already placed — disposeHighway() just hid it.
+            guitarGrabBarHit.visible = true;
             showActiveScene(
                 entry, songPlayer, result.sections, totalDuration, noteMin, noteMax,
                 result.availableDifficulties, newDifficulty, partName,
