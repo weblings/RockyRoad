@@ -17,6 +17,18 @@ export const BADGE_LABELS: { types: string[]; label: string }[] = [
     { types: ['LeadGuitar', 'RhythmGuitar'], label: 'Guitar' },
 ];
 
+// Icon variant of the same grouping, for BADGE_STYLE === 'icon'. Also shared so both
+// platforms render identical badge icons from one source of truth.
+export const BADGE_ICONS: { types: string[]; src: string; alt: string }[] = [
+    { types: ['BassGuitar'],                 src: `${import.meta.env.BASE_URL}Bass_White.svg`,  alt: 'Bass' },
+    { types: ['Keys'],                       src: `${import.meta.env.BASE_URL}Keys_White.svg`,  alt: 'Keys' },
+    { types: ['LeadGuitar', 'RhythmGuitar'], src: `${import.meta.env.BASE_URL}Guitar_White.svg`, alt: 'Guitar' },
+];
+
+// Flip this to switch badge rendering on both desktop and XR at once.
+export type BadgeStyle = 'none' | 'text' | 'icon';
+export const BADGE_STYLE: BadgeStyle = 'icon';
+
 // Default-instrument chain: last-used type (if this song has it) -> Keys -> Lead ->
 // first playable (non-Vocals) part -> Vocals, if that's genuinely all there is.
 export function resolveDefaultPart(

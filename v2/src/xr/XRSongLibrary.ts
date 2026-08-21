@@ -1,7 +1,7 @@
 import type { Entity, UIKitDocument } from "@iwsdk/core";
 import { PanelDocument, UIKit } from "@iwsdk/core";
 import type { SourcedEntry } from "../shared/SongSource";
-import { BADGE_LABELS } from "../shared/InstrumentSelect";
+import { BADGE_LABELS, BADGE_ICONS, BADGE_STYLE } from "../shared/InstrumentSelect";
 
 // uikit-based (see ui/library.uikitml), migrated off html2canvas — same idiom as
 // XRSettingsScene.ts/XRActiveScene.ts: poll for the PanelDocument once, then wire
@@ -190,11 +190,18 @@ export class XRSongLibrary {
         row.add(meta);
 
         const partTypes = new Set(sourced.entry.parts.map(p => p.type));
-        const badges = BADGE_LABELS.filter(b => b.types.some(t => partTypes.has(t)));
-        if (badges.length) {
+        if (BADGE_STYLE !== 'none') {
             const badgeRow = new UIKit.Container({}, ['song-badges']);
-            for (const b of badges) badgeRow.add(new UIKit.Text({ text: b.label }, ['song-badge']));
-            row.add(badgeRow);
+            if (BADGE_STYLE === 'text') {
+                const badges = BADGE_LABELS.filter(b => b.types.some(t => partTypes.has(t)));
+                for (const b of badges) badgeRow.add(new UIKit.Text({ text: b.label }, ['song-badge']));
+                if (badges.length) row.add(badgeRow);
+            } else {
+                // Image, not Svg — Svg is fill-only geometry; Keys_White.svg is stroke-only.
+                const badges = BADGE_ICONS.filter(b => b.types.some(t => partTypes.has(t)));
+                for (const b of badges) badgeRow.add(new UIKit.Image({ src: b.src }, ['song-badge-icon']));
+                if (badges.length) row.add(badgeRow);
+            }
         }
 
         return row;

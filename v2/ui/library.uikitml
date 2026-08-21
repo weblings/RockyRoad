@@ -320,7 +320,7 @@
     justify-content: flex-end;
     flex-grow: 0;
     flex-shrink: 0;
-    gap-column: 0.24;
+    gap-column: 0.4;
   }
   .song-badge {
     color: #ffffff;
@@ -332,6 +332,12 @@
     padding-bottom: 0.18;
     padding-left: 0.48;
     border-radius: 0.36;
+  }
+  /* BADGE_STYLE === 'icon' variant — sized/dimmed to match desktop's 16px/40px/opacity:0.55. */
+  .song-badge-icon {
+    width: 1.6;
+    height: 1.6;
+    opacity: 0.55;
   }
 </style>
 

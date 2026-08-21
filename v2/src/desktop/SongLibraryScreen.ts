@@ -2,7 +2,7 @@ import * as THREE from "three";
 import type { App, IScreen } from "./App";
 import { loadAllSources, type SourcedEntry } from "../shared/SongSource";
 import { loadSettings } from "../shared/Settings";
-import { BADGE_LABELS } from "../shared/InstrumentSelect";
+import { BADGE_LABELS, BADGE_ICONS, BADGE_STYLE } from "../shared/InstrumentSelect";
 import { PreSceneScreen } from "./PreSceneScreen";
 import { Dropdown, type DropdownOption } from "./Dropdown";
 import { LocalUploadSource } from "./LocalUploadSource";
@@ -31,18 +31,6 @@ const INSTRUMENT_TYPE: Record<InstrumentFilter, string> = {
 };
 const STRINGED = new Set(['LeadGuitar', 'RhythmGuitar', 'BassGuitar']);
 
-// Instrument badges shown on each library card, in display order. No Drums entry in either
-// list — unsupported everywhere in this app, so there's nothing to show for it.
-// Flip this to switch styles (or 'none' to drop badges entirely) without re-deriving the
-// markup/CSS each time — both styles' data and rendering stay live side by side.
-type BadgeStyle = 'none' | 'text' | 'icon';
-const BADGE_STYLE: BadgeStyle = 'icon';
-
-const BADGE_ICONS: { types: string[]; src: string; alt: string }[] = [
-    { types: ['BassGuitar'],                 src: `${import.meta.env.BASE_URL}Bass_White.svg`,  alt: 'Bass' },
-    { types: ['Keys'],                       src: `${import.meta.env.BASE_URL}Keys_White.svg`,  alt: 'Keys' },
-    { types: ['LeadGuitar', 'RhythmGuitar'], src: `${import.meta.env.BASE_URL}Guitar_White.svg`, alt: 'Guitar' },
-];
 // Phone check, if needed again: navigator.userAgentData.mobile, falling back to
 // /Mobi|Android|iPhone|iPod/i.test(navigator.userAgent). A fullscreen button built on this
 // was removed — iOS WebKit (all iOS browsers) has no Fullscreen API for non-video elements.
