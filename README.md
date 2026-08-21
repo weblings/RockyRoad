@@ -15,9 +15,7 @@
 - Note-highway logic and visuals distilled from [ChartPlayer](https://github.com/mikeoliphant/ChartPlayer) into Typescript and ThreeJS
 - Intended for you to self-host and runs entirely on your machine — your song library never leaves your computer or local network
 
-**To play more songs** 
-1. [Convert songs to OpenSongFormat](https://github.com/weblings/RockyRoadImport)
-2. Try the demo website or self-host and load your converted songs. [(When you self-host load them this way)](#play-your-own-songs)
+**[Try GitHub Pages demo](https://weblings.github.io/RockyRoadImport/)** — no install needed.
 
 ## Quick Start
 1. **Install [Node.js](https://nodejs.org/)** (the one prerequisite — version 20 or newer). This
@@ -54,10 +52,13 @@
 
 1. **Convert your library.** RockyRoad reads a chart format called OpenSongChart. Use
    [RockyRoadImport](https://github.com/weblings/RockyRoadImport) to convert your songs to it.
-2. **Point RockyRoad at your converted songs.** In the `v2` folder, make a copy of
-   `song-server.config.example.json` and rename the copy to `song-server.config.json`, then edit its `songsDir` field
-   to a path pointing to the folder containing your converted songs.
-3. **Restart `npm run dev`.** Your songs will now always automatically show up in the library alongside the demo songs.
+   - **Using the demo:** use the "Load local songs" button in the top-right corner.
+   - **Self-hosting:** continue to steps 2-3 below.
+2. **Point RockyRoad at your converted songs** (self-hosting only). In the `v2` folder, make a copy
+   of `song-server.config.example.json` and rename the copy to `song-server.config.json`, then edit
+   its `songsDir` field to a path pointing to the folder containing your converted songs.
+3. **Restart `npm run dev`** (self-hosting only). Your songs will now always automatically show up
+   in the library alongside the demo songs.
 
 ## Troubleshooting
 **Not seeing RockyRoad on another device**
@@ -85,8 +86,8 @@
 
 **Can I play my own songs — Rocksmith 2014, piano MIDI, etc.?**
 Yes — convert them first with [RockyRoadImport](https://github.com/weblings/RockyRoadImport), then
-follow ["Play your own songs"](#play-your-own-songs) above. On the hosted demo, its upload button
-lets you try converted songs directly instead — no self-hosting needed.
+follow ["Play your own songs"](#play-your-own-songs) above. On [the GH Pages demo](https://weblings.github.io/RockyRoad/),
+its upload button lets you try converted songs directly instead — no self-hosting needed.
 
 **What's OpenSongChart / ChartPlayer / ChartConverter?**
 
