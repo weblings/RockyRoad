@@ -120,6 +120,21 @@
     .text-primary   { color: #ffffff; font-weight: 700; }
     .text-secondary { color: #c8c8c8; font-weight: 400; }
 
+    /* Demo-build-only ribbon (see SongLibraryScreen.ts's VITE_DEMO_MODE check) — a flex
+       child of .lib-screen, same as .lib-bar below it, so it just takes its own row. */
+    .lib-source-ribbon {
+      flex-shrink: 0;
+      text-align: center;
+      padding: 8px 0;
+      font-size: 13px;
+    }
+    .lib-source-ribbon a {
+      display: inline-flex; align-items: center; gap: 6px;
+      color: #c8c8c8; text-decoration: none;
+    }
+    .lib-source-ribbon svg { fill: currentColor; }
+    .lib-source-ribbon a:hover { color: #ffffff; text-decoration: underline; }
+
     /* Toolbar */
     .lib-bar { padding: 10px 10px 8px; background: #0a0a0a; border-bottom: 1px solid #1e1e1e; flex-shrink: 0; }
     .lib-search-row { display: flex; gap: 8px; margin-bottom: 8px; }
