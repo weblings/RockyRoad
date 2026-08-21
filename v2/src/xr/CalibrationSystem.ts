@@ -144,6 +144,9 @@ export class CalibrationSystem extends createSystem({}) {
             // rerender() (not a full showActiveScene()) — nothing else restores playPanelObj's
             // visibility or interactivity after _showPanel() hides both, so do it here.
             this._onComplete = () => {
+                const calObj = this.world.globals.calibrationPanelObj as THREE.Object3D | undefined;
+                if (calObj) calObj.visible = false;
+                (this.world.globals.setCalibrationPanelInteractive as ((e: boolean) => void) | undefined)?.(false);
                 const obj = this.world.globals.playPanelObj as THREE.Object3D | undefined;
                 if (obj) obj.visible = true;
                 (this.world.globals.setPlayPanelInteractive as ((e: boolean) => void) | undefined)?.(true);

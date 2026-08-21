@@ -4,7 +4,7 @@
 
 <p align="center">
   <img src="v2/public/README/Desktop_Guitar_2.0.4-ezgif.com-crop.gif" width="200" />
-  <img src="v2/public/README/XR_Guitar_2.0.4-ezgif.com-optimize.gif" width="200" />
+  <img src="v2/public/README/XR_Guitar_2.0.5.gif" width="200" />
   <img src="v2/public/README/Desktop_Piano_2.0.4-ezgif.com-crop (2).gif" width="200" />
   <img src="v2/public/README/XR_Piano_2.0.4-ezgif.com-optimize.gif" width="200" />
 </p>
