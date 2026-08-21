@@ -4,16 +4,14 @@ v0.2.5
 - [x] GitHub Pages build process and disclaimer
 - [x] Update web pages to use RockyRoad branding
 - [x] XR Guitar color lines only visible below. Make thicker or change how they render? (The slide visuals seem thin too)
-- [ ] Loading feedback for Song page (XR)
+- [-] Loading feedback for Song page (XR)
 - [x] Add sample guitar song with chords (https://www.guitarnick.com/loch-lomond-easy-guitar-song-beginners-tab.html)
 - [x] Some guitar songs can start playing before the notes are all visible in the highway (XR)
-- [ ] xr padding (library occasional bug, scrubber + play button in play screen)
-
+- [-] xr padding (library occasional bug, scrubber + play button in play screen)
 - [x] Mobile - Desktop library page shows library as a single slidable row instead of a grid
 - [x] Desktop - Adjust song page to use xr song model, works better for mobile
-- [ ] Mobile - Explore fullscreen option, could put where VR button usually goes
-
-- [ ] Explore if old folderpath options works for desktop
+- [-] Mobile - Explore fullscreen option, could put where VR button usually goes
+- [x] Explore if old folderpath options works for desktop
 
 v0.2.6
 - [ ] Tuner screen return

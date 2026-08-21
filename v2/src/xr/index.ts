@@ -115,7 +115,7 @@ class HighwaySystem extends createSystem({}) {
     private lastCountdownN: number | undefined = undefined;
 
     private isGrabbed        = false;
-    private grabbingHandIdx  = -1;
+    private grabPointerId: number | null = null;
     private panelPos!: Vector3;
     private headPos!: Vector3;
     private pitchCurrent      = 0;
@@ -137,6 +137,23 @@ class HighwaySystem extends createSystem({}) {
         this.panelPos     = new Vector3();
         this.headPos      = new Vector3();
         this.guitarBarPos = new Vector3();
+
+        // Real pointer events, not a per-frame poll + isolated raycast against grabBarHit
+        // alone (that had no concept of the panel in front of it occluding the hit).
+        const grabBarHit = this.world.globals.grabBarHit as Mesh | undefined;
+        grabBarHit?.addEventListener('pointerdown', (e) => {
+            this.isGrabbed     = true;
+            this.grabPointerId = e.pointerId ?? null;
+            (this.input.multiPointers.left  as unknown as { ray: { visual: { enabled: boolean } } }).ray.visual.enabled = false;
+            (this.input.multiPointers.right as unknown as { ray: { visual: { enabled: boolean } } }).ray.visual.enabled = false;
+        });
+        grabBarHit?.addEventListener('pointerup', (e) => {
+            if (e.pointerId !== this.grabPointerId) return;
+            this.isGrabbed     = false;
+            this.grabPointerId = null;
+            (this.input.multiPointers.left  as unknown as { ray: { visual: { enabled: boolean } } }).ray.visual.enabled = true;
+            (this.input.multiPointers.right as unknown as { ray: { visual: { enabled: boolean } } }).ray.visual.enabled = true;
+        });
     }
 
     update(delta: number, _time: number): void {
@@ -233,32 +250,10 @@ class HighwaySystem extends createSystem({}) {
             { pad: this.input.gamepads.right, ray: this.player.raySpaces.right },
         ] as const;
 
-        // ── Grab detection + billboard ─────────────────────────────────────────
+        // ── Billboard (isGrabbed maintained by real pointerdown/pointerup listeners set up
+        // in init(), not polled here) ──────────────────────────────────────────
         const grabBarHit = this.world.globals.grabBarHit as Mesh | undefined;
         if (grabBarHit) {
-            if (!this.isGrabbed) {
-                for (let i = 0; i < hands.length; i++) {
-                    const { pad, ray } = hands[i];
-                    if (!pad?.getButtonDown(InputComponent.Trigger) || !ray) continue;
-                    ray.updateMatrixWorld();
-                    ray.getWorldPosition(this.rayOrigin);
-                    this.rayDir.set(0, 0, -1).transformDirection(ray.matrixWorld);
-                    this.raycaster.set(this.rayOrigin, this.rayDir);
-                    if (this.raycaster.intersectObject(grabBarHit).length > 0) {
-                        this.isGrabbed       = true;
-                        this.grabbingHandIdx = i;
-                        (this.input.multiPointers[i === 0 ? 'left' : 'right'] as unknown as { ray: { visual: { enabled: boolean } } }).ray.visual.enabled = false;
-                        break;
-                    }
-                }
-            } else if (this.grabbingHandIdx >= 0) {
-                if (hands[this.grabbingHandIdx].pad?.getButtonUp(InputComponent.Trigger)) {
-                    (this.input.multiPointers[this.grabbingHandIdx === 0 ? 'left' : 'right'] as unknown as { ray: { visual: { enabled: boolean } } }).ray.visual.enabled = true;
-                    this.isGrabbed       = false;
-                    this.grabbingHandIdx = -1;
-                }
-            }
-
             if (this.isGrabbed) {
                 grabBarHit.getWorldPosition(this.panelPos);
                 this.player.head.getWorldPosition(this.headPos);

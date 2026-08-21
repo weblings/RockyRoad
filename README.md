@@ -13,9 +13,6 @@
 2. Try the demo website or self-host and load your converted songs. [(When you self-host load them this way)](#play-your-own-songs)
 
 ## Quick Start
-
-Try it out with the demo songs it ships with, before bringing in your own library.
-
 1. **Install [Node.js](https://nodejs.org/)** (the one prerequisite — version 20 or newer). This
    gives you the `node` and `npm` commands used below. One-line install, per OS:
    - **Windows:** `winget install OpenJS.NodeJS.LTS` (winget ships with Windows 10/11 already)
@@ -53,17 +50,18 @@ Try it out with the demo songs it ships with, before bringing in your own librar
 2. **Point RockyRoad at your converted songs.** In the `v2` folder, make a copy of
    `song-server.config.example.json` and rename the copy to `song-server.config.json`, then edit its `songsDir` field
    to a path pointing to the folder containing your converted songs.
-3. **Restart `npm run dev`.** Your songs now show up in the library alongside the demo songs.
+3. **Restart `npm run dev`.** Your songs will now always automatically show up in the library alongside the demo songs.
 
 ## Troubleshooting
-
-**Not seeing RockyRoad in XR**
-- Confirm the headset and the computer are on the **same Wi-Fi network**
+**Not seeing RockyRoad on another device**
+- Confirm your device and the computer are on the **same Wi-Fi network**
 - Confirm `npm run dev` is still running in its terminal — closing that window stops the server.
 - Some networks/routers block devices from seeing each other by default ("client isolation" or
   "AP isolation") — check your router's settings if the above doesn't resolve it.
 - A firewall on the computer running the server may need to allow the port shown in the
-  `npm run dev` output (`8081` by default).
+  `npm run dev` output (`8081` by default). 
+- Confirm the address you entered ends with a colon and the port `:8081`.
+- Check if the address you entered is using `https`, `http` likely won't work.
 
 **My own songs don't show up:**
 - Double-check `song-server.config.json`'s `songsDir` path — a typo means it finds nothing.
@@ -71,7 +69,7 @@ Try it out with the demo songs it ships with, before bringing in your own librar
   not the original, unconverted files.
 - Restart `npm run dev` after any change to `song-server.config.json` — it's only read at startup.
 
-**How do I enter the Immersive App?**
+**How do I enter the XR Immersive App?**
 - Your headset's browser needs to support WebXR (Quest / Horizon OS, Android XR, and Vision OS all should)
 - When you visit the xr.html page, a button in your browser's UI should appear saying something like "Enter VR". Click that button to launch the immersive app
 - The "Enter VR" button visible in RockyRoad's UI in desktop.html will not launch an Immersive app on your headset. That is a shortcut to get to xr.html.
@@ -97,7 +95,7 @@ No — Quick Start above is copy-paste, with each step explained.
 No. The desktop browser path (step 6 above) is the default experience; the headset/VR path is
 optional.
 
-**Why isn't there a prebuilt version I can just double-click and run?**
+**Why do I need to run a local server when self-hosting?**
 Two separate technical reasons, not just one: WebXR requires a secure context (HTTPS or
 `localhost`), which a plain downloaded folder doesn't have on its own; and separately, the app's
 code is loaded as browser "ES modules," which browsers refuse to load directly from a local file
