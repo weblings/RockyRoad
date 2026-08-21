@@ -52,7 +52,8 @@
 
 1. **Convert your library.** RockyRoad reads a chart format called OpenSongChart. Use
    [RockyRoadImport](https://github.com/weblings/RockyRoadImport) to convert your songs to it.
-   - **Using the demo:** use the "Load local songs" button in the top-right corner.
+   - **Using the demo:** use the "Load local songs" button in the top-right corner. 
+      - **Note:** this only works if your charts are stored on same the machine with the demo open. To load charts from a device on your local network (advised path for XR devices), you should self-host.
    - **Self-hosting:** continue to steps 2-3 below.
 2. **Point RockyRoad at your converted songs** (self-hosting only). In the `v2` folder, make a copy
    of `song-server.config.example.json` and rename the copy to `song-server.config.json`, then edit
