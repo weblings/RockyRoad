@@ -29,12 +29,22 @@ const INSTRUMENT_TYPE: Record<InstrumentFilter, string> = {
 };
 const STRINGED = new Set(['LeadGuitar', 'RhythmGuitar', 'BassGuitar']);
 
-// Instrument badges shown on each library card, in display order. No Drums entry —
-// unsupported everywhere in this app, so there's no badge for it to show.
+// Instrument badges shown on each library card, in display order. No Drums entry in either
+// list — unsupported everywhere in this app, so there's nothing to show for it.
+// Flip this to switch styles (or 'none' to drop badges entirely) without re-deriving the
+// markup/CSS each time — both styles' data and rendering stay live side by side.
+type BadgeStyle = 'none' | 'text' | 'icon';
+const BADGE_STYLE: BadgeStyle = 'text';
+
 const BADGE_LABELS: { types: string[]; label: string }[] = [
     { types: ['BassGuitar'],                 label: 'Bass' },
     { types: ['Keys'],                       label: 'Keys' },
     { types: ['LeadGuitar', 'RhythmGuitar'], label: 'Guitar' },
+];
+const BADGE_ICONS: { types: string[]; src: string; alt: string }[] = [
+    { types: ['BassGuitar'],                 src: '/Bass_White4.svg',  alt: 'Bass' },
+    { types: ['Keys'],                       src: '/Keys_White3.svg',  alt: 'Keys' },
+    { types: ['LeadGuitar', 'RhythmGuitar'], src: '/Guitar_White4.svg', alt: 'Guitar' },
 ];
 const STATE_KEY = 'chartplayer-library-state';
 const DEFAULT_STATE: LibraryState = {
@@ -212,7 +222,6 @@ export class SongLibraryScreen implements IScreen {
 
         grid.innerHTML = filtered.map(({ sourced, origIdx }) => {
             const artUrl = sourced.source.getAlbumArtUrl(sourced.entry);
-            const badges = this.instrumentBadges(sourced.entry);
             return `
                 <button class="lib-song-entry" data-song-idx="${origIdx}" type="button">
                     <div class="lib-art-thumb">
@@ -223,18 +232,31 @@ export class SongLibraryScreen implements IScreen {
                         <p class="lib-song-album">${esc(sourced.entry.albumName ?? '')}</p>
                         <p class="lib-song-artist">${esc(sourced.entry.artistName)}</p>
                     </div>
-                    ${badges.length ? `
-                        <div class="lib-instrument-badges">
-                            ${badges.map(b => `<span class="lib-badge">${esc(b.label)}</span>`).join('')}
-                        </div>` : ''}
+                    ${this.renderBadges(sourced.entry)}
                 </button>`;
         }).join('');
     }
 
-    // Which instrument badges apply to a song, in BADGE_LABELS' display order.
-    private instrumentBadges(entry: SourcedEntry['entry']): { label: string }[] {
+    // Renders the instrument-badges markup per BADGE_STYLE — '' for 'none' or a song with
+    // no matching parts. Both styles' data (BADGE_LABELS/BADGE_ICONS) stay defined regardless
+    // of which is currently selected, so switching styles later is just flipping BADGE_STYLE.
+    private renderBadges(entry: SourcedEntry['entry']): string {
+        if (BADGE_STYLE === 'none') return '';
         const partTypes = new Set(entry.parts.map(p => p.type));
-        return BADGE_LABELS.filter(b => b.types.some(t => partTypes.has(t)));
+
+        if (BADGE_STYLE === 'text') {
+            const badges = BADGE_LABELS.filter(b => b.types.some(t => partTypes.has(t)));
+            if (!badges.length) return '';
+            return `<div class="lib-instrument-badges">
+                ${badges.map(b => `<span class="lib-badge">${esc(b.label)}</span>`).join('')}
+            </div>`;
+        }
+
+        const badges = BADGE_ICONS.filter(b => b.types.some(t => partTypes.has(t)));
+        if (!badges.length) return '';
+        return `<div class="lib-instrument-badges">
+            ${badges.map(b => `<img src="${b.src}" alt="${b.alt}" title="${b.alt}" />`).join('')}
+        </div>`;
     }
 
     private filteredSongs(): { sourced: SourcedEntry; origIdx: number }[] {
