@@ -15,7 +15,7 @@
 - Note-highway logic and visuals distilled from [ChartPlayer](https://github.com/mikeoliphant/ChartPlayer) into Typescript and ThreeJS
 - Intended for you to self-host and runs entirely on your machine — your song library never leaves your computer or local network
 
-**[Try GitHub Pages demo](https://weblings.github.io/RockyRoadImport/)** — no install needed.
+**[Try GitHub Pages demo](https://weblings.github.io/RockyRoad/)** — no install needed.
 
 ## Quick Start
 1. **Install [Node.js](https://nodejs.org/)** (the one prerequisite — version 20 or newer). This
