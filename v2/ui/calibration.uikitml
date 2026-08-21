@@ -239,7 +239,7 @@
 <div class="panel">
   <div class="header">
     <button id="cal-back" class="back-btn primary-dark">
-      <img src="/back-arrow.svg" class="icon" />
+      <img src="back-arrow.svg" class="icon" />
       <span class="icon-label">Library</span>
     </button>
   </div>
@@ -310,11 +310,11 @@
     </div>
     <div class="actions">
       <button id="cal-restart" class="action-btn primary-dark">
-        <img src="/recal-icon.svg" class="icon" />
+        <img src="recal-icon.svg" class="icon" />
         <span class="icon-label">Full Reposition</span>
       </button>
       <button id="cal-done" class="action-btn primary-light">
-        <img src="/play-icon.svg" class="icon" />
+        <img src="play-icon.svg" class="icon" />
         <span class="icon-label">Play</span>
       </button>
     </div>

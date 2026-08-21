@@ -500,7 +500,7 @@
 <div class="panel">
   <div class="play-header">
     <button id="as-library" class="nav-btn primary-dark">
-      <img src="/back-arrow.svg" class="icon" />
+      <img src="back-arrow.svg" class="icon" />
       <span class="icon-label">Library</span>
     </button>
     <div id="as-stats-row" class="stats-row">
@@ -510,7 +510,7 @@
       <span class="text-secondary">Total</span>
     </div>
     <button id="as-settings" class="nav-btn primary-dark">
-      <img src="/settings-gear-icon.svg" class="icon" />
+      <img src="settings-gear-icon.svg" class="icon" />
       <span class="icon-label">Settings</span>
     </button>
   </div>
@@ -528,8 +528,8 @@
         </div>
       </div>
       <button id="as-playpause" class="play-btn">
-        <img id="as-play-icon" class="play-pause-icon" src="/play-icon.svg" />
-        <img id="as-pause-icon" class="play-pause-icon" src="/pause-icon.svg" />
+        <img id="as-play-icon" class="play-pause-icon" src="play-icon.svg" />
+        <img id="as-pause-icon" class="play-pause-icon" src="pause-icon.svg" />
       </button>
     </div>
 
@@ -547,8 +547,8 @@
       <div class="option-dropdown">
         <button id="as-speed-trigger" class="option-trigger">
           <div id="as-speed-trigger-label-slot"></div>
-          <img id="as-speed-chevron-down" class="option-chevron" src="/chevron-down.svg" />
-          <img id="as-speed-chevron-up" class="option-chevron" src="/chevron-up.svg" />
+          <img id="as-speed-chevron-down" class="option-chevron" src="chevron-down.svg" />
+          <img id="as-speed-chevron-up" class="option-chevron" src="chevron-up.svg" />
         </button>
         <div id="as-speed-menu" class="option-menu">
           <div id="as-speed-menu-inner" class="option-menu-inner">
@@ -568,8 +568,8 @@
       <div id="as-difficulty-dropdown" class="option-dropdown option-dropdown-gated">
         <button id="as-difficulty-trigger" class="option-trigger">
           <div id="as-difficulty-trigger-label-slot"></div>
-          <img id="as-difficulty-chevron-down" class="option-chevron" src="/chevron-down.svg" />
-          <img id="as-difficulty-chevron-up" class="option-chevron" src="/chevron-up.svg" />
+          <img id="as-difficulty-chevron-down" class="option-chevron" src="chevron-down.svg" />
+          <img id="as-difficulty-chevron-up" class="option-chevron" src="chevron-up.svg" />
         </button>
         <div id="as-difficulty-menu" class="option-menu">
           <div id="as-difficulty-menu-inner" class="option-menu-inner"></div>
@@ -580,7 +580,7 @@
 
   <div class="actions">
     <button id="as-reposition" class="action-btn primary-dark">
-      <img src="/recal-icon.svg" class="icon" />
+      <img src="recal-icon.svg" class="icon" />
       <span class="icon-label">Reposition</span>
     </button>
   </div>

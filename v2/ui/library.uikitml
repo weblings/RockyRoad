@@ -344,8 +344,8 @@
       <div class="sort-dropdown" id="sort-dropdown">
         <button class="sort-trigger" id="sort-trigger">
           <span class="sort-label" id="sort-label">Title A-Z</span>
-          <img id="sort-chevron-down" class="sort-chevron" src="/chevron-down.svg" />
-          <img id="sort-chevron-up" class="sort-chevron" src="/chevron-up.svg" />
+          <img id="sort-chevron-down" class="sort-chevron" src="chevron-down.svg" />
+          <img id="sort-chevron-up" class="sort-chevron" src="chevron-up.svg" />
         </button>
         <div class="sort-menu" id="sort-menu">
           <button class="sort-option" id="sort-opt-title-asc">Title A-Z</button>

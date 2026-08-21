@@ -342,7 +342,7 @@
 <div class="panel">
   <div class="header">
     <button id="ps-back" class="back-btn primary-dark">
-      <img src="/back-arrow.svg" class="icon" />
+      <img src="back-arrow.svg" class="icon" />
       <span class="icon-label">Library</span>
     </button>
   </div>
@@ -362,8 +362,8 @@
       <div id="ps-instrument-dropdown" class="option-dropdown option-dropdown-gated">
         <button id="ps-instrument-trigger" class="option-trigger">
           <div id="ps-instrument-trigger-label-slot"></div>
-          <img id="ps-instrument-chevron-down" class="option-chevron" src="/chevron-down.svg" />
-          <img id="ps-instrument-chevron-up" class="option-chevron" src="/chevron-up.svg" />
+          <img id="ps-instrument-chevron-down" class="option-chevron" src="chevron-down.svg" />
+          <img id="ps-instrument-chevron-up" class="option-chevron" src="chevron-up.svg" />
         </button>
         <div id="ps-instrument-menu" class="option-menu">
           <div id="ps-instrument-menu-inner" class="option-menu-inner"></div>
@@ -372,8 +372,8 @@
       <div id="ps-difficulty-dropdown" class="option-dropdown option-dropdown-gated">
         <button id="ps-difficulty-trigger" class="option-trigger">
           <div id="ps-difficulty-trigger-label-slot"></div>
-          <img id="ps-difficulty-chevron-down" class="option-chevron" src="/chevron-down.svg" />
-          <img id="ps-difficulty-chevron-up" class="option-chevron" src="/chevron-up.svg" />
+          <img id="ps-difficulty-chevron-down" class="option-chevron" src="chevron-down.svg" />
+          <img id="ps-difficulty-chevron-up" class="option-chevron" src="chevron-up.svg" />
         </button>
         <div id="ps-difficulty-menu" class="option-menu">
           <div id="ps-difficulty-menu-inner" class="option-menu-inner"></div>
@@ -384,11 +384,11 @@
 
   <div class="actions">
     <button id="ps-recal" class="action-btn primary-dark">
-      <img src="/recal-icon.svg" class="icon" />
+      <img src="recal-icon.svg" class="icon" />
       <span class="icon-label">Reposition</span>
     </button>
     <button id="ps-play" class="action-btn primary-light">
-      <img src="/play-icon.svg" class="icon" />
+      <img src="play-icon.svg" class="icon" />
       <span class="icon-label">Play</span>
     </button>
   </div>

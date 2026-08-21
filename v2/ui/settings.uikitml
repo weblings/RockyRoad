@@ -251,7 +251,7 @@
 <div class="panel">
   <div class="header">
     <button id="ss-back" class="back-btn">
-      <img src="/back-arrow.svg" class="back-icon" />
+      <img src="back-arrow.svg" class="back-icon" />
       <span class="back-label">Play</span>
     </button>
   </div>
