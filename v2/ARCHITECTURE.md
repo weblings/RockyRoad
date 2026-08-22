@@ -74,3 +74,9 @@ v2/
     desktop/                desktop.html screens
     xr/                     xr.html screens, IWSDK systems
 ```
+
+## Development History
+- If you look in the [`Analysis`](Analysis) and [`v0`](v0) folder you can see the process of analyzing and then distilling ChartPlayer into a typescript and ThreeJS environment. I might remove that in future releases but they will always be viewable on the `v0.2.5` branch.
+- The XRProto and v1 folders that are now deleted were experimenting with translating the guitar-specific chart logic to support piano, supporting the ECS framework of IWSDK, and discovering a viable UI framework for WebXR.
+- AI had generated the screens for v0 desktop and XR screens without worrying about UX and design cohesion. I exported those screens into Figma, created a unified design system, and updated the screens in both domains to be cohesive. That was the v2 release that also integrated desktop and XR into a single app rather than being two separate forks.
+- With the screens in a more stable place, the XR UI system migrated from html2canvas to the more IWSDK-specific uikitml which greatly improved XR performance.

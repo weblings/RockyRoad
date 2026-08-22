@@ -18,18 +18,14 @@
 **[Try GitHub Pages demo](https://weblings.github.io/RockyRoad/)** — no install needed.
 
 ## Quick Start
-1. **Install [Node.js](https://nodejs.org/)** (version 20 or newer). This
-   gives you the `node` and `npm` commands used below. One-line install, per OS:
+1. **Install [Node.js](https://nodejs.org/)** (version 20 or newer). This gives you the `node` and `npm` commands used below.
    - **Windows:** `winget install OpenJS.NodeJS.LTS` (winget ships with Windows 10/11 already)
-   - **macOS:** `brew install node` (needs [Homebrew](https://brew.sh) — if you don't have that
-     yet, its own one-line installer is on that page)
-   - **Linux (Debian/Ubuntu):** `sudo apt install nodejs npm` — the distro-bundled version can lag
-     behind, so check `node --version` afterward and make sure it's 20+; if it's older, use
-     [NodeSource's setup script](https://github.com/nodesource/distributions) instead
+   - **macOS:** `brew install node` (needs [Homebrew](https://brew.sh))
+   - **Linux (Debian/Ubuntu):** `sudo apt install nodejs npm`
 2. **Get the code.** Either `git clone https://github.com/weblings/RockyRoad.git`, or on the
    [GitHub repo page](https://github.com/weblings/RockyRoad), click the green **Code**
    button → **Download ZIP**, then unzip it — no git required.
-3. **Open a terminal in the project's `v2` folder.**
+3. **Open a terminal in this project's `v2` folder.**
 4. **Run `npm install`.** This downloads the project's dependencies into a `node_modules` folder —
    one-time setup, takes a minute or two. You'll see a wall of text; that's normal.
 5. **Run `npm run dev`.** This starts the app's local server. When it's ready, it prints a URL that
@@ -85,7 +81,7 @@ its upload button lets you try converted songs directly instead — no self-host
 Repos by [Mike Oliphant](https://github.com/mikeoliphant). Without this amazing tech foundation, I would not have even attempted this project!
 - [OpenSongChart](https://github.com/mikeoliphant/OpenSongChart) is an open format for song charts
 - [ChartPlayer](https://github.com/mikeoliphant/ChartPlayer) is a cross-platform application for playing along to OpenSongChart charts
-- [ChartConverter](https://github.com/mikeoliphant/ChartConverter) is an app for converting Rocksmith PSARC to OpenSongChart format
+- [ChartConverter](https://github.com/mikeoliphant/ChartConverter) is an app for converting other chart formats to OpenSongChart
 
 **Do I need to know npm or web development to use this?**
 No — Quick Start above is copy-paste, with each step explained.
@@ -114,3 +110,9 @@ agents working in this repo, but worth a skim if you're a human developer onboar
 RockyRoad is licensed under the [GNU General Public License v3.0 or later](LICENSE). Its
 note-highway logic and visuals are distilled from [ChartPlayer](https://github.com/mikeoliphant/ChartPlayer)
 (also GPL-3.0), so this project carries the same license forward.
+
+## Intent and AI Disclaimer
+
+- This repo is vibecoded. Some project goals were to experiment with working in a fully vibecoded repo and using AI to translate my past decade of Unity and XR coding knowledge to WebXR, ThreeJS, and IWSDK.
+- During covid quarantine, one of my hobbies was using note-highway softwares to play guitar (on desktop) and piano (in XR).
+- When I came across the repos around ChartPlayer, I realized they could work as a basis for a unified open-source app that could support both use-cases from the ground up.
