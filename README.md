@@ -71,7 +71,7 @@
 
 ## FAQ
 
-**Can I play my own songs — Rocksmith 2014, piano MIDI, etc.?**
+**Can I play my own songs?**
 Yes — convert them first with [RockyRoadImport](https://github.com/weblings/RockyRoadImport), then
 follow ["Play your own songs"](#play-your-own-songs) above. On [the GH Pages demo](https://weblings.github.io/RockyRoad/),
 its upload button lets you try converted songs directly instead — no self-hosting needed.
@@ -87,8 +87,7 @@ Repos by [Mike Oliphant](https://github.com/mikeoliphant). Without this amazing 
 No — Quick Start above is copy-paste, with each step explained.
 
 **Do I need a VR/XR headset?**
-No. The desktop browser path (step 6 above) is the default experience; the headset/VR path is
-optional.
+No, desktop is the default experience.
 
 **Why do I need to run a local server when self-hosting?**
 Two separate technical reasons, not just one: WebXR requires a secure context (HTTPS or
@@ -96,6 +95,9 @@ Two separate technical reasons, not just one: WebXR requires a secure context (H
 code is loaded as browser "ES modules," which browsers refuse to load directly from a local file
 for security reasons, regardless of WebXR. Both mean a real local server — `npm run dev` — is
 needed either way, so there's no simpler prebuilt alternative today.
+
+**Why don't you support ChartPlayer's Drums scene**
+No technical blocker. I don't play drums or have access to a drumset currently.
 
 ## For developers
 
