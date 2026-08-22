@@ -18,7 +18,7 @@
 **[Try GitHub Pages demo](https://weblings.github.io/RockyRoad/)** — no install needed.
 
 ## Quick Start
-1. **Install [Node.js](https://nodejs.org/)** (the one prerequisite — version 20 or newer). This
+1. **Install [Node.js](https://nodejs.org/)** (version 20 or newer). This
    gives you the `node` and `npm` commands used below. One-line install, per OS:
    - **Windows:** `winget install OpenJS.NodeJS.LTS` (winget ships with Windows 10/11 already)
    - **macOS:** `brew install node` (needs [Homebrew](https://brew.sh) — if you don't have that
@@ -26,27 +26,15 @@
    - **Linux (Debian/Ubuntu):** `sudo apt install nodejs npm` — the distro-bundled version can lag
      behind, so check `node --version` afterward and make sure it's 20+; if it's older, use
      [NodeSource's setup script](https://github.com/nodesource/distributions) instead
-
-   Or just grab the installer for your OS from the link above if you'd rather not use a package
-   manager.
-2. **Get this repo's code.** Either:
-   - `git clone https://github.com/weblings/RockyRoad.git`, or
-   - on the [GitHub repo page](https://github.com/weblings/RockyRoad), click the green **Code**
-     button → **Download ZIP**, then unzip it — no git required. (This downloads the source code,
-     not a ready-to-run app — see the FAQ below for why.)
+2. **Get the code.** Either `git clone https://github.com/weblings/RockyRoad.git`, or on the
+   [GitHub repo page](https://github.com/weblings/RockyRoad), click the green **Code**
+   button → **Download ZIP**, then unzip it — no git required.
 3. **Open a terminal in the project's `v2` folder.**
 4. **Run `npm install`.** This downloads the project's dependencies into a `node_modules` folder —
    one-time setup, takes a minute or two. You'll see a wall of text; that's normal.
 5. **Run `npm run dev`.** This starts the app's local server. When it's ready, it prints a URL that
    looks like `https://localhost:8081/`.
-6. **Open that URL in your browser.** Your browser will warn you the connection isn't "secure" —
-   that's expected, not a real problem: WebXR requires HTTPS even for local testing, so the app
-   generates its own certificate on the fly, and your browser doesn't recognize it yet. Click
-   through the warning ("Advanced" → "Proceed") to continue.
-7. **On a headset:** open the same URL's `/xr.html` page (e.g.
-   `https://localhost:8081/xr.html`) from the headset's own browser — **the headset and the
-   computer running the server must be on the same Wi-Fi network.** See
-   [Troubleshooting](#troubleshooting) if it doesn't connect.
+6. **Open that URL in your browser.** You should now be able to access RockyRoad! See [Troubleshooting](#troubleshooting) and [FAQ](#faq) for more info.
 
 ## Play your own songs
 
@@ -71,8 +59,10 @@
   `npm run dev` output (`8081` by default). 
 - Confirm the address you entered ends with a colon and the port `:8081`.
 - Check if the address you entered is using `https`, `http` likely won't work.
+- If your browser warns you the connection isn't "secure" - Click through the warning ("Advanced" → "Proceed") to continue.
 
 **My own songs don't show up:**
+- If you're running the GitHub pages demo, refer to [Play your own songs](#play-your-own-songs). This section is for self-hosted.
 - Double-check `song-server.config.json`'s `songsDir` path — a typo means it finds nothing.
 - Confirm that folder actually contains converted song folders (each with a `song.json` inside),
   not the original, unconverted files.
