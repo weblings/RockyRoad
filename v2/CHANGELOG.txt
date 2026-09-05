@@ -1,3 +1,9 @@
+v0.2.5:
+- Added a README and created a logo
+- Songs in library now have badges showing what instruments they support
+- Improved XR guitar contrast and visibility
+- Lots of fixes, polish, and UX tweaks
+
 v0.2.4:
 - Refactored song speed logic, audio stays same pitch when speed is adjusted now
 - XR - Piano Full Reposition UX improvement
