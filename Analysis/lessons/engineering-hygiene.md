@@ -201,3 +201,20 @@ for as long as piano rendering existed.
 **Fix:** when adding a new type to a generic function that branches on an optional field, check
 what the fallback actually produces for a value that never sets that field — don't assume a
 fallback that's a no-op for the type it was designed around stays a no-op for every other caller.
+
+---
+
+## Fixing a culling threshold to be more accurate can unmask a draw-time bug the old, tighter bound was hiding
+
+Making the fix above respect real `TimeLength` also exposed a second, previously-invisible bug:
+`KeysPlayerScene3D`'s trail draw ran `Math.max(TimeOffset, currentTime)` to `TimeOffset + TimeLength`
+with no check that the note hadn't already ended — harmless while culling kept notes in the loop for
+at most ~0.15s past their start, but once a note could legitimately linger over a second (blocked
+behind a longer neighbor sorted earlier by `TimeOffset`), it drew an inverted trail quad past the
+highway's near edge. `FretPlayerScene3D` already had the needed guard (`noteSustain >= 0` clamp) —
+piano's code just never had real end times to exercise the gap until now.
+
+**Fix:** guard a "draw from now back to the note's end" call against the note having already ended
+(`currentTime >= noteEnd` → skip) — don't trust an upstream culling window to have already excluded
+it. When loosening a threshold to be more accurate, check what downstream code was implicitly
+relying on the old, tighter one as a safety net.
