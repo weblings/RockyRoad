@@ -90,3 +90,17 @@ never the actual problem.
 **How to apply:** When a real-time audio-worklet library exposes health/underrun metrics, check
 them live during the complaint window before picking a fix — don't assume which of several
 plausible causes is the real one.
+
+---
+
+## A cumulative metrics counter needs edge-detection, not a `> 0` check, or one blip logs forever
+
+**Finding:** `SongPlayer.ts`'s underrun warning fired on `underrunCount > 0`. That counter never
+resets per-node, so one brief early burst (e.g. right after a fresh `stNode` is built) kept
+reprinting the same stale count on every subsequent `metrics` tick for the rest of playback —
+indistinguishable from ongoing starvation without checking whether the count was actually still
+climbing.
+
+**How to apply:** Track the last-seen value and fire only on an increase
+(`m.underrunCount > lastUnderrunCount`); also gate dev-diagnostic console output behind
+`import.meta.env.DEV` so it doesn't ship to production users.

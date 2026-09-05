@@ -183,6 +183,11 @@ export class KeysPlayerScene3D extends ChartScene3D {
             if (note.TimeOffset > this.endTime) break;
             if (note.Note < this.minKey || note.Note > this.maxKey) continue;
 
+            const noteEnd = note.TimeOffset + note.TimeLength;
+            // Already fully played — skip to avoid an inverted trail (mirrors
+            // FretPlayerScene3D's noteSustain >= 0 clamp).
+            if (this.currentTime >= noteEnd) continue;
+
             const isWhite    = SCALE_WHITE_BLACK[note.Note % 12] === 0;
             const trailStart = Math.max(note.TimeOffset, this.currentTime);
             const color      = note.Hand === 'left' ? this.leftHandColor : this.rightHandColor;
@@ -191,7 +196,7 @@ export class KeysPlayerScene3D extends ChartScene3D {
                 getImage(isWhite ? "NoteTrailWhite" : "NoteTrailBlack"),
                 note.Note + 0.5,
                 trailStart,
-                note.TimeOffset + note.TimeLength,
+                noteEnd,
                 0,
                 color,
                 0.06,

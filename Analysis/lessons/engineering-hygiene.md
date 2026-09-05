@@ -187,3 +187,17 @@ and don't stop after finding one cause if fixing it changes what's actually bein
 found, clamp values from external/authored data to their real valid domain at the point they're
 used for positioning (`Math.max(0, ...)`/`Math.min(NUM_FRETS, ...)`) rather than trusting the data
 to always stay in range.
+
+---
+
+## A generic helper's fallback for an optional field can be safe for the type it was written against and silently wrong for every other type reusing it
+
+`getStartNote()`'s cull cutoff falls back to `EndTime ?? TimeOffset` when a note has no `EndTime`.
+Guitar's `SongNote` always sets a real `EndTime`, so the fallback never engages. Piano's
+`SongKeyboardNote` never sets it at all — so the fallback silently capped every held note's
+on-screen lifetime at a fixed ~0.15s cushion, cutting sustained notes/chords off up to 1.5s early,
+for as long as piano rendering existed.
+
+**Fix:** when adding a new type to a generic function that branches on an optional field, check
+what the fallback actually produces for a value that never sets that field — don't assume a
+fallback that's a no-op for the type it was designed around stays a no-op for every other caller.

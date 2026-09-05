@@ -33,7 +33,8 @@ to do before touching XR scene graph, input, rendering internals, or build/dev s
   internal DSP state goes stale on any fresh upstream source (not just explicit seeks),
   AudioParams resetting to default on (re)construction, disconnecting outgoing nodes explicitly,
   using a worklet's own health-metrics API to tell buffer underrun apart from an algorithmic
-  quality ceiling.
+  quality ceiling, and why a cumulative underrun counter needs edge-detection rather than a
+  `> 0` check.
 
 ## Cross-listed (touches more than one topic)
 
