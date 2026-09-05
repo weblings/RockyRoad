@@ -125,10 +125,16 @@ export class SongPlayer implements ISongPlayer {
         node.playbackRate.value = this._playbackRate;
         // Surfaces real buffer starvation distinctly from WSOLA's inherent quality ceiling at
         // extreme speed ratios — see SoundTouchSpeedPlan.md Phase E. Silent when healthy.
+        // Dev-only, and only on new underruns (underrunCount is cumulative per-node) so a single
+        // early blip doesn't reprint on every metrics tick for the rest of playback.
+        let lastUnderrunCount = 0;
         node.addEventListener('metrics', (e) => {
             const m = (e as CustomEvent<ProcessorMetrics>).detail;
-            if (m.underrunCount > 0) {
-                console.warn(`SoundTouch underruns: ${m.underrunCount}/${m.blockCount} blocks`, m);
+            if (m.underrunCount > lastUnderrunCount) {
+                if (import.meta.env.DEV) {
+                    console.warn(`SoundTouch underruns: ${m.underrunCount}/${m.blockCount} blocks`, m);
+                }
+                lastUnderrunCount = m.underrunCount;
             }
         });
         return node;
