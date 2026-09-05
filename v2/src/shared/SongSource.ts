@@ -94,7 +94,8 @@ const DEV_DEFAULT_REMOTE = '/remote-songs';
 
 export async function loadAllSources(remoteServerUrl: string): Promise<SourcedEntry[]> {
     const sources: ISongSource[] = [new BakedSource()];
-    const effectiveUrl = remoteServerUrl || (import.meta.env.DEV ? DEV_DEFAULT_REMOTE : '');
+    const isDevFallback = !remoteServerUrl && import.meta.env.DEV;
+    const effectiveUrl = remoteServerUrl || (isDevFallback ? DEV_DEFAULT_REMOTE : '');
     if (effectiveUrl) sources.push(new RemoteSource('Library', effectiveUrl));
 
     const results = await Promise.allSettled(sources.map(s => s.getManifest()));
@@ -103,6 +104,10 @@ export async function loadAllSources(remoteServerUrl: string): Promise<SourcedEn
         const r = results[i];
         if (r.status === 'fulfilled') {
             for (const entry of r.value) entries.push({ entry, source: sources[i] });
+        } else if (sources[i] instanceof RemoteSource && isDevFallback) {
+            // No remoteServerUrl configured — this is the dev-only auto-fallback to the local
+            // song-server proxy, not a broken user-configured server. Say so plainly.
+            console.warn(`[SongSource] No local song-server running at ${DEV_DEFAULT_REMOTE}. See v2/Setup.md to set one up`);
         } else {
             console.warn(`[SongSource] Failed to load "${sources[i].label}":`, r.reason);
         }
