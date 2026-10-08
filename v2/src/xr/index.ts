@@ -57,9 +57,8 @@ import type {
 // Mirrors console.log/warn/error + uncaught errors onto a canvas plane in the
 // scene so they're readable in-headset without chrome://inspect/USB, which
 // has proven unreliable. Plain CanvasTexture, not uikit — deliberately
-// independent of anything it might be used to debug. See
-// ThreeCP/Analysis/lessons/engine/dev-environment.md's
-// "Debugging JS console from Quest Browser on PC" entry.
+// independent of anything it might be used to debug. See the
+// "Debugging JS console from Quest Browser on PC" lesson.
 const DEBUG_CONSOLE_ENABLED = false;
 
 const debugLines: string[] = [];
@@ -574,8 +573,8 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     }
     setSettingsPanelInteractive(false);
     // Exposed so CalibrationSystem._showPanel() can fully disable this panel (not just
-    // hide it) when it's the sibling being displaced — see
-    // ThreeCP/Analysis/lessons/ui-toolkit/panels-visibility-lifecycle.md.
+    // hide it) when it's the sibling being displaced — see the "Hiding a `PanelUI`
+    // panel needs two separate gates, not just `visible = false`" lesson.
     world.globals.setSettingsPanelInteractive = setSettingsPanelInteractive;
 
     // ── Song/PreScene uikit panel (next screen-by-screen migration step after
