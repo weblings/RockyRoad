@@ -6,6 +6,8 @@ surface). See [`INDEX.md`](INDEX.md) for the full engine map.
 ---
 
 ## XRProto: local-Z refactor required before XR is visible
+Tags: xr, coordinates, local-z, highway
+Applies-when: highway geometry disappears in XR, or porting a scene to XR
 
 **Symptom:** Highway geometry disappears within seconds of entering XR. No errors.
 
@@ -16,6 +18,8 @@ surface). See [`INDEX.md`](INDEX.md) for the full engine map.
 ---
 
 ## XRProto: Charts without `song.ogg` freeze the highway
+Tags: song-player, audio, timer, highway
+Applies-when: a chart without audio doesn't scroll
 
 **Symptom:** Notes render but don't move regardless of pressing play.
 
@@ -26,6 +30,8 @@ surface). See [`INDEX.md`](INDEX.md) for the full engine map.
 ---
 
 ## FretPlayerScene3D: `getFretPosition()` is non-linear — don't reason about it in "N frets"
+Tags: fret-position, culling, geometry
+Applies-when: sizing anything in fret-position units
 
 **Symptom:** An XR culling window sized as `getFretPosition(9)` (intended: "~9 frets of half-width") turned out to be wider than the *entire* 24-fret neck, silently making the culling a no-op.
 
@@ -36,6 +42,8 @@ surface). See [`INDEX.md`](INDEX.md) for the full engine map.
 ---
 
 ## QuadBatch re-uploads its full buffer capacity every frame (known, not yet fixed)
+Tags: quadbatch, performance, buffers, gpu-upload
+Applies-when: investigating XR frame dips or editing QuadBatch.flush
 
 **Symptom:** Suspected but unconfirmed contributor to frame dips in both Keys and Guitar highways.
 
@@ -46,6 +54,8 @@ surface). See [`INDEX.md`](INDEX.md) for the full engine map.
 ---
 
 ## Resizing a canvas backing a live `CanvasTexture` at runtime is unreliable — build fixed presets instead
+Tags: canvas-texture, resize, sprite, labels
+Applies-when: a CanvasTexture stops updating after resizing its canvas
 
 **Symptom:** A world-space label `Sprite` whose canvas was resized-to-fit on every text change (to
 avoid clipping long strings) would stop visually updating after the first draw — computed text was
@@ -68,6 +78,8 @@ can't happen at all.
 ---
 
 ## XR's fixed-volume culling turns a cosmetic camera-convergence lag into actually-missing notes
+Tags: culling, camera, xr, hand-fret
+Applies-when: notes missing at song start in XR but fine on desktop
 
 **Symptom:** A song opening far up the neck (`HandFret` ~10-12) rendered no notes or fret numbers
 for the first several seconds in XR, catching up gradually. Identical song played correctly from
@@ -86,6 +98,8 @@ one-size-fits-all default.
 ---
 
 ## A flat "ground decal" quad is nearly invisible near-parallel to the camera — and XR has nothing behind it to fall back on
+Tags: rendering, decals, contrast, xr, fretboard
+Applies-when: a flat quad or line looks too thin in XR
 
 **Symptom:** String-color fretboard lines and highway lane lines read as extremely thin/low-contrast
 in XR, much more so than on desktop.
@@ -108,6 +122,8 @@ camera-facing billboarding, not yet done.
 ---
 
 ## `Scene3D.xrMode = true` must be set before any scene construction
+Tags: scene3d, xr-mode, init-order
+Applies-when: changing XR entry-point imports or scene construction order
 
 **Symptom:** XR scenes create an owned `THREE.Scene`, add the QuadBatch mesh to it, then fail when IWSDK tries to register the same mesh — or the mesh renders twice.
 
@@ -118,6 +134,8 @@ camera-facing billboarding, not yet done.
 ---
 
 ## A hand-rolled `raycaster.intersectObject(x)` test has no concept of occlusion — it can "hit" X even when something closer actually blocks the ray
+Tags: raycast, occlusion, grab-bar, pointer-events
+Applies-when: writing custom hit-testing instead of pointer events
 
 **Symptom:** Tapping almost anywhere on a uikit panel (not just near the visible grab-bar handle)
 would occasionally trigger the grab bar's billboard-rotation for a single frame — worse at panel
@@ -141,6 +159,8 @@ target.
 ---
 
 ## A continuously-moving target needs continuous damping, not a discrete from/to/duration tween
+Tags: animation, damping, tween, billboard, grab-bar
+Applies-when: animating toward a target that changes every frame
 
 **Finding:** The grab bar's pitch billboard snaps between exactly three discrete states (tilt
 up/level/tilt down), so a from/to/duration eased tween (remember a start value, ease to a fixed end
@@ -158,6 +178,8 @@ own grabbed-check.
 ---
 
 ## Flipping a mesh visible at mount time isn't the same as flipping it once its transform is correct
+Tags: visibility, transforms, highway, calibration
+Applies-when: a mesh flashes at the wrong size or position for a frame after mounting
 
 **Symptom:** Starting a guitar/bass song in XR showed the highway (and its countdown mesh, a
 sibling under the same grab bar) briefly rendered enormous and mispositioned for a frame or two

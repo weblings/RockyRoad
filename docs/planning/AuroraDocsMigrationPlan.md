@@ -1,6 +1,6 @@
 # Migrate docs infra to Aurora's system (+ beads, AGENTS.md)
 
-Status: in progress — steps 1–3 done as of 2026-10-08
+Status: in progress — steps 1–5 done as of 2026-10-08
 Id: aurora-docs-migration
 
 Owner-context: assessed 2026-10-08 against Aurora's live tree and RockyRoadImport's finished
@@ -23,7 +23,7 @@ Next agent: work the plan top to bottom; each step lists its done-criteria.
 - Docs: 16 files flat in `Analysis/` (plus this plan). Only 2 carry any status line; none carry `Id:`.
 - Lessons: 113 entries across 13 files, nested (`engine/`, `ui-toolkit/` each with a prose INDEX).
   Entry shape already matches Aurora's (`##` principle headline, root-cause paragraph, `**Fix:**`) —
-  only `Tags:`/`Applies-when:` are missing. `../lessons/TabToChartLessons.md` is a lessons doc awaiting its step-5 fold.
+  only `Tags:`/`Applies-when:` are missing. A standalone TabToChartLessons doc awaits its step-5 fold.
 - Skills: 5 `.claude/skills/*-lessons` routing skills exist, all citing `Analysis/lessons/...` paths.
 - Tasks: `v2/v0.2.6_TODO.txt` (4 open items, 1 done); `v2/CHANGELOG.txt`. No beads, no `log/`, no check scripts.
   `bd` 1.3.0 at `/home/andrew/.local/bin/bd`.
@@ -107,8 +107,11 @@ Open (recommendations inline):
    TabToChart entries folded in). Convert `lessons/README.md` and both subdir INDEX files to Aurora's table
    shape (`File | Scope | Entries | File here when`), keeping the existing prose summaries in Scope.
    Fix `lessons/README.md`'s stale "`ThreeCP/Analysis/`" wording, and point its rule 1 at `bd remember`
-   (decision 6). Delete `../lessons/TabToChartLessons.md` after folding.
+   (decision 6). Delete the TabToChartLessons doc after folding.
    Done when: `bash docs/check-lessons.sh` → `lessons OK`.
+   Done 2026-10-08: 118 entries tagged (113 + 5 folded). TabToChart's String-table and tab-photo
+   entries merged into existing ones; its "HandFret defaults to 0" (contradicted by the cross-check
+   entry) and conversion-pipeline wishlist (superseded by the GP5 path) dropped.
 6. **Update the skills.** All 5 SKILL.md files: paths → `docs/lessons/`, and add Aurora's "grep
    `Tags:`/`Applies-when:` for the task, read only matching entries" usage step. Update the skill
    descriptions only if paths appear in them.

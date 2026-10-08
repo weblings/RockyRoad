@@ -4,25 +4,26 @@ Gotchas, non-obvious findings, and hard-won decisions that aren't obvious from r
 planning docs. Add here whenever something costs more than 30 minutes to diagnose.
 
 **This directory is the only lessons-learned location in the repo** — for every subproject, not
-just `ThreeCP/Analysis/` itself. Don't start a new LessonsLearned elsewhere; if unsure whether
+just the one it sits next to. Don't start a new LessonsLearned elsewhere; if unsure whether
 one already exists, `find . -iname "*lesson*"` first.
 
 ## Index
 
-- [`engineering-hygiene.md`](engineering-hygiene.md) — general design principles, small enough to
-  read whole, no sub-index needed.
-- [`desktop-dom.md`](desktop-dom.md) — browser-native DOM/CSS/event gotchas from `src/desktop/`,
-  small enough to read whole, no sub-index needed.
-- [`song-content-authoring.md`](song-content-authoring.md) — transcribing source material
-  (sheet music, tab) into chart JSON: `String` indexing, duration/tempo conversion, diatonic
-  cross-checking, keeping a song folder's files in sync. Small enough to read whole.
-- [`ui-toolkit/INDEX.md`](ui-toolkit/INDEX.md) — uikit/uikitml/PanelUI, by activity.
-- [`engine/INDEX.md`](engine/INDEX.md) — IWSDK/Three.js/Web Audio + dev/XR environment, by activity.
+| File | Scope | Entries | File here when |
+|---|---|---|---|
+| [engineering-hygiene.md](engineering-hygiene.md) | general design principles, small enough to read whole | 16 | a general software-design principle, demonstrated by a real bug here |
+| [desktop-dom.md](desktop-dom.md) | browser-native DOM/CSS/event gotchas from `src/desktop/` | 5 | browser DOM/CSS/event behavior, desktop screens |
+| [song-content-authoring.md](song-content-authoring.md) | transcribing sheet music/tab into chart JSON: `String` indexing, duration/tempo conversion, diatonic cross-checking, pickup timing, keeping a song folder's files in sync | 12 | authoring chart content, not the code that renders it |
+| [ui-toolkit/INDEX.md](ui-toolkit/INDEX.md) | uikit/uikitml/PanelUI, by activity | 45 | uikit/uikitml/PanelUI specific |
+| [engine/INDEX.md](engine/INDEX.md) | IWSDK/Three.js/Web Audio + dev/XR environment, by activity | 40 | anything else: engine APIs, XR rendering, audio, dev setup |
+
+Counts as of 2026-10-08. Subdirectory rows total their files; per-file counts live in each
+subdirectory's index. Bump the count when adding entries (`grep -c '^## '` per file).
 
 ## Where a new lesson goes
 
-1. About *my own* verification/reliability habits, not code/design? → persistent memory
-   (`feedback_*`), not the repo.
+1. About an agent's own verification/reliability habits, specific to this clone, not code/design?
+   → `bd remember`, not the repo.
 2. General software-design principle, demonstrated by a real bug here? → `engineering-hygiene.md`.
 3. uikit/uikitml/PanelUI? → `ui-toolkit/<topic>.md`, topic chosen by activity.
 4. Browser-native DOM/CSS/JS event behavior, `src/desktop/` specifically? → `desktop-dom.md`.
@@ -44,6 +45,14 @@ one already exists, `find . -iname "*lesson*"` first.
 Tied to now-removed code? Keep the principle if it still applies, drop the dead specifics, and
 say the origin is historical — see `engineering-hygiene.md`'s async-gating entry for a worked
 example, genericized from the removed html2canvas pipeline.
+
+## Entry format
+
+A `##` headline stating the general, reusable principle, immediately followed by `Tags:` and
+`Applies-when:` lines (the retrieval contract — `check-lessons.sh` enforces placement), then a short
+root-cause paragraph and a bolded **Fix:** (or **How to apply:**) line.
+
+Cite entries by headline, never by filename — headlines survive splits, filenames don't.
 
 ## Skills
 

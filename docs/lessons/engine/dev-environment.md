@@ -6,6 +6,8 @@ Windows/dev-server/debugging technique, independent of any particular screen or 
 ---
 
 ## XRProto: `/@fs/` cross-drive paths fail on Windows
+Tags: vite, windows, fs, cross-drive, fetch
+Applies-when: fetching files via /@fs/ or serving songs from another drive
 
 **Symptom:** `fetch('/@fs/C:/...')` returns HTTP 200 with `text/html` (Vite's SPA fallback) instead of the actual file. The JSON parse fails with `Unexpected token '<'`.
 
@@ -18,6 +20,8 @@ Windows/dev-server/debugging technique, independent of any particular screen or 
 ---
 
 ## IWSDK device mode: IWER "Enter XR" button is absent
+Tags: iwsdk, iwer, device-mode, launch-xr
+Applies-when: running npm run dev:device and there's no Enter XR button
 
 **Symptom:** Running `npm run dev:device` (real hardware mode) — no "Enter XR" button appears in the browser.
 
@@ -28,6 +32,8 @@ Windows/dev-server/debugging technique, independent of any particular screen or 
 ---
 
 ## Debugging JS console from Quest Browser on PC
+Tags: quest, debugging, console, adb, chrome-inspect
+Applies-when: needing console output from the app on a Quest headset
 
 **Problem:** `console.log` output from a WebXR app running in Meta Quest Browser is not accessible — no DevTools on-device and the Quest can't inspect itself.
 
@@ -60,6 +66,8 @@ being built and preferred) — try it only if the in-scene console itself isn't 
 ---
 
 ## Console errors need special-casing for `Error` objects, or the real reason gets swallowed
+Tags: logging, errors, json-stringify, console
+Applies-when: writing custom console mirroring or logging code
 
 **Symptom:** The `CanvasTexture` fallback console above showed `[PanelUISystem] Error loading panel for entity 9: {}` — the actual error message was gone, just empty braces.
 
@@ -73,6 +81,8 @@ own properties, so they're dropped.
 ---
 
 ## `verbatimModuleSyntax` requires `import type` for every type-only import
+Tags: typescript, imports, verbatimModuleSyntax
+Applies-when: a TS1484 type-only import error
 
 **Symptom:** `error TS1484: 'AssetManifest' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.`
 
@@ -83,6 +93,8 @@ own properties, so they're dropped.
 ---
 
 ## `_` prefix does not suppress `noUnusedLocals` for private class members
+Tags: typescript, noUnusedLocals, private-members
+Applies-when: a TS6133 unused-member error on a private field or method
 
 **Symptom:** `error TS6133: '_connectOpen' is declared but its value is never read.` — renaming a private field or method to `_foo` still triggers the error.
 
@@ -93,6 +105,8 @@ own properties, so they're dropped.
 ---
 
 ## Vite two-entry build: both HTML files must be in `rollupOptions.input`
+Tags: vite, rollup, entry-points, html
+Applies-when: adding or serving a second HTML entry point
 
 **Symptom:** Navigating to `xr.html` returns Vite's SPA fallback (200 with `text/html` index.html content) instead of the XR page.
 
@@ -112,6 +126,8 @@ Script tags inside each HTML must use absolute paths from project root: `src="/s
 ---
 
 ## Bare port 8081 returns nothing without an `index.html`
+Tags: vite, index-html, entry-points, dev-server
+Applies-when: the dev server's root URL shows a blank 404
 
 **Symptom:** Navigating to `https://localhost:8081` shows a blank 404. Users expect the app to open.
 
@@ -122,6 +138,8 @@ Script tags inside each HTML must use absolute paths from project root: `src="/s
 ---
 
 ## Vite proxy makes the song server plain HTTP (no TLS needed in dev)
+Tags: vite, proxy, song-server, tls, cors
+Applies-when: connecting the app to the local song server in dev
 
 **Pattern:** Add to `vite.config.ts`:
 ```ts
@@ -138,6 +156,8 @@ The browser (including Quest via Quest Link) hits `https://localhost:8081/remote
 ---
 
 ## Import paths: no `.js` extensions, `../shared/` prefix for cross-mode imports
+Tags: imports, vite, module-resolution, shared
+Applies-when: a module-not-found error, or porting code with .js import extensions
 
 **Symptom:** Module not found errors at dev-server startup.
 
@@ -148,6 +168,8 @@ The browser (including Quest via Quest Link) hits `https://localhost:8081/remote
 ---
 
 ## `base: "./"` doesn't rewrite hardcoded absolute-root paths in runtime strings
+Tags: vite, base-url, github-pages, deploy, paths
+Applies-when: deploying under a subpath or adding a hardcoded absolute path in runtime code
 
 **Symptom:** Deployed to GitHub Pages under `/RockyRoad/` (a project subpath, not domain root) — album art, the UI atlas texture, uikit panel configs, and several icons all silently 404'd, even though `vite.config.ts` already has `base: "./"`.
 

@@ -5,6 +5,8 @@ Ray/hand drag, hover, and capture gotchas. See [`INDEX.md`](INDEX.md) for the fu
 ---
 
 ## `Hovered` — a free, already-computed "is anything pointing at this" signal, worth reusing broadly
+Tags: hovered, ray-interactable, input, hand-tracking
+Applies-when: needing to know whether a ray or hand is pointing at an entity
 
 **Finding:** `@iwsdk/core`'s `state-tags.d.ts` exports `Hovered`, a transient tag `InputSystem`
 automatically adds/removes on any `RayInteractable` entity while a ray *or* hand pinch intersects
@@ -19,6 +21,8 @@ for or duplicate raycasting that IWSDK's own input pipeline already does every f
 ---
 
 ## Pointer-drag math: neither `.uv` nor `.localPoint` on the event can be trusted blindly — always `stableElement.worldToLocal(event.point)`
+Tags: drag, worldToLocal, pointer-events, slider
+Applies-when: computing drag position on a uikit element
 
 `event.uv` didn't track drag position reliably (unconfirmed why). `event.localPoint` is relative to
 `intersection.object` — whichever sub-element was actually hit first — so its reference frame
@@ -42,6 +46,8 @@ center, `±0.5` its edges (confirmed via `scroll.js`'s `getIntersectedScrollbarI
 ---
 
 ## `setPointerCapture`/`releasePointerCapture` work for XR ray/hand drag — confirmed pattern for "grab and drag past the element's bounds"
+Tags: pointer-capture, drag, scrubber, slider
+Applies-when: building a drag/scrubber/slider interaction in XR
 
 `@pmndrs/pointer-events` implements real pointer capture (browser-standard semantics). Calling
 `event.currentTarget.setPointerCapture(event.pointerId)` on pointer-down keeps `onPointerMove`/
@@ -61,6 +67,8 @@ will land instead of guessing from the bar alone.
 ---
 
 ## `pointerEvents` inherits down the tree, and a descendant's own explicit value always wins
+Tags: pointer-events, inheritance, drag
+Applies-when: disabling other interactive elements during a drag
 
 `pointerEvents` is inherited (`properties/inheritance.js`), defaulting to `parent.pointerEvents ??
 this.defaultPointerEvents`. Useful for disabling every *other* interactive element during a real

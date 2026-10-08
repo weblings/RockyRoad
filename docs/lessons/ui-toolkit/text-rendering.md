@@ -8,6 +8,8 @@ here — it's an open task, not a retrospective lesson.
 ---
 
 ## Font: `inter` works with zero setup, but only in specific weights
+Tags: fonts, inter, font-weight, msdf
+Applies-when: choosing a font or font-weight for uikit text
 
 **Finding:** `@pmndrs/uikit`'s built-in default font family (used automatically when no
 `fontFamilies` config is supplied at all) is `inter`, lazy-loaded from `@pmndrs/msdfonts`
@@ -19,6 +21,8 @@ text weight.
 ---
 
 ## A burst of brand-new text on one element can corrupt an unrelated element's layout elsewhere in the same document
+Tags: text, yoga, layout-corruption, glyphs, lazy-load
+Applies-when: an unrelated element's size changes when lots of new text appears
 
 An unrelated, unchanged element (different subtree) rendered at the wrong size — only when a
 larger/text-heavy section elsewhere in the doc became visible. Confirmed via `element.size.value`
@@ -40,6 +44,8 @@ with a genuinely cold browser start, more than once.
 ---
 
 ## Missing-glyph character set keeps growing — assume any non-ASCII typographic character is unsupported until tested
+Tags: glyphs, unicode, msdf, tofu
+Applies-when: writing text content with non-ASCII typographic characters for uikit
 
 **Finding:** confirmed missing from uikit's pre-built Inter MSDF glyph subset so far: `‹`, `−`
 (minus sign, U+2212, not a hyphen), `×` (multiplication sign, U+00D7, not the letter x) — renders
@@ -58,6 +64,8 @@ naturally, test it deliberately before shipping rather than assuming it's covere
 ---
 
 ## An element authored with no static text content never becomes updatable via `setProperties({ text })`
+Tags: text, setProperties, placeholder, uikitml
+Applies-when: a runtime-updated text element stays blank
 
 An empty `<span id="x"></span>` (meant to be filled at runtime) stays permanently blank —
 `setProperties({ text })` never throws, just does nothing. Cause: `<span>text</span>` compiles to a
@@ -72,6 +80,8 @@ before shipping.
 ---
 
 ## Splitting a multi-styled string into independently-styled elements is just two spans, each needing its own placeholder text
+Tags: text, styling, spans, font-weight
+Applies-when: mixing font weights or sizes within one label
 
 A single Text node can't mix font-weight/size mid-string the way inline `<b>` could in the original
 HTML source it was translated from. Two sibling spans in a flex-column wrapper (with `gap-row` for
@@ -81,6 +91,8 @@ entry above), is the straightforward replacement — no special mechanism needed
 ---
 
 ## `whiteSpace` does not control line-wrapping in this library — only `wordBreak` against available width does
+Tags: text, wrapping, whiteSpace, wordBreak
+Applies-when: a uikit label wraps unexpectedly
 
 A one-line label ("Speed: 20%") wrapped inside a comfortably-wide container; `white-space: nowrap`
 made no difference. Two stacked bugs: `nowrap` isn't a valid value in this schema at all
@@ -95,6 +107,8 @@ width instead, calibrated against an already-working element at the same scale r
 ---
 
 ## Even a wide-enough container didn't fully fix the wrap — an unresolved, likely cross-subtree Yoga corruption
+Tags: text, wrapping, yoga, dropdown, unresolved
+Applies-when: the Speed dropdown label renders across two lines
 
 **Status: unresolved, shelved.** Speed dropdown trigger's label intermittently renders as broken
 across two lines even with sufficient width — measured height stays constant, ruling out a real

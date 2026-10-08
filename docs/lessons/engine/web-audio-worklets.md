@@ -9,6 +9,8 @@ Web Audio object keeps playing unless explicitly stopped" for the closely relate
 ---
 
 ## Vite serves a worklet/wasm file an npm package ships via `?url` + a package subpath export — no manual `public/` copy needed
+Tags: vite, audio-worklet, wasm, url-import
+Applies-when: serving a worklet or wasm file shipped by an npm package
 
 **Finding:** Assumed (from a prior sibling-project experience) that any library-internal file a
 dev server needs to serve at runtime requires manually copying it into `public/`. Not true here —
@@ -22,6 +24,8 @@ package ships, check whether the package exposes a subpath export for it and try
 ---
 
 ## Verify a third-party audio library's actual API surface — a wrapper can be shaped differently than the underlying algorithm's reputation suggests
+Tags: soundtouch, audio-worklet, api, research
+Applies-when: designing an integration around a library not yet installed
 
 **Finding:** Planned an integration around a `tempo` AudioParam based on general SoundTouch/WSOLA
 family knowledge, before the package was ever installed. The actual installed
@@ -38,6 +42,8 @@ doesn't guarantee its wrapper API matches.
 ---
 
 ## An AudioWorkletNode's internal DSP state goes stale on any discontinuity in its input stream — not just an explicit "seek"
+Tags: audio-worklet, soundtouch, seek, resume
+Applies-when: rebuilding an upstream source node feeding a stateful worklet
 
 **Finding:** Assumed only explicit user seeks needed special handling for a stateful worklet node's
 internal buffering (WSOLA analysis windows, in this case). Tracing every resume path in the actual
@@ -52,6 +58,8 @@ and special-case which specific user interactions "count" as a discontinuity.
 ---
 
 ## AudioParams reset to their default value on node (re)construction — sync explicitly, don't rely on a setter firing later
+Tags: audio-param, soundtouch, playback-rate
+Applies-when: constructing or reconstructing a Web Audio node that reflects app state
 
 **Finding:** A freshly (re)constructed `SoundTouchNode`'s `playbackRate` AudioParam silently sits
 at its default (`1.0`) until something explicitly sets it. Relying on the app's existing
@@ -66,6 +74,8 @@ it up.
 ---
 
 ## Reassigning a node reference doesn't disconnect the old node from the graph
+Tags: web-audio, disconnect, cleanup, audio-worklet
+Applies-when: replacing a Web Audio node
 
 **Finding:** Replacing `this.stNode = new SoundTouchNode(...)` without first calling `.disconnect()`
 on the outgoing instance leaves it permanently wired to `destination` — dropping the JS reference
@@ -78,6 +88,8 @@ its replacement, any time a node gets rebuilt rather than reused for the life of
 ---
 
 ## A worklet's own health-metrics API can cheaply distinguish "real buffer underrun" from "inherent algorithm quality ceiling"
+Tags: audio-worklet, metrics, underrun, audio-quality
+Applies-when: audio sounds crunchy or distorted at extreme speeds
 
 **Finding:** Audio got audibly "crunchy" at extreme slow playback speeds. Before assuming that meant
 buffer starvation needing a buffer-sizing fix, checked `SoundTouchNode.metrics`'s `underrunCount`
@@ -94,6 +106,8 @@ plausible causes is the real one.
 ---
 
 ## A cumulative metrics counter needs edge-detection, not a `> 0` check, or one blip logs forever
+Tags: metrics, logging, underrun, edge-detection
+Applies-when: logging based on a cumulative counter
 
 **Finding:** `SongPlayer.ts`'s underrun warning fired on `underrunCount > 0`. That counter never
 resets per-node, so one brief early burst (e.g. right after a fresh `stNode` is built) kept

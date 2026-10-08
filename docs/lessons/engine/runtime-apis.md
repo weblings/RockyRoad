@@ -6,6 +6,8 @@ screen. See [`INDEX.md`](INDEX.md) for the full engine map.
 ---
 
 ## IWSDK: `OneHandGrabbable` uses squeeze, not trigger
+Tags: iwsdk, grab, squeeze, input
+Applies-when: wiring grab interaction or writing grab UX copy
 
 **Symptom:** Grab doesn't activate when holding the trigger over an object.
 
@@ -16,6 +18,8 @@ screen. See [`INDEX.md`](INDEX.md) for the full engine map.
 ---
 
 ## IWSDK: `Interactable` is deprecated
+Tags: iwsdk, ray-interactable, interactable
+Applies-when: making an entity respond to controller rays
 
 **Symptom:** Adding `Interactable` to an entity produces no ray cursor response.
 
@@ -26,6 +30,8 @@ screen. See [`INDEX.md`](INDEX.md) for the full engine map.
 ---
 
 ## Three.js: `Object3D.getWorldDirection()` returns +Z, not -Z
+Tags: three, direction, camera, placement
+Applies-when: computing a forward/look direction from an Object3D
 
 **Symptom:** XR guitar volume auto-placement landed exactly behind the player instead of in front of them, with no errors.
 
@@ -36,6 +42,8 @@ screen. See [`INDEX.md`](INDEX.md) for the full engine map.
 ---
 
 ## IWSDK: any `THREE.Sprite` in the XR scene graph crashes the pointer system
+Tags: iwsdk, sprite, raycast, pointer, performance
+Applies-when: adding a THREE.Sprite to the XR scene, or an unexplained XR frame-rate crash
 
 **Symptom:** Enabling XR text (via pooled `THREE.Sprite`s) "totally cratered" frame rate. Nothing in the rendering cost model explained it — a device console dump was needed to actually find the cause.
 
@@ -48,6 +56,8 @@ screen. See [`INDEX.md`](INDEX.md) for the full engine map.
 ---
 
 ## IWSDK: `Entity.dispose()` recursively frees GPU resources; `createTransformEntity` uses real `Object3D.add()` underneath
+Tags: iwsdk, entity, dispose, scene-graph, gpu-resources
+Applies-when: disposing entities or parenting plain Object3Ds under an entity
 
 Two related facts, confirmed by reading `node_modules/@iwsdk/core/dist/ecs/{entity,world}.js` and `dist/transform/transform.js`, worth having settled rather than re-investigated next time:
 
@@ -57,6 +67,8 @@ Two related facts, confirmed by reading `node_modules/@iwsdk/core/dist/ecs/{enti
 ---
 
 ## IWSDK: `visual.model.visible` is reset every frame by InputSystem — a one-shot hide doesn't stick
+Tags: iwsdk, hand-tracking, visibility, input
+Applies-when: hiding the tracked-hand or controller visual
 
 **Symptom:** Hiding the tracked-hand visual (`XRHandVisualAdapter.toggleVisual(false)`) when the XR panel goes idle appeared to work at the API level (no errors, `enabled` flag flipped correctly) but the hand kept rendering — frozen in its last pose instead of disappearing.
 
@@ -69,6 +81,8 @@ Two related facts, confirmed by reading `node_modules/@iwsdk/core/dist/ecs/{enti
 ---
 
 ## A discarded Web Audio object keeps playing unless explicitly stopped
+Tags: web-audio, song-player, cleanup
+Applies-when: replacing a SongPlayer or audio source mid-session
 
 Replacing a `SongPlayer` instance mid-session (e.g. for a highway rebuild) without first calling
 its `.pause()` leaves the old `AudioBufferSourceNode` playing in the background — dropping the JS
@@ -77,6 +91,8 @@ reference alone doesn't stop it, unlike garbage-collectable state in general.
 ---
 
 ## `QuadBatch.flush()` vs `draw()` — never call `renderer.render()` inside XR
+Tags: quadbatch, render-loop, iwsdk, xr
+Applies-when: calling render in XR, or black screen/flicker in XR
 
 **Symptom:** Black screen or flickering in XR; IWSDK compositor fight.
 
@@ -87,6 +103,8 @@ reference alone doesn't stop it, unlike garbage-collectable state in general.
 ---
 
 ## `super-three@0.181.0` is the unified `three` package for both entry points
+Tags: three, super-three, package-version, dependencies
+Applies-when: changing the three/super-three dependency
 
 **Why this matters:** IWSDK's peer dependency is `super-three` (Meta's Three.js fork). Desktop Three.js must be the same module instance, or you get two `THREE` namespaces and mesh registration fails.
 
@@ -97,6 +115,8 @@ reference alone doesn't stop it, unlike garbage-collectable state in general.
 ---
 
 ## `CanvasTexture` defaults to `NoColorSpace` — dark colors render much lighter than drawn
+Tags: canvas-texture, color-space, srgb
+Applies-when: a CanvasTexture renders lighter or washed out
 
 **Symptom:** A canvas 2D background fill of `#0a0a0a` (matching every other panel's near-black)
 rendered on a `Sprite` as a noticeably lighter gray, close to `#333333`.
@@ -115,6 +135,8 @@ web colors. Bright/white content is far less visibly affected (the curve barely 
 ---
 
 ## `super-three@0.184.0` breaks all CanvasTextures in XR multiview mode
+Tags: three, super-three, multiview, canvas-texture, quest
+Applies-when: upgrading three, or CanvasTextures invisible on Quest but fine in IWER
 
 **Symptom:** Every CanvasTexture-based element invisible on Quest device: grab bar not visible, IWSDK ray cursor not visible, panel content disappears after any screen navigation. No errors in DevTools. Everything works fine in the browser emulator (IWER).
 

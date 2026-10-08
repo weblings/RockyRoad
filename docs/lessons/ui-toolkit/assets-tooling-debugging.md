@@ -6,6 +6,8 @@ Icons/images, the compile pipeline, and workflow gotchas specific to `.uikitml`.
 ---
 
 ## `<img src="....svg">` is the safe way to embed a real (non-rasterized) SVG icon
+Tags: svg, icons, uikitml, img
+Applies-when: embedding an SVG icon in a .uikitml panel
 
 **Symptom:** Need to reproduce an existing SVG icon (e.g. a back-arrow chevron) inside a
 `.uikitml` panel.
@@ -27,6 +29,8 @@ confirmed to work the same way here.
 ---
 
 ## `.uikitml` → JSON is fetched once per page load, with no cache-busting
+Tags: uikitml, caching, dev-server, reload
+Applies-when: a .uikitml edit doesn't show up in the running app
 
 **Symptom:** Edited `.uikitml`, the dev server's file watcher recompiled it (visible in the
 terminal), but the running app still shows the old content even after what looks like a reload.
@@ -44,6 +48,8 @@ in-memory entity already has a loaded `PanelDocument`.
 ---
 
 ## No separate "missing image" placeholder element needed — just hide the `<img>`
+Tags: image, placeholder, display, album-art
+Applies-when: handling a missing image in a uikit panel
 
 **Finding (from Song/PreScene's album art):** when there's no image to show (e.g. a song with no
 album art), don't author a second placeholder `<div>` and toggle between it and the `<img>`. Just
@@ -55,6 +61,8 @@ on once a URL is available. See `XRPreScene.ts`'s `_render()` for the working pa
 ---
 
 ## An SVG's `fill="currentColor"` breaks uikit's image loader
+Tags: svg, currentColor, icons, image-loader
+Applies-when: adding a new SVG icon for uikit
 
 **Symptom:** Console error, "currentColor doesn't exist" (not a silent failure this time).
 
@@ -69,6 +77,8 @@ new icon, don't wait for the bug report.
 ---
 
 ## `@pmndrs/uikit`'s `Image` defaults to `keepAspectRatio: true`, which reflows the element after its texture loads — fighting an explicit fixed-size CSS rule
+Tags: image, keepAspectRatio, layout, album-art
+Applies-when: a uikit Image with fixed CSS size resizes or reflows after loading
 
 **Symptom:** A library row's album-art thumbnail and its neighboring text padding intermittently
 looked wrong, timing-dependent on when the row's image finished loading — no static CSS change
@@ -89,6 +99,8 @@ explicit CSS width/height alone is authoritative for this component.
 ---
 
 ## `compileUIKit` plugin crashes the dev server if the `.uikitml` source directory is missing
+Tags: compileUIKit, vite, dev-server, fresh-checkout
+Applies-when: npm run dev serves no pages, or after restructuring the ui/ directory
 
 **Symptom:** `npm run dev` starts but no page loads at all — not just the uikit screens, everything.
 
@@ -104,6 +116,8 @@ restructure.
 ---
 
 ## `Svg` only renders fill geometry — a stroke-only icon needs `Image` instead
+Tags: svg, stroke, icons, image
+Applies-when: an SVG icon renders broken or missing detail in uikit
 
 **Symptom:** Porting desktop's icon-style library badges (three SVGs) to XR via `new UIKit.Svg({
 src }, [...])` — two rendered fine, one (a piano-keyboard glyph) came out visually broken/missing
@@ -127,6 +141,8 @@ guarantee it'll render correctly — check whether the specific icon's detail is
 ---
 
 ## An SVG loaded via bare `new Image()` (no CSS context) needs explicit `width`/`height`, not just `viewBox`
+Tags: svg, image, texture-loader, viewBox
+Applies-when: an SVG loaded via uikit Image or TextureLoader disappears
 
 **Symptom:** Switched the same badge icons from `Svg` to `Image` to fix the above — all three
 promptly disappeared instead.

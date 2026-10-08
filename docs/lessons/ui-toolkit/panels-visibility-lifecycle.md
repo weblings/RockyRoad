@@ -6,6 +6,8 @@ for the full ui-toolkit map.
 ---
 
 ## Hiding a `PanelUI` panel needs two separate gates, not just `visible = false`
+Tags: panelui, visibility, pointer-events, ray-interactable
+Applies-when: hiding or showing a PanelUI panel
 
 `Object3D.visible = false` hides rendering only — clicks still land and the ray cursor still snaps
 to it. Two independent systems don't consult `visible`: uikit's own click dispatch (governed by
@@ -17,6 +19,8 @@ pointerEvents: 'none' })` (and the reverse to re-enable) alongside toggling `vis
 ---
 
 ## uikit has no native `disabled` attribute — fake it with a class
+Tags: disabled, buttons, classList, pointer-events
+Applies-when: disabling a uikit button
 
 **Finding (from Song/PreScene's Play button):** there's no equivalent of HTML's `disabled` on
 uikit buttons. The working substitute is a `.disabled` class combining `pointer-events: none`
@@ -28,6 +32,8 @@ uikit buttons. The working substitute is a `.disabled` class combining `pointer-
 ---
 
 ## `pointerEvents: 'auto'` set before the panel's `PanelDocument` exists silently no-ops forever
+Tags: pointer-events, panel-document, race, boot
+Applies-when: a panel renders but never reacts to clicks, or enabling a panel shown early
 
 A `PanelUI` panel rendered and registered ray hits, but nothing on it ever reacted to clicks —
 permanently. Cause: the two-gate show function read `panelEntity.getValue(PanelDocument,
@@ -43,6 +49,8 @@ proactively to any future panel shown early, don't wait for a bug report.
 ---
 
 ## A differently-sized panel needs its Y offset solved from the bottom-edge gap, not copied from same-slot siblings
+Tags: panel-layout, y-offset, grab-bar, sizing
+Applies-when: positioning a panel whose height differs from its siblings on the grab bar
 
 **Symptom:** A panel visually overlaps/clips into the grab bar it's attached to.
 
@@ -59,6 +67,8 @@ bottom-edge gap) + (this panel's own height / 2), re-derived per panel, not copi
 ---
 
 ## A "show a loading state" update can be dead code if it targets a panel that's already hidden by the time it fires
+Tags: loading-state, dead-code, porting, call-sites
+Applies-when: porting or adding a loading indicator to a panel
 
 **Symptom:** Planned to replace `uiPanel.innerHTML = 'Loading'` with an equivalent overlay on a new
 uikit panel.
@@ -78,6 +88,8 @@ the function that triggers it — the panel it updates may not be the one visibl
 ---
 
 ## A panel shown from multiple independent entry points needs its "hide every sibling" logic centralized in the callee, not assumed handled by the caller
+Tags: panels, sibling-hide, calibration, z-fighting
+Applies-when: showing a panel that can be triggered from multiple entry points
 
 Two panels z-fought after hardcoding a sibling-hide at just one `index.ts` call site for
 `CalibrationSystem`'s panel — wrong layer, since that panel is triggered from three independent
@@ -90,6 +102,8 @@ show a panel (`CalibrationSystem._showPanel()`), not into any one external calle
 ---
 
 ## A completion callback can be a lightweight rerender instead of a full screen rebuild — restoration must match the completion shape, not be assumed generic
+Tags: callbacks, visibility, calibration, rerender
+Applies-when: hiding a panel temporarily and restoring it on a flow's completion
 
 A panel hidden to show a temporary one stayed permanently invisible after the flow finished. Cause:
 two structurally-identical-looking call sites (`CalibrationSystem`'s `recalibrate` vs.
@@ -104,6 +118,8 @@ call sites that look the same aren't necessarily interchangeable.
 ---
 
 ## When there's no real confirmation step to offer, skip the panel entirely rather than showing one for consistency
+Tags: ux, confirmation, calibration, dead-code
+Applies-when: adding or keeping a confirm/Done screen in a flow
 
 Guitar/Bass calibration has no physical instrument to touch-calibrate against — placement is always
 the same deterministic camera-forward drop, for both first-time calibration and every later
@@ -118,6 +134,8 @@ never actually has anything for the user to decide is a candidate for deletion, 
 ---
 
 ## A callee that hides siblings via `.visible` alone is only safe because every caller happens to also disable interactivity itself
+Tags: panels, interactivity, invariants, calibration
+Applies-when: a hidden panel is still clickable, or writing a sibling-hide helper
 
 **Symptom:** Play HUD stayed fully clickable, invisible, underneath the calibration panel — a full
 coincident overlap, not just a near-miss.

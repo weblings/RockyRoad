@@ -7,6 +7,8 @@ See [`README.md`](README.md) for how entries get routed here vs. elsewhere.
 ---
 
 ## A CSS child-combinator selector has to match where a component actually inserts itself, not where it's called from
+Tags: css, selectors, flexbox, dropdown, components
+Applies-when: writing a > selector against a reusable component's root class
 
 **Symptom:** Two dropdowns meant to split a row evenly via `.dropdown-row > .dropdown { flex: 1 1 0 }`
 stayed content-hugging and left-packed, with dead space on the right — never centered or split.
@@ -27,6 +29,8 @@ top-level class — inspect the real resulting DOM, don't assume from the caller
 ---
 
 ## A hidden flex item still claims its share of the row unless its wrapper is hidden too
+Tags: css, flexbox, display-none, layout
+Applies-when: conditionally hiding one item in a flex row
 
 **Symptom:** Two dropdowns share a row via `flex: 1 1 0` each. Hiding one (no alternative instrument,
 or no available difficulties) left the other pinned to its original half instead of filling the row.
@@ -42,6 +46,8 @@ actually fill the freed space.
 ---
 
 ## `stopPropagation()` on a popover trigger silently splits "close on outside click" and "close sibling popovers" into two unrelated problems
+Tags: events, popover, dropdown, stopPropagation, outside-click
+Applies-when: implementing close-on-outside-click or close-sibling-popovers
 
 **Finding:** Removing `stopPropagation()` from a popover trigger's own click handler lets that click
 bubble to a single `document`-level listener, which then handles *both* "click elsewhere closes this"
@@ -60,6 +66,8 @@ handler.
 ---
 
 ## A fixed `grid-template-columns: repeat(N, ...)` doesn't wrap until item count exceeds N — with few items it just looks like one row, not a grid
+Tags: css, grid, library, responsive
+Applies-when: a CSS grid renders as a single row or column count looks wrong
 
 **Symptom:** The library's song grid rendered as what looked like a single horizontal row instead
 of a multi-row grid.
@@ -78,6 +86,8 @@ count.
 ---
 
 ## Prefer an element's own `margin` over a shared flex `gap` when the goal is "always this much space above me," not "space between every visible pair"
+Tags: css, flexbox, gap, margin, spacing
+Applies-when: adding consistent space above one element in a flex container with conditionally hidden siblings
 
 **Symptom:** Doubling a flex container's `gap` to add visible space above one specific button had no
 effect for some songs.

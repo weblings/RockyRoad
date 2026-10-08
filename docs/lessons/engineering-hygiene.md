@@ -6,6 +6,8 @@ General software-design principles, each demonstrated via a real bug hit in this
 ---
 
 ## Async work gated by a live state flag needs the callback to re-check too, not just the call site
+Tags: async, callbacks, stale-state, race
+Applies-when: an async callback applies a result that depends on state that may change while it's in flight
 
 An async operation started while a condition was true can resolve after that condition changes —
 if the callback doesn't re-check the live state itself, it applies a stale result anyway. First
@@ -19,6 +21,8 @@ async call.
 ---
 
 ## A codebase can have more than one loading path for "the" data model — find every producer/consumer
+Tags: data-model, loading, song-source, manifest
+Applies-when: adding a field to a shared data type or tracing why a field is missing at runtime
 
 Threaded a new field through one loading path (`SongIndex.ts`) and assumed that was the data
 model; the feature silently didn't work in-headset because a second, parallel manifest-based
@@ -31,6 +35,8 @@ not just the one found first.
 ---
 
 ## Audit what a reused "load everything" function actually needs before reusing it wholesale
+Tags: reuse, loading, song-player, highway
+Applies-when: reusing a broad load/rebuild function for a narrower purpose
 
 Reused a full song-loading pipeline (including a new `SongPlayer` + full audio re-fetch/decode)
 for a difficulty-only highway rebuild that never needed to touch audio at all — then had to build
@@ -41,6 +47,8 @@ interruption-avoidance logic unnecessary rather than something to work around.
 ---
 
 ## Before deleting any shared global state, grep every reader/writer, not just the files being touched
+Tags: globals, deletion, cleanup, grep
+Applies-when: deleting or renaming shared global state, module-level variables, or legacy pipelines
 
 A planned cleanup (deleting the legacy `panelMesh`/`uiPanel`/`panelTex`/`resizePanel`/`xrButtons`
 html2canvas pipeline once the last known consumer migrated to uikit) turned out to be unsafe — a
@@ -54,6 +62,8 @@ not just the files in the current change.
 ---
 
 ## A "resolve and cache a resource" helper shouldn't also have a side effect only some callers want
+Tags: helpers, side-effects, pointer-events, caching
+Applies-when: writing or reusing a resource-lookup/caching helper that also toggles state
 
 A generic "poll until a resource resolves, cache it, run the callback" utility also flipped a
 panel's `pointerEvents` to `'auto'` the first time it resolved — fine for the caller that meant to
@@ -67,6 +77,8 @@ byproduct of an unrelated read.
 ---
 
 ## Shared-module code can't rely on assets living next to mode-specific code
+Tags: assets, imports, shared-module, desktop, xr
+Applies-when: importing an asset from code under src/shared/
 
 **Symptom:** `import pianoImageUrl from './assets/piano.png'` failed inside a shared scene-building
 module because the file actually lived under a desktop-only assets folder.
@@ -78,6 +90,8 @@ mode-specific directory, even if that's where the asset happened to originate.
 ---
 
 ## Tag each item with its source at load time, not at use time
+Tags: data-model, sources, merging, library
+Applies-when: merging items from multiple sources into one list
 
 **Why:** Once items from multiple sources are merged into one flat list, there's no reliable way
 to look up which source an item came from unless it was stored upfront — matching back by some
@@ -90,6 +104,8 @@ re-deriving or looking it up later.
 ---
 
 ## `Promise.allSettled`, not `Promise.all`, when independent sources shouldn't fail each other
+Tags: promises, async, sources, error-handling
+Applies-when: loading from several independent sources in parallel
 
 Loading from several independent sources (e.g. a bundled library plus an optional remote one) with
 `Promise.all` means one source being unreachable fails the entire load. `Promise.allSettled` keeps
@@ -99,6 +115,8 @@ come through.
 ---
 
 ## Precompute a cheap existence flag instead of probing for a resource at render time
+Tags: build-time, index, assets, 404
+Applies-when: a consumer checks at runtime whether an optional per-item resource exists
 
 **Pattern:** If an optional per-item resource's existence can be determined once at build/index
 time (e.g. `hasArt: existsSync(path)`), store that flag on the item instead of having every
@@ -108,6 +126,8 @@ becomes a synchronous branch on the flag instead of an async or error-handling p
 ---
 
 ## Recurring, inconsequential git noise from a file is a gitignore case, not a "check the diff" habit
+Tags: git, gitignore, generated-files, line-endings
+Applies-when: a tracked file keeps showing up modified with regenerated or meaningless changes
 
 `public/songs/manifest.json` and `public/ui/*.json` showed up "modified" almost every session that
 touched `dev`/`build` (both regenerate them from source every run) — never a real change, always LF
@@ -121,6 +141,8 @@ diff, or not meant to be reviewed, gitignore it rather than re-verifying it's no
 ---
 
 ## A shared low-level render helper's hardcoded behavior silently applies to every caller, not just the one you're changing
+Tags: rendering, shared-helpers, call-sites, fret-lines
+Applies-when: changing a shared draw/render primitive for one caller
 
 **Symptom:** Adding a dark-edge outline to the fret-position divider lines also changed the
 appearance of two unrelated hit/miss flash lines and the note-to-fretboard connector line.
@@ -136,6 +158,8 @@ assuming the change is scoped to the one you're looking at.
 ---
 
 ## A flow's own state machine needs explicit reset on every exit path, not just its normal completion path
+Tags: state-machine, navigation, cleanup, calibration
+Applies-when: adding a back/cancel/navigate-away exit to a multi-step flow
 
 A "back to Library" handler for an in-progress multi-step calibration flow hid the relevant panel
 but never reset the flow's own `state` field — so the per-frame system driving that flow kept
@@ -149,6 +173,8 @@ button, in particular) needs to explicitly reset whatever state the flow's per-f
 ---
 
 ## Custom code sitting next to a component doesn't make the component redundant — check exactly what the custom code reads vs. writes first
+Tags: components, ecs, grab, refactor
+Applies-when: removing an ECS component as apparently redundant next to hand-written code
 
 **Symptom:** Mid-investigation, proposed removing an entity's `DistanceGrabbable` component as
 apparently redundant, since custom code right next to it already seemed to handle "grab this bar
@@ -167,6 +193,8 @@ until checked.
 ---
 
 ## A visual "wrong by one" symptom can be a data bug, a render bug, or both — check which before fixing
+Tags: debugging, off-by-one, chart-data, hand-fret, clamping
+Applies-when: a visual is off by one and the cause could be data or render code
 
 **Symptom:** A guitar highway's hand-position highlight excluded a fret that had a real note on it.
 Fixing that (populating the chart's until-then-constant placeholder `HandFret` field) then exposed a
@@ -191,6 +219,8 @@ to always stay in range.
 ---
 
 ## A generic helper's fallback for an optional field can be safe for the type it was written against and silently wrong for every other type reusing it
+Tags: generics, fallbacks, optional-fields, piano, culling
+Applies-when: adding a new type to a generic function that branches on an optional field
 
 `getStartNote()`'s cull cutoff falls back to `EndTime ?? TimeOffset` when a note has no `EndTime`.
 Guitar's `SongNote` always sets a real `EndTime`, so the fallback never engages. Piano's
@@ -205,6 +235,8 @@ fallback that's a no-op for the type it was designed around stays a no-op for ev
 ---
 
 ## Fixing a culling threshold to be more accurate can unmask a draw-time bug the old, tighter bound was hiding
+Tags: culling, thresholds, rendering, piano, sustain
+Applies-when: loosening a culling or filter threshold that downstream code may rely on
 
 Making the fix above respect real `TimeLength` also exposed a second, previously-invisible bug:
 `KeysPlayerScene3D`'s trail draw ran `Math.max(TimeOffset, currentTime)` to `TimeOffset + TimeLength`

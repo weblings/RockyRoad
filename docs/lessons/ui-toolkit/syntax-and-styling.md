@@ -6,6 +6,8 @@ full ui-toolkit map.
 ---
 
 ## `.uikitml` has no CSS shorthand — and using it fails silently, far from the error
+Tags: uikitml, css, shorthand, padding, margin
+Applies-when: writing padding/margin/gap in .uikitml
 
 `@pmndrs/uikit`'s schema has no combined `padding`/`margin`/`gap`, only the directional forms
 (`padding-top`, `gap-row`, etc). The compiler doesn't validate this — `padding: 1 1 0 1;` compiles
@@ -20,6 +22,8 @@ included. Before shipping, grep compiled `public/ui/*.json` for bare `"padding":
 ---
 
 ## Every flex container needs explicit `display: flex` + `flex-direction` — nothing is inherited
+Tags: uikitml, flexbox, display, layout
+Applies-when: adding a container or wrapper div in .uikitml
 
 **Symptom:** Content renders scrunched into a single horizontal row that scrolls sideways, when
 it should stack vertically.
@@ -36,6 +40,8 @@ least stacks block-level children vertically by default — uikit has no such de
 ---
 
 ## Base button centering must be `display:flex + align-items:center + justify-content:center`, not `text-align:center`
+Tags: buttons, centering, flexbox, text-align
+Applies-when: centering button content in uikit
 
 **Symptom:** Button labels/icons are horizontally centered but not vertically — looks
 subtly "off," especially in fixed-size square buttons where a single glyph needs to be centered
@@ -52,6 +58,8 @@ button, not `text-align`.
 ---
 
 ## `classList.remove()` warns (loudly, every render) if the class isn't currently present
+Tags: classList, warnings, state-classes
+Applies-when: toggling state classes on uikit elements
 
 Unconditional `classList.remove('state-a', 'state-b')` before adding the active one (a normal DOM
 pattern, silent no-op there) makes `@pmndrs/uikit`'s `ClassList.remove()` (`components/classes.js`)
@@ -63,6 +71,8 @@ pattern, silent no-op there) makes `@pmndrs/uikit`'s `ClassList.remove()` (`comp
 ---
 
 ## `border-radius` only accepts numeric/pixel values — CSS's `50%` silently doesn't work
+Tags: border-radius, circles, css
+Applies-when: making a round element in .uikitml
 
 **Symptom:** A circular element (`width`/`height` equal, `border-radius: 50%` to make a circle —
 the standard CSS trick) doesn't render as a circle.
@@ -80,6 +90,8 @@ for icon buttons/thumbs/dots — the only things that tend to need a true circle
 ---
 
 ## Adding a fixed-height sibling above `flex-grow: 1` centered content needs no layout math
+Tags: flexbox, flex-grow, centering, layout
+Applies-when: inserting a header or sibling above centered content
 
 **Finding:** Adding a new header row (e.g. a back button) above an existing section that was
 already `flex-grow: 1` with `align-items/justify-content: center` required no changes to that
@@ -93,6 +105,8 @@ and self-centering first, since it usually already is in this codebase's panels.
 ---
 
 ## No CSS Grid — `@pmndrs/uikit`'s flex schema is Yoga-based, flexbox only
+Tags: grid, flexbox, yoga, layout
+Applies-when: porting a CSS Grid layout to uikit
 
 **Symptom:** Considering how to port a 3-column `grid-template-columns: repeat(3, 1fr)` song list
 (Library) into `.uikitml`.
@@ -108,6 +122,8 @@ known interior width.
 ---
 
 ## `UIKit.Image` and `UIKit.Text` exist alongside `UIKit.Container`, same constructor shape
+Tags: uikit-constructors, image, text, runtime-nodes
+Applies-when: building uikit elements at runtime
 
 **Finding:** `new X(inputProperties?, initialClasses?, inputConfig?)` — identical shape across all
 three, confirmed via `@pmndrs/uikit`'s own component source and now via Library's runtime-built
@@ -121,6 +137,8 @@ section-tick marks).
 ---
 
 ## A `class="foo"` with no matching `.foo { }` rule compiles and runs silently
+Tags: classes, validation, compiled-json
+Applies-when: before an in-headset handoff, or an element renders unstyled
 
 **Symptom:** None visible — the element just renders unstyled/inheriting from its parent. No error,
 no warning.

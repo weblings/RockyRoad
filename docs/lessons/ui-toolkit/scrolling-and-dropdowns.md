@@ -6,6 +6,8 @@ map.
 ---
 
 ## `overflow: scroll` alone isn't enough — children need `flex-shrink: 0`, and the scrollbar needs explicit width/color
+Tags: overflow, scroll, flex-shrink, scrollbar
+Applies-when: making a uikit container scrollable
 
 **Symptom 1:** `overflow: scroll` on a fixed-height container with overflowing content compresses
 the content to fit instead of scrolling. **Root cause:** unlike real CSS, this Yoga port doesn't
@@ -21,6 +23,8 @@ e.g. `scrollbar-width: 0.3; scrollbar-color: #4a4a4a;`.
 ---
 
 ## `overflow: hidden` did not visibly clip an absolutely-positioned sibling's children the way expected — unresolved, reverted
+Tags: overflow, clipping, absolute-position, unresolved
+Applies-when: relying on overflow: hidden to clip children in uikit
 
 **Symptom:** Tried wrapping a track's fill-bar + dynamically-placed tick marks in a separate
 `overflow: hidden` container (matching the track's own `border-radius`) so ticks landing near
@@ -41,6 +45,8 @@ additional setup this simple markup-only approach didn't provide.
 ---
 
 ## `overflow: scroll` + `flex-wrap: wrap` on the same element works
+Tags: overflow, scroll, flex-wrap, grid, library
+Applies-when: building a scrollable wrapping grid in uikit
 
 Confirmed in-headset for Library's song grid: one element is both the wrapping grid *and* the
 scrollable viewport (same single-element shape as Settings' `.body`), rather than a separate
@@ -50,6 +56,8 @@ viewport/inner split. No separate scroll-track markup needed, matching every oth
 ---
 
 ## `overflow: scroll`'s pointer capture and release check different objects, wedging capture on any drag that starts on a child
+Tags: overflow, scroll, pointer-capture, dropdown, click
+Applies-when: a scrollable container stops scrolling after one use or children stop receiving clicks
 
 A scrollable popover (Play HUD's Speed dropdown) worked once, then never scrolled again. Cause:
 `scroll.js`'s `onPointerDown` captures on `event.object` (the deepest-hit child, per
@@ -66,6 +74,8 @@ the same object) and silently kills every child's `onClick`.
 ---
 
 ## A dropdown needing both a fixed and a variable-length option list splits into two methods sharing one private tail
+Tags: dropdown, option-dropdown, render, dynamic
+Applies-when: adding options to OptionDropdown, fixed or variable-length
 
 **Finding:** `OptionDropdown` (the shared XR dropdown class) needs two shapes: `render()` for
 options already declared in markup with known ids (Speed's fixed 10), and `renderDynamic()` for a
@@ -78,6 +88,8 @@ step differs.
 ---
 
 ## An analytic viewport-height fix for a dropdown's last-item-clipped scroll bug didn't work — unresolved
+Tags: dropdown, scroll, last-item, unresolved
+Applies-when: the last dropdown option doesn't scroll into view
 
 **Symptom:** Selecting the last option in a dropdown doesn't scroll it into the visible window;
 earlier/near-last options work fine.
@@ -91,6 +103,8 @@ evidence.
 ---
 
 ## A runtime-created option node doesn't inherit a `<button>` markup class's default alignment
+Tags: dropdown, alignment, runtime-nodes, classes
+Applies-when: reusing a markup button class on a runtime-created container
 
 Reusing `.option-item` (authored against a `<button>` in markup) on a dynamically-created
 `UIKit.Container` (`OptionDropdown.renderDynamic()`) left its text left-justified instead of
@@ -100,6 +114,8 @@ element itself. Fix: set `justifyContent`/`alignItems: 'center'` explicitly on t
 ---
 
 ## A click's `event.object` can go stale mid-bubble if a handler's own `rerender()` destroys/recreates that exact node
+Tags: events, bubbling, rerender, dropdown, outside-click
+Applies-when: an outside-click check misfires after a handler rerenders the clicked node
 
 **Symptom:** An outside-click/sibling-close listener on `doc.rootElement` (bubble-phase, mirroring
 desktop's `Dropdown` — see the "stopPropagation() on a popover trigger" entry in `../desktop-dom.md`) worked reliably when opening
