@@ -1,5 +1,8 @@
 # NoteDetector.cs + NoteUtil.cs + SampleHistory.cs — Conversion Analysis
 
+Status: archived 2026-10-08 — shipped; C#→TS conversion analysis, last touched 2026-03-15
+Id: notedetector-conversion
+
 **Sources:**
 - `ChartPlayerShared/NoteDetector.cs`
 - `ChartPlayerShared/NoteUtil.cs`

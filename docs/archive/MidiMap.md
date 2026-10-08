@@ -1,5 +1,8 @@
 # MidiMap.cs — Conversion Analysis
 
+Status: archived 2026-10-08 — shipped; C#→TS conversion analysis, last touched 2026-03-15
+Id: midimap-conversion
+
 **Source:** `ChartPlayerShared/MidiMap.cs`
 **Contains:** `DrumVoice`, `DrumHit`, `DrumMidiMapEntry`, `DrumMidiDeviceConfiguration`
 

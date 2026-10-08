@@ -1,5 +1,8 @@
 # ChartPlayer → Three.js Implementation Plan
 
+Status: active — Three.js implementation roadmap; per-phase status below is the source of truth
+Id: implementation-plan
+
 ## Guiding principles
 
 - Each phase ends with something **visually demonstrable**

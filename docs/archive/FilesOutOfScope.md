@@ -1,5 +1,8 @@
 # Files Out of Scope — Conversion Notes
 
+Status: archived 2026-10-08 — shipped; C#→TS conversion analysis, last touched 2026-03-15
+Id: files-out-of-scope
+
 Files in `ChartPlayerShared/` that are **not ported** and why.
 
 ---

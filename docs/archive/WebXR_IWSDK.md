@@ -1,5 +1,8 @@
 # WebXR / IWSDK Plan
 
+Status: archived 2026-10-08 — complete per own text (STATUS: ✅ COMPLETE); XR app shipped
+Id: webxr-iwsdk-plan
+
 Full planning document for the WebXR experience built on Meta's Immersive Web SDK (IWSDK).
 
 ---

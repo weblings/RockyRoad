@@ -1,5 +1,8 @@
 # Pitch-preserving speed control — adopting SoundTouch
 
+Status: archived 2026-10-08 — done; SoundTouch migration complete 2026-08-14
+Id: soundtouch-speed-plan
+
 ## Goal
 
 Replace `SongPlayer`'s speed implementation so changing playback speed no longer shifts pitch,

@@ -1,5 +1,8 @@
 # ChartScene3D.cs — Conversion Analysis
 
+Status: archived 2026-10-08 — shipped; C#→TS conversion analysis, last touched 2026-03-15
+Id: chart-scene3d-conversion
+
 **Source:** `ChartPlayerShared/ChartScene3D.cs`
 **Inherits:** `Scene3D`
 **Subclassed by:** `FretPlayerScene3D`, `DrumPlayerScene3D`, `KeysPlayerScene3D`

@@ -1,5 +1,8 @@
 # Combined Project Plan — v1 + XRProto → Single Build
 
+Status: archived 2026-10-08 — done; single Vite build with `desktop.html`/`xr.html` exists
+Id: combined-project-plan
+
 Goal: merge `ThreeCP/v1` (flat browser app) and `ThreeCP/XRProto` (Quest VR app) into
 a single Vite project with two entry points. An "Enter VR" button on the v1 library
 screen navigates to `xr.html`; an "Exit VR" button on the XRProto library screen

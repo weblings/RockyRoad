@@ -1,5 +1,8 @@
 # XRProto UI Flow Plan
 
+Status: archived 2026-10-08 — XR screens built; server-side song discovery and XR tuner still out of scope
+Id: xrproto-ui-flow-plan
+
 Decisions and architecture for extending XRProto beyond the single hardcoded song into a
 proper instrument-aware XR app flow. Written after the calibration system was confirmed
 working (see `project_xr_piano_alignment.md` for calibration details).

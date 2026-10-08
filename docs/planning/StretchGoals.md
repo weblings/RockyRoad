@@ -1,5 +1,8 @@
 # Stretch Goals
 
+Status: active — idea backlog; converts to one bead per `###` idea at migration step 8, then archived
+Id: stretch-goals
+
 Ideas beyond the current MVP scope. No priority order — pick up when the time is right.
 
 ---

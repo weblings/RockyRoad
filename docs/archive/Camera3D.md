@@ -1,5 +1,8 @@
 # Camera3D.cs — Conversion Analysis
 
+Status: archived 2026-10-08 — shipped; C#→TS conversion analysis, last touched 2026-03-15
+Id: camera3d-conversion
+
 **Source:** `ChartPlayerShared/Camera3D.cs`
 **Subclass:** `FretCamera` in `ChartPlayerShared/FretPlayerScene3D.cs`
 **Used by:** `Scene3D.cs` (passes view/projection to BasicEffect), `DrumPlayerScene3D.cs`, `KeysPlayerScene3D.cs`

@@ -1,5 +1,8 @@
 # SongPlayer.cs + SongPlayerSettings.cs — Conversion Analysis
 
+Status: archived 2026-10-08 — shipped; C#→TS conversion analysis, last touched 2026-03-15
+Id: songplayer-conversion
+
 **Sources:** `ChartPlayerShared/SongPlayer.cs`, `ChartPlayerShared/SongPlayerSettings.cs`
 
 ---

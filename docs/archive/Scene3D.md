@@ -1,5 +1,8 @@
 # Scene3D.cs + QuadBatch.cs — Conversion Analysis
 
+Status: archived 2026-10-08 — shipped; C#→TS conversion analysis, last touched 2026-03-15
+Id: scene3d-conversion
+
 **Sources:** `ChartPlayerShared/Scene3D.cs`, `ChartPlayerShared/QuadBatch.cs`
 **Role:** Base 3D rendering class. Owns the camera, shader, and geometry batch. Subclassed by all player scenes.
 

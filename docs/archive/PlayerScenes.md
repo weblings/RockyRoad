@@ -1,5 +1,8 @@
 # Player Scenes — Conversion Analysis
 
+Status: archived 2026-10-08 — shipped; C#→TS conversion analysis, last touched 2026-03-15
+Id: player-scenes-conversion
+
 **Sources:**
 - `ChartPlayerShared/FretPlayerScene3D.cs` (+ `FretCamera`)
 - `ChartPlayerShared/DrumPlayerScene3D.cs`

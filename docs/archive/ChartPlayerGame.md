@@ -1,5 +1,8 @@
 # ChartPlayerGame.cs — Conversion Analysis
 
+Status: archived 2026-10-08 — shipped; C#→TS conversion analysis, last touched 2026-03-15
+Id: chart-player-game-conversion
+
 **Source:** `ChartPlayerShared/ChartPlayerGame.cs`
 **Inherits from:** `MonoGameLayout` (a UI layout framework layered on top of MonoGame)
 **Role:** Application shell — singleton that owns the game loop, asset loading, input, active Scene3D, and root UI element
