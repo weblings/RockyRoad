@@ -35,6 +35,9 @@ leaving it for a later cleanup.
   TODOs or checkboxes. Run `bd export -o .beads/issues.jsonl` immediately before
   `git add`ing task state. After `git pull`, run `bd import` to upsert the tracked
   export into your live DB — never `--reinit-local`.
+- Doc-lint pre-commit hook: activate per clone with `git config core.hooksPath .beads/hooks`.
+  Runs `docs/check-lessons.sh` + `docs/check-links.py` only on commits touching `docs/`,
+  skills, READMEs, AGENTS.md/CLAUDE.md, or the `v2/` slice docs (`--no-verify` bypasses).
 - Non-obvious gotchas worth saving future time: `docs/lessons/`, with `Tags:`/`Applies-when:`,
   routed by the matching `.claude/skills/` skill — check it before changing
   that area, file per `docs/lessons/README.md`.
