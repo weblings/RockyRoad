@@ -6,7 +6,7 @@
      (panel.css has no @import equivalent here, so those base rules are
      re-derived directly into this file, same as settings.uikitml did).
 
-     Phase 3 (see ThreeCP/Analysis/DifficultyDropdownPlan.md) replaced the original
+     Phase 3 replaced the original
      hero layout (6.4x6.4 centered art, 2cm title) with a compact song-row card +
      Instrument/Difficulty dropdowns, matching play.uikitml's own .song-row/
      .option-row/.option-dropdown classes (hand-duplicated here — no @import

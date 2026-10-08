@@ -4,8 +4,8 @@ import { loadSettings, saveSettings, type Settings } from "../shared/Settings";
 
 // ── XRSettingsScene ────────────────────────────────────────────────────────────
 // uikit-based (see ui/settings.uikitml) — migrated off html2canvas as the Phase B
-// pilot of the uikit migration plan (see ThreeCP/Analysis/WebXR_IWSDK.md Phase 7
-// and ImplementationPlan.md). Both the keys and guitar sections live in the same
+// pilot of the uikit migration plan (see [[webxr-iwsdk-plan]] Phase 7
+// and [[implementation-plan]]). Both the keys and guitar sections live in the same
 // static document; only their `display` property is toggled at runtime, rather
 // than swapping DOM content in and out like the old innerHTML-based version.
 

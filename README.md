@@ -101,11 +101,10 @@ No technical blocker. I don't play drums or have access to a drumset currently.
 
 ## For developers
 
-For the tech stack, architecture, and directory layout, see [`v2/ARCHITECTURE.md`](v2/ARCHITECTURE.md).
-
-For gotchas hit while building this project, see
-[`Analysis/lessons/README.md`](Analysis/lessons/README.md) — written primarily for AI coding
-agents working in this repo, but worth a skim if you're a human developer onboarding too.
+- [`v2/ARCHITECTURE.md`](v2/ARCHITECTURE.md) — tech stack, architecture, directory layout.
+- [`CONTRIBUTING.md`](CONTRIBUTING.md) — task tracking (beads), pre-commit doc checks, docs
+  conventions, quality gates.
+- [`docs/README.md`](docs/README.md) — map of plans, archive, lessons, and milestone log.
 
 ## License
 

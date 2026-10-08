@@ -1,0 +1,89 @@
+#!/usr/bin/env sh
+# --- BEGIN BEADS INTEGRATION v1.3.0 ---
+# This section is managed by beads. Do not remove these markers.
+if command -v bd >/dev/null 2>&1; then
+  export BD_GIT_HOOK=1
+  _bd_timeout=${BEADS_HOOK_TIMEOUT:-300}
+  case "$_bd_timeout" in
+    *[!0-9]*|'') _bd_timeout_invalid=1 ;;
+    *[1-9]*) _bd_timeout_invalid=0 ;;
+    *) _bd_timeout_invalid=1 ;;
+  esac
+  if [ "$_bd_timeout_invalid" -eq 1 ]; then
+    echo >&2 "beads: invalid BEADS_HOOK_TIMEOUT; using 300 seconds"
+    _bd_timeout=300
+  fi
+  _bd_timeout_backend=none
+  _bd_timeout_command=
+  for _bd_timeout_candidate in timeout gtimeout; do
+    if command -v "$_bd_timeout_candidate" >/dev/null 2>&1; then
+      if _bd_timeout_version="$("$_bd_timeout_candidate" --version 2>/dev/null)"; then
+        case "$_bd_timeout_version" in
+          "timeout (GNU coreutils) "*) _bd_timeout_command=$_bd_timeout_candidate; break ;;
+        esac
+      fi
+    fi
+  done
+  if [ -n "$_bd_timeout_command" ]; then
+    _bd_timeout_backend=coreutils
+    if "$_bd_timeout_command" -- "$_bd_timeout" bd hooks run pre-commit "$@"; then
+      _bd_exit=0
+    else
+      _bd_exit=$?
+    fi
+  elif command -v perl >/dev/null 2>&1; then
+    _bd_timeout_backend=perl
+    if perl -e 'alarm shift; exec @ARGV' -- "$_bd_timeout" bd hooks run pre-commit "$@"; then
+      _bd_exit=0
+    else
+      _bd_exit=$?
+    fi
+  else
+    echo >&2 "beads: hook 'pre-commit' running without timeout; install coreutils or perl to enable BEADS_HOOK_TIMEOUT"
+    if bd hooks run pre-commit "$@"; then
+      _bd_exit=0
+    else
+      _bd_exit=$?
+    fi
+  fi
+  if { [ "$_bd_timeout_backend" = coreutils ] && [ "$_bd_exit" -eq 124 ]; } || { [ "$_bd_timeout_backend" = perl ] && [ "$_bd_exit" -eq 142 ]; }; then
+    echo >&2 "beads: hook 'pre-commit' timed out after ${_bd_timeout}s — continuing without beads"
+    _bd_exit=0
+  fi
+  if [ "$_bd_exit" -eq 3 ]; then
+    echo >&2 "beads: database not initialized — skipping hook 'pre-commit'"
+    _bd_exit=0
+  fi
+  if [ "$_bd_exit" -ne 0 ]; then exit "$_bd_exit"; fi
+fi
+# --- END BEADS INTEGRATION v1.3.0 ---
+
+# --- BEGIN PROJECT DOC-LINT HOOKS ---
+# Run the docs checkers only on commits touching what they check, so a
+# code-only commit pays nothing (see [[aurora-docs-migration]] step 11).
+_repo_root=$(git rev-parse --show-toplevel)
+_docs_touched=0
+for _f in $(git diff --cached --name-only); do
+  case "$_f" in
+    docs/*|.claude/skills/*|*/README.md|*/CLAUDE.md|README.md|AGENTS.md|CLAUDE.md|CONTRIBUTING.md|v2/ARCHITECTURE.md|v2/Setup.md)
+      _docs_touched=1
+      break
+      ;;
+  esac
+done
+if [ "$_docs_touched" -eq 1 ]; then
+  if ! bash "$_repo_root/docs/check-lessons.sh"; then
+    echo >&2 "docs/check-lessons.sh failed -- fix the entries above, or 'git commit --no-verify' to bypass."
+    exit 1
+  fi
+  _py=python3
+  command -v python3 >/dev/null 2>&1 || _py=python
+  # check-links.py regenerates docs/_ids.md as a side effect; re-stage it
+  # so a successful run's fresh index lands in this same commit.
+  if ! "$_py" "$_repo_root/docs/check-links.py"; then
+    echo >&2 "docs/check-links.py failed -- fix the dead references above, or 'git commit --no-verify' to bypass."
+    exit 1
+  fi
+  git add "$_repo_root/docs/_ids.md"
+fi
+# --- END PROJECT DOC-LINT HOOKS ---

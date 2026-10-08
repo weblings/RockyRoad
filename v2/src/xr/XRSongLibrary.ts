@@ -27,7 +27,8 @@ type SortValue = (typeof SORT_OPTIONS)[number]['value'];
 
 // Rows append a few frames at a time, not all at once — avoids a confirmed Yoga bug
 // where a burst of brand-new text glyphs corrupts an unrelated element's layout
-// elsewhere in the doc (see ThreeCP/Analysis/lessons/ui-toolkit/text-rendering.md).
+// elsewhere in the doc (see the lesson "A burst of brand-new text on one element can
+// corrupt an unrelated element's layout elsewhere in the same document").
 const ROW_BATCH_SIZE = 12;
 
 function truncate(s: string, max: number): string {

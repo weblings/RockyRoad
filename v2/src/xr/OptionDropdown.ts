@@ -209,8 +209,10 @@ export class OptionDropdown {
         OptionDropdown.ensureOutsideClickListener(doc);
     }
 
-    // XR counterpart to desktop's Dropdown outside-click/sibling-close fix (see
-    // ThreeCP/Analysis/lessons/desktop-dom.md) — uikit click events bubble from the clicked element
+    // XR counterpart to desktop's Dropdown outside-click/sibling-close fix (see the lesson
+    // '`stopPropagation()` on a popover trigger silently splits "close on outside click" and
+    // "close sibling popovers" into two unrelated problems') — uikit click events bubble
+    // from the clicked element
     // up through .parent to doc.rootElement, the same way DOM clicks bubble to document. A trigger
     // click has already toggled its own dropdown's state by the time this runs (listeners on the
     // hit element itself fire before bubbling reaches root), so the containment check below both
@@ -247,7 +249,8 @@ export class OptionDropdown {
 
     // Custom drag-to-scroll, replacing overflow:scroll — its capture/release object mismatch
     // wedges scroll permanently once a drag starts on a child button (nearly every gesture at this
-    // popover's size). See ThreeCP/Analysis/lessons/ui-toolkit/scrolling-and-dropdowns.md.
+    // popover's size). See the lesson "`overflow: scroll`'s pointer capture and release check
+    // different objects, wedging capture on any drag that starts on a child".
     // Deliberately doesn't capture on every
     // pointerdown like _wireSeekDrag does: native click synthesis requires down/up to land on the
     // same object, so eager capture would break every option's onClick. Capture is deferred until
