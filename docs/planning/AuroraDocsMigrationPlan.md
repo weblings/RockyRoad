@@ -1,6 +1,6 @@
 # Migrate docs infra to Aurora's system (+ beads, AGENTS.md)
 
-Status: in progress — steps 1–8 done as of 2026-10-08 (StretchGoals beads skipped per owner)
+Status: in progress — steps 1–9 done as of 2026-10-08 (StretchGoals beads skipped per owner)
 Id: aurora-docs-migration
 
 Owner-context: assessed 2026-10-08 against Aurora's live tree and RockyRoadImport's finished

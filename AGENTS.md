@@ -1,27 +1,79 @@
-# Agent Instructions
+# RockyRoad — agent instructions
 
-This project uses **bd** (beads) for issue tracking. Run `bd prime` for full workflow context.
+Three.js + WebXR note-highway music app (guitar/piano), distilled from ChartPlayer
+into TypeScript. Self-hosted; `v2/` is the current single build (desktop + XR),
+`v0/` the legacy flat build.
 
-> **Architecture in one line:** Issues live in a local Dolt database
-> (`.beads/dolt/`); cross-machine sync uses `bd dolt push/pull` (a
-> git-compatible protocol), stored under `refs/dolt/data` on your git
-> remote — separate from `refs/heads/*` where your code lives.
-> `.beads/issues.jsonl` is a passive export, not the wire protocol.
->
-> See [sync-concepts](https://github.com/gastownhall/beads/blob/main/docs/core-concepts/sync-concepts.md)
-> for the one-screen overview and anti-patterns (don't treat JSONL as the
-> source of truth; don't `bd import` during normal operation; don't
-> reach for third-party Dolt hosting before trying the default).
+## Comment style
 
-## Quick Reference
+Don't write paragraph-long comment blocks (Symptom/Root cause/Fix essay style). Condense to
+2-3 lines max if the context can survive that without being lost — a comment nobody will read in
+full during a normal review isn't helping. This applies to code comments and to entries added to
+`docs/lessons/` (see `docs/lessons/README.md` for where a new entry goes).
 
-```bash
-bd ready              # Find available work
-bd show <id>          # View issue details
-bd update <id> --claim  # Claim work atomically
-bd close <id>         # Complete work
-bd dolt push          # Push beads data to remote
-```
+Don't reference internal planning labels ("Phase 5", "Phase 3 detail") in comments — they go stale
+fast and mean nothing to a reader without that session's context. Describe current behavior/reasoning
+instead.
+
+## Lessons learned — one location, repo-wide
+
+`docs/lessons/` is the **only** lessons-learned location in this repo — for every
+subproject, not just the one it happens to sit next to. Before writing a new gotcha down, check
+`docs/lessons/README.md` for where it goes. Never start a new LessonsLearned (or
+similarly named doc) elsewhere in the repo. If you're ever unsure whether a lessons doc already
+exists somewhere, `find . -iname "*lesson*"` before creating one.
+
+**Part 2 of any lessons-capture pass: check docs, not just gotchas.** After filing whatever
+gotcha prompted the capture, also check whether that same session's code change made any
+README/doc (root, `v2/ARCHITECTURE.md`, `RockyRoadImport/README.md`) claim stale — a moved/removed
+feature, a changed tech-stack detail, a broken link — and fix it in the same pass rather than
+leaving it for a later cleanup.
+
+## Where things go
+
+- Tasks (open, blocked, deferred): `bd` (`bd ready`, `bd list`), not markdown
+  TODOs or checkboxes. Run `bd export -o .beads/issues.jsonl` immediately before
+  `git add`ing task state. After `git pull`, run `bd import` to upsert the tracked
+  export into your live DB — never `--reinit-local`.
+- Non-obvious gotchas worth saving future time: `docs/lessons/`, with `Tags:`/`Applies-when:`,
+  routed by the matching `.claude/skills/` skill — check it before changing
+  that area, file per `docs/lessons/README.md`.
+- Milestone detail (closed or paused): dated file in `docs/log/` + `docs/log/INDEX.md`
+  row on close — every material fact, stated once and tightly; paused work logs
+  state + resume pointer. Findings over narration.
+- Citing another doc under `docs/`: use `Id:`/`[[id]]`, not a bare
+  relative path — see `docs/README.md`'s "Citing other docs" section for
+  the full convention. New docs get an `Id:` line under the H1 at creation, not as a
+  later cleanup pass. `check-links.py` scans `docs/`, `.claude/skills/`, the root
+  agent files, and the `v2/` slice docs, so keep those citers live too.
+- **Required at close, not later:** when closing a milestone bead, check its description for a
+  referenced `docs/*.md` prerequisite analysis or plan. If that doc's `Status:` line
+  doesn't already say shipped/superseded, correct it and move the doc to
+  `docs/archive/` in this same close. A doc that fed already-shipped work and still reads as
+  "exploratory" or "in progress" later is a bug, not a style choice.
+- **Slice docs** (`v2/ARCHITECTURE.md`, `v2/Setup.md`) carry only what doesn't go stale:
+  what the slice is, entry points, slice-specific build toggles, keep-in-sync invariants,
+  and `[[id]]` pointers. No status or "not yet built" sections — that lives in `Status:`
+  lines, beads, and `docs/log/`. When closing a bead that changes what a slice does or how
+  it builds, update its doc in the same close.
+- Planning docs: decisions, status, pointers only. No task lists, no build play-by-play.
+  Every doc carries a `Status:` line — but before trusting "still open"/"exploratory",
+  check `git log --follow -- <path>` for the last *substantive* edit (not renames/link
+  fixes): if nothing revisited it across real, related shipped work since, it is probably
+  stale and belongs in `docs/archive/` with a corrected `Status:` line.
+- The overall roadmap: [[implementation-plan]] (per-phase `Status:` lines are the source of
+  truth for what's shipped) plus any other still-active planning doc — `docs/planning/`, not root.
+- Shipped, superseded, or stale-and-abandoned plans and analyses:
+  `docs/archive/` — historical record, not deleted or edited into the present tense.
+
+## Memory: what lives where
+
+- AGENTS.md / `docs/` — anything every clone, collaborator, or agent needs; tracked in git.
+- `docs/lessons/` — code/tooling gotchas (all clones).
+- `bd remember` — memory specific to this clone (debugging habits, environment quirks),
+  readable by any agent via `bd prime` / `bd memories`. Never export with `--include-memories`
+  or `--all`; that would push clone-local memory to other clones via `issues.jsonl`.
+- Claude memory (`~/.claude/projects/<launch-dir>/memory/`) — not used for this repo.
 
 ## Non-Interactive Shell Commands
 
@@ -65,7 +117,10 @@ bd close <id>         # Complete work
 
 - Use `bd` for ALL task tracking — do NOT use TodoWrite, TaskCreate, or markdown TODO lists
 - Run `bd prime` for detailed command reference and session close protocol
-- Use `bd remember` for persistent knowledge — do NOT use MEMORY.md files
+- Use `bd remember` for clone-specific persistent knowledge (debugging habits, environment
+  quirks) — do NOT use MEMORY.md files, and never export memories (`--include-memories`
+  or `--all`) into the shared `.beads/issues.jsonl`; repo knowledge belongs in AGENTS.md
+  and `docs/`, which are tracked in git
 
 **Architecture in one line:** issues live in a local Dolt DB; sync uses `refs/dolt/data` on your git remote; `.beads/issues.jsonl` is a passive export. See https://github.com/gastownhall/beads/blob/main/docs/core-concepts/sync-concepts.md for details and anti-patterns.
 
