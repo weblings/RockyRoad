@@ -1,5 +1,7 @@
 # Engine — IWSDK / Three.js / Web Audio API facts
 
+Id: lesson-engine-runtime-apis
+
 Third-party API gotchas that constrain how code must be written, independent of any specific
 screen. See [`INDEX.md`](INDEX.md) for the full engine map.
 

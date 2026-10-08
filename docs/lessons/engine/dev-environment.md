@@ -1,5 +1,7 @@
 # Engine — dev environment and debugging setup
 
+Id: lesson-engine-dev-environment
+
 Windows/dev-server/debugging technique, independent of any particular screen or API. See
 [`INDEX.md`](INDEX.md) for the full engine map.
 

@@ -1,5 +1,7 @@
 # uikit/uikitml — text rendering
 
+Id: lesson-uikit-text-rendering
+
 Font/glyph/text-layout gotchas. See [`INDEX.md`](INDEX.md) for the full ui-toolkit map. The
 custom on-screen-keyboard follow-up (Library's search box has no reachable OS keyboard in an
 active WebXR session) is tracked in project memory (project_xr_uikit_investigation.md), not

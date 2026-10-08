@@ -1,5 +1,7 @@
 # Engine — Web Audio AudioWorklet integration
 
+Id: lesson-engine-web-audio-worklets
+
 Lessons from adopting `@soundtouchjs/audio-worklet` for pitch-preserving speed control
 (`src/shared/SongPlayer.ts`; see [[soundtouch-speed-plan]] for the full phased
 history). See [`INDEX.md`](INDEX.md) for the full engine map, and `runtime-apis.md`'s "A discarded

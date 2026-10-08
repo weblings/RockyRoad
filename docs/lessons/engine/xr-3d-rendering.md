@@ -1,5 +1,7 @@
 # Engine — this project's XR/3D rendering internals
 
+Id: lesson-engine-xr-3d-rendering
+
 Facts specific to this project's own scene/coordinate/rendering code (not third-party API
 surface). See [`INDEX.md`](INDEX.md) for the full engine map.
 

@@ -1,5 +1,7 @@
 # Song content authoring — transcribing source material into chart JSON
 
+Id: lesson-song-content-authoring
+
 Gotchas and techniques from converting external notation (sheet music, guitar tab) into this
 app's chart JSON format (`lead.json`/`bass.json`/etc). See [`README.md`](README.md) for how
 entries get routed here vs. elsewhere. Not about uikit/engine internals — about the *data* these

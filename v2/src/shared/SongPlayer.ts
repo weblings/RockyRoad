@@ -4,7 +4,7 @@ import soundTouchProcessorUrl from '@soundtouchjs/audio-worklet/processor?url';
 
 // ISongPlayer is the stable interface both playback backends must implement.
 // SongPlayer's playbackRate is pitch-compensated via a SoundTouch AudioWorklet (see
-// SoundTouchSpeedPlan.md), falling back to uncorrected native playback if it fails to load.
+// [[soundtouch-speed-plan]]), falling back to uncorrected native playback if it fails to load.
 export interface ISongPlayer {
     readonly isPlaying: boolean;
     readonly currentSecond: number;
@@ -124,7 +124,7 @@ export class SongPlayer implements ISongPlayer {
         // relying on the playbackRate setter, which only fires on a subsequent rate change.
         node.playbackRate.value = this._playbackRate;
         // Surfaces real buffer starvation distinctly from WSOLA's inherent quality ceiling at
-        // extreme speed ratios — see SoundTouchSpeedPlan.md Phase E. Silent when healthy.
+        // extreme speed ratios — see [[soundtouch-speed-plan]] Phase E. Silent when healthy.
         // Dev-only, and only on new underruns (underrunCount is cumulative per-node) so a single
         // early blip doesn't reprint on every metrics tick for the rest of playback.
         let lastUnderrunCount = 0;

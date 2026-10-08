@@ -1,5 +1,7 @@
 # uikit/uikitml — pointer interaction
 
+Id: lesson-uikit-pointer-interaction
+
 Ray/hand drag, hover, and capture gotchas. See [`INDEX.md`](INDEX.md) for the full ui-toolkit map.
 
 ---

@@ -52,7 +52,7 @@ export class QuadBatch {
         this.geometry.setIndex(new THREE.BufferAttribute(indices, 1));
         this.geometry.setDrawRange(0, 0);
 
-        // AnisotropicClamp equivalent (Scene3D.md: SamplerState.AnisotropicClamp)
+        // AnisotropicClamp equivalent ([[scene3d-conversion]]: SamplerState.AnisotropicClamp)
         texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
         texture.wrapS = THREE.ClampToEdgeWrapping;
         texture.wrapT = THREE.ClampToEdgeWrapping;

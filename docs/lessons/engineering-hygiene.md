@@ -1,5 +1,7 @@
 # Engineering hygiene
 
+Id: lesson-engineering-hygiene
+
 General software-design principles, each demonstrated via a real bug hit in this codebase. See
 [`README.md`](README.md) for how entries get routed here vs. elsewhere.
 

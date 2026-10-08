@@ -63,7 +63,7 @@ def find_all_md_files():
 # docs/ -- citers only: the id index is built from docs/ and skills, so
 # these never define ids. Missing files (AGENTS.md lands at step 9) are
 # skipped, not failures.
-EXTRA_CITER_ROOT_FILES = ('README.md', 'AGENTS.md', 'CLAUDE.md')
+EXTRA_CITER_ROOT_FILES = ('README.md', 'AGENTS.md', 'CLAUDE.md', 'CONTRIBUTING.md')
 EXTRA_CITER_FILES = ('v2/ARCHITECTURE.md', 'v2/Setup.md')
 
 

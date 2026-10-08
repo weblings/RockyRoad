@@ -46,16 +46,16 @@ Files in `ChartPlayerShared/` that are **not ported** and why.
 
 | File | Analysis file |
 |---|---|
-| `Camera3D.cs` | `Camera3D.md` |
-| `ChartPlayerGame.cs` | `ChartPlayerGame.md` |
-| `Scene3D.cs` + `QuadBatch.cs` | `Scene3D.md` |
-| `ChartScene3D.cs` | `ChartScene3D.md` |
-| `FretPlayerScene3D.cs` | `PlayerScenes.md` |
-| `DrumPlayerScene3D.cs` | `PlayerScenes.md` |
-| `KeysPlayerScene3D.cs` | `PlayerScenes.md` |
-| `SongPlayer.cs` + `SongPlayerSettings.cs` | `SongPlayer.md` |
-| `NoteUtil.cs` | `NoteDetector.md` |
-| `MidiMap.cs` | `MidiMap.md` |
+| `Camera3D.cs` | [[camera3d-conversion]] |
+| `ChartPlayerGame.cs` | [[chart-player-game-conversion]] |
+| `Scene3D.cs` + `QuadBatch.cs` | [[scene3d-conversion]] |
+| `ChartScene3D.cs` | [[chart-scene3d-conversion]] |
+| `FretPlayerScene3D.cs` | [[player-scenes-conversion]] |
+| `DrumPlayerScene3D.cs` | [[player-scenes-conversion]] |
+| `KeysPlayerScene3D.cs` | [[player-scenes-conversion]] |
+| `SongPlayer.cs` + `SongPlayerSettings.cs` | [[songplayer-conversion]] |
+| `NoteUtil.cs` | [[notedetector-conversion]] |
+| `MidiMap.cs` | [[midimap-conversion]] |
 
 ---
 

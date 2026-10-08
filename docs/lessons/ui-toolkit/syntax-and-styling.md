@@ -1,5 +1,7 @@
 # uikit/uikitml — syntax and styling
 
+Id: lesson-uikit-syntax-and-styling
+
 Gotchas in `.uikitml` markup/CSS-like properties themselves. See [`INDEX.md`](INDEX.md) for the
 full ui-toolkit map.
 

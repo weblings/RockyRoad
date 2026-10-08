@@ -92,7 +92,7 @@ Multiple players join a shared session and play the same song simultaneously, ea
 ## New Instruments
 
 ### Drum track
-`DrumPlayerScene3D` + Web MIDI hit detection. See `ImplementationPlan.md` Stretch Goal A for the full plan. The drum voice mapping is fully documented in `MidiMap.cs`.
+`DrumPlayerScene3D` + Web MIDI hit detection. See [[implementation-plan#stretch-goal-a-drum-scene-web-midi]] for the full plan. The drum voice mapping is fully documented in `MidiMap.cs`.
 
 ---
 

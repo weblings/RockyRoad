@@ -1,5 +1,7 @@
 # Desktop DOM/CSS
 
+Id: lesson-desktop-dom
+
 Browser-native DOM/CSS/event gotchas from building this project's own desktop screens and shared
 components (`src/desktop/`) — not XR/uikit (see `ui-toolkit/`), not IWSDK/Three.js (see `engine/`).
 See [`README.md`](README.md) for how entries get routed here vs. elsewhere.

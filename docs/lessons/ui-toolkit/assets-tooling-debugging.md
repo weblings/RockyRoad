@@ -1,5 +1,7 @@
 # uikit/uikitml — assets, tooling, and debugging
 
+Id: lesson-uikit-assets-tooling-debugging
+
 Icons/images, the compile pipeline, and workflow gotchas specific to `.uikitml`. See
 [`INDEX.md`](INDEX.md) for the full ui-toolkit map.
 

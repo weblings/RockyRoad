@@ -1,5 +1,7 @@
 # uikit/uikitml — panel visibility and lifecycle
 
+Id: lesson-uikit-panels-visibility-lifecycle
+
 Show/hide, interactivity gating, and multi-panel coordination gotchas. See [`INDEX.md`](INDEX.md)
 for the full ui-toolkit map.
 
