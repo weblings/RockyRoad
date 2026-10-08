@@ -4,34 +4,34 @@ Status: in progress — steps 1–3 done as of 2026-10-08
 Id: aurora-docs-migration
 
 Owner-context: assessed 2026-10-08 against Aurora's live tree and RockyRoadImport's finished
-migration of the same name (its archived plan + `docs/log/2026-09-30-aurora-docs-migration.md`).
+migration of the same name (its archived plan + `RockyRoadImport/docs/log/2026-09-30-aurora-docs-migration.md`).
 Next agent: work the plan top to bottom; each step lists its done-criteria.
 
 ## Source material
 
 - Aurora (`/home/andrew/Documents/Aurora/Aurora`):
-  - `AGENTS.md` — filing contract ("Where things go") + beads integration block; `CLAUDE.md` is a pointer stub
+  - AGENTS.md — filing contract ("Where things go") + beads integration block; `CLAUDE.md` is a pointer stub
   - `docs/README.md` — layout, `Id:`/`[[id]]` convention, after-move checklist
   - `docs/check-links.py` — link checker + `_ids.md` generator; also scans `.claude/skills/`, root files, slice READMEs
   - `docs/check-lessons.sh` — `Tags:`/`Applies-when:` + index-count guard (flat `lessons/*.md` only)
-  - `docs/lessons/README.md` — table index with entry counts; `.claude/skills/*/SKILL.md` — grep-the-tags routing
+  - `docs/lessons/README.md` — table index with entry counts; `.claude/skills/` SKILL.md files — grep-the-tags routing
 - RockyRoadImport (`/home/andrew/Documents/RockyRoad/RockyRoadImport`): the same migration at small scale —
   `docs/README.md`, `docs/log/INDEX.md`, `CLAUDE.md` beads section, `.beads/` layout are the closest templates.
 
 ## Current state (this repo)
 
 - Docs: 16 files flat in `Analysis/` (plus this plan). Only 2 carry any status line; none carry `Id:`.
-- Lessons: 113 entries across 13 files, nested (`engine/`, `ui-toolkit/` each with a prose `INDEX.md`).
+- Lessons: 113 entries across 13 files, nested (`engine/`, `ui-toolkit/` each with a prose INDEX).
   Entry shape already matches Aurora's (`##` principle headline, root-cause paragraph, `**Fix:**`) —
-  only `Tags:`/`Applies-when:` are missing. `Analysis/TabToChartLessons.md` is a lessons doc living outside `lessons/`.
+  only `Tags:`/`Applies-when:` are missing. `../lessons/TabToChartLessons.md` is a lessons doc awaiting its step-5 fold.
 - Skills: 5 `.claude/skills/*-lessons` routing skills exist, all citing `Analysis/lessons/...` paths.
 - Tasks: `v2/v0.2.6_TODO.txt` (4 open items, 1 done); `v2/CHANGELOG.txt`. No beads, no `log/`, no check scripts.
   `bd` 1.3.0 at `/home/andrew/.local/bin/bd`.
 - Agent instructions: `CLAUDE.md` only, hard-coding `Analysis/lessons/` paths.
 - Path citations: ~49 refs to `Analysis/` repo-wide, including 12 code comments in `v2/src/xr/*.ts`,
   `v2/ui/song.uikitml`, `v2/desktop.html`. Those comments are **already dead**: they use the pre-rename
-  `ThreeCP/Analysis/...` prefix, and two cite plans that no longer exist (`DifficultyDropdownPlan.md`,
-  `DesktopDropdownSyncPlan.md`).
+  `ThreeCP/Analysis/...` prefix, and two cite plans that no longer exist (DifficultyDropdownPlan,
+  DesktopDropdownSyncPlan).
 - Cross-repo: Aurora's `check-links.py` grandfathers `RockyRoad/docs/lessons/...` paths, so it already
   expects this repo to have `docs/` — the rename makes those resolve for real.
 
@@ -42,13 +42,13 @@ Next agent: work the plan top to bottom; each step lists its done-criteria.
 - All docs carry `Status:` + `Id:`; new citations use `[[id]]`; old path citations keep resolving.
 - All 113 lesson entries carry `Tags:`/`Applies-when:`; `check-lessons.sh` green, including nested dirs.
 - Tasks in beads; TODO file deleted; `.beads/issues.jsonl` tracked in git.
-- `AGENTS.md` holds the project instructions (Aurora shape); `CLAUDE.md` is a pointer stub.
+- AGENTS.md holds the project instructions (Aurora shape); `CLAUDE.md` is a pointer stub.
 
 ## Decisions
 
 Settled 2026-10-08:
 1. **Rename `Analysis/` → `docs/`.** Both scripts and every Aurora convention assume it.
-2. **Move instructions to `AGENTS.md`.** Current `CLAUDE.md` content moves over; `CLAUDE.md` keeps
+2. **Move instructions to AGENTS.md.** Current `CLAUDE.md` content moves over; `CLAUDE.md` keeps
    only Aurora's 3-line pointer so `CLAUDE.md`-only loaders still land there.
 3. **`log/` starts on migration day, no backfill.** `log/INDEX.md` carries a note that earlier work is
    recorded in `planning/`/`archive/` docs, `v2/CHANGELOG.txt`, and git history.
@@ -58,10 +58,10 @@ Open (recommendations inline):
 5. **Keep nested lessons dirs or flatten?** Recommended: keep — `engine/`/`ui-toolkit/` already split by
    query vocabulary, which is Aurora's own splitting rule. Costs a small `check-lessons.sh` change (step 4).
 6. **Memory: `bd remember` for clone-specific memory.** Settled 2026-10-08. `bd` writes its agents
-   block into `AGENTS.md` as Aurora has; keep its `bd remember` line, reworded to the split below.
+   block into AGENTS.md as Aurora has; keep its `bd remember` line, reworded to the split below.
    `bd remember` lives in this clone's local Dolt DB, is readable by any agent via `bd prime` /
    `bd memories`, and is excluded from `bd export` by default — so it stays in this clone. Split:
-   - `AGENTS.md` / `docs/` — anything every clone, collaborator, or agent needs; tracked in git.
+   - AGENTS.md / `docs/` — anything every clone, collaborator, or agent needs; tracked in git.
    - `docs/lessons/` — code/tooling gotchas (all clones).
    - `bd remember` — memory specific to this clone (any agent). Never export with `--include-memories`
      or `--all`; that would push them to other clones via `issues.jsonl`.
@@ -99,17 +99,17 @@ Open (recommendations inline):
    Done when: `grep -L '^Id:' docs/**/*.md` lists only lessons files, READMEs, INDEX files.
 4. **Port the scripts.** Copy Aurora's `check-links.py` (not RockyRoadImport's older `.sh` copy) and
    `check-lessons.sh`. Empty `GRANDFATHERED`; point the extra-citer scan at this repo's
-   outside-`docs/` files (`README.md`, `AGENTS.md`, `CLAUDE.md`, `v2/ARCHITECTURE.md`, `v2/Setup.md`).
+   outside-`docs/` files (`README.md`, AGENTS.md, `CLAUDE.md`, `v2/ARCHITECTURE.md`, `v2/Setup.md`).
    Make `check-lessons.sh` recurse into subdirs and check counts against the index that lists each file
    (`lessons/README.md` or `<subdir>/INDEX.md`). Run `check-links.py` twice (first run generates `_ids.md`).
    Done when: both green.
 5. **Tag lessons.** Add `Tags:` + `Applies-when:` directly under every `##` headline (113 entries + the
-   TabToChart entries folded in). Convert `lessons/README.md` and both `INDEX.md` files to Aurora's table
+   TabToChart entries folded in). Convert `lessons/README.md` and both subdir INDEX files to Aurora's table
    shape (`File | Scope | Entries | File here when`), keeping the existing prose summaries in Scope.
    Fix `lessons/README.md`'s stale "`ThreeCP/Analysis/`" wording, and point its rule 1 at `bd remember`
-   (decision 6). Delete `TabToChartLessons.md` after folding.
+   (decision 6). Delete `../lessons/TabToChartLessons.md` after folding.
    Done when: `bash docs/check-lessons.sh` → `lessons OK`.
-6. **Update the skills.** All 5 `SKILL.md` files: paths → `docs/lessons/`, and add Aurora's "grep
+6. **Update the skills.** All 5 SKILL.md files: paths → `docs/lessons/`, and add Aurora's "grep
    `Tags:`/`Applies-when:` for the task, read only matching entries" usage step. Update the skill
    descriptions only if paths appear in them.
    Done when: `check-links.py` (which scans skills) stays green.
@@ -124,8 +124,8 @@ Open (recommendations inline):
    (its one done item, piano long held notes, isn't in `CHANGELOG.txt` as of 2026-10-08 — add it
    there first). Keep `CHANGELOG.txt`.
    Done when: `bd ready` shows them; export current.
-9. **Write `AGENTS.md`, stub `CLAUDE.md`.** Move current `CLAUDE.md` rules (comment style, lessons
-   location, lessons-capture part 2) into `AGENTS.md`, plus Aurora's "Where things go" adapted: beads loop
+9. **Write AGENTS.md, stub `CLAUDE.md`.** Move current `CLAUDE.md` rules (comment style, lessons
+   location, lessons-capture part 2) into AGENTS.md, plus Aurora's "Where things go" adapted: beads loop
    (export before `git add`, `bd import` after pull), lessons + skills routing, log on close, `[[id]]`
    citing, archive-on-close requirement, slice-README rule for `v2/`/`v0/`. Keep the beads block from
    step 8, reworded per decision 6, and add the decision-6 memory split (incl. "never export memories").
@@ -141,16 +141,16 @@ Open (recommendations inline):
 11. **Wire the checkers into pre-commit.** Last, so the hook doesn't block the migration's own
     in-progress commits. Copy Aurora's `PROJECT DOC-LINT HOOKS` block from its `.beads/hooks/pre-commit`
     (below the beads markers): runs both scripts only when staged paths touch `docs/`, `.claude/skills/`,
-    a `README.md`/`CLAUDE.md`, or `AGENTS.md`, and re-stages `docs/_ids.md`. Add `v2/ARCHITECTURE.md` and
+    a `README.md`/`CLAUDE.md`, or AGENTS.md, and re-stages `docs/_ids.md`. Add `v2/ARCHITECTURE.md` and
     `v2/Setup.md` to its path filter.
     - **Activate per clone:** Aurora's Linux checkout has the hooks tracked but inactive (`core.hooksPath`
       unset, `.git/hooks/` only samples, 2026-10-08), so they never run there. Set
-      `git config core.hooksPath .beads/hooks`, document it in `AGENTS.md`, and file the same fix as an Aurora bead.
+      `git config core.hooksPath .beads/hooks`, document it in AGENTS.md, and file the same fix as an Aurora bead.
     - **`prepare-commit-msg`** adds agent identity trailers. Check what it writes; remove it if it adds
       attribution lines (no Claude attribution in commit messages).
     Done when: `git rev-parse --git-path hooks` → `.beads/hooks`; a commit with a deliberately broken
     `[[id]]` in `docs/` is rejected and a code-only commit isn't slowed.
-12. **Close out.** Write `docs/log/2026-10-XX-aurora-docs-migration.md` + `INDEX.md` row; set this doc's
+12. **Close out.** Write docs/log/2026-10-XX-aurora-docs-migration.md + INDEX row; set this doc's
     `Status:` to done and move it to `docs/archive/`; rerun both scripts.
 
 ## Verification (all must hold before calling it done)

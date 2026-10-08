@@ -8,7 +8,7 @@ the original desktop `ChartPlayer`/`ChartConverter` apps this was distilled from
 For environment setup (Node, HTTPS certs, running the dev server, feeding it a song
 library), see ["Play your own songs"](../README.md#play-your-own-songs) at the repo root.
 For gotchas hit while building this project, see
-[`../Analysis/lessons/README.md`](../Analysis/lessons/README.md) — the repo's single
+[`../docs/lessons/README.md`](../docs/lessons/README.md) — the repo's single
 lessons-learned location, not a doc local to this subproject. It's written primarily for AI
 coding agents working in this repo, but worth a skim if you're a human onboarding too.
 
@@ -38,7 +38,7 @@ from one to the other is a full page load back to that mode's library screen.
   the `ui/*.uikitml` panel sources into runtime UI assets under `public/ui` — every XR
   screen (library, settings, pre-scene, active, calibration) is uikit-based; an earlier
   `html2canvas`-based panel-snapshot approach was fully migrated away (the dependency is
-  still in `package.json` but unused — see `Analysis/lessons/` for why)
+  still in `package.json` but unused — see `docs/lessons/` for why)
 - The IWSDK dev plugin (`@iwsdk/vite-plugin-dev`) adds an in-browser XR emulator
   (IWER) for testing without a headset
 

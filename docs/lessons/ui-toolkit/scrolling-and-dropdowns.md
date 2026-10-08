@@ -102,7 +102,7 @@ element itself. Fix: set `justifyContent`/`alignItems: 'center'` explicitly on t
 ## A click's `event.object` can go stale mid-bubble if a handler's own `rerender()` destroys/recreates that exact node
 
 **Symptom:** An outside-click/sibling-close listener on `doc.rootElement` (bubble-phase, mirroring
-desktop's `Dropdown` — see `ThreeCP/Analysis/lessons/desktop-dom.md`) worked reliably when opening
+desktop's `Dropdown` — see the "stopPropagation() on a popover trigger" entry in `../desktop-dom.md`) worked reliably when opening
 a trigger via its chevron icon, but clicking the trigger's *label text* sometimes immediately
 re-closed the dropdown it had just opened.
 

@@ -4,7 +4,7 @@ Gotchas, non-obvious findings, and hard-won decisions that aren't obvious from r
 planning docs. Add here whenever something costs more than 30 minutes to diagnose.
 
 **This directory is the only lessons-learned location in the repo** — for every subproject, not
-just `ThreeCP/Analysis/` itself. Don't start a new `LessonsLearned.md` elsewhere; if unsure whether
+just `ThreeCP/Analysis/` itself. Don't start a new LessonsLearned elsewhere; if unsure whether
 one already exists, `find . -iname "*lesson*"` first.
 
 ## Index
@@ -31,13 +31,13 @@ one already exists, `find . -iname "*lesson*"` first.
 6. Otherwise → `engine/<topic>.md`, topic chosen by activity.
 7. Cross-cutting entry? File under whichever system *constrains the fix*, not whichever exhibited
    the symptom — e.g. `THREE.Sprite` crashing IWSDK's pointer system files under
-   `engine/runtime-apis.md`, not a Sprite-specific file. Cross-list in that directory's `INDEX.md`
+   `engine/runtime-apis.md`, not a Sprite-specific file. Cross-list in that directory's INDEX
    if genuinely two-sided.
 8. Destination file too long to skim (rough proxy: 15+ entries)? Split along a finer cut of the
    same activity razor, into a new sibling file (or, once one of the flat files crosses that
    threshold, a directory of its own — same shape as `ui-toolkit/`/`engine/`). Then update: that
    file's own index if it's a directory, any other lesson entry or code comment pointing at the old
-   filename, and this list if it names it. Skills route via `INDEX.md` (or the file directly, for
+   filename, and this list if it names it. Skills route via INDEX (or the file directly, for
    the flat ones), never a hardcoded filename, so they shouldn't need touching — confirm rather
    than assume.
 

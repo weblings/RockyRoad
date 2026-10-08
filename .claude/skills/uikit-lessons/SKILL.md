@@ -7,12 +7,12 @@ allowed-tools: Read, Grep, Glob
 # uikit/uikitml lessons
 
 Before writing or editing a `.uikitml` file, or any XR panel/dropdown/screen TypeScript code
-(`src/xr/**`), check `Analysis/lessons/ui-toolkit/INDEX.md` — it summarizes each topic
+(`src/xr/**`), check `docs/lessons/ui-toolkit/INDEX.md` — it summarizes each topic
 file's contents in one bullet list, no need to open every file.
 
 ## How to use this skill
 
-1. Read `Analysis/lessons/ui-toolkit/INDEX.md`.
+1. Read `docs/lessons/ui-toolkit/INDEX.md`.
 2. Match the current task against its bullets — by activity (writing markup/CSS-like properties,
    text content, panel show/hide, scrolling/dropdowns, drag/pointer handling, icons/assets) rather
    than by which screen you're on.
@@ -21,6 +21,6 @@ file's contents in one bullet list, no need to open every file.
    is exactly why they're recorded here instead of being rediscoverable by testing alone.
 4. If you hit a new gotcha not covered there, add it to the matching topic file (or create a new
    topic file if none fits) following the format already used — see
-   `Analysis/lessons/README.md` for the filing rule, and `CLAUDE.md` for comment-length
+   `docs/lessons/README.md` for the filing rule, and `CLAUDE.md` for comment-length
    style (keep entries tight, not paragraph-long essays, unless the context genuinely can't
    survive compression).

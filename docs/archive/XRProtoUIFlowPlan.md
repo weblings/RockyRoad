@@ -5,7 +5,7 @@ Id: xrproto-ui-flow-plan
 
 Decisions and architecture for extending XRProto beyond the single hardcoded song into a
 proper instrument-aware XR app flow. Written after the calibration system was confirmed
-working (see `project_xr_piano_alignment.md` for calibration details).
+working (see project_xr_piano_alignment.md for calibration details).
 
 ---
 

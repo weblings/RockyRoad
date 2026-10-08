@@ -46,16 +46,16 @@ Files in `ChartPlayerShared/` that are **not ported** and why.
 
 | File | Analysis file |
 |---|---|
-| `Camera3D.cs` | `Analysis/Camera3D.md` |
-| `ChartPlayerGame.cs` | `Analysis/ChartPlayerGame.md` |
-| `Scene3D.cs` + `QuadBatch.cs` | `Analysis/Scene3D.md` |
-| `ChartScene3D.cs` | `Analysis/ChartScene3D.md` |
-| `FretPlayerScene3D.cs` | `Analysis/PlayerScenes.md` |
-| `DrumPlayerScene3D.cs` | `Analysis/PlayerScenes.md` |
-| `KeysPlayerScene3D.cs` | `Analysis/PlayerScenes.md` |
-| `SongPlayer.cs` + `SongPlayerSettings.cs` | `Analysis/SongPlayer.md` |
-| `NoteUtil.cs` | `Analysis/NoteDetector.md` |
-| `MidiMap.cs` | `Analysis/MidiMap.md` |
+| `Camera3D.cs` | `Camera3D.md` |
+| `ChartPlayerGame.cs` | `ChartPlayerGame.md` |
+| `Scene3D.cs` + `QuadBatch.cs` | `Scene3D.md` |
+| `ChartScene3D.cs` | `ChartScene3D.md` |
+| `FretPlayerScene3D.cs` | `PlayerScenes.md` |
+| `DrumPlayerScene3D.cs` | `PlayerScenes.md` |
+| `KeysPlayerScene3D.cs` | `PlayerScenes.md` |
+| `SongPlayer.cs` + `SongPlayerSettings.cs` | `SongPlayer.md` |
+| `NoteUtil.cs` | `NoteDetector.md` |
+| `MidiMap.cs` | `MidiMap.md` |
 
 ---
 

@@ -1,7 +1,7 @@
 # Engine — Web Audio AudioWorklet integration
 
 Lessons from adopting `@soundtouchjs/audio-worklet` for pitch-preserving speed control
-(`src/shared/SongPlayer.ts`; see `ThreeCP/Analysis/SoundTouchSpeedPlan.md` for the full phased
+(`src/shared/SongPlayer.ts`; see [[soundtouch-speed-plan]] for the full phased
 history). See [`INDEX.md`](INDEX.md) for the full engine map, and `runtime-apis.md`'s "A discarded
 Web Audio object keeps playing unless explicitly stopped" for the closely related
 `AudioBufferSourceNode` fact.

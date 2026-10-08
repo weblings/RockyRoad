@@ -4,7 +4,7 @@ Environment setup for the desktop + WebXR client. For what this project is and h
 it's put together, see [`ARCHITECTURE.md`](ARCHITECTURE.md).
 
 Assumes you've already cloned the `MusicThing` repo and installed Node.js — see the
-repo-root [`Setup.md`](../../Setup.md) for those steps.
+repo-root Setup.md for those steps.
 
 ---
 

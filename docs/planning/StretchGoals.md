@@ -57,7 +57,7 @@ When the current section has no notes (e.g. an extended outro), visually dim the
 
 ## XR / Spatial
 
-Full plan lives in [WebXR_IWSDK.md](WebXR_IWSDK.md).
+Full plan lives in [[webxr-iwsdk-plan]].
 
 **Summary:** Build the XR version as a fresh IWSDK project. `ThreeCP/v0/` preserves the polished 2D app. `ThreeCP/Project/` becomes the IWSDK-based version. Pure logic files carry over for free; rendering and UI are rebuilt around IWSDK. First prototype: get a scrolling highway rendering inside IWSDK's desktop emulation mode — this validates the QuadBatch frame ordering and FretCamera concerns before any screen migration begins.
 
@@ -100,6 +100,6 @@ Multiple players join a shared session and play the same song simultaneously, ea
 
 - Items in **Scoring and Progression** are the most self-contained and highest-value for regular users.
 - **Chord detection** depends heavily on input source — prioritise only if users have direct-in setups.
-- **WebXR** — see [WebXR_IWSDK.md](WebXR_IWSDK.md) for the full plan. First prototype: highway rendering in IWSDK desktop emulation.
+- **WebXR** — see [[webxr-iwsdk-plan]] for the full plan. First prototype: highway rendering in IWSDK desktop emulation.
 - **Piano samples** + **MIDI input** are natural partners — do them together.
 - **Multiplayer** has no server requirement for the core experience — WebRTC peer-to-peer keeps it self-hostable. The signalling step is the only external dependency and can start as a copy-paste code exchange.

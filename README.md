@@ -104,7 +104,7 @@ No technical blocker. I don't play drums or have access to a drumset currently.
 For the tech stack, architecture, and directory layout, see [`v2/ARCHITECTURE.md`](v2/ARCHITECTURE.md).
 
 For gotchas hit while building this project, see
-[`Analysis/lessons/README.md`](Analysis/lessons/README.md) — written primarily for AI coding
+[`docs/lessons/README.md`](docs/lessons/README.md) — written primarily for AI coding
 agents working in this repo, but worth a skim if you're a human developer onboarding too.
 
 ## License

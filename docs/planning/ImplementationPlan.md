@@ -17,7 +17,7 @@ Id: implementation-plan
 
 **Goal:** Draw colored, textured quads in Three.js. Nothing song-specific.
 
-**Relevant analysis:** [Scene3D.md](Scene3D.md)
+**Relevant analysis:** [[scene3d-conversion]]
 
 **Files to write:**
 - `ThreeCP/App.ts` — thin application shell (see below)
@@ -168,7 +168,7 @@ The 30 lines cost in Phase 1 buys a clean architecture for all subsequent phases
 
 **Goal:** Load a real song's JSON files and render the beat grid scrolling.
 
-**Relevant analysis:** [ChartScene3D.md](ChartScene3D.md)
+**Relevant analysis:** [[chart-scene3d-conversion]]
 
 **Files to write:**
 - `ThreeCP/SongFormat.ts` — TypeScript interfaces mirroring the `SongFormat` types (`SongBeat`, `SongStructure`, `ISongEvent`, etc.). The JSON files on disk are already the right format — no conversion logic needed, just type declarations.
@@ -185,7 +185,7 @@ The 30 lines cost in Phase 1 buys a clean architecture for all subsequent phases
 
 **Goal:** Full piano keyboard visualization from real song data.
 
-**Relevant analysis:** [PlayerScenes.md](PlayerScenes.md), [NoteDetector.md](NoteDetector.md)
+**Relevant analysis:** [[player-scenes-conversion]], [[notedetector-conversion]]
 
 **Files to write:**
 - `ThreeCP/NoteUtil.ts` — MIDI note → frequency, note names, semitone math. Pure logic, no dependencies.
@@ -207,7 +207,7 @@ The 30 lines cost in Phase 1 buys a clean architecture for all subsequent phases
 
 **Goal:** Songs actually play. Visual sync with real audio.
 
-**Relevant analysis:** [SongPlayer.md](SongPlayer.md)
+**Relevant analysis:** [[songplayer-conversion]]
 
 **Files to write:**
 - `ThreeCP/SongPlayer.ts` — thin wrapper around `AudioContext`:
@@ -237,7 +237,7 @@ Replace the mock time provider from Phase 2 with this. No other rendering code c
 
 **Goal:** Guitar and bass fret visualization.
 
-**Relevant analysis:** [PlayerScenes.md](PlayerScenes.md), [Camera3D.md](Camera3D.md)
+**Relevant analysis:** [[player-scenes-conversion]], [[camera3d-conversion]]
 
 **Files to write:**
 - `ThreeCP/FretCamera.ts` — smooth-tracking camera with lerp-based animation
@@ -364,7 +364,7 @@ The font images (`LargeFont`, `MainFont`) ARE in UISheet0.png as sprite regions,
 
 **Goal:** A usable browser application, not just a renderer demo.
 
-**Relevant analysis:** [ChartPlayerGame.md](ChartPlayerGame.md), [SongPlayer.md](SongPlayer.md)
+**Relevant analysis:** [[chart-player-game-conversion]], [[songplayer-conversion]]
 
 **Work order within Phase 6:**
 1. Text rendering (in-world fret numbers, chord names) — ✅ done
@@ -663,7 +663,7 @@ Shown after picking a song, before entering the tuner/scene.
 
 ### Phase 6.5 — Tuner (guitar/bass only)
 
-Full UX spec in `project_phase6_ux.md` (memory). This section is the implementation plan — architecture, data flow, and technical spec.
+Full UX spec in project_phase6_ux.md (memory). This section is the implementation plan — architecture, data flow, and technical spec.
 
 **Build order: flow first, pitch detection second.** Get navigation, state machine, and canvas drawing working with stubbed/random pitch data before wiring the Web Audio pipeline.
 
@@ -1046,7 +1046,7 @@ Accessible via the settings panel when in the active scene. Intended as a long-t
 
 ## Stretch Goal A — Drum Scene + Web MIDI
 
-**Relevant analysis:** [PlayerScenes.md](PlayerScenes.md), [MidiMap.md](MidiMap.md)
+**Relevant analysis:** [[player-scenes-conversion]], [[midimap-conversion]]
 
 **Files to write:**
 - `ThreeCP/MidiMap.ts` — `DrumVoice`, `DrumHit`, `DrumMidiDeviceConfiguration`; config stored as JSON in `localStorage`
