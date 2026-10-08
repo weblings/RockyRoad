@@ -1,6 +1,6 @@
 # Migrate docs infra to Aurora's system (+ beads, AGENTS.md)
 
-Status: in progress — steps 1–9 and 11 done as of 2026-10-08 (StretchGoals beads skipped per owner; step 10 open)
+Status: shipped 2026-10-08 — steps 1–12 done (StretchGoals beads skipped per owner; step-10 tail folded into close-out). See [[2026-10-08-aurora-docs-migration]].
 Id: aurora-docs-migration
 
 Owner-context: assessed 2026-10-08 against Aurora's live tree and RockyRoadImport's finished
@@ -72,8 +72,8 @@ Open (recommendations inline):
      in step 5.
 7. **Beads git hooks?** Settled 2026-10-08: yes, as the carrier for Aurora's doc-lint pre-commit
    block (step 12). Hooks go in `.beads/hooks/` (tracked), installed with `bd init` at step 8.
-8. **`StretchGoals.md` and the plan's "Known UX issues (deferred)" → beads?** Recommended: yes, one bead
-   per `###` idea (priority backlog/P4) and one for the deferred UX issue; then archive `StretchGoals.md`.
+8. **[[stretch-goals]] and the plan's "Known UX issues (deferred)" → beads?** Recommended: yes, one bead
+   per `###` idea (priority backlog/P4) and one for the deferred UX issue; then archive [[stretch-goals]].
 
 ## Plan
 

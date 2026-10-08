@@ -25,7 +25,7 @@ title_re = re.compile(r'^#\s+(.+?)\s*$', re.MULTILINE)
 IDS_INDEX_PATH = os.path.join('docs', '_ids.md')
 dead = []
 warnings = []
-# Grandfathered: nothing. The Analysis/ -> docs/ move already converted or
+# Grandfathered: nothing. The docs/ rename already converted or
 # fixed every unresolvable citation, so anything new and unresolvable fails.
 GRANDFATHERED = set()
 

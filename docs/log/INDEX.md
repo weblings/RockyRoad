@@ -9,3 +9,4 @@ history. This log starts on migration day (2026-10-08).
 
 | Date | Milestone | Beads |
 |---|---|---|
+| 2026-10-08 | Aurora docs migration ([[2026-10-08-aurora-docs-migration]]) | Plan-tracked; task beads RockyRoad-4bi, RockyRoad-b74, RockyRoad-ws1, RockyRoad-lyi |

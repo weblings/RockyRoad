@@ -5,7 +5,8 @@ every run. Human lookup for `[[id]]` citations elsewhere in `docs/`.
 
 | Id | Path | Title |
 |---|---|---|
-| `aurora-docs-migration` | [planning/AuroraDocsMigrationPlan.md](planning/AuroraDocsMigrationPlan.md) | Migrate docs infra to Aurora's system (+ beads, AGENTS.md) |
+| `2026-10-08-aurora-docs-migration` | [log/2026-10-08-aurora-docs-migration.md](log/2026-10-08-aurora-docs-migration.md) | Aurora docs migration |
+| `aurora-docs-migration` | [archive/AuroraDocsMigrationPlan.md](archive/AuroraDocsMigrationPlan.md) | Migrate docs infra to Aurora's system (+ beads, AGENTS.md) |
 | `camera3d-conversion` | [archive/Camera3D.md](archive/Camera3D.md) | Camera3D.cs — Conversion Analysis |
 | `chart-player-game-conversion` | [archive/ChartPlayerGame.md](archive/ChartPlayerGame.md) | ChartPlayerGame.cs — Conversion Analysis |
 | `chart-scene3d-conversion` | [archive/ChartScene3D.md](archive/ChartScene3D.md) | ChartScene3D.cs — Conversion Analysis |
