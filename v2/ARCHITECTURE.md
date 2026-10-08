@@ -38,7 +38,7 @@ from one to the other is a full page load back to that mode's library screen.
   the `ui/*.uikitml` panel sources into runtime UI assets under `public/ui` — every XR
   screen (library, settings, pre-scene, active, calibration) is uikit-based; an earlier
   `html2canvas`-based panel-snapshot approach was fully migrated away (the dependency is
-  still in `package.json` but unused — see `docs/lessons/` for why)
+  still in `package.json` but unused — see `../docs/lessons/` for why)
 - The IWSDK dev plugin (`@iwsdk/vite-plugin-dev`) adds an in-browser XR emulator
   (IWER) for testing without a headset
 
@@ -76,7 +76,7 @@ v2/
 ```
 
 ## Development History
-- If you look in the [`Analysis`](Analysis) and [`v0`](v0) folder you can see the process of analyzing and then distilling ChartPlayer into a typescript and ThreeJS environment. I might remove that in future releases but they will always be viewable on the `v0.2.5` branch.
+- If you look in the [`docs/archive/`](../docs/archive/) and [`v0`](../v0) folder you can see the process of analyzing and then distilling ChartPlayer into a typescript and ThreeJS environment. I might remove that in future releases but they will always be viewable on the `v0.2.5` branch.
 - The XRProto and v1 folders that are now deleted were experimenting with translating the guitar-specific chart logic to support piano, supporting the ECS framework of IWSDK, and discovering a viable UI framework for WebXR.
 - AI had generated the screens for v0 desktop and XR screens without worrying about UX and design cohesion. I exported those screens into Figma, created a unified design system, and updated the screens in both domains to be cohesive. That was the v2 release that also integrated desktop and XR into a single app rather than being two separate forks.
 - With the screens in a more stable place, the XR UI system migrated from html2canvas to the more IWSDK-specific uikitml which greatly improved XR performance.
