@@ -88,6 +88,10 @@ Open (recommendations inline):
      its equivalent there). This plan doc goes here too until closed.
    - `StretchGoals`: per decision 8. `TabToChartLessons`: fold into `lessons/song-content-authoring.md` (step 5).
    Done when: every doc has a destination written next to it in this list.
+   Verified 2026-10-08 (`git log --follow`): 9 shipped C#→TS docs last touched
+   2026-03-15 in one commit; `WebXR_IWSDK`/`SoundTouchSpeedPlan` carry their done
+   markers; `desktop.html`+`xr.html` exist; XR plan's deferred items are done except
+   server-side discovery (still needs backend) and XR tuner (still out of scope).
 2. **Restructure.** `git mv Analysis docs`; create `archive/`, `planning/`, `log/`; `git mv` each doc per step 1.
    Done when: `git status` shows renames (not delete+add).
 3. **Tag docs + write the map.** `Status:` + `Id:` on every doc (archived ones say what shipped, with date).
