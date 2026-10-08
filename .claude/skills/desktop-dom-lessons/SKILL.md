@@ -1,18 +1,19 @@
 ---
 name: desktop-dom-lessons
 description: Known browser DOM/CSS/event gotchas from this project's desktop screens — check before writing or editing src/desktop/ markup, CSS, or component/event-wiring code.
-allowed-tools: Read
+allowed-tools: Read, Grep
 ---
 
 # Desktop DOM/CSS lessons
 
 Before writing or editing `src/desktop/` markup, CSS (`desktop.html`'s `<style>` block), or
-DOM-component/event-wiring code, read `docs/lessons/desktop-dom.md` in full — it's
-four entries, short enough to read whole rather than index into.
+DOM-component/event-wiring code, check `docs/lessons/desktop-dom.md` — five entries,
+each with `Tags:`/`Applies-when:` lines for retrieval.
 
 ## How to use this skill
 
-1. Read `docs/lessons/desktop-dom.md`.
+1. Grep `Tags:`/`Applies-when:` in `docs/lessons/desktop-dom.md` for the task at hand;
+   read only matching entries in full.
 2. These are browser-native DOM/CSS/event-model facts specific to this project's own desktop
    components (not XR/uikit — see `uikit-lessons` — and not IWSDK/Three.js — see
    `xr-engine-lessons`). Several document silent failures (a selector that matches nothing, a

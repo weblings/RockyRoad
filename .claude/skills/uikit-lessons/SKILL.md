@@ -16,7 +16,8 @@ file's contents in one bullet list, no need to open every file.
 2. Match the current task against its bullets — by activity (writing markup/CSS-like properties,
    text content, panel show/hide, scrolling/dropdowns, drag/pointer handling, icons/assets) rather
    than by which screen you're on.
-3. Read only the matching sub-file(s) in full before proceeding. Don't skip this because the task
+3. Within the matching sub-file(s), grep `Tags:`/`Applies-when:` for the task at hand and
+   read only matching entries in full before proceeding. Don't skip this because the task
    "seems simple" — many of these gotchas fail completely silently (no error, no warning), which
    is exactly why they're recorded here instead of being rediscoverable by testing alone.
 4. If you hit a new gotcha not covered there, add it to the matching topic file (or create a new
