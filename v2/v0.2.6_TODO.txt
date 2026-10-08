@@ -1,6 +1,0 @@
-v0.2.6
-- [x] Fix: Piano long held notes render correctly. Sample songs updated.
-- [ ] Tuner screen return
-- [ ] Score display on Play page
-- [ ] Explore if Keyboard MIDI can be received for keys score
-- [ ] XR - Custom keyboard needed?
