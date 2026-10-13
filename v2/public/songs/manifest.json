@@ -12,13 +12,41 @@
     "hasArt": true
   },
   {
+    "folder": "home-on-the-range",
+    "title": "Home on the Range",
+    "artist": "Traditional",
+    "parts": [
+      {
+        "name": "lead",
+        "type": "LeadGuitar",
+        "tuningOffsets": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    ],
+    "hasArt": true
+  },
+  {
     "folder": "LochLomond",
     "title": "Loch Lomond",
     "artist": "Traditional",
     "parts": [
       {
         "name": "lead",
-        "type": "LeadGuitar"
+        "type": "LeadGuitar",
+        "tuningOffsets": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
       }
     ],
     "hasArt": true
@@ -31,18 +59,6 @@
       {
         "name": "keys",
         "type": "Keys"
-      }
-    ],
-    "hasArt": true
-  },
-  {
-    "folder": "home-on-the-range",
-    "title": "Home on the Range",
-    "artist": "Traditional",
-    "parts": [
-      {
-        "name": "lead",
-        "type": "LeadGuitar"
       }
     ],
     "hasArt": true

@@ -103,3 +103,18 @@ state where that sibling happens to be absent.
 visible, whenever "this element should have consistent space above it" is really about that one
 element — not a general "space between every item in this row" rule that only happens to look right
 when every item is present.
+
+---
+
+## Porting an XR button's size to desktop: keep the ratio and radius proportion, not the unit
+Tags: css, sizing, aspect-ratio, border-radius, xr-parity
+Applies-when: matching a desktop control's size or shape to its uikitml counterpart
+
+XR sizes are in panel units (a 15 x 3.6 button on a 40-unit panel). A viewport-scaled unit made the
+desktop buttons huge, since a desktop column is a fixed ~312px, not a fraction of a panel. Reusing
+XR's radius in pixels after shrinking also read as too round: 10px on a ~36px-tall button, where XR's
+0.5 / 3.6 is about 14% of the height.
+
+**How to apply:** size against the container (`width: calc(50% - 4px)` plus `aspect-ratio: 15 / 3.6`)
+so the row lines up with sibling controls, and pick a radius from the same-size neighbors
+(`.pre-back` uses 6px) instead of carrying over the old value.

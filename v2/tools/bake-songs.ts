@@ -20,7 +20,7 @@ interface SongManifestEntry {
     folder:  string;
     title:   string;
     artist:  string;
-    parts:   { name: string; type: string; availableDifficulties?: number[] }[];
+    parts:   { name: string; type: string; availableDifficulties?: number[]; tuningOffsets?: number[] }[];
     hasArt:  boolean;
 }
 
@@ -44,6 +44,7 @@ for (const name of readdirSync(songsDir)) {
                             availableDifficulties: Array.isArray(p.AvailableDifficulties)
                                 ? p.AvailableDifficulties as number[]
                                 : undefined,
+                            tuningOffsets: (p.Tuning as { StringSemitoneOffsets?: number[] } | undefined)?.StringSemitoneOffsets,
                         })),
             hasArt: existsSync(join(dir, "albumart.png")),
         });

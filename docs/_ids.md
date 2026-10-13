@@ -7,6 +7,7 @@ every run. Human lookup for `[[id]]` citations elsewhere in `docs/`.
 |---|---|---|
 | `2026-10-08-aurora-docs-migration` | [log/2026-10-08-aurora-docs-migration.md](log/2026-10-08-aurora-docs-migration.md) | Aurora docs migration |
 | `2026-10-08-docs-reorg-followups` | [log/2026-10-08-docs-reorg-followups.md](log/2026-10-08-docs-reorg-followups.md) | Docs reorg follow-ups |
+| `2026-10-13-tuner-return-desktop` | [log/2026-10-13-tuner-return-desktop.md](log/2026-10-13-tuner-return-desktop.md) | Tuner return: desktop enable and styling |
 | `aurora-docs-migration` | [archive/AuroraDocsMigrationPlan.md](archive/AuroraDocsMigrationPlan.md) | Migrate docs infra to Aurora's system (+ beads, AGENTS.md) |
 | `camera3d-conversion` | [archive/Camera3D.md](archive/Camera3D.md) | Camera3D.cs — Conversion Analysis |
 | `chart-player-game-conversion` | [archive/ChartPlayerGame.md](archive/ChartPlayerGame.md) | ChartPlayerGame.cs — Conversion Analysis |

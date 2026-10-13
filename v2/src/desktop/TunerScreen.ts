@@ -413,7 +413,7 @@ export class TunerScreen implements IScreen {
             ctx.globalAlpha = 1;
 
             const midi = this.targetMidis[i];
-            ctx.fillStyle = isActive ? '#fff' : '#666';
+            ctx.fillStyle = isActive ? '#fff' : '#8b8b8b';
             ctx.font = `${isActive ? '600 ' : ''}22px system-ui, sans-serif`;
             ctx.textAlign = 'right';
             ctx.textBaseline = 'middle';
@@ -441,7 +441,7 @@ export class TunerScreen implements IScreen {
             ctx.stroke();
             ctx.globalAlpha = 1;
 
-            ctx.fillStyle = inTune ? '#44FF88' : '#ccc';
+            ctx.fillStyle = inTune ? '#44FF88' : '#c8c8c8';
             ctx.font = '20px system-ui, sans-serif';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
@@ -465,7 +465,7 @@ export class TunerScreen implements IScreen {
             }
         }
 
-        ctx.fillStyle = '#888';
+        ctx.fillStyle = '#8b8b8b';
         ctx.font = '18px system-ui, sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'top';
@@ -476,7 +476,7 @@ export class TunerScreen implements IScreen {
         }
 
         if (this.lastDetectedHz !== null) {
-            ctx.fillStyle = '#444';
+            ctx.fillStyle = '#515151';
             ctx.font = '16px system-ui, sans-serif';
             ctx.textAlign = 'right';
             ctx.textBaseline = 'top';
@@ -488,7 +488,7 @@ export class TunerScreen implements IScreen {
         const barX = marginLeft;
         const barY = H - 16;
         const barH = 6;
-        ctx.fillStyle = '#222';
+        ctx.fillStyle = '#333333';
         ctx.beginPath();
         ctx.roundRect(barX, barY, barMaxW, barH, 3);
         ctx.fill();
@@ -499,7 +499,7 @@ export class TunerScreen implements IScreen {
             ctx.roundRect(barX, barY, filled, barH, 3);
             ctx.fill();
         }
-        ctx.fillStyle = '#555';
+        ctx.fillStyle = '#8b8b8b';
         ctx.font = '16px system-ui, sans-serif';
         ctx.textAlign = 'left';
         ctx.textBaseline = 'middle';

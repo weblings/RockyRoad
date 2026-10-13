@@ -34,6 +34,10 @@ field. A clean typecheck doesn't catch a parallel path that independently builds
 **Fix:** when adding a field to a shared data model, trace every place that constructs the type,
 not just the one found first.
 
+**Recurred (tuner return):** `tuningOffsets` was built by `entryFromJson` but dropped by the manifest
+wire format (`bake-songs.ts`, `song-server.ts`, `fromManifest`), so flipping `TUNER_ENABLED` still
+showed no Tune button on the bundled songs. Check the flag's data dependency, not just the flag.
+
 ---
 
 ## Audit what a reused "load everything" function actually needs before reusing it wholesale
