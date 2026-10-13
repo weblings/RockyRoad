@@ -16,17 +16,21 @@ Desktop slice of [[tuner-v2]]. XR (RockyRoad-0q4) and the string-color bug (Rock
 - Gain slider restyled after Aurora's slider (white thumb, 8px track, JS-painted fill); readout given a
   fixed 36px width so the centered controls row stops shifting while dragging.
 - Controls-row labels (Input, Gain) bumped to 13px semibold white. User: "a bit better", not final.
+- Canvas pass beyond finding 5's grays: Inter font, smaller text (12 to 16px), thinner lines (string 1/2px,
+  needle 2px), 8px signal bar, and a uniform 24px outer padding (`PAD` in `drawCanvas()`). User: "progress
+  for now", still iterating.
 
 ## Verification (observed 2026-10-13)
 
 - `tsc --noEmit` clean, dev server started, re-baked manifest carries `tuningOffsets`.
 - Tune button visible on both sample guitar songs (user-confirmed in browser).
 - Button sizing and radius iterated against the live page by the user.
-- Slider restyle and readout width: `tsc --noEmit` clean, not yet viewed on screen.
+- Slider restyle, readout width and canvas pass: `tsc --noEmit` clean, viewed by the user and iterated.
 - Not checked: the tuner screen itself, auto-tune, mid-song note detection, mic permission flow.
 
 ## Open
 
+- Canvas text sizes, line weights and string/signal colors may need further tuning; colors tie to RockyRoad-t4h.
 - Finding 3 (`.tuner-select` flat input style, low confidence): undecided. Tied to possibly folding
   the Input label into the select ("Input: Default mic"), as the active bar does. Gain label can't fold.
 - Remote song server needs a restart to pick up the manifest change.

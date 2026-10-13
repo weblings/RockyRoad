@@ -387,10 +387,13 @@ export class TunerScreen implements IScreen {
 
         if (n === 0) return;
 
-        const marginTop    = 72;
+        // One outer padding on every side; string area is inset past the top/bottom readouts
+        // and the note-label column.
+        const PAD          = 24;
+        const marginTop    = 64;
         const marginBottom = 64;
-        const marginLeft   = 104;
-        const marginRight  = 36;
+        const marginLeft   = PAD + 44;
+        const marginRight  = PAD;
         const stringAreaH  = H - marginTop - marginBottom;
         const spacing      = n > 1 ? stringAreaH / (n - 1) : 0;
 
@@ -413,7 +416,7 @@ export class TunerScreen implements IScreen {
 
             ctx.globalAlpha = isActive ? 1.0 : (isValidation ? 0.55 : 0.35);
             ctx.strokeStyle = justPassed ? '#44FF88' : color;
-            ctx.lineWidth   = isActive ? 3 : 1.5;
+            ctx.lineWidth   = isActive ? 2 : 1;
             ctx.beginPath();
             ctx.moveTo(marginLeft, y);
             ctx.lineTo(W - marginRight, y);
@@ -422,10 +425,10 @@ export class TunerScreen implements IScreen {
 
             const midi = this.targetMidis[i];
             ctx.fillStyle = isActive ? '#fff' : '#8b8b8b';
-            ctx.font = `${isActive ? '600 ' : ''}22px system-ui, sans-serif`;
-            ctx.textAlign = 'right';
+            ctx.font = `${isActive ? '600 ' : ''}16px 'Inter', system-ui, sans-serif`;
+            ctx.textAlign = 'left';
             ctx.textBaseline = 'middle';
-            ctx.fillText(midiToNoteName(midi), marginLeft - 12, y);
+            ctx.fillText(midiToNoteName(midi), PAD, y);
         }
 
         if (this.detectedCents !== null && currentString >= 0) {
@@ -441,7 +444,7 @@ export class TunerScreen implements IScreen {
                 : 0;
 
             ctx.strokeStyle = inTune ? '#44FF88' : '#ffffff';
-            ctx.lineWidth = 4;
+            ctx.lineWidth = 2;
             ctx.globalAlpha = 0.9;
             ctx.beginPath();
             ctx.moveTo(W / 2 - 60, y + offsetY);
@@ -450,11 +453,11 @@ export class TunerScreen implements IScreen {
             ctx.globalAlpha = 1;
 
             ctx.fillStyle = inTune ? '#44FF88' : '#c8c8c8';
-            ctx.font = '20px system-ui, sans-serif';
+            ctx.font = "14px 'Inter', system-ui, sans-serif";
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             const sign = this.detectedCents > 0 ? '+' : '';
-            ctx.fillText(`${sign}${Math.round(this.detectedCents)}¢`, W / 2, y + offsetY + (offsetY < 0 ? -20 : 20));
+            ctx.fillText(`${sign}${Math.round(this.detectedCents)}¢`, W / 2, y + offsetY + (offsetY < 0 ? -18 : 18));
 
             if (inTune && dwellProgress > 0) {
                 const cx = W / 2;
@@ -474,44 +477,44 @@ export class TunerScreen implements IScreen {
         }
 
         ctx.fillStyle = '#8b8b8b';
-        ctx.font = '18px system-ui, sans-serif';
+        ctx.font = "14px 'Inter', system-ui, sans-serif";
         ctx.textAlign = 'center';
         ctx.textBaseline = 'top';
         if (this.phase.tag === 'correction') {
-            ctx.fillText(`String ${this.phase.stringIndex + 1} of ${n}`, W / 2, 10);
+            ctx.fillText(`String ${this.phase.stringIndex + 1} of ${n}`, W / 2, PAD);
         } else if (this.phase.tag === 'validation') {
-            ctx.fillText(`Checking all strings…`, W / 2, 10);
+            ctx.fillText(`Checking all strings…`, W / 2, PAD);
         }
 
         if (this.lastDetectedHz !== null) {
             ctx.fillStyle = '#515151';
-            ctx.font = '16px system-ui, sans-serif';
+            ctx.font = "12px 'Inter', system-ui, sans-serif";
             ctx.textAlign = 'right';
             ctx.textBaseline = 'top';
-            ctx.fillText(`${this.lastDetectedHz.toFixed(1)} Hz`, W - marginRight, 10);
+            ctx.fillText(`${this.lastDetectedHz.toFixed(1)} Hz`, W - marginRight, PAD);
         }
 
         const rms = this.detector?.lastRms ?? 0;
-        const barMaxW = W - marginLeft - marginRight - 60;
-        const barX = marginLeft;
-        const barY = H - 16;
-        const barH = 6;
+        const barH = 8;
+        const barMaxW = W - PAD * 2 - 40;
+        const barX = PAD;
+        const barY = H - PAD - barH;
         ctx.fillStyle = '#333333';
         ctx.beginPath();
-        ctx.roundRect(barX, barY, barMaxW, barH, 3);
+        ctx.roundRect(barX, barY, barMaxW, barH, 4);
         ctx.fill();
         const filled = Math.min(rms * 6, 1) * barMaxW;
         if (filled > 1) {
             ctx.fillStyle = rms > 0.05 ? '#44CC44' : '#CC8800';
             ctx.beginPath();
-            ctx.roundRect(barX, barY, filled, barH, 3);
+            ctx.roundRect(barX, barY, filled, barH, 4);
             ctx.fill();
         }
         ctx.fillStyle = '#8b8b8b';
-        ctx.font = '16px system-ui, sans-serif';
+        ctx.font = "12px 'Inter', system-ui, sans-serif";
         ctx.textAlign = 'left';
         ctx.textBaseline = 'middle';
-        ctx.fillText('MIC', barX + barMaxW + 10, barY + barH / 2);
+        ctx.fillText('MIC', barX + barMaxW + 12, barY + barH / 2);
     }
 
     private computeTargetMidis(offsets: number[]): number[] {
