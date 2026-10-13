@@ -34,7 +34,9 @@ leaving it for a later cleanup.
 - Tasks (open, blocked, deferred): `bd` (`bd ready`, `bd list`), not markdown
   TODOs or checkboxes. Run `bd export -o .beads/issues.jsonl` immediately before
   `git add`ing task state. After `git pull`, run `bd import` to upsert the tracked
-  export into your live DB — never `--reinit-local`.
+  export into your live DB — never `--reinit-local`. On a fresh clone run
+  `bd init --prefix RockyRoad --non-interactive` first (no local DB yet, so `bd import`
+  fails); if a failed import left an empty DB, delete `.beads/embeddeddolt/` and retry.
 - Doc-lint pre-commit hook: activate per clone with `git config core.hooksPath .beads/hooks`.
   Runs `docs/check-lessons.sh` + `docs/check-links.py` only on commits touching `docs/`,
   skills, READMEs, AGENTS.md/CLAUDE.md/CONTRIBUTING.md, or the `v2/` slice docs (`--no-verify` bypasses).
