@@ -118,3 +118,29 @@ XR's radius in pixels after shrinking also read as too round: 10px on a ~36px-ta
 **How to apply:** size against the container (`width: calc(50% - 4px)` plus `aspect-ratio: 15 / 3.6`)
 so the row lines up with sibling controls, and pick a radius from the same-size neighbors
 (`.pre-back` uses 6px) instead of carrying over the old value.
+
+---
+
+## A custom range-input thumb forces a full rebuild of the track, including the fill
+Tags: css, range-input, slider, accent-color, webkit
+Applies-when: restyling an `<input type="range">` beyond `accent-color`, e.g. a white thumb
+
+Chrome only honors a `::-webkit-slider-thumb` override once `appearance: none` is set, and that also
+turns off `accent-color`'s filled-track rendering. WebKit has no filled-track pseudo-element (Firefox
+has `::-moz-range-progress`), so the fill disappears unless it is rebuilt by hand.
+
+**Fix:** paint the track as a hard-stop `linear-gradient` driven by a `--slider-percent` variable,
+set from JS on mount and on every `input` event. Offset the WebKit thumb with `margin-top` too.
+
+---
+
+## Changing text inside a centered flex row needs a fixed-width slot
+Tags: css, flexbox, layout-shift, tabular-nums, centering
+Applies-when: a live-updating value (slider readout, counter) sits in a centered row
+
+A readout with only `min-width` grows as the value gains digits (`9×` to `12.5×`), and a
+`justify-content: center` row re-centers around it, so every control in the row shifts while
+dragging.
+
+**Fix:** give the readout an explicit `width` sized for the longest value, `text-align: right`, and
+`font-variant-numeric: tabular-nums` so digit widths don't jitter either.

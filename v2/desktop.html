@@ -404,8 +404,30 @@
       padding: 8px 10px; background: #1a1a1a; border: 1px solid #333;
       border-radius: 5px; color: #fff; font-size: 13px; font-family: inherit; cursor: pointer;
     }
-    .tuner-gain-slider { width: 80px; accent-color: #8b8b8b; cursor: pointer; }
-    #tuner-gain-val { font-size: 12px; color: #c8c8c8; min-width: 28px; }
+    /* Custom rebuild (not accent-color) so the thumb can be solid white. WebKit has no filled-track
+       pseudo-element, so TunerScreen sets --slider-percent for the gradient. */
+    .tuner-gain-slider {
+      -webkit-appearance: none; appearance: none;
+      --slider-track-height: 8px; --slider-thumb-size: 16px;
+      width: 80px; height: var(--slider-track-height); border-radius: 4px;
+      background: #333333; cursor: pointer;
+    }
+    .tuner-gain-slider::-webkit-slider-runnable-track {
+      height: var(--slider-track-height); border-radius: 4px;
+      background: linear-gradient(to right, #8b8b8b var(--slider-percent, 0%), #333333 var(--slider-percent, 0%));
+    }
+    .tuner-gain-slider::-webkit-slider-thumb {
+      -webkit-appearance: none; width: var(--slider-thumb-size); height: var(--slider-thumb-size);
+      margin-top: calc((var(--slider-track-height) - var(--slider-thumb-size)) / 2);
+      border-radius: 50%; background: #ffffff; cursor: pointer;
+    }
+    .tuner-gain-slider::-moz-range-track { height: var(--slider-track-height); border-radius: 4px; background: #333333; }
+    .tuner-gain-slider::-moz-range-progress { height: var(--slider-track-height); border-radius: 4px; background: #8b8b8b; }
+    .tuner-gain-slider::-moz-range-thumb {
+      width: var(--slider-thumb-size); height: var(--slider-thumb-size);
+      border-radius: 50%; background: #ffffff; border: none; cursor: pointer;
+    }
+    #tuner-gain-val { font-size: 12px; color: #c8c8c8; width: 36px; text-align: right; font-variant-numeric: tabular-nums; }
 
     .tuner-btn {
       padding: 8px 14px; background: #333333;

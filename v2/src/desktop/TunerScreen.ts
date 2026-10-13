@@ -161,7 +161,15 @@ export class TunerScreen implements IScreen {
             await this.recreateDetector(deviceId);
         });
 
-        container.querySelector('#tuner-gain')?.addEventListener('input', e => {
+        const gainSlider = container.querySelector<HTMLInputElement>('#tuner-gain');
+        const paintGainFill = () => {
+            if (!gainSlider) return;
+            const min = Number(gainSlider.min), max = Number(gainSlider.max);
+            gainSlider.style.setProperty('--slider-percent', `${((Number(gainSlider.value) - min) / (max - min)) * 100}%`);
+        };
+        paintGainFill();
+        gainSlider?.addEventListener('input', e => {
+            paintGainFill();
             const val = parseFloat((e.target as HTMLInputElement).value);
             this.inputGain = val;
             const label = container.querySelector('#tuner-gain-val');

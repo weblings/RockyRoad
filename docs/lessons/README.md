@@ -12,7 +12,7 @@ one already exists, `find . -iname "*lesson*"` first.
 | File | Scope | Entries | File here when |
 |---|---|---|---|
 | [engineering-hygiene.md](engineering-hygiene.md) | general design principles, small enough to read whole | 16 | a general software-design principle, demonstrated by a real bug here |
-| [desktop-dom.md](desktop-dom.md) | browser-native DOM/CSS/event gotchas from `src/desktop/` | 6 | browser DOM/CSS/event behavior, desktop screens |
+| [desktop-dom.md](desktop-dom.md) | browser-native DOM/CSS/event gotchas from `src/desktop/` | 8 | browser DOM/CSS/event behavior, desktop screens |
 | [song-content-authoring.md](song-content-authoring.md) | transcribing sheet music/tab into chart JSON: `String` indexing, duration/tempo conversion, diatonic cross-checking, pickup timing, keeping a song folder's files in sync | 12 | authoring chart content, not the code that renders it |
 | [ui-toolkit/INDEX.md](ui-toolkit/INDEX.md) | uikit/uikitml/PanelUI, by activity | 45 | uikit/uikitml/PanelUI specific |
 | [engine/INDEX.md](engine/INDEX.md) | IWSDK/Three.js/Web Audio + dev/XR environment, by activity | 40 | anything else: engine APIs, XR rendering, audio, dev setup |
