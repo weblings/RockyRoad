@@ -19,8 +19,12 @@ type TunerPhase =
     | { tag: 'complete' };
 
 // Per-string colors, low string first (index 0 = thickest).
+// Time constant for easing the needle toward the detected pitch; higher is calmer but laggier.
+const NEEDLE_SMOOTHING_MS = 90;
 // Matches the mic meter's 8px thickness and full rounding.
 const STRING_THICKNESS = 8;
+// Thinner than the strings so the needle stays distinct when it overlaps one.
+const NEEDLE_THICKNESS = 4;
 const STRING_COLORS = ['#FF4444', '#FFA500', '#FFFF00', '#00CC00', '#4488FF', '#FF88FF'];
 
 // Tolerance thresholds (cents)
@@ -51,6 +55,9 @@ export class TunerScreen implements IScreen {
 
     private phase: TunerPhase = { tag: 'correction', stringIndex: 0 };
     private detectedCents: number | null = null;
+    // Eased copy of detectedCents for drawing only; the state machine keeps using the raw value.
+    private displayCents: number | null = null;
+    private lastDrawTs = 0;
     private completeTimestamp = 0;
 
     private stringPassTime: number[] = [];
@@ -433,9 +440,19 @@ export class TunerScreen implements IScreen {
             ctx.fillText(midiToNoteName(midi), PAD, y);
         }
 
-        if (this.detectedCents !== null && currentString >= 0) {
+        const dt = timestamp - this.lastDrawTs;
+        this.lastDrawTs = timestamp;
+        if (this.detectedCents === null) {
+            this.displayCents = null;
+        } else if (this.displayCents === null) {
+            this.displayCents = this.detectedCents;
+        } else {
+            this.displayCents += (this.detectedCents - this.displayCents) * (1 - Math.exp(-dt / NEEDLE_SMOOTHING_MS));
+        }
+
+        if (this.detectedCents !== null && this.displayCents !== null && currentString >= 0) {
             const y = stringY(currentString);
-            const clamped = Math.max(-50, Math.min(50, this.detectedCents));
+            const clamped = Math.max(-50, Math.min(50, this.displayCents));
             const stringSpacing = n > 1 ? spacing : 50;
             const maxOffset = stringSpacing * 0.45;
             const offsetY = -(clamped / 50) * maxOffset;
@@ -448,16 +465,18 @@ export class TunerScreen implements IScreen {
             ctx.fillStyle = inTune ? '#44FF88' : '#ffffff';
             ctx.globalAlpha = 0.9;
             ctx.beginPath();
-            ctx.roundRect(W / 2 - 60, y + offsetY - STRING_THICKNESS / 2, 120, STRING_THICKNESS, STRING_THICKNESS / 2);
+            ctx.roundRect(W / 2 - 60, y + offsetY - NEEDLE_THICKNESS / 2, 120, NEEDLE_THICKNESS, NEEDLE_THICKNESS / 2);
             ctx.fill();
             ctx.globalAlpha = 1;
 
             ctx.fillStyle = inTune ? '#44FF88' : '#c8c8c8';
             ctx.font = "14px 'Inter', system-ui, sans-serif";
-            ctx.textAlign = 'center';
+            ctx.textAlign = 'left';
             ctx.textBaseline = 'middle';
-            const sign = this.detectedCents > 0 ? '+' : '';
-            ctx.fillText(`${sign}${Math.round(this.detectedCents)}¢`, W / 2, y + offsetY + (offsetY < 0 ? -18 : 18));
+            const shown = Math.round(this.displayCents);
+            // Past ±99 the exact number adds nothing (needle is pinned), so say which way to go.
+            const label = Math.abs(shown) > 99 ? (shown > 0 ? 'Sharp' : 'Flat') : (shown > 0 ? `+${shown}` : `${shown}`);
+            ctx.fillText(label, W / 2 + 60 + 12, y + offsetY);
 
             if (inTune && dwellProgress > 0) {
                 const cx = W / 2;

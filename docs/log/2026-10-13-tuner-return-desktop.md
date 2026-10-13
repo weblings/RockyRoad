@@ -23,6 +23,9 @@ Desktop slice of [[tuner-v2]]. XR (RockyRoad-0q4) and the string-color bug (Rock
   select, no label. Collapsed select truncates (`max-width` + ellipsis) and Chrome's trailing `(xxxx:xxxx)`
   id is stripped from mic names. Hz readout removed. Strings and needle redrawn as 8px fully rounded
   rects (`STRING_THICKNESS`) to match the meter.
+- Needle: eased toward the detected pitch for drawing only (`NEEDLE_SMOOTHING_MS`, raw value still drives the
+  state machine), 4px thick vs 8px strings, label horizontal to its right. Label is a signed number to
+  +/-99, then `Sharp`/`Flat` (octave correction made raw cents reach the hundreds). Cent sign dropped.
 
 ## Verification (observed 2026-10-13)
 
