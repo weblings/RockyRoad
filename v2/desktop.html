@@ -403,7 +403,14 @@
     .tuner-select {
       padding: 8px 10px; background: #1a1a1a; border: 1px solid #333;
       border-radius: 5px; color: #fff; font-size: 13px; font-family: inherit; cursor: pointer;
+      max-width: 180px; text-overflow: ellipsis;
     }
+    /* Vertical mic meter beside the Input select, as tall as the row's controls. */
+    .tuner-meter {
+      position: relative; width: 8px; height: 32px; flex-shrink: 0;
+      border-radius: 4px; background: #333333; overflow: hidden;
+    }
+    .tuner-meter-fill { position: absolute; left: 0; right: 0; bottom: 0; height: 0; border-radius: 4px; }
     /* Custom rebuild (not accent-color) so the thumb can be solid white. WebKit has no filled-track
        pseudo-element, so TunerScreen sets --slider-percent for the gradient. */
     .tuner-gain-slider {

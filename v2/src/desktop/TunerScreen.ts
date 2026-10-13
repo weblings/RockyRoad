@@ -19,6 +19,8 @@ type TunerPhase =
     | { tag: 'complete' };
 
 // Per-string colors, low string first (index 0 = thickest).
+// Matches the mic meter's 8px thickness and full rounding.
+const STRING_THICKNESS = 8;
 const STRING_COLORS = ['#FF4444', '#FFA500', '#FFFF00', '#00CC00', '#4488FF', '#FF88FF'];
 
 // Tolerance thresholds (cents)
@@ -56,6 +58,7 @@ export class TunerScreen implements IScreen {
     private container: HTMLElement | null = null;
     private canvas: HTMLCanvasElement | null = null;
     private ctx2d: CanvasRenderingContext2D | null = null;
+    private meterFill: HTMLElement | null = null;
     private dpr = 1;
     private rafId = 0;
 
@@ -64,7 +67,6 @@ export class TunerScreen implements IScreen {
     private inputGain = 1;
 
     private dwellStart = -Infinity;
-    private lastDetectedHz: number | null = null;
 
     private validationStringEnteredAt = -Infinity;
 
@@ -113,6 +115,7 @@ export class TunerScreen implements IScreen {
                                 <select class="tuner-select" id="tuner-input-select">
                                     <option value="">Default mic</option>
                                 </select>
+                                <div class="tuner-meter"><div class="tuner-meter-fill" id="tuner-meter-fill"></div></div>
                             </label>
                             <div class="tuner-ctrl-divider"></div>
                             <label class="tuner-ctrl-inline">
@@ -141,6 +144,7 @@ export class TunerScreen implements IScreen {
             </div>`;
 
         this.canvas = container.querySelector<HTMLCanvasElement>('#tuner-canvas')!;
+        this.meterFill = container.querySelector<HTMLElement>('#tuner-meter-fill');
         this.ctx2d  = this.canvas.getContext('2d')!;
 
         this.dpr = window.devicePixelRatio || 1;
@@ -191,6 +195,7 @@ export class TunerScreen implements IScreen {
         if (this.container) this.container.innerHTML = '';
         this.container = null;
         this.canvas = null;
+        this.meterFill = null;
         this.ctx2d = null;
     }
 
@@ -223,7 +228,7 @@ export class TunerScreen implements IScreen {
             const devices = await navigator.mediaDevices.enumerateDevices();
             const inputs = devices.filter(d => d.kind === 'audioinput');
             sel.innerHTML = '<option value="">Default mic</option>' +
-                inputs.map(d => `<option value="${esc(d.deviceId)}">${esc(d.label || d.deviceId)}</option>`).join('');
+                inputs.map(d => `<option value="${esc(d.deviceId)}">${esc(shortMicLabel(d.label) || d.deviceId)}</option>`).join('');
         } catch { /* leave default */ }
     }
 
@@ -253,7 +258,6 @@ export class TunerScreen implements IScreen {
                 : this.phase.stringIndex;
 
             if (result) {
-                this.lastDetectedHz = result.frequency;
                 const cents = centDeviationWithOctaveCorrection(result.frequency, this.targetMidis[currentString]);
                 this.detectedCents = cents;
                 this.advanceStateMachine(cents, timestamp);
@@ -387,11 +391,11 @@ export class TunerScreen implements IScreen {
 
         if (n === 0) return;
 
-        // One outer padding on every side; string area is inset past the top/bottom readouts
+        // One outer padding on every side; string area is inset past the phase label
         // and the note-label column.
         const PAD          = 24;
         const marginTop    = 64;
-        const marginBottom = 64;
+        const marginBottom = PAD + 8;
         const marginLeft   = PAD + 44;
         const marginRight  = PAD;
         const stringAreaH  = H - marginTop - marginBottom;
@@ -415,12 +419,10 @@ export class TunerScreen implements IScreen {
             const justPassed = timeSincePass < 350;
 
             ctx.globalAlpha = isActive ? 1.0 : (isValidation ? 0.55 : 0.35);
-            ctx.strokeStyle = justPassed ? '#44FF88' : color;
-            ctx.lineWidth   = isActive ? 2 : 1;
+            ctx.fillStyle = justPassed ? '#44FF88' : color;
             ctx.beginPath();
-            ctx.moveTo(marginLeft, y);
-            ctx.lineTo(W - marginRight, y);
-            ctx.stroke();
+            ctx.roundRect(marginLeft, y - STRING_THICKNESS / 2, W - marginRight - marginLeft, STRING_THICKNESS, STRING_THICKNESS / 2);
+            ctx.fill();
             ctx.globalAlpha = 1;
 
             const midi = this.targetMidis[i];
@@ -443,13 +445,11 @@ export class TunerScreen implements IScreen {
                 ? Math.min(1, (timestamp - this.dwellStart) / dwellMs)
                 : 0;
 
-            ctx.strokeStyle = inTune ? '#44FF88' : '#ffffff';
-            ctx.lineWidth = 2;
+            ctx.fillStyle = inTune ? '#44FF88' : '#ffffff';
             ctx.globalAlpha = 0.9;
             ctx.beginPath();
-            ctx.moveTo(W / 2 - 60, y + offsetY);
-            ctx.lineTo(W / 2 + 60, y + offsetY);
-            ctx.stroke();
+            ctx.roundRect(W / 2 - 60, y + offsetY - STRING_THICKNESS / 2, 120, STRING_THICKNESS, STRING_THICKNESS / 2);
+            ctx.fill();
             ctx.globalAlpha = 1;
 
             ctx.fillStyle = inTune ? '#44FF88' : '#c8c8c8';
@@ -486,35 +486,11 @@ export class TunerScreen implements IScreen {
             ctx.fillText(`Checking all strings…`, W / 2, PAD);
         }
 
-        if (this.lastDetectedHz !== null) {
-            ctx.fillStyle = '#515151';
-            ctx.font = "12px 'Inter', system-ui, sans-serif";
-            ctx.textAlign = 'right';
-            ctx.textBaseline = 'top';
-            ctx.fillText(`${this.lastDetectedHz.toFixed(1)} Hz`, W - marginRight, PAD);
+        if (this.meterFill) {
+            const rms = this.detector?.lastRms ?? 0;
+            this.meterFill.style.height = `${Math.min(rms * 6, 1) * 100}%`;
+            this.meterFill.style.background = rms > 0.05 ? '#44CC44' : '#CC8800';
         }
-
-        const rms = this.detector?.lastRms ?? 0;
-        const barH = 8;
-        const barMaxW = W - PAD * 2 - 40;
-        const barX = PAD;
-        const barY = H - PAD - barH;
-        ctx.fillStyle = '#333333';
-        ctx.beginPath();
-        ctx.roundRect(barX, barY, barMaxW, barH, 4);
-        ctx.fill();
-        const filled = Math.min(rms * 6, 1) * barMaxW;
-        if (filled > 1) {
-            ctx.fillStyle = rms > 0.05 ? '#44CC44' : '#CC8800';
-            ctx.beginPath();
-            ctx.roundRect(barX, barY, filled, barH, 4);
-            ctx.fill();
-        }
-        ctx.fillStyle = '#8b8b8b';
-        ctx.font = "12px 'Inter', system-ui, sans-serif";
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'middle';
-        ctx.fillText('MIC', barX + barMaxW + 12, barY + barH / 2);
     }
 
     private computeTargetMidis(offsets: number[]): number[] {
@@ -544,6 +520,11 @@ const NOTE_NAMES_SHARP = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 
 function midiToNoteName(midi: number): string {
     const octave = Math.floor(midi / 12) - 1;
     return NOTE_NAMES_SHARP[midi % 12] + octave;
+}
+
+// Drops Chrome's trailing hardware id, e.g. "Mic (046d:0825)" -> "Mic", so collapsed names stay short.
+function shortMicLabel(label: string): string {
+    return label.replace(/\s*\([0-9a-f]{4}:[0-9a-f]{4}\)\s*$/i, '');
 }
 
 function esc(s: string): string {

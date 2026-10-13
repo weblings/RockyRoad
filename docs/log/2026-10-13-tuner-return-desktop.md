@@ -19,6 +19,10 @@ Desktop slice of [[tuner-v2]]. XR (RockyRoad-0q4) and the string-color bug (Rock
 - Canvas pass beyond finding 5's grays: Inter font, smaller text (12 to 16px), thinner lines (string 1/2px,
   needle 2px), 8px signal bar, and a uniform 24px outer padding (`PAD` in `drawCanvas()`). User: "progress
   for now", still iterating.
+- Mic level meter moved out of the canvas into the controls row: vertical 8px x 32px bar beside the Input
+  select, no label. Collapsed select truncates (`max-width` + ellipsis) and Chrome's trailing `(xxxx:xxxx)`
+  id is stripped from mic names. Hz readout removed. Strings and needle redrawn as 8px fully rounded
+  rects (`STRING_THICKNESS`) to match the meter.
 
 ## Verification (observed 2026-10-13)
 
@@ -30,6 +34,7 @@ Desktop slice of [[tuner-v2]]. XR (RockyRoad-0q4) and the string-color bug (Rock
 
 ## Open
 
+- Meter height (32px) is hardcoded, may sit off the select's real height. Needle covers string color when centered.
 - Canvas text sizes, line weights and string/signal colors may need further tuning; colors tie to RockyRoad-t4h.
 - Finding 3 (`.tuner-select` flat input style, low confidence): undecided. Tied to possibly folding
   the Input label into the select ("Input: Default mic"), as the active bar does. Gain label can't fold.
