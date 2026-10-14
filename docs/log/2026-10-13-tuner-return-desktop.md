@@ -26,6 +26,13 @@ Desktop slice of [[tuner-v2]]. XR (RockyRoad-0q4) and the string-color bug (Rock
 - Needle: eased toward the detected pitch for drawing only (`NEEDLE_SMOOTHING_MS`, raw value still drives the
   state machine), 4px thick vs 8px strings, label horizontal to its right. Label is a signed number to
   +/-99, then `Sharp`/`Flat` (octave correction made raw cents reach the hundreds). Cent sign dropped.
+- Canvas margins now derived so the needle can swing past the outer strings without clipping
+  (`NEEDLE_REACH`); "String N of 6" label removed from the row.
+- Lock presentation: filling ring and green flash removed. While held in tune the white needle lengthens
+  to the full string and thickens to 8px (no color change, since string 4 is green). Per-string checks in
+  a left column: white when tuned, dim gray carried into the validation pass and brightened as re-verified.
+- Needle jitter: 5-sample median filter plus 140ms easing before drawing (`NEEDLE_MEDIAN_WINDOW`,
+  `NEEDLE_SMOOTHING_MS`). Dwell times set to 475ms correction, 235ms validation (were 250/120).
 
 ## Verification (observed 2026-10-13)
 
@@ -37,6 +44,8 @@ Desktop slice of [[tuner-v2]]. XR (RockyRoad-0q4) and the string-color bug (Rock
 
 ## Open
 
+- Dwell, median window and easing values are by feel; no live-mic verification yet. Detection dropouts do not reset the dwell timer.
+- Faint target band around the active string was proposed, not built.
 - Meter height (32px) is hardcoded, may sit off the select's real height. Needle covers string color when centered.
 - Canvas text sizes, line weights and string/signal colors may need further tuning; colors tie to RockyRoad-t4h.
 - Finding 3 (`.tuner-select` flat input style, low confidence): undecided. Tied to possibly folding
