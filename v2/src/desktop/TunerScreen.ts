@@ -34,7 +34,7 @@ const STRING_THICKNESS = 8;
 // Needle's length, the right-hand gutter (gap + needle + gap + label) it lives in, and the width of the
 // left column holding the per-string checks.
 const NEEDLE_LENGTH = 24;
-const NEEDLE_GUTTER = 84;
+const NEEDLE_GUTTER = 70;
 const CHECK_COL = 24;
 // How far the needle can swing toward the next string, as a fraction of the string gap.
 const NEEDLE_REACH = 0.45;
@@ -50,6 +50,9 @@ const VALIDATION_PASS_CENTS = 15;
 // How long the string must stay in tune before advancing (ms)
 const CORRECTION_DWELL_MS = 475;
 const VALIDATION_DWELL_MS = 235;
+
+// How long a reading may stay out of tolerance (or missing) before the hold resets (ms)
+const DWELL_GRACE_MS = 150;
 
 // How long the ✓ stays before auto-advancing (ms)
 const COMPLETE_HOLD_MS = 1000;
@@ -94,6 +97,7 @@ export class TunerScreen implements IScreen {
     private inputGain = 1;
 
     private dwellStart = -Infinity;
+    private dwellMissSince = -Infinity;
 
     private validationStringEnteredAt = -Infinity;
 
@@ -308,6 +312,7 @@ export class TunerScreen implements IScreen {
                 this.advanceStateMachine(cents, timestamp);
             } else {
                 this.detectedCents = null;
+                this.breakDwell(timestamp);
             }
         }
 
@@ -326,11 +331,23 @@ export class TunerScreen implements IScreen {
 
     private static readonly VALIDATION_TIMEOUT_MS = 5000;
 
+    // Resets the hold only after readings stay bad past the grace period, so single-frame jitter
+    // doesn't snap the lock outline back to empty.
+    private breakDwell(timestamp: number): void {
+        if (this.dwellStart === -Infinity) return;
+        if (this.dwellMissSince === -Infinity) this.dwellMissSince = timestamp;
+        if (timestamp - this.dwellMissSince >= DWELL_GRACE_MS) {
+            this.dwellStart = -Infinity;
+            this.dwellMissSince = -Infinity;
+        }
+    }
+
     private advanceStateMachine(cents: number, timestamp: number): void {
         const n = this.offsets.length;
 
         if (this.phase.tag === 'correction') {
             if (Math.abs(cents) <= CORRECTION_PASS_CENTS) {
+                this.dwellMissSince = -Infinity;
                 if (this.dwellStart === -Infinity) this.dwellStart = timestamp;
 
                 if (timestamp - this.dwellStart >= CORRECTION_DWELL_MS) {
@@ -348,10 +365,11 @@ export class TunerScreen implements IScreen {
                     }
                 }
             } else {
-                this.dwellStart = -Infinity;
+                this.breakDwell(timestamp);
             }
         } else if (this.phase.tag === 'validation') {
             if (Math.abs(cents) <= VALIDATION_PASS_CENTS) {
+                this.dwellMissSince = -Infinity;
                 if (this.dwellStart === -Infinity) this.dwellStart = timestamp;
 
                 if (timestamp - this.dwellStart >= VALIDATION_DWELL_MS) {
@@ -369,7 +387,7 @@ export class TunerScreen implements IScreen {
                     }
                 }
             } else {
-                this.dwellStart = -Infinity;
+                this.breakDwell(timestamp);
                 if (timestamp - this.validationStringEnteredAt >= TunerScreen.VALIDATION_TIMEOUT_MS) {
                     this.validationStringEnteredAt = -Infinity;
                     this.phase = { tag: 'correction', stringIndex: this.phase.stringIndex };
@@ -386,6 +404,7 @@ export class TunerScreen implements IScreen {
         this.phase = { tag: 'correction', stringIndex: 0 };
         this.detectedCents = null;
         this.dwellStart = -Infinity;
+        this.dwellMissSince = -Infinity;
         this.validationStringEnteredAt = -Infinity;
         this.signalPresentNoDetectStart = -Infinity;
         this.autoBoostActive = false;

@@ -369,7 +369,9 @@
       display: flex; flex-direction: column;
     }
 
+    /* Out of flow so .tuner-body centers its content on the whole screen, not the space below the bar. */
     .tuner-nav-bar {
+      position: absolute; top: 0; left: 0; right: 0;
       display: flex; align-items: center; justify-content: space-between;
       padding: 16px;
     }
