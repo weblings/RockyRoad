@@ -13,6 +13,9 @@ last-touched
 # Daemon runtime (lock, log, pid)
 daemon.*
 
+# Auto-import snapshot (runtime, per-machine)
+.auto-import-issues.jsonl
+
 # Push state (runtime, per-machine)
 push-state.json
 

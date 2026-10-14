@@ -1,4 +1,4 @@
-import type { SongIndexEntry } from './SongIndex';
+import { tuningDisplayString, type SongIndexEntry } from './SongIndex';
 
 // ── ISongSource ───────────────────────────────────────────────────────────────
 
@@ -20,7 +20,7 @@ interface ManifestEntry {
     folder:  string;
     title:   string;
     artist:  string;
-    parts:   { name: string; type: string; availableDifficulties?: number[] }[];
+    parts:   { name: string; type: string; availableDifficulties?: number[]; tuningOffsets?: number[] }[];
     hasArt?: boolean;
 }
 
@@ -35,6 +35,8 @@ function fromManifest(e: ManifestEntry): SongIndexEntry {
             name: p.name,
             difficulty: 0,
             availableDifficulties: p.availableDifficulties?.length ? p.availableDifficulties : undefined,
+            tuning:        p.tuningOffsets ? tuningDisplayString(p.tuningOffsets) : undefined,
+            tuningOffsets: p.tuningOffsets,
         })),
         hasArt: e.hasArt ?? false,
     };

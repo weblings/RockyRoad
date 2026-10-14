@@ -10,9 +10,9 @@ export interface IScreen {
     unmount(): void;
 }
 
-// Tuner + Play note-hit feedback, off for now (planned to return later) — hardcoded rather
+// Tuner + Play note-hit feedback — hardcoded rather
 // than left to tuningOffsets happening to be absent/present per source.
-export const TUNER_ENABLED = false;
+export const TUNER_ENABLED = true;
 
 // Note Numbers — percentage dropdown (0%–200% in 20% steps), same shape/step convention as
 // ActiveSceneScreen's Speed dropdown.

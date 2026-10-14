@@ -103,3 +103,98 @@ state where that sibling happens to be absent.
 visible, whenever "this element should have consistent space above it" is really about that one
 element — not a general "space between every item in this row" rule that only happens to look right
 when every item is present.
+
+---
+
+## Porting an XR button's size to desktop: keep the ratio and radius proportion, not the unit
+Tags: css, sizing, aspect-ratio, border-radius, xr-parity
+Applies-when: matching a desktop control's size or shape to its uikitml counterpart
+
+XR sizes are in panel units (a 15 x 3.6 button on a 40-unit panel). A viewport-scaled unit made the
+desktop buttons huge, since a desktop column is a fixed ~312px, not a fraction of a panel. Reusing
+XR's radius in pixels after shrinking also read as too round: 10px on a ~36px-tall button, where XR's
+0.5 / 3.6 is about 14% of the height.
+
+**How to apply:** size against the container (`width: calc(50% - 4px)` plus `aspect-ratio: 15 / 3.6`)
+so the row lines up with sibling controls, and pick a radius from the same-size neighbors
+(`.pre-back` uses 6px) instead of carrying over the old value.
+
+Even XR's `panel.css` pixel values (12px text, 5px radius) are world-space scaled, so copying them
+verbatim made desktop buttons look small (RockyRoad-4bi.5). Take XR's colors and roles, size in
+desktop px.
+
+---
+
+## A custom range-input thumb forces a full rebuild of the track, including the fill
+Tags: css, range-input, slider, accent-color, webkit
+Applies-when: restyling an `<input type="range">` beyond `accent-color`, e.g. a white thumb
+
+Chrome only honors a `::-webkit-slider-thumb` override once `appearance: none` is set, and that also
+turns off `accent-color`'s filled-track rendering. WebKit has no filled-track pseudo-element (Firefox
+has `::-moz-range-progress`), so the fill disappears unless it is rebuilt by hand.
+
+**Fix:** paint the track as a hard-stop `linear-gradient` driven by a `--slider-percent` variable,
+set from JS on mount and on every `input` event. Offset the WebKit thumb with `margin-top` too.
+
+---
+
+## Changing text inside a centered flex row needs a fixed-width slot
+Tags: css, flexbox, layout-shift, tabular-nums, centering
+Applies-when: a live-updating value (slider readout, counter) sits in a centered row
+
+A readout with only `min-width` grows as the value gains digits (`9×` to `12.5×`), and a
+`justify-content: center` row re-centers around it, so every control in the row shifts while
+dragging.
+
+**Fix:** give the readout an explicit `width` sized for the longest value, `text-align: right`, and
+`font-variant-numeric: tabular-nums` so digit widths don't jitter either.
+
+---
+
+## 2D canvas drawing state leaks between draws unless each helper saves and restores it
+Tags: canvas, state, linecap, dash, alpha
+Applies-when: adding a canvas draw helper that sets lineCap, lineDash, globalAlpha or transforms
+
+`drawCheck` set `lineCap = 'round'`, and every later `stroke()` in the frame silently inherited it,
+rounding the ends of a dashed progress outline that was meant to end square. `setLineDash` and
+`globalAlpha` leak the same way.
+
+**Fix:** wrap each helper in `ctx.save()` / `ctx.restore()`, and set the properties a draw depends
+on explicitly rather than assuming the defaults.
+
+---
+
+## A shared `.btn` base only wins over screen rules that come before it
+Tags: css, cascade, shared-classes, specificity, inline-flex
+Applies-when: migrating per-screen buttons onto shared `.btn`/`.btn-dark`/`.btn-light` classes
+
+Single-class selectors tie on specificity, so a screen rule that sets `padding` or `font-size` only
+overrides the shared class if it appears later in the stylesheet. `.btn` is `inline-flex`, so a
+full-width button (`#settings-close`) needs `display: flex` to sit on its own line at `width: 100%`.
+
+**How to apply:** keep the shared block at the top of `desktop.html`'s `<style>`, leave only layout
+(position, width, margins) in the screen classes, and set any deliberate size override there.
+Remove the old color/size declarations rather than overriding them, and grep `src/` for the class
+before deleting it (`.lib-btn-primary` had no users).
+
+---
+
+## Reveal a stroked shape with a clip rect, not dash tricks
+Tags: canvas, animation, clip, setLineDash, wipe
+Applies-when: animating a canvas outline or path in from one end
+
+A rounded-rect outline filled with `setLineDash` on the near edge plus a fading alpha pass for the
+caps and far edge was fiddly (side tracking, two passes) and read as jumpy. Stroking the full
+`roundRect` once and clipping to a rect that grows from one end gives a clean wipe in a few lines.
+
+**How to apply:** `save()`, `rect()` + `clip()` sized by progress, stroke the whole shape, `restore()`.
+
+---
+
+## An absolute nav bar keeps flex-centered content centered on the whole screen
+Tags: css, flex, centering, layout, nav-bar
+Applies-when: adding a top bar to a screen whose body uses `align-items: center`
+
+A new in-flow `.tuner-nav-bar` took ~66px, so `.tuner-body` centered the controls and canvas in the
+space below it and the page looked pushed down. Making the bar `position: absolute` restores centering
+on the full screen, at the cost of possible overlap on very short windows.

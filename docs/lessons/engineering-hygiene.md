@@ -34,6 +34,10 @@ field. A clean typecheck doesn't catch a parallel path that independently builds
 **Fix:** when adding a field to a shared data model, trace every place that constructs the type,
 not just the one found first.
 
+**Recurred (tuner return):** `tuningOffsets` was built by `entryFromJson` but dropped by the manifest
+wire format (`bake-songs.ts`, `song-server.ts`, `fromManifest`), so flipping `TUNER_ENABLED` still
+showed no Tune button on the bundled songs. Check the flag's data dependency, not just the flag.
+
 ---
 
 ## Audit what a reused "load everything" function actually needs before reusing it wholesale
@@ -252,3 +256,44 @@ piano's code just never had real end times to exercise the gap until now.
 (`currentTime >= noteEnd` → skip) — don't trust an upstream culling window to have already excluded
 it. When loosening a threshold to be more accurate, check what downstream code was implicitly
 relying on the old, tighter one as a safety net.
+
+---
+
+## Smooth and gate a noisy signal for display, never for decisions
+Tags: filtering, ui, state-machine, pitch-detection
+Applies-when: a live sensor reading both drives a state machine and is shown to the user
+
+A pitch needle fed raw detector output leapt around (harmonics and octave slips landed anywhere in
+a ±600 cent range), but filtering that same value would also have delayed and blurred the tuning
+pass/fail logic. Median filtering, easing and a clarity gate were applied to a separate display copy
+only, so the needle calmed down while the state machine kept seeing every raw reading.
+
+**How to apply:** keep the raw value for decisions, derive a display value for drawing, and expose
+the filter strengths as named constants since their right values are found by feel.
+
+---
+
+## A screen borrowing App-owned shared UI must set and clear the context it reads
+Tags: shared-state, settings-panel, screens, lifecycle
+Applies-when: a new screen opens a panel or overlay that App owns and another screen configures
+
+The desktop Settings panel is App-owned, but its guitar section and live-update callback were only
+configured by `ActiveSceneScreen`. Opened from the tuner, the invert-strings option would have been
+hidden and toggling it would not have reached the screen.
+
+**How to apply:** before reusing the panel, grep what it reads (`activeInstrumentType`,
+`onSettingsChange`, pause hooks), set those on mount and null them in `unmount()`.
+
+
+---
+
+## A hold timer driven by a jittery value needs a grace period before it resets
+Tags: hysteresis, state-machine, dwell, ui, pitch-detection
+Applies-when: a "stay in range for N ms" timer drives a progress animation from a noisy live reading
+
+The tuner's lock outline filled over a 475ms dwell, but one raw reading outside ±10 cents (or one
+detector dropout) cleared `dwellStart`, so the outline snapped back to empty. Smoothing the display
+value did not help because the timer reads the raw value.
+
+**How to apply:** reset the hold only after the value stays out of range (or missing) for a short
+grace window (`DWELL_GRACE_MS`, 150ms), and clear the miss timer whenever a good reading arrives.

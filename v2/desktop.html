@@ -12,6 +12,22 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { background: #000; overflow: hidden; font-family: 'Inter', system-ui, sans-serif; }
 
+    /* Shared buttons. Colors mirror XR's primary-dark/primary-light (panel.css), but sizes are
+       desktop px (XR's 12px is world-space scaled). */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      padding: 8px 14px; border: none; border-radius: 6px;
+      font-size: 14px; font-family: inherit; cursor: pointer; white-space: nowrap;
+    }
+    .btn svg { display: block; flex-shrink: 0; }
+    .btn-dark { background: #333333; color: #ffffff; }
+    .btn-dark:hover { background: #515151; }
+    .btn-dark:active { background: #7c7c7c; }
+    .btn-light { background: #dadada; color: #111111; }
+    .btn-light:hover { background: #bebebe; }
+    .btn-light:active { background: #9c9c9c; }
+    .btn-lg { padding: 10px 14px; font-size: 15px; }
+
     canvas {
       display: block;
       width: 100vw;
@@ -58,18 +74,7 @@
       font-weight: 700;
       margin-bottom: 16px;
     }
-    #settings-close {
-      display: block;
-      width: 100%;
-      padding: 10px;
-      background: #dadada;
-      border: none;
-      border-radius: 6px;
-      color: #111111;
-      font-size: 15px;
-      cursor: pointer;
-    }
-    #settings-close:hover { background: #bebebe; }
+    #settings-close { display: flex; width: 100%; }
 
     /* 3-2-1 countdown overlay */
     #countdown-overlay {
@@ -103,12 +108,6 @@
     .lib-splash-inner { text-align: center; max-width: 400px; padding: 24px; }
     .lib-title  { font-size: 32px; font-weight: 700; margin-bottom: 12px; }
     .lib-subtitle { font-size: 15px; color: #888; margin-bottom: 28px; }
-    .lib-btn-primary {
-      display: block; width: 100%; padding: 12px;
-      background: #dadada; border: none; border-radius: 8px;
-      color: #111111; font-size: 16px; cursor: pointer; margin-bottom: 10px;
-    }
-    .lib-btn-primary:hover { background: #bebebe; }
     .lib-btn-secondary {
       display: block; width: 100%; padding: 10px;
       background: transparent; border: 1px solid #444; border-radius: 8px;
@@ -279,14 +278,7 @@
       display: flex; align-items: center; justify-content: center;
       overflow-y: auto;
     }
-    .pre-back {
-      position: absolute; top: 16px; left: 16px;
-      display: flex; align-items: center; gap: 6px;
-      padding: 8px 14px; background: #333333;
-      border: none; border-radius: 6px; color: #fff; font-size: 14px; cursor: pointer;
-    }
-    .pre-back:hover { background: #515151; }
-    .pre-back svg { display: block; flex-shrink: 0; }
+    .pre-back { position: absolute; top: 16px; left: 16px; }
     .pre-content {
       display: flex; flex-direction: column; align-items: center;
       gap: 12px; width: 100%; max-width: 360px; padding: 60px 24px 32px;
@@ -360,33 +352,28 @@
     }
     .pre-toggle-switch input:checked + .pre-toggle-knob { background: #8b8b8b; }
     .pre-toggle-switch input:checked + .pre-toggle-knob::after { transform: translateX(18px); }
+    /* Mirrors XR song.uikitml's .actions/.action-btn: side by side, 15:3.6 ratio. Each button
+       is half the 312px content width, so the pair lines up with the dropdown row above. */
     .pre-action-row {
-      width: 100%; display: flex; flex-direction: column; gap: 8px; margin-top: 8px;
+      width: 100%; display: flex; flex-direction: row; justify-content: center; gap: 8px; margin-top: 8px;
     }
-    .pre-tune-btn {
-      width: 100%; padding: 10px;
-      display: flex; align-items: center; justify-content: center; gap: 6px;
-      background: #333333; border: none; border-radius: 10px;
-      color: #fff; font-size: 15px; cursor: pointer;
+    .pre-tune-btn, .pre-play-btn {
+      width: calc(50% - 4px); aspect-ratio: 15 / 3.6; padding: 0; font-weight: 500;
     }
-    .pre-tune-btn:hover { background: #515151; }
-    .pre-tune-btn svg { display: block; flex-shrink: 0; }
     .pre-tune-btn.hidden { display: none; }
-    .pre-play-btn {
-      width: 100%; padding: 14px;
-      /* Own margin, not the row's shared gap — gap collapses to nothing when Tune is hidden
-         (Keys/non-tunable parts), which would silently undo this otherwise. */
-      margin-top: 16px;
-      background: #dadada; border: none; border-radius: 10px;
-      color: #111111; font-size: 17px; cursor: pointer;
-    }
-    .pre-play-btn:hover { background: #bebebe; }
 
     /* ── Tuner screen ──────────────────────────────────────────────────────── */
     .tuner-screen {
       position: absolute; inset: 0;
       background: #0a0a0a; color: #fff;
       display: flex; flex-direction: column;
+    }
+
+    /* Out of flow so .tuner-body centers its content on the whole screen, not the space below the bar. */
+    .tuner-nav-bar {
+      position: absolute; top: 0; left: 0; right: 0;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px;
     }
 
     .tuner-body {
@@ -402,28 +389,48 @@
       display: flex; align-items: center; gap: 8px;
     }
     .tuner-ctrl-inline { display: flex; align-items: center; gap: 6px; }
-    .tuner-ctrl-label-inline { font-size: 12px; color: #8b8b8b; white-space: nowrap; }
+    .tuner-ctrl-label-inline { font-size: 13px; font-weight: 600; color: #ffffff; white-space: nowrap; }
     .tuner-ctrl-divider { width: 1px; height: 20px; background: #333; flex-shrink: 0; }
 
     .tuner-select {
       padding: 8px 10px; background: #1a1a1a; border: 1px solid #333;
       border-radius: 5px; color: #fff; font-size: 13px; font-family: inherit; cursor: pointer;
+      max-width: 180px; text-overflow: ellipsis;
     }
-    .tuner-gain-slider { width: 80px; accent-color: #8b8b8b; cursor: pointer; }
-    #tuner-gain-val { font-size: 12px; color: #c8c8c8; min-width: 28px; }
-
-    .tuner-btn {
-      padding: 8px 14px; background: #333333;
-      border: none; border-radius: 5px; color: #ffffff; font-size: 12px;
-      font-family: inherit; cursor: pointer; white-space: nowrap;
+    /* Vertical mic meter beside the Input select, as tall as the row's controls. */
+    .tuner-meter {
+      position: relative; width: 8px; height: 32px; flex-shrink: 0;
+      border-radius: 4px; background: #333333; overflow: hidden;
     }
-    .tuner-btn:hover { background: #515151; }
-    .tuner-btn-exit { background: #dadada; color: #111111; }
-    .tuner-btn-exit:hover { background: #bebebe; }
+    .tuner-meter-fill { position: absolute; left: 0; right: 0; bottom: 0; height: 0; border-radius: 4px; }
+    /* Custom rebuild (not accent-color) so the thumb can be solid white. WebKit has no filled-track
+       pseudo-element, so TunerScreen sets --slider-percent for the gradient. */
+    .tuner-gain-slider {
+      -webkit-appearance: none; appearance: none;
+      --slider-track-height: 8px; --slider-thumb-size: 16px;
+      width: 80px; height: var(--slider-track-height); border-radius: 4px;
+      background: #333333; cursor: pointer;
+    }
+    .tuner-gain-slider::-webkit-slider-runnable-track {
+      height: var(--slider-track-height); border-radius: 4px;
+      background: linear-gradient(to right, #8b8b8b var(--slider-percent, 0%), #333333 var(--slider-percent, 0%));
+    }
+    .tuner-gain-slider::-webkit-slider-thumb {
+      -webkit-appearance: none; width: var(--slider-thumb-size); height: var(--slider-thumb-size);
+      margin-top: calc((var(--slider-track-height) - var(--slider-thumb-size)) / 2);
+      border-radius: 50%; background: #ffffff; cursor: pointer;
+    }
+    .tuner-gain-slider::-moz-range-track { height: var(--slider-track-height); border-radius: 4px; background: #333333; }
+    .tuner-gain-slider::-moz-range-progress { height: var(--slider-track-height); border-radius: 4px; background: #8b8b8b; }
+    .tuner-gain-slider::-moz-range-thumb {
+      width: var(--slider-thumb-size); height: var(--slider-thumb-size);
+      border-radius: 50%; background: #ffffff; border: none; cursor: pointer;
+    }
+    #tuner-gain-val { font-size: 12px; color: #c8c8c8; width: 36px; text-align: right; font-variant-numeric: tabular-nums; }
 
     .tuner-canvas-wrap {
       position: relative;
-      background: #111; border: 1px solid #222; border-radius: 10px;
+      background: #1a1a1a; border-radius: 10px;
       overflow: hidden;
     }
     #tuner-canvas { display: block; }
@@ -434,20 +441,16 @@
       background: rgba(0,0,0,0.75); gap: 8px;
     }
     .tuner-complete-overlay.hidden { display: none; }
-    .tuner-check { font-size: 72px; color: #44FF88; line-height: 1; }
-    .tuner-in-tune { font-size: 20px; font-weight: 600; color: #44FF88; }
+    /* Same check shape as the per-string checks drawn in TunerScreen's drawCheck(). */
+    .tuner-check { width: 72px; height: 72px; fill: none; stroke: #ffffff; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+    .tuner-in-tune { font-size: 20px; font-weight: 600; color: #ffffff; }
 
-    .tuner-exit-btn {
-      margin-top: 8px; padding: 10px 28px;
-      background: #2a6eff; border: none; border-radius: 8px;
-      color: #fff; font-size: 15px; font-weight: 600; cursor: pointer;
-    }
-    .tuner-exit-btn:hover { background: #1a5ee0; }
+    .tuner-exit-btn { margin-top: 8px; padding: 10px 28px; font-weight: 600; }
 
     .tuner-mic-wait {
       position: absolute; inset: 0;
       display: flex; align-items: center; justify-content: center;
-      background: rgba(0,0,0,0.6); font-size: 13px; color: #888;
+      background: rgba(0,0,0,0.6); font-size: 13px; color: #8b8b8b;
     }
     .tuner-mic-wait.hidden { display: none; }
 
@@ -468,14 +471,7 @@
     }
 
     /* Back button */
-    .active-back-btn {
-      display: flex; align-items: center; gap: 6px;
-      padding: 8px 14px; background: #333333;
-      border: none; border-radius: 5px; color: #ffffff; font-size: 12px;
-      cursor: pointer; flex-shrink: 0;
-    }
-    .active-back-btn:hover { background: #515151; }
-    .active-back-btn svg { display: block; flex-shrink: 0; }
+    .active-back-btn { flex-shrink: 0; }
 
     /* Play/pause — circular, stands out as primary action */
     .active-play-btn {
@@ -583,7 +579,7 @@
             </label>
           </div>
         </div>
-        <button id="settings-close">Continue</button>
+        <button id="settings-close" class="btn btn-light btn-lg">Continue</button>
       </div>
     </div>
 

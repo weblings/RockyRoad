@@ -7,6 +7,7 @@ every run. Human lookup for `[[id]]` citations elsewhere in `docs/`.
 |---|---|---|
 | `2026-10-08-aurora-docs-migration` | [log/2026-10-08-aurora-docs-migration.md](log/2026-10-08-aurora-docs-migration.md) | Aurora docs migration |
 | `2026-10-08-docs-reorg-followups` | [log/2026-10-08-docs-reorg-followups.md](log/2026-10-08-docs-reorg-followups.md) | Docs reorg follow-ups |
+| `2026-10-13-tuner-return-desktop` | [log/2026-10-13-tuner-return-desktop.md](log/2026-10-13-tuner-return-desktop.md) | Tuner return: desktop enable and styling |
 | `aurora-docs-migration` | [archive/AuroraDocsMigrationPlan.md](archive/AuroraDocsMigrationPlan.md) | Migrate docs infra to Aurora's system (+ beads, AGENTS.md) |
 | `camera3d-conversion` | [archive/Camera3D.md](archive/Camera3D.md) | Camera3D.cs — Conversion Analysis |
 | `chart-player-game-conversion` | [archive/ChartPlayerGame.md](archive/ChartPlayerGame.md) | ChartPlayerGame.cs — Conversion Analysis |
@@ -34,5 +35,6 @@ every run. Human lookup for `[[id]]` citations elsewhere in `docs/`.
 | `songplayer-conversion` | [archive/SongPlayer.md](archive/SongPlayer.md) | SongPlayer.cs + SongPlayerSettings.cs — Conversion Analysis |
 | `soundtouch-speed-plan` | [archive/SoundTouchSpeedPlan.md](archive/SoundTouchSpeedPlan.md) | Pitch-preserving speed control — adopting SoundTouch |
 | `stretch-goals` | [planning/StretchGoals.md](planning/StretchGoals.md) | Stretch Goals |
+| `tuner-v2` | [planning/TunerV2.md](planning/TunerV2.md) | Tuner screen — v0 vs v2 visual alignment |
 | `webxr-iwsdk-plan` | [archive/WebXR_IWSDK.md](archive/WebXR_IWSDK.md) | WebXR / IWSDK Plan |
 | `xrproto-ui-flow-plan` | [archive/XRProtoUIFlowPlan.md](archive/XRProtoUIFlowPlan.md) | XRProto UI Flow Plan |

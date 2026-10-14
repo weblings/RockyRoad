@@ -11,6 +11,7 @@ markdown TODOs or checkboxes. Issues live in a local DB; `.beads/issues.jsonl` i
 export that carries them between clones over git.
 
 ```sh
+bd init --prefix RockyRoad --non-interactive   # fresh clone only, before the first import
 bd import                   # once after cloning, and after every git pull
 bd ready                    # find available work
 bd show <id>                # details + dependencies before editing
@@ -19,6 +20,10 @@ bd create --title="..." --description="..." --type=task|bug|feature --priority=2
 bd close <id> --reason="..."  # only when the work is actually complete
 bd export -o .beads/issues.jsonl   # immediately before git add-ing task state
 ```
+
+If `bd import` fails with `issue_prefix config is missing`, delete the empty
+`.beads/embeddeddolt/` (gitignored) and rerun the two commands above. `bd init` sets an
+absolute `core.hooksPath`, so re-run the hooks command below afterward.
 
 Never run `bd import --reinit-local`, and never export with `--include-memories`/`--all`
 (`bd remember` notes are clone-local, not shared).
