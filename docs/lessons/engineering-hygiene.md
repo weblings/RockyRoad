@@ -256,3 +256,17 @@ piano's code just never had real end times to exercise the gap until now.
 (`currentTime >= noteEnd` → skip) — don't trust an upstream culling window to have already excluded
 it. When loosening a threshold to be more accurate, check what downstream code was implicitly
 relying on the old, tighter one as a safety net.
+
+---
+
+## Smooth and gate a noisy signal for display, never for decisions
+Tags: filtering, ui, state-machine, pitch-detection
+Applies-when: a live sensor reading both drives a state machine and is shown to the user
+
+A pitch needle fed raw detector output leapt around (harmonics and octave slips landed anywhere in
+a ±600 cent range), but filtering that same value would also have delayed and blurred the tuning
+pass/fail logic. Median filtering, easing and a clarity gate were applied to a separate display copy
+only, so the needle calmed down while the state machine kept seeing every raw reading.
+
+**How to apply:** keep the raw value for decisions, derive a display value for drawing, and expose
+the filter strengths as named constants since their right values are found by feel.

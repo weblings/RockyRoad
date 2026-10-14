@@ -144,3 +144,16 @@ dragging.
 
 **Fix:** give the readout an explicit `width` sized for the longest value, `text-align: right`, and
 `font-variant-numeric: tabular-nums` so digit widths don't jitter either.
+
+---
+
+## 2D canvas drawing state leaks between draws unless each helper saves and restores it
+Tags: canvas, state, linecap, dash, alpha
+Applies-when: adding a canvas draw helper that sets lineCap, lineDash, globalAlpha or transforms
+
+`drawCheck` set `lineCap = 'round'`, and every later `stroke()` in the frame silently inherited it,
+rounding the ends of a dashed progress outline that was meant to end square. `setLineDash` and
+`globalAlpha` leak the same way.
+
+**Fix:** wrap each helper in `ctx.save()` / `ctx.restore()`, and set the properties a draw depends
+on explicitly rather than assuming the defaults.

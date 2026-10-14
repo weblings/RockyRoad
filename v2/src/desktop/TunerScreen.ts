@@ -27,8 +27,10 @@ const NEEDLE_MEDIAN_WINDOW = 7;
 const NEEDLE_MIN_CLARITY = 0.8;
 // Matches the mic meter's 8px thickness and full rounding.
 const STRING_THICKNESS = 8;
-// Needle's resting length, and the width of the left column holding the per-string checks.
-const NEEDLE_LENGTH = 120;
+// Needle's length, the right-hand gutter (gap + needle + gap + label) it lives in, and the width of the
+// left column holding the per-string checks.
+const NEEDLE_LENGTH = 24;
+const NEEDLE_GUTTER = 84;
 const CHECK_COL = 24;
 // How far the needle can swing toward the next string, as a fraction of the string gap.
 const NEEDLE_REACH = 0.45;
@@ -153,7 +155,7 @@ export class TunerScreen implements IScreen {
                         <div class="tuner-canvas-wrap">
                             <canvas id="tuner-canvas" width="960" height="540"></canvas>
                             <div class="tuner-complete-overlay hidden" id="tuner-complete">
-                                <div class="tuner-check">✓</div>
+                                <svg class="tuner-check" viewBox="0 0 16 16" aria-hidden="true"><polyline points="3,8 6.5,12 13,4" /></svg>
                                 <div class="tuner-in-tune">In tune!</div>
                                 ${!autoAdvance ? `<button class="tuner-exit-btn" id="tuner-exit-complete">Done</button>` : ''}
                             </div>
@@ -421,7 +423,7 @@ export class TunerScreen implements IScreen {
         const marginTop    = marginV;
         const marginBottom = marginV;
         const marginLeft   = PAD + CHECK_COL + 44;
-        const marginRight  = PAD;
+        const marginRight  = PAD + NEEDLE_GUTTER;
         const stringAreaH  = H - marginTop - marginBottom;
         const spacing      = n > 1 ? stringAreaH / (n - 1) : 0;
 
@@ -456,29 +458,29 @@ export class TunerScreen implements IScreen {
         }
 
         const stringLen = W - marginRight - marginLeft;
-        const needleCx = marginLeft + stringLen / 2;
+        // Needle sits in the gutter past the strings' right ends, so its label never overlaps one.
+        const needleX = marginLeft + stringLen + 12;
         const showNeedle = this.detectedCents !== null && this.displayCents !== null && currentString >= 0;
         let needleY = 0;
         let dwellProgress = 0;
         if (showNeedle) {
             const clamped = Math.max(-50, Math.min(50, this.displayCents!));
             const stringSpacing = n > 1 ? spacing : 50;
-            needleY = stringY(currentString) - (clamped / 50) * stringSpacing * NEEDLE_REACH;
+            const offsetY = -(clamped / 50) * stringSpacing * NEEDLE_REACH;
+            needleY = stringY(currentString) + offsetY;
             const dwellMs = this.phase.tag === 'correction' ? CORRECTION_DWELL_MS : VALIDATION_DWELL_MS;
             dwellProgress = this.dwellStart !== -Infinity
                 ? Math.min(1, (timestamp - this.dwellStart) / dwellMs)
                 : 0;
 
-            if (dwellProgress === 0) {
-                this.lockSide = needleY <= stringY(currentString) ? -1 : 1;
-                // Drawn before the strings so it slips behind the active one when they line up.
-                ctx.fillStyle = '#ffffff';
-                ctx.globalAlpha = 0.9;
-                ctx.beginPath();
-                ctx.roundRect(needleCx - NEEDLE_LENGTH / 2, needleY - NEEDLE_THICKNESS / 2, NEEDLE_LENGTH, NEEDLE_THICKNESS, NEEDLE_THICKNESS / 2);
-                ctx.fill();
-                ctx.globalAlpha = 1;
-            }
+            if (dwellProgress === 0) this.lockSide = offsetY <= 0 ? -1 : 1;
+            // During the hold the needle settles onto the string's height and thickens to match it.
+            needleY = stringY(currentString) + offsetY * (1 - dwellProgress);
+            const needleThick = NEEDLE_THICKNESS + dwellProgress * (STRING_THICKNESS - NEEDLE_THICKNESS);
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.roundRect(needleX, needleY - needleThick / 2, NEEDLE_LENGTH, needleThick, needleThick / 2);
+            ctx.fill();
         }
 
         for (let i = 0; i < n; i++) {
@@ -514,7 +516,6 @@ export class TunerScreen implements IScreen {
         }
 
         if (showNeedle) {
-            ctx.globalAlpha = 1 - dwellProgress;
             ctx.fillStyle = '#c8c8c8';
             ctx.font = "14px 'Inter', system-ui, sans-serif";
             ctx.textAlign = 'left';
@@ -522,8 +523,7 @@ export class TunerScreen implements IScreen {
             const shown = Math.round(this.displayCents!);
             // Past ±99 the exact number adds nothing (needle is pinned), so say which way to go.
             const label = Math.abs(shown) > 99 ? (shown > 0 ? 'Sharp' : 'Flat') : (shown > 0 ? `+${shown}` : `${shown}`);
-            ctx.fillText(label, needleCx + NEEDLE_LENGTH / 2 + 12, needleY);
-            ctx.globalAlpha = 1;
+            ctx.fillText(label, needleX + NEEDLE_LENGTH + 8, needleY);
         }
 
         if (this.meterFill) {
@@ -562,33 +562,25 @@ function midiToNoteName(midi: number): string {
     return NOTE_NAMES_SHARP[midi % 12] + octave;
 }
 
-// Outlines the string's rounded rect: the near edge (top for side -1, bottom for side 1) sweeps out
-// from its midpoint while the caps and far edge fade in together.
+// Outlines the string's rounded rect: the near edge (top for side -1, bottom for side 1) sweeps from
+// the right end while the caps and far edge fade in together.
 function strokeLockBorder(
     ctx: CanvasRenderingContext2D, x: number, y: number, len: number, side: -1 | 1, progress: number,
 ): void {
     const b = LOCK_BORDER;
     const x0 = x - b / 2, w = len + b, h = STRING_THICKNESS + b, r = h / 2;
-    const cx = x0 + w / 2;
     const near = y + side * r, far = y - side * r;
-    const edge = (w - 2 * r) / 2;
+    const edge = w - 2 * r;
     ctx.save();
     ctx.strokeStyle = '#ffffff';
     ctx.lineWidth = b;
     ctx.lineCap = 'butt';
-    // Near edge sweeps out from its midpoint, the direction the note needs to travel from.
+    // Near edge sweeps from the right end (beside the needle) toward the left.
     ctx.setLineDash([progress * edge, edge * 4]);
-    for (const dir of [1, -1]) {
-        ctx.save();
-        ctx.translate(cx, 0);
-        ctx.scale(dir, 1);
-        ctx.translate(-cx, 0);
-        ctx.beginPath();
-        ctx.moveTo(cx, near);
-        ctx.lineTo(x0 + w - r, near);
-        ctx.stroke();
-        ctx.restore();
-    }
+    ctx.beginPath();
+    ctx.moveTo(x0 + w - r, near);
+    ctx.lineTo(x0 + r, near);
+    ctx.stroke();
     // Caps and far edge fade in together, so that side fills at once instead of closing in.
     ctx.setLineDash([]);
     ctx.globalAlpha = progress;
@@ -602,6 +594,7 @@ function strokeLockBorder(
 }
 
 function drawCheck(ctx: CanvasRenderingContext2D, cx: number, cy: number, color: string): void {
+    ctx.save();
     ctx.strokeStyle = color;
     ctx.lineWidth = 2;
     ctx.lineCap = 'round';
@@ -611,6 +604,7 @@ function drawCheck(ctx: CanvasRenderingContext2D, cx: number, cy: number, color:
     ctx.lineTo(cx - 1.5, cy + 4);
     ctx.lineTo(cx + 5, cy - 4);
     ctx.stroke();
+    ctx.restore();
 }
 
 // Drops Chrome's trailing hardware id, e.g. "Mic (046d:0825)" -> "Mic", so collapsed names stay short.
