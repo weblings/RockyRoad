@@ -24,8 +24,8 @@ Desktop slice of [[tuner-v2]]. XR (RockyRoad-0q4) and the string-color bug (Rock
   a signed number to +/-99, then `Sharp`/`Flat`. Display is median-filtered (window 7), eased (160ms) and
   clarity-gated (`NEEDLE_MIN_CLARITY` 0.8); the state machine still sees raw readings.
 - Lock presentation: while the note is held the needle settles onto the string and thickens, and a 2px
-  white outline fills (`strokeLockBorder`): the near edge sweeps from the right end, caps and far edge
-  fade in together. Near side (above = sharp, below = flat) is fixed when the hold begins. No green, since
+  white outline fills (`strokeLockBorder`): the full rounded outline is revealed by a clip-rect wipe from
+  the right end (earlier dash/fade version removed, no near-side tracking). No green, since
   string 4 is green. Dwell is 475ms correction, 235ms validation (were 250/120).
 - Back and Settings (RockyRoad-4bi.3, closed): top `.tuner-nav-bar`, Back left and Settings right, above the
   controls row. Back (`back()`) leaves without marking the tuning done: `song-flow` returns to the pre-song
@@ -55,17 +55,23 @@ Desktop slice of [[tuner-v2]]. XR (RockyRoad-0q4) and the string-color bug (Rock
 - Follow-ups filed: RockyRoad-6zf (port Aurora's ARIA dropdown logic), RockyRoad-vqk (shared design system
   package across projects).
 
+- White line polish (RockyRoad-4bi.4, closed 2026-10-14): `DWELL_GRACE_MS` (150ms) via `breakDwell()` so a
+  bad frame or detector dropout no longer resets the hold. `NEEDLE_GUTTER` 84 to 70 (right gap matched the
+  left). `.tuner-nav-bar` made absolute so content centers on the full screen. Lock outline became a wipe.
+  `tsc --noEmit` clean, not viewed in the browser by the agent.
+- Not done, ideas for later: dropout hold of the display value, longer median window, `fftSize` 4096,
+  McLeod first-peak picking, one-euro adaptive filter, label hysteresis, state machine on filtered cents.
+
 ## Open
 
 - Closing RockyRoad-4bi.1 needs a call on finding 3 (`.tuner-select` flat input style, low confidence, tied
   to folding the Input label into the select). Gain label cannot fold.
 - `NEEDLE_MIN_CLARITY`, dwell, median window and easing are by feel. Detection dropouts do not reset the
-  dwell timer.
+  display value (the dwell timer now has a grace period).
 - A faint ±10 cent target band around the active string was proposed, not built.
 - Meter height (32px) is hardcoded and may sit off the select's real height.
 - Remote song server needs a restart to pick up the manifest change.
 - String colors: tuner now reads the fretboard palette from `v2/src/shared/StringColors.ts` (RockyRoad-t4h), not yet viewed.
-- RockyRoad-4bi.4 (white line movement) still open.
 - Archive [[tuner-v2]] when RockyRoad-4bi closes.
 
 ## Lessons filed
@@ -77,3 +83,5 @@ Desktop slice of [[tuner-v2]]. XR (RockyRoad-0q4) and the string-color bug (Rock
 - [[lesson-desktop-dom]]: porting XR button sizes, custom range-input thumb, fixed-width live readouts,
   2D canvas state leaking between draws.
 - [[lesson-engineering-hygiene]]: shared App-owned UI needs per-screen context set and cleared.
+- [[lesson-engineering-hygiene]]: hold timers on noisy values need a grace period.
+- [[lesson-desktop-dom]]: clip-rect wipe for canvas outlines, absolute nav bar for centering.

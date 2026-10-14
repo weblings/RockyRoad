@@ -80,8 +80,6 @@ export class TunerScreen implements IScreen {
     private lastDrawTs = 0;
     private centsHistory: number[] = [];
     private historyString = -1;
-    // Which side of the string the needle was on when the hold began: -1 above, +1 below.
-    private lockSide: -1 | 1 = -1;
     private completeTimestamp = 0;
 
 
@@ -533,7 +531,6 @@ export class TunerScreen implements IScreen {
                 ? Math.min(1, (timestamp - this.dwellStart) / dwellMs)
                 : 0;
 
-            if (dwellProgress === 0) this.lockSide = offsetY <= 0 ? -1 : 1;
             // During the hold the needle settles onto the string's height and thickens to match it.
             needleY = stringY(currentString) + offsetY * (1 - dwellProgress);
             const needleThick = NEEDLE_THICKNESS + dwellProgress * (STRING_THICKNESS - NEEDLE_THICKNESS);
@@ -555,9 +552,9 @@ export class TunerScreen implements IScreen {
             ctx.fill();
             ctx.globalAlpha = 1;
 
-            // White outline wraps the string starting from the side the needle was on.
+            // White outline wipes in from the needle's end of the string.
             if (isActive && showNeedle && dwellProgress > 0) {
-                strokeLockBorder(ctx, marginLeft, y, stringLen, this.lockSide, dwellProgress);
+                strokeLockBorder(ctx, marginLeft, y, stringLen, dwellProgress);
             }
 
             const midi = this.targetMidis[i];
@@ -622,33 +619,20 @@ function midiToNoteName(midi: number): string {
     return NOTE_NAMES_SHARP[midi % 12] + octave;
 }
 
-// Outlines the string's rounded rect: the near edge (top for side -1, bottom for side 1) sweeps from
-// the right end while the caps and far edge fade in together.
+// Outlines the string's rounded rect, revealed by a wipe from the right end (beside the needle) leftward.
 function strokeLockBorder(
-    ctx: CanvasRenderingContext2D, x: number, y: number, len: number, side: -1 | 1, progress: number,
+    ctx: CanvasRenderingContext2D, x: number, y: number, len: number, progress: number,
 ): void {
     const b = LOCK_BORDER;
-    const x0 = x - b / 2, w = len + b, h = STRING_THICKNESS + b, r = h / 2;
-    const near = y + side * r, far = y - side * r;
-    const edge = w - 2 * r;
+    const x0 = x - b / 2, w = len + b, h = STRING_THICKNESS + b;
     ctx.save();
+    ctx.beginPath();
+    ctx.rect(x0 + w * (1 - progress), y - h, w * progress, h * 2);
+    ctx.clip();
     ctx.strokeStyle = '#ffffff';
     ctx.lineWidth = b;
-    ctx.lineCap = 'butt';
-    // Near edge sweeps from the right end (beside the needle) toward the left.
-    ctx.setLineDash([progress * edge, edge * 4]);
     ctx.beginPath();
-    ctx.moveTo(x0 + w - r, near);
-    ctx.lineTo(x0 + r, near);
-    ctx.stroke();
-    // Caps and far edge fade in together, so that side fills at once instead of closing in.
-    ctx.setLineDash([]);
-    ctx.globalAlpha = progress;
-    ctx.beginPath();
-    ctx.moveTo(x0 + w - r, near);
-    ctx.arc(x0 + w - r, y, r, side * Math.PI / 2, -side * Math.PI / 2, side > 0);
-    ctx.lineTo(x0 + r, far);
-    ctx.arc(x0 + r, y, r, -side * Math.PI / 2, side * Math.PI / 2, side > 0);
+    ctx.roundRect(x0, y - h / 2, w, h, h / 2);
     ctx.stroke();
     ctx.restore();
 }

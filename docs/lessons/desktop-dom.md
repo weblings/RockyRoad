@@ -176,3 +176,25 @@ full-width button (`#settings-close`) needs `display: flex` to sit on its own li
 (position, width, margins) in the screen classes, and set any deliberate size override there.
 Remove the old color/size declarations rather than overriding them, and grep `src/` for the class
 before deleting it (`.lib-btn-primary` had no users).
+
+---
+
+## Reveal a stroked shape with a clip rect, not dash tricks
+Tags: canvas, animation, clip, setLineDash, wipe
+Applies-when: animating a canvas outline or path in from one end
+
+A rounded-rect outline filled with `setLineDash` on the near edge plus a fading alpha pass for the
+caps and far edge was fiddly (side tracking, two passes) and read as jumpy. Stroking the full
+`roundRect` once and clipping to a rect that grows from one end gives a clean wipe in a few lines.
+
+**How to apply:** `save()`, `rect()` + `clip()` sized by progress, stroke the whole shape, `restore()`.
+
+---
+
+## An absolute nav bar keeps flex-centered content centered on the whole screen
+Tags: css, flex, centering, layout, nav-bar
+Applies-when: adding a top bar to a screen whose body uses `align-items: center`
+
+A new in-flow `.tuner-nav-bar` took ~66px, so `.tuner-body` centered the controls and canvas in the
+space below it and the page looked pushed down. Making the bar `position: absolute` restores centering
+on the full screen, at the cost of possible overlap on very short windows.

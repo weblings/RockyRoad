@@ -284,3 +284,16 @@ hidden and toggling it would not have reached the screen.
 **How to apply:** before reusing the panel, grep what it reads (`activeInstrumentType`,
 `onSettingsChange`, pause hooks), set those on mount and null them in `unmount()`.
 
+
+---
+
+## A hold timer driven by a jittery value needs a grace period before it resets
+Tags: hysteresis, state-machine, dwell, ui, pitch-detection
+Applies-when: a "stay in range for N ms" timer drives a progress animation from a noisy live reading
+
+The tuner's lock outline filled over a 475ms dwell, but one raw reading outside ±10 cents (or one
+detector dropout) cleared `dwellStart`, so the outline snapped back to empty. Smoothing the display
+value did not help because the timer reads the raw value.
+
+**How to apply:** reset the hold only after the value stays out of range (or missing) for a short
+grace window (`DWELL_GRACE_MS`, 150ms), and clear the miss timer whenever a good reading arrives.
