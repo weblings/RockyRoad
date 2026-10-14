@@ -49,6 +49,9 @@ const NEEDLE_THICKNESS = 4;
 // Width of the white outline that fills around the active string while the note is held.
 const LOCK_BORDER = 2;
 
+// Dev toggle for the DOM box layout: add ?tunerBoxes to the URL. Canvas stays the default.
+const USE_BOXES = new URLSearchParams(location.search).has('tunerBoxes');
+
 // Tolerance thresholds (cents)
 const CORRECTION_PASS_CENTS = 10;
 const VALIDATION_PASS_CENTS = 15;
@@ -97,6 +100,10 @@ export class TunerScreen implements IScreen {
     private meterFill: HTMLElement | null = null;
     private dpr = 1;
     private rafId = 0;
+    private boxEls: {
+        box1: HTMLElement; wipe: HTMLElement; label: HTMLElement; bar: HTMLElement; cents: HTMLElement;
+        cols: HTMLElement[];
+    } | null = null;
 
     private detector: PitchDetector | null = null;
     private invertStrings = false;
@@ -173,6 +180,7 @@ export class TunerScreen implements IScreen {
 
                         <div class="tuner-canvas-wrap">
                             <canvas id="tuner-canvas" width="960" height="540"></canvas>
+                            ${USE_BOXES ? this.boxesHtml() : ''}
                             <div class="tuner-complete-overlay hidden" id="tuner-complete">
                                 ${CHECK_SVG}
                                 <div class="tuner-in-tune">In tune!</div>
@@ -199,6 +207,7 @@ export class TunerScreen implements IScreen {
         this.canvas = container.querySelector<HTMLCanvasElement>('#tuner-canvas')!;
         this.meterFill = container.querySelector<HTMLElement>('#tuner-meter-fill');
         this.ctx2d  = this.canvas.getContext('2d')!;
+        if (USE_BOXES) this.bindBoxes(container);
 
         this.dpr = window.devicePixelRatio || 1;
         const cssW = this.canvas.width;
@@ -257,6 +266,7 @@ export class TunerScreen implements IScreen {
         this.container = null;
         this.canvas = null;
         this.meterFill = null;
+        this.boxEls = null;
         this.ctx2d = null;
     }
 
@@ -330,7 +340,7 @@ export class TunerScreen implements IScreen {
         }
 
         this.updateDisplayState(timestamp);
-        this.drawCanvas();
+        if (USE_BOXES) this.updateBoxes(); else this.drawCanvas();
         this.rafId = requestAnimationFrame(t => this.tick(t));
 
         if (this.phase.tag === 'complete' && this.completeTimestamp > 0) {
@@ -605,6 +615,87 @@ export class TunerScreen implements IScreen {
             // Past ±99 the exact number adds nothing (needle is pinned), so say which way to go.
             const label = Math.abs(shown) > 99 ? (shown > 0 ? 'Sharp' : 'Flat') : (shown > 0 ? `+${shown}` : `${shown}`);
             ctx.fillText(label, needleX + NEEDLE_LENGTH + 8, needleY);
+        }
+
+        if (this.meterFill) {
+            const rms = this.detector?.lastRms ?? 0;
+            this.meterFill.style.height = `${Math.min(rms * 6, 1) * 100}%`;
+            this.meterFill.style.background = rms > 0.05 ? '#44CC44' : '#CC8800';
+        }
+    }
+
+    private boxesHtml(): string {
+        const n = this.offsets.length;
+        const cols = Array.from({ length: n }, (_, i) => i);
+        if (!this.invertStrings) cols.reverse();
+        return `
+            <div class="tuner-boxes">
+                <div class="tuner-box tuner-box1" id="tuner-box1">
+                    <div class="tuner-box1-border"></div>
+                    <div class="tuner-box1-wipe" id="tuner-box1-wipe"></div>
+                    <div class="tuner-box1-label" id="tuner-box1-label"></div>
+                    <div class="tuner-box1-lane">
+                        <div class="tuner-box1-track"><div class="tuner-box1-tick"></div></div>
+                        <div class="tuner-box1-bar hidden" id="tuner-box1-bar"></div>
+                        <div class="tuner-box1-cents hidden" id="tuner-box1-cents"></div>
+                    </div>
+                </div>
+                <div class="tuner-box tuner-box2" id="tuner-box2">
+                    ${cols.map(i => `
+                        <div class="tuner-box2-col" data-string="${i}" style="color:${stringColorCss(i) ?? '#fff'}">
+                            <span class="tuner-box2-name">${midiToNoteName(this.targetMidis[i])}</span>
+                            ${CHECK_SVG}
+                        </div>`).join('')}
+                </div>
+            </div>`;
+    }
+
+    private bindBoxes(container: HTMLElement): void {
+        container.querySelector('#tuner-canvas')?.classList.add('hidden');
+        this.boxEls = {
+            box1: container.querySelector('#tuner-box1')!,
+            wipe: container.querySelector('#tuner-box1-wipe')!,
+            label: container.querySelector('#tuner-box1-label')!,
+            bar: container.querySelector('#tuner-box1-bar')!,
+            cents: container.querySelector('#tuner-box1-cents')!,
+            cols: [...container.querySelectorAll<HTMLElement>('.tuner-box2-col')],
+        };
+    }
+
+    // Drives the DOM boxes from the same display state and phase as the canvas.
+    private updateBoxes(): void {
+        const els = this.boxEls;
+        if (!els) return;
+        const current = this.phase.tag === 'complete' ? -1 : this.phase.stringIndex;
+        const color = current >= 0 ? stringColorCss(current) ?? '#fff' : '#555';
+        els.box1.style.setProperty('--string-color', color);
+        els.label.textContent = current >= 0 ? midiToNoteName(this.targetMidis[current]) : '';
+
+        const showNeedle = this.detectedCents !== null && this.displayCents !== null && current >= 0;
+        els.bar.classList.toggle('hidden', !showNeedle);
+        els.cents.classList.toggle('hidden', !showNeedle);
+        if (showNeedle) {
+            const pct = (Math.max(-50, Math.min(50, this.displayCents!)) + 50);
+            els.bar.style.left = `${pct}%`;
+            els.cents.style.left = `${pct}%`;
+            els.cents.style.transform = `translateX(-${pct}%)`;
+            const shown = Math.round(this.displayCents!);
+            els.cents.textContent = Math.abs(shown) > 99 ? (shown > 0 ? 'Sharp' : 'Flat') : (shown > 0 ? `+${shown}` : `${shown}`);
+            // Wipe spreads both ways from the bar's x and closes on the sides at full progress.
+            const p = this.dwellProgress;
+            const left = pct * (1 - p), right = 100 - (pct + (100 - pct) * p);
+            els.wipe.style.clipPath = p > 0 ? `inset(0 ${right}% 0 ${left}%)` : 'inset(0 100% 0 100%)';
+        } else {
+            els.wipe.style.clipPath = 'inset(0 100% 0 100%)';
+        }
+
+        for (const col of els.cols) {
+            const i = Number(col.dataset.string);
+            const checkState = this.phase.tag === 'complete' ? 'done'
+                : this.phase.tag === 'validation' ? (this.phase.results[i] ? 'done' : 'pending')
+                : (i < this.phase.stringIndex ? 'done' : null);
+            col.classList.toggle('current', i === current);
+            col.dataset.check = checkState ?? '';
         }
 
         if (this.meterFill) {
