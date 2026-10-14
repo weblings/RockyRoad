@@ -270,3 +270,17 @@ only, so the needle calmed down while the state machine kept seeing every raw re
 
 **How to apply:** keep the raw value for decisions, derive a display value for drawing, and expose
 the filter strengths as named constants since their right values are found by feel.
+
+---
+
+## A screen borrowing App-owned shared UI must set and clear the context it reads
+Tags: shared-state, settings-panel, screens, lifecycle
+Applies-when: a new screen opens a panel or overlay that App owns and another screen configures
+
+The desktop Settings panel is App-owned, but its guitar section and live-update callback were only
+configured by `ActiveSceneScreen`. Opened from the tuner, the invert-strings option would have been
+hidden and toggling it would not have reached the screen.
+
+**How to apply:** before reusing the panel, grep what it reads (`activeInstrumentType`,
+`onSettingsChange`, pause hooks), set those on mount and null them in `unmount()`.
+

@@ -27,6 +27,12 @@ Desktop slice of [[tuner-v2]]. XR (RockyRoad-0q4) and the string-color bug (Rock
   white outline fills (`strokeLockBorder`): the near edge sweeps from the right end, caps and far edge
   fade in together. Near side (above = sharp, below = flat) is fixed when the hold begins. No green, since
   string 4 is green. Dwell is 475ms correction, 235ms validation (were 250/120).
+- Back and Settings (RockyRoad-4bi.3, closed): top `.tuner-nav-bar`, Back left and Settings right, above the
+  controls row. Back (`back()`) leaves without marking the tuning done: `song-flow` returns to the pre-song
+  screen, `menu` to the library, `mid-song` resumes (no caller builds that context yet). Settings opens the
+  shared panel. The tuner sets `app.activeInstrumentType` and `app.onSettingsChange` on mount (cleared on
+  unmount) so the guitar section shows and invert-strings flips the needle live. Buttons sized to the Song
+  page's `.pre-back` (14px text, 6px radius).
 - Per-string checks in a left column: white when tuned, dim gray carried into the validation pass and
   brightened as re-verified. The "In tune!" overlay uses the same white check and white text.
 
@@ -35,6 +41,8 @@ Desktop slice of [[tuner-v2]]. XR (RockyRoad-0q4) and the string-color bug (Rock
 - `tsc --noEmit` clean after each change, dev server run, re-baked manifest carries `tuningOffsets`.
 - Tune button visible on both sample guitar songs. Controls row, canvas and lock animation iterated by the
   user in the browser with a live mic.
+- Back and Settings viewed by the user in the browser (button size mismatch vs the Song page found and fixed).
+  Back from each entry point and invert-strings toggling were not walked through by the agent.
 - Not checked: auto-tune before a stringed part, mid-song note-hit feedback, mic permission denial flow.
 
 ## Open
@@ -47,6 +55,9 @@ Desktop slice of [[tuner-v2]]. XR (RockyRoad-0q4) and the string-color bug (Rock
 - Meter height (32px) is hardcoded and may sit off the select's real height.
 - Remote song server needs a restart to pick up the manifest change.
 - String colors: tuner now reads the fretboard palette from `v2/src/shared/StringColors.ts` (RockyRoad-t4h), not yet viewed.
+- Desktop has no shared dark/light button classes (XR has `primary-dark`/`primary-light`), so sizes drifted
+  between `.pre-back` (14px/6px) and `.active-back-btn`/`.tuner-btn` (12px/5px). Filed as RockyRoad-4bi.5.
+- RockyRoad-4bi.4 (white line movement) still open.
 - Archive [[tuner-v2]] when RockyRoad-4bi closes.
 
 ## Lessons filed
@@ -55,3 +66,4 @@ Desktop slice of [[tuner-v2]]. XR (RockyRoad-0q4) and the string-color bug (Rock
   smoothing for display versus decisions.
 - [[lesson-desktop-dom]]: porting XR button sizes, custom range-input thumb, fixed-width live readouts,
   2D canvas state leaking between draws.
+- [[lesson-engineering-hygiene]]: shared App-owned UI needs per-screen context set and cleared.
