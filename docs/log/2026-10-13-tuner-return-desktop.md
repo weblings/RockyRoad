@@ -85,3 +85,13 @@ Desktop slice of [[tuner-v2]]. XR (RockyRoad-0q4) and the string-color bug (Rock
 - [[lesson-engineering-hygiene]]: shared App-owned UI needs per-screen context set and cleared.
 - [[lesson-engineering-hygiene]]: hold timers on noisy values need a grace period.
 - [[lesson-desktop-dom]]: clip-rect wipe for canvas outlines, absolute nav bar for centering.
+
+## Compact layout planning (2026-10-14)
+
+- Design discussion for small screens recorded in [[tuner-compact-layout]]: two same-sized boxes
+  (current string with dwell-driven border wipe, string progress), row when wide and stacked when narrow.
+  Setup controls on top, Restart/Done at the bottom, short-landscape tier dropped, XR later.
+- Existing page has no responsive behavior: canvas fixed 960x540, controls row one non-wrapping line.
+- Beads filed under RockyRoad-4bi: .6 controls split, .7 state/draw separation, .8 DOM boxes behind a
+  toggle, .9 responsive switching, .10 viability check (gates RockyRoad-0q4).
+- Code unchanged. Wireframes were first drawn with 4 strings from a guess, not the code (tuner is 6).

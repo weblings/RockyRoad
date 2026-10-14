@@ -35,6 +35,7 @@ every run. Human lookup for `[[id]]` citations elsewhere in `docs/`.
 | `songplayer-conversion` | [archive/SongPlayer.md](archive/SongPlayer.md) | SongPlayer.cs + SongPlayerSettings.cs — Conversion Analysis |
 | `soundtouch-speed-plan` | [archive/SoundTouchSpeedPlan.md](archive/SoundTouchSpeedPlan.md) | Pitch-preserving speed control — adopting SoundTouch |
 | `stretch-goals` | [planning/StretchGoals.md](planning/StretchGoals.md) | Stretch Goals |
+| `tuner-compact-layout` | [planning/TunerCompactLayout.md](planning/TunerCompactLayout.md) | Tuner compact layout |
 | `tuner-v2` | [planning/TunerV2.md](planning/TunerV2.md) | Tuner screen — v0 vs v2 visual alignment |
 | `webxr-iwsdk-plan` | [archive/WebXR_IWSDK.md](archive/WebXR_IWSDK.md) | WebXR / IWSDK Plan |
 | `xrproto-ui-flow-plan` | [archive/XRProtoUIFlowPlan.md](archive/XRProtoUIFlowPlan.md) | XRProto UI Flow Plan |
