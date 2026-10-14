@@ -1,6 +1,6 @@
 ---
 name: engineering-hygiene-lessons
-description: Design hygiene lessons — check before deleting/modifying shared global state, extending a data model consumed in multiple places, or reusing an existing broad function for a narrower purpose.
+description: Design hygiene lessons — check before deleting/modifying shared global state, extending a data model consumed in multiple places, reusing an existing broad function for a narrower purpose, or building a new component/resize behavior with no sketch reference.
 allowed-tools: Read, Grep
 ---
 
@@ -9,7 +9,7 @@ allowed-tools: Read, Grep
 Before deleting or modifying shared global state, extending a data model that's consumed in
 multiple places, gating async work on a live condition, or reusing an existing "does everything"
 function/helper for a narrower purpose, check
-`docs/lessons/engineering-hygiene.md` — 16 entries, each with `Tags:`/`Applies-when:`
+`docs/lessons/engineering-hygiene.md` — 20 entries, each with `Tags:`/`Applies-when:`
 lines for retrieval.
 
 ## How to use this skill

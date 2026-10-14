@@ -297,3 +297,17 @@ value did not help because the timer reads the raw value.
 
 **How to apply:** reset the hold only after the value stays out of range (or missing) for a short
 grace window (`DWELL_GRACE_MS`, 150ms), and clear the miss timer whenever a good reading arrives.
+
+---
+
+## A new component or resize behavior with no sketch reference gets ASCII wireframes before code
+Tags: design, wireframe, layout, responsive, planning
+Applies-when: building a UI component or page-resize behavior that has no existing design reference
+
+The compact tuner layout started with no reference. Wireframing first caught a wrong assumption (4
+strings, tuner has 6), a border wipe with no origin once the axis flipped, and controls placement
+reversed twice, all before any code. Each size tier was cheap to drop (short landscape was).
+
+**How to apply:** read the current code and logs first, then draw one ASCII box per state (idle,
+extreme, locked) and per size tier, noting what each tier changes. Record the settled sketch in a
+`docs/planning/` doc and build from that. Skip when a Figma or XR reference already exists.
