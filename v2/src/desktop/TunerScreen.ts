@@ -20,9 +20,11 @@ type TunerPhase =
 
 // Per-string colors, low string first (index 0 = thickest).
 // Time constant for easing the needle toward the detected pitch; higher is calmer but laggier.
-const NEEDLE_SMOOTHING_MS = 140;
+const NEEDLE_SMOOTHING_MS = 160;
 // Readings in the median filter that rejects single-frame spikes before easing.
-const NEEDLE_MEDIAN_WINDOW = 5;
+const NEEDLE_MEDIAN_WINDOW = 7;
+// Minimum pitch-detector clarity (0 to 1) for a reading to move the needle.
+const NEEDLE_MIN_CLARITY = 0.8;
 // Matches the mic meter's 8px thickness and full rounding.
 const STRING_THICKNESS = 8;
 // Needle's resting length, and the width of the left column holding the per-string checks.
@@ -32,6 +34,8 @@ const CHECK_COL = 24;
 const NEEDLE_REACH = 0.45;
 // Thinner than the strings so the needle stays distinct when it overlaps one.
 const NEEDLE_THICKNESS = 4;
+// Width of the white outline that fills around the active string while the note is held.
+const LOCK_BORDER = 2;
 const STRING_COLORS = ['#FF4444', '#FFA500', '#FFFF00', '#00CC00', '#4488FF', '#FF88FF'];
 
 // Tolerance thresholds (cents)
@@ -64,9 +68,12 @@ export class TunerScreen implements IScreen {
     private detectedCents: number | null = null;
     // Eased copy of detectedCents for drawing only; the state machine keeps using the raw value.
     private displayCents: number | null = null;
+    private detectedClarity = 0;
     private lastDrawTs = 0;
     private centsHistory: number[] = [];
     private historyString = -1;
+    // Which side of the string the needle was on when the hold began: -1 above, +1 below.
+    private lockSide: -1 | 1 = -1;
     private completeTimestamp = 0;
 
 
@@ -274,6 +281,7 @@ export class TunerScreen implements IScreen {
             if (result) {
                 const cents = centDeviationWithOctaveCorrection(result.frequency, this.targetMidis[currentString]);
                 this.detectedCents = cents;
+                this.detectedClarity = result.clarity;
                 this.advanceStateMachine(cents, timestamp);
             } else {
                 this.detectedCents = null;
@@ -426,6 +434,53 @@ export class TunerScreen implements IScreen {
                             : -1;
         const isValidation = this.phase.tag === 'validation';
 
+        const dt = timestamp - this.lastDrawTs;
+        this.lastDrawTs = timestamp;
+        if (this.detectedCents === null || currentString !== this.historyString) this.centsHistory = [];
+        this.historyString = currentString;
+        if (this.detectedCents === null) {
+            this.displayCents = null;
+        } else {
+            // Low-clarity readings (harmonics, octave slips) are skipped for display only, so the
+            // needle holds its last spot instead of leaping.
+            if (this.detectedClarity >= NEEDLE_MIN_CLARITY) {
+                this.centsHistory.push(this.detectedCents);
+                if (this.centsHistory.length > NEEDLE_MEDIAN_WINDOW) this.centsHistory.shift();
+            }
+            if (this.centsHistory.length > 0) {
+                const target = [...this.centsHistory].sort((a, b) => a - b)[this.centsHistory.length >> 1];
+                this.displayCents = this.displayCents === null || this.centsHistory.length === 1
+                    ? target
+                    : this.displayCents + (target - this.displayCents) * (1 - Math.exp(-dt / NEEDLE_SMOOTHING_MS));
+            }
+        }
+
+        const stringLen = W - marginRight - marginLeft;
+        const needleCx = marginLeft + stringLen / 2;
+        const showNeedle = this.detectedCents !== null && this.displayCents !== null && currentString >= 0;
+        let needleY = 0;
+        let dwellProgress = 0;
+        if (showNeedle) {
+            const clamped = Math.max(-50, Math.min(50, this.displayCents!));
+            const stringSpacing = n > 1 ? spacing : 50;
+            needleY = stringY(currentString) - (clamped / 50) * stringSpacing * NEEDLE_REACH;
+            const dwellMs = this.phase.tag === 'correction' ? CORRECTION_DWELL_MS : VALIDATION_DWELL_MS;
+            dwellProgress = this.dwellStart !== -Infinity
+                ? Math.min(1, (timestamp - this.dwellStart) / dwellMs)
+                : 0;
+
+            if (dwellProgress === 0) {
+                this.lockSide = needleY <= stringY(currentString) ? -1 : 1;
+                // Drawn before the strings so it slips behind the active one when they line up.
+                ctx.fillStyle = '#ffffff';
+                ctx.globalAlpha = 0.9;
+                ctx.beginPath();
+                ctx.roundRect(needleCx - NEEDLE_LENGTH / 2, needleY - NEEDLE_THICKNESS / 2, NEEDLE_LENGTH, NEEDLE_THICKNESS, NEEDLE_THICKNESS / 2);
+                ctx.fill();
+                ctx.globalAlpha = 1;
+            }
+        }
+
         for (let i = 0; i < n; i++) {
             const y = stringY(i);
             const isActive = i === currentString;
@@ -434,9 +489,14 @@ export class TunerScreen implements IScreen {
             ctx.globalAlpha = isActive ? 1.0 : (isValidation ? 0.55 : 0.35);
             ctx.fillStyle = color;
             ctx.beginPath();
-            ctx.roundRect(marginLeft, y - STRING_THICKNESS / 2, W - marginRight - marginLeft, STRING_THICKNESS, STRING_THICKNESS / 2);
+            ctx.roundRect(marginLeft, y - STRING_THICKNESS / 2, stringLen, STRING_THICKNESS, STRING_THICKNESS / 2);
             ctx.fill();
             ctx.globalAlpha = 1;
+
+            // White outline wraps the string starting from the side the needle was on.
+            if (isActive && showNeedle && dwellProgress > 0) {
+                strokeLockBorder(ctx, marginLeft, y, stringLen, this.lockSide, dwellProgress);
+            }
 
             const midi = this.targetMidis[i];
             ctx.fillStyle = isActive ? '#fff' : '#8b8b8b';
@@ -453,54 +513,16 @@ export class TunerScreen implements IScreen {
             if (checkState) drawCheck(ctx, PAD + 6, y, checkState === 'done' ? '#ffffff' : '#515151');
         }
 
-        const dt = timestamp - this.lastDrawTs;
-        this.lastDrawTs = timestamp;
-        if (this.detectedCents === null || currentString !== this.historyString) this.centsHistory = [];
-        this.historyString = currentString;
-        if (this.detectedCents === null) {
-            this.displayCents = null;
-        } else {
-            this.centsHistory.push(this.detectedCents);
-            if (this.centsHistory.length > NEEDLE_MEDIAN_WINDOW) this.centsHistory.shift();
-            const target = [...this.centsHistory].sort((a, b) => a - b)[this.centsHistory.length >> 1];
-            this.displayCents = this.displayCents === null || this.centsHistory.length === 1
-                ? target
-                : this.displayCents + (target - this.displayCents) * (1 - Math.exp(-dt / NEEDLE_SMOOTHING_MS));
-        }
-
-        if (this.detectedCents !== null && this.displayCents !== null && currentString >= 0) {
-            const y = stringY(currentString);
-            const clamped = Math.max(-50, Math.min(50, this.displayCents));
-            const stringSpacing = n > 1 ? spacing : 50;
-            const maxOffset = stringSpacing * NEEDLE_REACH;
-            const offsetY = -(clamped / 50) * maxOffset;
-            const dwellMs = this.phase.tag === 'correction' ? CORRECTION_DWELL_MS : VALIDATION_DWELL_MS;
-            const dwellProgress = this.dwellStart !== -Infinity
-                ? Math.min(1, (timestamp - this.dwellStart) / dwellMs)
-                : 0;
-
-            // While held in tune the needle lengthens to the full string, thickens to match it and
-            // settles onto it, so the lock reads without a color change (a string can be green).
-            const stringLen = W - marginRight - marginLeft;
-            const needleLen = NEEDLE_LENGTH + dwellProgress * (stringLen - NEEDLE_LENGTH);
-            const needleThick = NEEDLE_THICKNESS + dwellProgress * (STRING_THICKNESS - NEEDLE_THICKNESS);
-            const needleY = y + offsetY * (1 - dwellProgress);
-            const needleCx = marginLeft + stringLen / 2;
-            ctx.fillStyle = '#ffffff';
-            ctx.globalAlpha = 0.9 + 0.1 * dwellProgress;
-            ctx.beginPath();
-            ctx.roundRect(needleCx - needleLen / 2, needleY - needleThick / 2, needleLen, needleThick, needleThick / 2);
-            ctx.fill();
-
+        if (showNeedle) {
             ctx.globalAlpha = 1 - dwellProgress;
             ctx.fillStyle = '#c8c8c8';
             ctx.font = "14px 'Inter', system-ui, sans-serif";
             ctx.textAlign = 'left';
             ctx.textBaseline = 'middle';
-            const shown = Math.round(this.displayCents);
+            const shown = Math.round(this.displayCents!);
             // Past ±99 the exact number adds nothing (needle is pinned), so say which way to go.
             const label = Math.abs(shown) > 99 ? (shown > 0 ? 'Sharp' : 'Flat') : (shown > 0 ? `+${shown}` : `${shown}`);
-            ctx.fillText(label, needleCx + NEEDLE_LENGTH / 2 + 12, y + offsetY);
+            ctx.fillText(label, needleCx + NEEDLE_LENGTH / 2 + 12, needleY);
             ctx.globalAlpha = 1;
         }
 
@@ -538,6 +560,45 @@ const NOTE_NAMES_SHARP = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 
 function midiToNoteName(midi: number): string {
     const octave = Math.floor(midi / 12) - 1;
     return NOTE_NAMES_SHARP[midi % 12] + octave;
+}
+
+// Outlines the string's rounded rect: the near edge (top for side -1, bottom for side 1) sweeps out
+// from its midpoint while the caps and far edge fade in together.
+function strokeLockBorder(
+    ctx: CanvasRenderingContext2D, x: number, y: number, len: number, side: -1 | 1, progress: number,
+): void {
+    const b = LOCK_BORDER;
+    const x0 = x - b / 2, w = len + b, h = STRING_THICKNESS + b, r = h / 2;
+    const cx = x0 + w / 2;
+    const near = y + side * r, far = y - side * r;
+    const edge = (w - 2 * r) / 2;
+    ctx.save();
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = b;
+    ctx.lineCap = 'butt';
+    // Near edge sweeps out from its midpoint, the direction the note needs to travel from.
+    ctx.setLineDash([progress * edge, edge * 4]);
+    for (const dir of [1, -1]) {
+        ctx.save();
+        ctx.translate(cx, 0);
+        ctx.scale(dir, 1);
+        ctx.translate(-cx, 0);
+        ctx.beginPath();
+        ctx.moveTo(cx, near);
+        ctx.lineTo(x0 + w - r, near);
+        ctx.stroke();
+        ctx.restore();
+    }
+    // Caps and far edge fade in together, so that side fills at once instead of closing in.
+    ctx.setLineDash([]);
+    ctx.globalAlpha = progress;
+    ctx.beginPath();
+    ctx.moveTo(x0 + w - r, near);
+    ctx.arc(x0 + w - r, y, r, side * Math.PI / 2, -side * Math.PI / 2, side > 0);
+    ctx.lineTo(x0 + r, far);
+    ctx.arc(x0 + r, y, r, -side * Math.PI / 2, side * Math.PI / 2, side > 0);
+    ctx.stroke();
+    ctx.restore();
 }
 
 function drawCheck(ctx: CanvasRenderingContext2D, cx: number, cy: number, color: string): void {
