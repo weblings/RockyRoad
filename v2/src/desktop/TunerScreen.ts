@@ -83,6 +83,8 @@ export class TunerScreen implements IScreen {
     // Eased copy of detectedCents for drawing only; the state machine keeps using the raw value.
     private displayCents: number | null = null;
     private detectedClarity = 0;
+    // Hold progress 0..1, nonzero only while the needle is shown. Shared by canvas and DOM renderers.
+    private dwellProgress = 0;
     private lastDrawTs = 0;
     private centsHistory: number[] = [];
     private historyString = -1;
@@ -327,7 +329,8 @@ export class TunerScreen implements IScreen {
             }
         }
 
-        this.drawCanvas(timestamp);
+        this.updateDisplayState(timestamp);
+        this.drawCanvas();
         this.rafId = requestAnimationFrame(t => this.tick(t));
 
         if (this.phase.tag === 'complete' && this.completeTimestamp > 0) {
@@ -473,7 +476,39 @@ export class TunerScreen implements IScreen {
         }
     }
 
-    private drawCanvas(timestamp: number): void {
+    // Updates the eased needle value and hold progress that every renderer reads.
+    private updateDisplayState(timestamp: number): void {
+        const currentString = this.phase.tag === 'complete' ? -1 : this.phase.stringIndex;
+
+        const dt = timestamp - this.lastDrawTs;
+        this.lastDrawTs = timestamp;
+        if (this.detectedCents === null || currentString !== this.historyString) this.centsHistory = [];
+        this.historyString = currentString;
+        if (this.detectedCents === null) {
+            this.displayCents = null;
+        } else {
+            // Low-clarity readings (harmonics, octave slips) are skipped for display only, so the
+            // needle holds its last spot instead of leaping.
+            if (this.detectedClarity >= NEEDLE_MIN_CLARITY) {
+                this.centsHistory.push(this.detectedCents);
+                if (this.centsHistory.length > NEEDLE_MEDIAN_WINDOW) this.centsHistory.shift();
+            }
+            if (this.centsHistory.length > 0) {
+                const target = [...this.centsHistory].sort((a, b) => a - b)[this.centsHistory.length >> 1];
+                this.displayCents = this.displayCents === null || this.centsHistory.length === 1
+                    ? target
+                    : this.displayCents + (target - this.displayCents) * (1 - Math.exp(-dt / NEEDLE_SMOOTHING_MS));
+            }
+        }
+
+        const showNeedle = this.detectedCents !== null && this.displayCents !== null && currentString >= 0;
+        const dwellMs = this.phase.tag === 'correction' ? CORRECTION_DWELL_MS : VALIDATION_DWELL_MS;
+        this.dwellProgress = showNeedle && this.dwellStart !== -Infinity
+            ? Math.min(1, (timestamp - this.dwellStart) / dwellMs)
+            : 0;
+    }
+
+    private drawCanvas(): void {
         const canvas = this.canvas!;
         const ctx = this.ctx2d!;
         const n = this.offsets.length;
@@ -507,42 +542,18 @@ export class TunerScreen implements IScreen {
                             : -1;
         const isValidation = this.phase.tag === 'validation';
 
-        const dt = timestamp - this.lastDrawTs;
-        this.lastDrawTs = timestamp;
-        if (this.detectedCents === null || currentString !== this.historyString) this.centsHistory = [];
-        this.historyString = currentString;
-        if (this.detectedCents === null) {
-            this.displayCents = null;
-        } else {
-            // Low-clarity readings (harmonics, octave slips) are skipped for display only, so the
-            // needle holds its last spot instead of leaping.
-            if (this.detectedClarity >= NEEDLE_MIN_CLARITY) {
-                this.centsHistory.push(this.detectedCents);
-                if (this.centsHistory.length > NEEDLE_MEDIAN_WINDOW) this.centsHistory.shift();
-            }
-            if (this.centsHistory.length > 0) {
-                const target = [...this.centsHistory].sort((a, b) => a - b)[this.centsHistory.length >> 1];
-                this.displayCents = this.displayCents === null || this.centsHistory.length === 1
-                    ? target
-                    : this.displayCents + (target - this.displayCents) * (1 - Math.exp(-dt / NEEDLE_SMOOTHING_MS));
-            }
-        }
+        const dwellProgress = this.dwellProgress;
 
         const stringLen = W - marginRight - marginLeft;
         // Needle sits in the gutter past the strings' right ends, so its label never overlaps one.
         const needleX = marginLeft + stringLen + 12;
         const showNeedle = this.detectedCents !== null && this.displayCents !== null && currentString >= 0;
         let needleY = 0;
-        let dwellProgress = 0;
         if (showNeedle) {
             const clamped = Math.max(-50, Math.min(50, this.displayCents!));
             const stringSpacing = n > 1 ? spacing : 50;
             const offsetY = -(clamped / 50) * stringSpacing * NEEDLE_REACH;
             needleY = stringY(currentString) + offsetY;
-            const dwellMs = this.phase.tag === 'correction' ? CORRECTION_DWELL_MS : VALIDATION_DWELL_MS;
-            dwellProgress = this.dwellStart !== -Infinity
-                ? Math.min(1, (timestamp - this.dwellStart) / dwellMs)
-                : 0;
 
             // During the hold the needle settles onto the string's height and thickens to match it.
             needleY = stringY(currentString) + offsetY * (1 - dwellProgress);

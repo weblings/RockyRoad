@@ -108,3 +108,12 @@ Desktop slice of [[tuner-v2]]. XR (RockyRoad-0q4) and the string-color bug (Rock
 - Beads filed under RockyRoad-4bi: .6 controls split, .7 state/draw separation, .8 DOM boxes behind a
   toggle, .9 responsive switching, .10 viability check (gates RockyRoad-0q4).
 - Code unchanged. Wireframes were first drawn with 4 strings from a guess, not the code (tuner is 6).
+
+## Display state split (RockyRoad-4bi.7, closed 2026-10-14)
+
+- New `updateDisplayState(timestamp)` in `TunerScreen.ts` owns the median/easing/clarity gate for
+  `displayCents` and a new `dwellProgress` field. `tick()` calls it right before `drawCanvas()`, which now
+  only reads both (and lost its `timestamp` param). Pure refactor, intended for the DOM boxes in .8.
+- One benign difference: the update now runs when `offsets` is empty, where `drawCanvas()` used to return first.
+- Verified `tsc --noEmit` clean. Not run in the browser.
+- [[lesson-engineering-hygiene]]: derive shared display state in an update step, not inside a draw call.

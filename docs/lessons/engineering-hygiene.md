@@ -311,3 +311,17 @@ reversed twice, all before any code. Each size tier was cheap to drop (short lan
 **How to apply:** read the current code and logs first, then draw one ASCII box per state (idle,
 extreme, locked) and per size tier, noting what each tier changes. Record the settled sketch in a
 `docs/planning/` doc and build from that. Skip when a Figma or XR reference already exists.
+
+---
+
+## Derived display state belongs in an update step, not inside a draw function
+Tags: rendering, state, refactor, drift
+Applies-when: adding a second renderer (DOM, XR) for values a canvas draw function currently computes inline
+
+`drawCanvas()` eased the needle and computed dwell progress as it drew, so no other renderer could read
+them without duplicating the math. Two copies would drift, and the easing is stateful (it needs
+exactly one update per frame), so calling the draw function twice would also double-step it.
+
+**How to apply:** hoist the stateful math into one `update…(timestamp)` called once per frame before
+all renderers, stored on fields they only read. Check what the draw function's early returns used to
+skip, since the hoisted code now runs on those paths too.
