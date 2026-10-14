@@ -12,6 +12,22 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { background: #000; overflow: hidden; font-family: 'Inter', system-ui, sans-serif; }
 
+    /* Shared buttons. Colors mirror XR's primary-dark/primary-light (panel.css), but sizes are
+       desktop px (XR's 12px is world-space scaled). */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      padding: 8px 14px; border: none; border-radius: 6px;
+      font-size: 14px; font-family: inherit; cursor: pointer; white-space: nowrap;
+    }
+    .btn svg { display: block; flex-shrink: 0; }
+    .btn-dark { background: #333333; color: #ffffff; }
+    .btn-dark:hover { background: #515151; }
+    .btn-dark:active { background: #7c7c7c; }
+    .btn-light { background: #dadada; color: #111111; }
+    .btn-light:hover { background: #bebebe; }
+    .btn-light:active { background: #9c9c9c; }
+    .btn-lg { padding: 10px 14px; font-size: 15px; }
+
     canvas {
       display: block;
       width: 100vw;
@@ -58,18 +74,7 @@
       font-weight: 700;
       margin-bottom: 16px;
     }
-    #settings-close {
-      display: block;
-      width: 100%;
-      padding: 10px;
-      background: #dadada;
-      border: none;
-      border-radius: 6px;
-      color: #111111;
-      font-size: 15px;
-      cursor: pointer;
-    }
-    #settings-close:hover { background: #bebebe; }
+    #settings-close { display: flex; width: 100%; }
 
     /* 3-2-1 countdown overlay */
     #countdown-overlay {
@@ -103,12 +108,6 @@
     .lib-splash-inner { text-align: center; max-width: 400px; padding: 24px; }
     .lib-title  { font-size: 32px; font-weight: 700; margin-bottom: 12px; }
     .lib-subtitle { font-size: 15px; color: #888; margin-bottom: 28px; }
-    .lib-btn-primary {
-      display: block; width: 100%; padding: 12px;
-      background: #dadada; border: none; border-radius: 8px;
-      color: #111111; font-size: 16px; cursor: pointer; margin-bottom: 10px;
-    }
-    .lib-btn-primary:hover { background: #bebebe; }
     .lib-btn-secondary {
       display: block; width: 100%; padding: 10px;
       background: transparent; border: 1px solid #444; border-radius: 8px;
@@ -279,14 +278,7 @@
       display: flex; align-items: center; justify-content: center;
       overflow-y: auto;
     }
-    .pre-back {
-      position: absolute; top: 16px; left: 16px;
-      display: flex; align-items: center; gap: 6px;
-      padding: 8px 14px; background: #333333;
-      border: none; border-radius: 6px; color: #fff; font-size: 14px; cursor: pointer;
-    }
-    .pre-back:hover { background: #515151; }
-    .pre-back svg { display: block; flex-shrink: 0; }
+    .pre-back { position: absolute; top: 16px; left: 16px; }
     .pre-content {
       display: flex; flex-direction: column; align-items: center;
       gap: 12px; width: 100%; max-width: 360px; padding: 60px 24px 32px;
@@ -366,16 +358,9 @@
       width: 100%; display: flex; flex-direction: row; justify-content: center; gap: 8px; margin-top: 8px;
     }
     .pre-tune-btn, .pre-play-btn {
-      width: calc(50% - 4px); aspect-ratio: 15 / 3.6; padding: 0; border: none; border-radius: 6px;
-      display: flex; align-items: center; justify-content: center; gap: 6px;
-      font-size: 15px; font-weight: 500; cursor: pointer;
+      width: calc(50% - 4px); aspect-ratio: 15 / 3.6; padding: 0; font-weight: 500;
     }
-    .pre-tune-btn { background: #333333; color: #fff; }
-    .pre-tune-btn:hover { background: #515151; }
-    .pre-tune-btn svg { display: block; flex-shrink: 0; }
     .pre-tune-btn.hidden { display: none; }
-    .pre-play-btn { background: #dadada; color: #111111; }
-    .pre-play-btn:hover { background: #bebebe; }
 
     /* ── Tuner screen ──────────────────────────────────────────────────────── */
     .tuner-screen {
@@ -388,8 +373,6 @@
       display: flex; align-items: center; justify-content: space-between;
       padding: 16px;
     }
-    /* Match the Song page's .pre-back sizing (14px text, 6px radius). */
-    .tuner-nav-bar .active-back-btn { font-size: 14px; border-radius: 6px; }
 
     .tuner-body {
       flex: 1; display: flex; align-items: center; justify-content: center;
@@ -443,15 +426,6 @@
     }
     #tuner-gain-val { font-size: 12px; color: #c8c8c8; width: 36px; text-align: right; font-variant-numeric: tabular-nums; }
 
-    .tuner-btn {
-      padding: 8px 14px; background: #333333;
-      border: none; border-radius: 5px; color: #ffffff; font-size: 12px;
-      font-family: inherit; cursor: pointer; white-space: nowrap;
-    }
-    .tuner-btn:hover { background: #515151; }
-    .tuner-btn-exit { background: #dadada; color: #111111; }
-    .tuner-btn-exit:hover { background: #bebebe; }
-
     .tuner-canvas-wrap {
       position: relative;
       background: #1a1a1a; border-radius: 10px;
@@ -469,12 +443,7 @@
     .tuner-check { width: 72px; height: 72px; fill: none; stroke: #ffffff; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
     .tuner-in-tune { font-size: 20px; font-weight: 600; color: #ffffff; }
 
-    .tuner-exit-btn {
-      margin-top: 8px; padding: 10px 28px;
-      background: #dadada; border: none; border-radius: 8px;
-      color: #111111; font-size: 15px; font-weight: 600; cursor: pointer;
-    }
-    .tuner-exit-btn:hover { background: #bebebe; }
+    .tuner-exit-btn { margin-top: 8px; padding: 10px 28px; font-weight: 600; }
 
     .tuner-mic-wait {
       position: absolute; inset: 0;
@@ -500,14 +469,7 @@
     }
 
     /* Back button */
-    .active-back-btn {
-      display: flex; align-items: center; gap: 6px;
-      padding: 8px 14px; background: #333333;
-      border: none; border-radius: 5px; color: #ffffff; font-size: 12px;
-      cursor: pointer; flex-shrink: 0;
-    }
-    .active-back-btn:hover { background: #515151; }
-    .active-back-btn svg { display: block; flex-shrink: 0; }
+    .active-back-btn { flex-shrink: 0; }
 
     /* Play/pause — circular, stands out as primary action */
     .active-play-btn {
@@ -615,7 +577,7 @@
             </label>
           </div>
         </div>
-        <button id="settings-close">Continue</button>
+        <button id="settings-close" class="btn btn-light btn-lg">Continue</button>
       </div>
     </div>
 

@@ -45,6 +45,16 @@ Desktop slice of [[tuner-v2]]. XR (RockyRoad-0q4) and the string-color bug (Rock
   Back from each entry point and invert-strings toggling were not walked through by the agent.
 - Not checked: auto-tune before a stringed part, mid-song note-hit feedback, mic permission denial flow.
 
+- Shared buttons (RockyRoad-4bi.5, closed): `.btn` (14px, `8px 14px`, 6px radius) with `.btn-dark`,
+  `.btn-light` and `.btn-lg` (15px) at the top of `v2/desktop.html`, colors from XR's primary-dark/light plus
+  an active state. Migrated Back, Settings, Restart, Done, Tune, Play, settings Continue and the tuner
+  complete-overlay Done. Removed `.tuner-btn`, `.tuner-btn-exit`, the `.tuner-nav-bar` override and the
+  unused `.lib-btn-primary`. In-song bar and Tuner buttons grow from 12px/5px to 14px/6px.
+  Left alone: `.active-play-btn` (circular) and `.lib-btn-secondary` (outline).
+  Verified `tsc --noEmit` clean only, not viewed in the browser.
+- Follow-ups filed: RockyRoad-6zf (port Aurora's ARIA dropdown logic), RockyRoad-vqk (shared design system
+  package across projects).
+
 ## Open
 
 - Closing RockyRoad-4bi.1 needs a call on finding 3 (`.tuner-select` flat input style, low confidence, tied
@@ -55,12 +65,12 @@ Desktop slice of [[tuner-v2]]. XR (RockyRoad-0q4) and the string-color bug (Rock
 - Meter height (32px) is hardcoded and may sit off the select's real height.
 - Remote song server needs a restart to pick up the manifest change.
 - String colors: tuner now reads the fretboard palette from `v2/src/shared/StringColors.ts` (RockyRoad-t4h), not yet viewed.
-- Desktop has no shared dark/light button classes (XR has `primary-dark`/`primary-light`), so sizes drifted
-  between `.pre-back` (14px/6px) and `.active-back-btn`/`.tuner-btn` (12px/5px). Filed as RockyRoad-4bi.5.
 - RockyRoad-4bi.4 (white line movement) still open.
 - Archive [[tuner-v2]] when RockyRoad-4bi closes.
 
 ## Lessons filed
+
+- [[lesson-desktop-dom]]: XR panel.css px values are not desktop px, shared `.btn` cascade order.
 
 - [[lesson-engineering-hygiene]]: parallel loading path entry gained a recurrence note, new entry on
   smoothing for display versus decisions.

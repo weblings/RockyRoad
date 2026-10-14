@@ -119,6 +119,10 @@ XR's radius in pixels after shrinking also read as too round: 10px on a ~36px-ta
 so the row lines up with sibling controls, and pick a radius from the same-size neighbors
 (`.pre-back` uses 6px) instead of carrying over the old value.
 
+Even XR's `panel.css` pixel values (12px text, 5px radius) are world-space scaled, so copying them
+verbatim made desktop buttons look small (RockyRoad-4bi.5). Take XR's colors and roles, size in
+desktop px.
+
 ---
 
 ## A custom range-input thumb forces a full rebuild of the track, including the fill
@@ -157,3 +161,18 @@ rounding the ends of a dashed progress outline that was meant to end square. `se
 
 **Fix:** wrap each helper in `ctx.save()` / `ctx.restore()`, and set the properties a draw depends
 on explicitly rather than assuming the defaults.
+
+---
+
+## A shared `.btn` base only wins over screen rules that come before it
+Tags: css, cascade, shared-classes, specificity, inline-flex
+Applies-when: migrating per-screen buttons onto shared `.btn`/`.btn-dark`/`.btn-light` classes
+
+Single-class selectors tie on specificity, so a screen rule that sets `padding` or `font-size` only
+overrides the shared class if it appears later in the stylesheet. `.btn` is `inline-flex`, so a
+full-width button (`#settings-close`) needs `display: flex` to sit on its own line at `width: 100%`.
+
+**How to apply:** keep the shared block at the top of `desktop.html`'s `<style>`, leave only layout
+(position, width, margins) in the screen classes, and set any deliberate size override there.
+Remove the old color/size declarations rather than overriding them, and grep `src/` for the class
+before deleting it (`.lib-btn-primary` had no users).

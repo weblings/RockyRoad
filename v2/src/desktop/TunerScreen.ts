@@ -133,11 +133,11 @@ export class TunerScreen implements IScreen {
         container.innerHTML = `
             <div class="tuner-screen">
                 <div class="tuner-nav-bar">
-                    <button class="active-back-btn" id="tuner-nav-back" type="button">
+                    <button class="btn btn-dark" id="tuner-nav-back" type="button">
                         ${BACK_SVG}
                         <span>Back</span>
                     </button>
-                    <button class="active-back-btn" id="tuner-settings" type="button">
+                    <button class="btn btn-dark" id="tuner-settings" type="button">
                         ${SETTINGS_SVG}
                         <span>Settings</span>
                     </button>
@@ -161,8 +161,8 @@ export class TunerScreen implements IScreen {
                                 <span id="tuner-gain-val">${this.inputGain}×</span>
                             </label>
                             <div class="tuner-ctrl-divider"></div>
-                            <button class="tuner-btn" id="tuner-restart">Restart</button>
-                            <button class="tuner-btn tuner-btn-exit" id="tuner-back">Done</button>
+                            <button class="btn btn-dark" id="tuner-restart">Restart</button>
+                            <button class="btn btn-light" id="tuner-back">Done</button>
                         </div>
 
                         <div class="tuner-canvas-wrap">
@@ -170,7 +170,7 @@ export class TunerScreen implements IScreen {
                             <div class="tuner-complete-overlay hidden" id="tuner-complete">
                                 <svg class="tuner-check" viewBox="0 0 16 16" aria-hidden="true"><polyline points="3,8 6.5,12 13,4" /></svg>
                                 <div class="tuner-in-tune">In tune!</div>
-                                ${!autoAdvance ? `<button class="tuner-exit-btn" id="tuner-exit-complete">Done</button>` : ''}
+                                ${!autoAdvance ? `<button class="btn btn-light btn-lg tuner-exit-btn" id="tuner-exit-complete">Done</button>` : ''}
                             </div>
                             <div class="tuner-mic-wait hidden" id="tuner-mic-wait">Waiting for mic access…</div>
                         </div>
