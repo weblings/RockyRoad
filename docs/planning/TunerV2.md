@@ -47,6 +47,8 @@ now uses. Canvas `fillStyle` can't inherit CSS variables, so these need
 matching hex constants updated by hand.
 
 ### 6. `STRING_COLORS` doesn't match `FretPlayerScene3D` (pre-existing, not a v2 regression)
+**Resolved 2026-10-13 (RockyRoad-t4h):** both now read one palette from `v2/src/shared/StringColors.ts`.
+
 `TunerScreen.ts`'s `STRING_COLORS` (`Red/Orange/Yellow/Green/Blue/Pink`) is
 commented "mirrors FretPlayerScene3D string palette" but doesn't actually
 match `FretPlayerScene3D.ts`'s `STRING_COLORS` (`Red/Yellow/Cyan/Orange/Green/Purple`,

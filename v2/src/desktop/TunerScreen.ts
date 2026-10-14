@@ -4,6 +4,7 @@ import type { SongIndexEntry, SongIndexPart } from "../shared/SongIndex";
 import type { ISongSource } from "../shared/SongSource";
 import { STANDARD_BASE_NOTES } from "../shared/SongIndex";
 import { loadSettings, saveSettings } from "../shared/Settings";
+import { stringColorCss } from "../shared/StringColors";
 import type { PitchDetector } from "../shared/PitchDetector";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -38,7 +39,6 @@ const NEEDLE_REACH = 0.45;
 const NEEDLE_THICKNESS = 4;
 // Width of the white outline that fills around the active string while the note is held.
 const LOCK_BORDER = 2;
-const STRING_COLORS = ['#FF4444', '#FFA500', '#FFFF00', '#00CC00', '#4488FF', '#FF88FF'];
 
 // Tolerance thresholds (cents)
 const CORRECTION_PASS_CENTS = 10;
@@ -486,7 +486,7 @@ export class TunerScreen implements IScreen {
         for (let i = 0; i < n; i++) {
             const y = stringY(i);
             const isActive = i === currentString;
-            const color = STRING_COLORS[i] ?? '#ffffff';
+            const color = stringColorCss(i) ?? '#ffffff';
 
             ctx.globalAlpha = isActive ? 1.0 : (isValidation ? 0.55 : 0.35);
             ctx.fillStyle = color;

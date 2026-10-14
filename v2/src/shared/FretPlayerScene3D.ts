@@ -5,6 +5,7 @@ import { FretCamera, getFretPosition } from "./FretCamera";
 import { getImage } from "./UIImage";
 import type { UIImage } from "./UIImage";
 import { makeColor, lerp as lerpColor } from "./UIColor";
+import { STRING_COLOR_NAMES, STRING_COLOR_OFFSET, stringColor } from "./StringColors";
 import type { UIColor } from "./UIColor";
 import { lerp, clamp } from "./MathUtil";
 import type { SongStructure, SongInstrumentNotes, SongInstrumentPart, SongNote, CentsOffset } from "./SongFormat";
@@ -20,18 +21,6 @@ const NUM_FRETS = 24;
 // so this isn't "N frets" of radius — getFretPosition(5) ≈ 75, a ~150-unit window (~2/3 of
 // the 24-fret neck), an approximate starting point pending an in-headset check.
 const VOLUME_HALF_WIDTH = getFretPosition(5);
-
-// 7 colors cycling for string assignment (offset=1 for standard guitar/bass)
-const STRING_COLORS: UIColor[] = [
-    makeColor(0.1, 0.8, 0),        // Green
-    makeColor(1, 0, 0),            // Red
-    makeColor(1, 1, 0),            // Yellow
-    makeColor(0, 0.6, 1),          // Cyan
-    makeColor(1, 0.647, 0),        // Orange
-    makeColor(0.1, 0.8, 0),        // Green (second)
-    makeColor(0.8, 0, 0.8),        // Purple
-];
-const STRING_COLOR_NAMES = ["Green", "Red", "Yellow", "Cyan", "Orange", "Green", "Purple"];
 
 // Shared white-half-alpha constant — used heavily for fret lines and shadows
 const WHITE_HALF = makeColor(1, 1, 1, 0.5);
@@ -192,8 +181,7 @@ export class FretPlayerScene3D extends ChartScene3D {
 
         this.currentStringNotes = new Array(this.numStrings).fill(null);
 
-        // stringColorOffset=1 for standard guitar/bass
-        const colorOffset = 1;
+        const colorOffset = STRING_COLOR_OFFSET;
 
         this.stringNoteImages = [];
         this.stringNoteTrailImages = [];
@@ -828,7 +816,7 @@ export class FretPlayerScene3D extends ChartScene3D {
     }
 
     private getStringColor(str: number): UIColor {
-        return STRING_COLORS[str + 1]; // stringColorOffset = 1
+        return stringColor(str);
     }
 
     private getStringOffset(str: number): number {

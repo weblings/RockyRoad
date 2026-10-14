@@ -46,7 +46,7 @@ Desktop slice of [[tuner-v2]]. XR (RockyRoad-0q4) and the string-color bug (Rock
 - A faint ±10 cent target band around the active string was proposed, not built.
 - Meter height (32px) is hardcoded and may sit off the select's real height.
 - Remote song server needs a restart to pick up the manifest change.
-- String colors tie to RockyRoad-t4h.
+- String colors: tuner now reads the fretboard palette from `v2/src/shared/StringColors.ts` (RockyRoad-t4h), not yet viewed.
 - Archive [[tuner-v2]] when RockyRoad-4bi closes.
 
 ## Lessons filed
