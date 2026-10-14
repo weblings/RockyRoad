@@ -85,6 +85,19 @@ Desktop slice of [[tuner-v2]]. XR (RockyRoad-0q4) and the string-color bug (Rock
 - [[lesson-engineering-hygiene]]: shared App-owned UI needs per-screen context set and cleared.
 - [[lesson-engineering-hygiene]]: hold timers on noisy values need a grace period.
 - [[lesson-desktop-dom]]: clip-rect wipe for canvas outlines, absolute nav bar for centering.
+- [[lesson-desktop-dom]]: draw SVG icons on canvas via `Path2D`, center asymmetric icons optically.
+
+## Controls split (RockyRoad-4bi.6, closed 2026-10-14)
+
+- `.tuner-controls-row` now holds only Input (with meter) and Gain, wraps so Gain drops under Input when
+  narrow, divider removed. Restart and Play moved to `.tuner-actions-row` below the canvas: 312px row, two
+  `btn-lg` halves at 15:3.6 like the Song page's `.pre-action-row`, plus its 8px `margin-top` (20px total
+  with the 12px gap). XR `.actions` has no top padding of its own.
+- Restart has the Replay icon, Done became Play with the play icon (the tuner is only entered from the Song
+  page, `song-flow`; `menu` and `mid-song` contexts are still unreferenced). Overlay Done also became Play.
+- Checkmarks (overlay and per-string canvas) now use the `check.svg` path, as a `Path2D` on canvas. Canvas
+  check nudged up 1px for optical centering. `public/check.svg` and `public/replay.svg` committed.
+- Verified `tsc --noEmit` clean, layout and checks viewed by the user in the browser.
 
 ## Compact layout planning (2026-10-14)
 

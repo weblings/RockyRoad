@@ -198,3 +198,16 @@ Applies-when: adding a top bar to a screen whose body uses `align-items: center`
 A new in-flow `.tuner-nav-bar` took ~66px, so `.tuner-body` centered the controls and canvas in the
 space below it and the page looked pushed down. Making the bar `position: absolute` restores centering
 on the full screen, at the cost of possible overlap on very short windows.
+
+---
+
+## Draw an SVG icon on canvas with `Path2D`, and center asymmetric icons optically
+Tags: canvas, svg, path2d, icons, centering
+Applies-when: replacing a hand-stroked canvas glyph with a shared icon, or aligning an icon to text
+
+`new Path2D(d)` takes the `d` attribute of a `public/*.svg` icon directly, so the canvas and the DOM can
+share one shape: `translate`, `scale` (32-unit box to the target size), `fill`. A check's bounding box
+is centered but its mass sits low, so it looked lower than the label beside it.
+
+**How to apply:** nudge by about 1px per 16px of icon rather than trusting the bbox, and view it next to the text.
+

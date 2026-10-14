@@ -385,12 +385,15 @@
       display: flex; flex-direction: column; align-items: center; gap: 12px;
     }
 
+    /* Wraps so Gain drops under Input when the screen is narrow. */
     .tuner-controls-row {
-      display: flex; align-items: center; gap: 8px;
+      display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px 20px;
     }
+    /* Same size and ratio as the Song page's .pre-action-row buttons (312px row, two halves). */
+    .tuner-actions-row { width: 312px; display: flex; justify-content: center; gap: 8px; margin-top: 8px; }
+    .tuner-action-btn { width: calc(50% - 4px); aspect-ratio: 15 / 3.6; padding: 0; font-weight: 500; }
     .tuner-ctrl-inline { display: flex; align-items: center; gap: 6px; }
     .tuner-ctrl-label-inline { font-size: 13px; font-weight: 600; color: #ffffff; white-space: nowrap; }
-    .tuner-ctrl-divider { width: 1px; height: 20px; background: #333; flex-shrink: 0; }
 
     .tuner-select {
       padding: 8px 10px; background: #1a1a1a; border: 1px solid #333;
@@ -441,8 +444,8 @@
       background: rgba(0,0,0,0.75); gap: 8px;
     }
     .tuner-complete-overlay.hidden { display: none; }
-    /* Same check shape as the per-string checks drawn in TunerScreen's drawCheck(). */
-    .tuner-check { width: 72px; height: 72px; fill: none; stroke: #ffffff; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+    /* Same check icon as the per-string checks drawn in TunerScreen's drawCheck(). */
+    .tuner-check { width: 72px; height: 72px; fill: #ffffff; }
     .tuner-in-tune { font-size: 20px; font-weight: 600; color: #ffffff; }
 
     .tuner-exit-btn { margin-top: 8px; padding: 10px 28px; font-weight: 600; }
