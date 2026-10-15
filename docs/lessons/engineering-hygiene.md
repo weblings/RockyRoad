@@ -349,3 +349,16 @@ because those edits only touched the Breakpoints section. The stale Status was f
 
 **How to apply:** when a commit builds from a plan, edit the Status line in that same commit, even to
 say "partly built, see bead X".
+
+---
+
+## Extract shared logic with side effects behind callbacks and derived state
+Tags: refactor, shared-code, separation, tuner
+Applies-when: moving state-machine or game logic out of a screen class so another platform can reuse it
+
+The desktop tuner's phase logic called `detector.setGain` and unhid a DOM overlay mid-transition. Moved
+as-is into `src/shared`, it would drag a detector and the DOM into XR.
+
+**How to apply:** pass collaborator effects in as a constructor callback (`onGain`). Expose state the
+view can poll (`phase`, `checkState(i)`, `takeCompleteHold`) instead of the logic touching the view.
+

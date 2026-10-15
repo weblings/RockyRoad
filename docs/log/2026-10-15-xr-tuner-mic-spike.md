@@ -1,7 +1,7 @@
 # XR tuner: split and mic spike
 
 Id: 2026-10-15-xr-tuner-mic-spike
-Status: paused 2026-10-15. RockyRoad-0q4 is split and the mic spike (0q4.1) is closed. Resume at RockyRoad-0q4.2 (extract the tuner state machine to `src/shared`).
+Status: paused 2026-10-15. RockyRoad-0q4 is split, the mic spike (0q4.1) and the shared state machine (0q4.2) are closed. Resume at RockyRoad-0q4.3 (XR tuner panel).
 
 XR slice of [[tuner-v2]], gated on [[tuner-compact-layout]].
 
@@ -20,3 +20,12 @@ XR slice of [[tuner-v2]], gated on [[tuner-compact-layout]].
 - Decision: request the mic on a page step on `xr.html` before Enter XR (VR-capable device, permission `prompt`). The tuner gets a fail state (exit immersive, accept, return) with a timeout and a denied variant. Recorded in [[tuner-compact-layout]] and RockyRoad-0q4.5.
 - Open: whether a pending request resolves after leaving immersive mode. Untested: a PWA launch may show a native-style dialog.
 - Lessons filed in [[lesson-engine-runtime-apis]] and [[lesson-engine-dev-environment]].
+
+## Shared state machine (RockyRoad-0q4.2)
+
+- Moved the phase machine, needle median and easing, dwell with grace, auto-boost and `midiToNoteName`/`centsLabel` into `src/shared/TunerMachine.ts`, with no DOM or detector dependency.
+- Gain changes go out through an `onGain` callback. The screen polls `phase`, `checkState(i)`, `showNeedle`, `dwellProgress` and `takeCompleteHold(ts)`.
+- Desktop `TunerScreen` went from 794 to 534 lines and renders from the machine. The dead `mid-song` and `menu` contexts and `pausedAt` are removed, and `PreSceneScreen` no longer passes a context.
+- Verified by `tsc --noEmit` and `vite build` only. No tests exist for the tuner and no browser run was done, so unchanged behavior rests on a line-for-line port.
+- Lesson filed in [[lesson-engineering-hygiene]].
+

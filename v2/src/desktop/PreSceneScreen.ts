@@ -120,7 +120,7 @@ export class PreSceneScreen implements IScreen {
             this.commitInstrument();
             import('./TunerScreen').then(({ TunerScreen }) => {
                 this.app.navigate(new TunerScreen(
-                    this.app, this.texture, this.source, this.entry, this.selectedPart, 'song-flow',
+                    this.app, this.texture, this.source, this.entry, this.selectedPart,
                     this.selectedDifficulty,
                 ));
             });
@@ -132,7 +132,7 @@ export class PreSceneScreen implements IScreen {
             if (this.app.shouldAutoTune(this.selectedPart)) {
                 import('./TunerScreen').then(({ TunerScreen }) => {
                     this.app.navigate(new TunerScreen(
-                        this.app, this.texture, this.source, this.entry, this.selectedPart, 'song-flow',
+                        this.app, this.texture, this.source, this.entry, this.selectedPart,
                         this.selectedDifficulty,
                     ));
                 });
