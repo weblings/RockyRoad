@@ -45,6 +45,7 @@ import { CalibrationSystem } from "./CalibrationSystem";
 import { XRSongLibrary } from "./XRSongLibrary";
 import { loadAllSources, type SourcedEntry } from "../shared/SongSource";
 import { XRPreScene } from "./XRPreScene";
+import { XRTunerScene } from "./XRTunerScene";
 import { XRActiveScene } from "./XRActiveScene";
 import { XRSettingsScene } from "./XRSettingsScene";
 import { loadSettings, type Settings } from "../shared/Settings";
@@ -722,6 +723,36 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     setCalibrationPanelInteractive(false);
     world.globals.setCalibrationPanelInteractive = setCalibrationPanelInteractive;
 
+    // Tuner uikit panel — same slot/pattern as the panels above, fixed 0.4m x 0.3m.
+    const tunerPanelObj = new Object3D();
+    tunerPanelObj.position.set(0, 0.169, 0);
+    tunerPanelObj.visible = false;
+    const tunerPanelEntity = world.createTransformEntity(tunerPanelObj, {
+        parent: grabBarEntity,
+        persistent: true,
+    });
+    tunerPanelEntity.addComponent(PanelUI, {
+        config: `${import.meta.env.BASE_URL}ui/tuner.json`,
+        maxWidth: 0.4,
+        maxHeight: 0.3,
+    });
+
+    function setTunerPanelInteractive(enabled: boolean): void {
+        if (enabled) {
+            if (!tunerPanelEntity.hasComponent(RayInteractable)) {
+                tunerPanelEntity.addComponent(RayInteractable);
+            }
+        } else {
+            if (tunerPanelEntity.hasComponent(RayInteractable)) {
+                tunerPanelEntity.removeComponent(RayInteractable);
+            }
+        }
+        const doc = tunerPanelEntity.getValue(PanelDocument, 'document') as
+            { rootElement: { setProperties: (p: Record<string, unknown>) => void } } | null;
+        doc?.rootElement.setProperties({ pointerEvents: enabled ? 'auto' : 'none' });
+    }
+    setTunerPanelInteractive(false);
+
     // ── Guitar/Bass highway grab bar + content-scroll node ──────────────────────
     // Sits "beneath" the fret volume. Grabbing it repositions the whole volume
     // (position handled by IWSDK DistanceGrabbable; yaw billboard is custom, see
@@ -842,6 +873,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         setLibraryPanelInteractive(true);
         preScenePanelObj.visible = false;
         setPreScenePanelInteractive(false);
+        hideTuner();
         playPanelObj.visible     = false;
         setPlayPanelInteractive(false);
         calibrationPanelObj.visible = false;
@@ -852,7 +884,28 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     }
     world.globals.showLibrary = showLibrary;
 
+    function hideTuner(): void {
+        tunerPanelObj.visible = false;
+        setTunerPanelInteractive(false);
+    }
+
+    // Static tuner panel for the song's chosen part. Back and Done both return to the Song page.
+    function showTuner(sourced: SourcedEntry, tuningOffsets: number[]): void {
+        libraryPanelObj.visible = false;
+        setLibraryPanelInteractive(false);
+        preScenePanelObj.visible = false;
+        setPreScenePanelInteractive(false);
+        calibrationPanelObj.visible = false;
+        setCalibrationPanelInteractive(false);
+        tunerPanelObj.visible = true;
+        setTunerPanelInteractive(true);
+        const back = () => showPreScene(sourced);
+        tuner.show(tunerPanelEntity, tuningOffsets, back, back);
+    }
+    world.globals.showTuner = showTuner;
+
     function showPreScene(sourced: SourcedEntry): void {
+        hideTuner();
         libraryPanelObj.visible = false;
         setLibraryPanelInteractive(false);
         calibrationPanelObj.visible = false;
@@ -868,6 +921,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
             calibrateAndPlay,
             repositionEntry,
             showLibrary,
+            (offsets: number[]) => showTuner(sourced, offsets),
         );
     }
 
@@ -1096,6 +1150,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         setSettingsPanelInteractive(false);
         preScenePanelObj.visible = false;
         setPreScenePanelInteractive(false);
+        hideTuner();
         calibrationPanelObj.visible = false;
         setCalibrationPanelInteractive(false);
         playPanelObj.visible     = true;
@@ -1189,6 +1244,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         setSettingsPanelInteractive(true);
         playPanelObj.visible     = false;
         setPlayPanelInteractive(false);
+        hideTuner();
         calibrationPanelObj.visible = false;
         setCalibrationPanelInteractive(false);
         world.globals.updateActivePanel = undefined;
@@ -1253,6 +1309,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
 
     const library       = new XRSongLibrary(sourcedEntries);
     const preScene      = new XRPreScene();
+    const tuner         = new XRTunerScene();
     const activeScene   = new XRActiveScene();
     const settingsScene = new XRSettingsScene();
 

@@ -1,7 +1,7 @@
 # XR tuner: split and mic spike
 
 Id: 2026-10-15-xr-tuner-mic-spike
-Status: paused 2026-10-15. RockyRoad-0q4 is split, the mic spike (0q4.1) and the shared state machine (0q4.2) are closed. Resume at RockyRoad-0q4.3 (XR tuner panel).
+Status: paused 2026-10-15. RockyRoad-0q4 is split, the mic spike (0q4.1), the shared state machine (0q4.2) and the static panel (0q4.3) are closed. Resume at RockyRoad-0q4.4 (animated pieces) and RockyRoad-0q4.5 (entry points and detector).
 
 XR slice of [[tuner-v2]], gated on [[tuner-compact-layout]].
 
@@ -29,3 +29,13 @@ XR slice of [[tuner-v2]], gated on [[tuner-compact-layout]].
 - Verified by `tsc --noEmit` and `vite build` only. No tests exist for the tuner and no browser run was done, so unchanged behavior rests on a line-for-line port.
 - Lesson filed in [[lesson-engineering-hygiene]].
 
+
+## Static panel (RockyRoad-0q4.3)
+
+- Added `ui/tuner.uikitml`, `XRTunerScene` and a tuner panel in `index.ts` (fixed 40x30cm, Narrow arrangement). It renders a `TunerMachine` statically: current string name and color, Box 2 names, colors, checks and string lines.
+- The Song page gets a Tune button for parts with `tuningOffsets`, which hides Reposition there. Reposition stays in the Play HUD, and Play will auto-tune by desktop's rule in 0q4.5. Decision recorded in [[tuner-compact-layout]].
+- The gain slider is real: tap or drag with pointer capture, 1 to 24 in 0.5 steps, saved to `inputGain`. It does not drive a detector yet. The mic meter is vertical and static.
+- New icon SVGs with literal fills (`tuner-check`, `tuner-restart`, `tune-icon`), copied from desktop because `currentColor` breaks the loader. Done uses the play icon like desktop's Play button but keeps its label.
+- Headset review caught a missing thumb and non-interactive slider, mismatched icons, and thumb overlap with the Gain labels (fixed with half-thumb margins). The Box 2 string lines were added after that review and are not yet seen in the headset. Box 1 is a fixed 6.5cm to make room, and the lines do not fade like desktop's.
+- `tsc --noEmit` and `vite build` clean. Compiled JSON checked for shorthand properties and unmatched classes.
+- Open: Input dropdown lists only Default, Back and Done both return to the Song page and reset its Instrument and Difficulty selection.

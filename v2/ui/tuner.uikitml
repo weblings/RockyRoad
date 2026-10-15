@@ -1,0 +1,485 @@
+<style>
+  /* Scale: 1 unit = 1cm on the fixed 40x30cm panel. Header, option-dropdown and action
+     classes are hand-duplicated from song.uikitml (no @import). Narrow arrangement from
+     docs/planning/TunerCompactLayout.md: setup row, Box 1 over Box 2, actions bar. */
+
+  .panel {
+    width: 40;
+    height: 30;
+    display: flex;
+    flex-direction: column;
+    background-color: #0a0a0a;
+    border-radius: 1.2;
+    font-family: inter;
+    font-weight: medium;
+    pointer-events: none;
+  }
+
+  .header {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    flex-grow: 0;
+    flex-shrink: 0;
+    padding-top: 1;
+    padding-right: 1;
+    padding-bottom: 0;
+    padding-left: 1;
+  }
+
+  .icon {
+    width: 1;
+    height: 1;
+    margin-left: -0.1;
+  }
+  .icon-label {
+    position-type: relative;
+    margin-left: 0.4;
+    position-top: -0.05;
+  }
+
+  .back-btn {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    flex-grow: 0;
+    flex-shrink: 0;
+    padding-top: 0.8;
+    padding-right: 0.8;
+    padding-bottom: 0.8;
+    padding-left: 0.8;
+    border-radius: 0.5;
+    font-size: 1.2;
+    cursor: pointer;
+  }
+
+  .primary-dark {
+    background-color: #333333;
+    color: #ffffff;
+  }
+  .primary-dark:hover  { background-color: #515151; }
+  .primary-dark:active { background-color: #7c7c7c; }
+
+  .primary-light {
+    background-color: #dadada;
+    color: #111111;
+  }
+  .primary-light:hover  { background-color: #bebebe; }
+  .primary-light:active { background-color: #9c9c9c; }
+
+  /* Input dropdown, mic meter and Gain on one line (about 33cm). */
+  .setup-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    flex-grow: 0;
+    flex-shrink: 0;
+    justify-content: center;
+    gap-row: 1;
+    gap-column: 1;
+    padding-top: 0.8;
+    padding-right: 1;
+    padding-bottom: 0.8;
+    padding-left: 1;
+  }
+
+  .option-dropdown {
+    position-type: relative;
+    flex-grow: 0;
+    flex-shrink: 0;
+  }
+
+  .option-trigger {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap-row: 0.6;
+    gap-column: 0.6;
+    padding-top: 0.7;
+    padding-right: 1;
+    padding-bottom: 0.7;
+    padding-left: 1;
+    width: 14;
+    background-color: #333333;
+    border-width: 0.1;
+    border-color: #444444;
+    border-radius: 0.6;
+    cursor: pointer;
+  }
+  .option-trigger:hover  { background-color: #444444; }
+  .option-trigger:active { background-color: #515151; }
+
+  .option-label {
+    color: #c8c8c8;
+    font-size: 1.2;
+  }
+
+  .option-chevron {
+    width: 0.9;
+    height: 0.9;
+  }
+
+  /* Opens downward over the boxes. position-top is a literal estimate of the trigger height. */
+  .option-menu {
+    position-type: absolute;
+    position-top: 3.4;
+    position-left: 0;
+    z-index: 2;
+    pointer-events: auto;
+    transform-translate-z: 0.15;
+    display: none;
+    flex-direction: column;
+    height: 8;
+    overflow: hidden;
+    background-color: #1a1a1a;
+    border-width: 0.1;
+    border-color: #333333;
+    border-radius: 0.6;
+    width: 14;
+    padding-top: 0.4;
+    padding-right: 0.4;
+    padding-bottom: 0.4;
+    padding-left: 0.4;
+  }
+
+  .option-menu-inner {
+    position-type: relative;
+    position-top: 0;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    gap-row: 0.3;
+  }
+
+  .option-item {
+    flex-shrink: 0;
+    padding-top: 0.5;
+    padding-right: 1;
+    padding-bottom: 0.5;
+    padding-left: 1;
+    color: #c8c8c8;
+    font-size: 1.2;
+    cursor: pointer;
+  }
+  .option-item:hover  { background-color: #2a2a2a; color: #ffffff; }
+  .option-item:active { background-color: #515151; color: #ffffff; }
+  .option-item-selected { background-color: #242424; color: #ffffff; }
+
+  /* Vertical mic meter as tall as the dropdown, filled from the bottom. */
+  .meter {
+    width: 0.8;
+    height: 3;
+    flex-grow: 0;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    background-color: #333333;
+    border-radius: 0.4;
+    overflow: hidden;
+  }
+  .meter-fill {
+    width: 100%;
+    height: 0%;
+    background-color: #cc8800;
+  }
+
+  .gain {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    flex-grow: 0;
+    flex-shrink: 0;
+    gap-row: 0.8;
+    gap-column: 0.8;
+  }
+  .setup-label {
+    color: #ffffff;
+    font-size: 1.2;
+    font-weight: bold;
+  }
+  .gain-val {
+    width: 2.6;
+    color: #c8c8c8;
+    font-size: 1.2;
+    text-align: right;
+  }
+
+  /* Tall hit area so the thin track is easy to ray-target. Thumb is a solid white circle. */
+  .gain-slider {
+    position-type: relative;
+    width: 7;
+    height: 2.4;
+    margin-left: 0.9;
+    margin-right: 0.9;
+    flex-grow: 0;
+    flex-shrink: 0;
+    cursor: pointer;
+  }
+  .gain-track {
+    position-type: absolute;
+    position-top: 0.8;
+    position-left: 0;
+    width: 100%;
+    height: 0.8;
+    background-color: #333333;
+    border-radius: 0.4;
+  }
+  .gain-fill {
+    width: 0%;
+    height: 0.8;
+    background-color: #8b8b8b;
+    border-radius: 0.4;
+  }
+  .gain-thumb {
+    position-type: absolute;
+    position-top: 0.3;
+    position-left: 0%;
+    transform-translate-x: -50%;
+    width: 1.8;
+    height: 1.8;
+    background-color: #ffffff;
+    border-radius: 0.9;
+    z-index: 1;
+  }
+
+  /* Boxes stack with Box 2 hugging its content. */
+  .boxes {
+    flex-grow: 1;
+    flex-shrink: 1;
+    flex-basis: 0;
+    display: flex;
+    flex-direction: column;
+    gap-row: 1;
+    gap-column: 1;
+    padding-top: 0;
+    padding-right: 3.5;
+    padding-bottom: 1;
+    padding-left: 3.5;
+  }
+
+  .box1 {
+    height: 6.5;
+    flex-grow: 0;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap-row: 1.5;
+    gap-column: 1.5;
+    padding-top: 0.8;
+    padding-right: 1.5;
+    padding-bottom: 0.8;
+    padding-left: 1.5;
+    background-color: #111111;
+    border-width: 0.3;
+    border-color: #1ccc00;
+    border-radius: 0.8;
+  }
+
+  .b1-label {
+    width: 7;
+    flex-grow: 0;
+    flex-shrink: 0;
+    color: #1ccc00;
+    font-size: 4;
+    font-weight: bold;
+  }
+
+  .b1-lane {
+    flex-grow: 1;
+    flex-shrink: 1;
+    flex-basis: 0;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .b1-track {
+    width: 100%;
+    height: 0.2;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    background-color: #333333;
+  }
+  .b1-tick {
+    width: 0.2;
+    height: 1.4;
+    flex-shrink: 0;
+    background-color: #555555;
+  }
+
+  .box2 {
+    flex-grow: 1;
+    flex-shrink: 1;
+    flex-basis: 0;
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    justify-content: space-around;
+    padding-top: 1;
+    padding-right: 1;
+    padding-bottom: 0;
+    padding-left: 1;
+    overflow: hidden;
+    background-color: #111111;
+    border-width: 0.1;
+    border-color: #333333;
+    border-radius: 0.8;
+  }
+
+  .b2-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex-grow: 0;
+    flex-shrink: 0;
+    gap-row: 0.4;
+    gap-column: 0.4;
+  }
+  .b2-check {
+    width: 1.4;
+    height: 1.4;
+  }
+  /* String line in the string's color, running to the box bottom like desktop. */
+  .b2-line {
+    flex-grow: 1;
+    flex-shrink: 1;
+    flex-basis: 0;
+    min-height: 2;
+    width: 0.3;
+    border-radius: 0.2;
+  }
+  .b2-name {
+    font-size: 1.8;
+    font-weight: bold;
+  }
+
+  .actions {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    flex-grow: 0;
+    flex-shrink: 0;
+    gap-row: 1;
+    gap-column: 1;
+    padding-top: 0;
+    padding-right: 1;
+    padding-bottom: 1;
+    padding-left: 1;
+  }
+
+  .action-btn {
+    width: 15;
+    height: 3.6;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    flex-grow: 0;
+    flex-shrink: 0;
+    padding-top: 0.8;
+    padding-right: 0.8;
+    padding-bottom: 0.8;
+    padding-left: 0.8;
+    border-radius: 0.5;
+    font-size: 1.3;
+    font-weight: medium;
+    cursor: pointer;
+  }
+</style>
+
+<div class="panel">
+  <div class="header">
+    <button id="tn-back" class="back-btn primary-dark">
+      <img src="back-arrow.svg" class="icon" />
+      <span class="icon-label">Song</span>
+    </button>
+  </div>
+
+  <div class="setup-row">
+    <div id="tn-input-dropdown" class="option-dropdown">
+      <button id="tn-input-trigger" class="option-trigger">
+        <div id="tn-input-trigger-label-slot"></div>
+        <img id="tn-input-chevron-down" class="option-chevron" src="chevron-down.svg" />
+        <img id="tn-input-chevron-up" class="option-chevron" src="chevron-up.svg" />
+      </button>
+      <div id="tn-input-menu" class="option-menu">
+        <div id="tn-input-menu-inner" class="option-menu-inner"></div>
+      </div>
+    </div>
+    <div class="meter"><div id="tn-meter-fill" class="meter-fill"></div></div>
+    <div class="gain">
+      <span class="setup-label">Gain</span>
+      <div id="tn-gain-slider" class="gain-slider">
+        <div class="gain-track"><div id="tn-gain-fill" class="gain-fill"></div></div>
+        <div id="tn-gain-thumb" class="gain-thumb"></div>
+      </div>
+      <span id="tn-gain-val" class="gain-val">1x</span>
+    </div>
+  </div>
+
+  <div class="boxes">
+    <div id="tn-box1" class="box1">
+      <span id="tn-b1-label" class="b1-label">E2</span>
+      <div class="b1-lane">
+        <div class="b1-track"><div class="b1-tick"></div></div>
+      </div>
+    </div>
+    <div class="box2">
+      <div id="tn-col-0" class="b2-col">
+        <img id="tn-check-0" class="b2-check" src="tuner-check.svg" />
+        <span id="tn-name-0" class="b2-name">E2</span>
+        <div id="tn-line-0" class="b2-line"></div>
+      </div>
+      <div id="tn-col-1" class="b2-col">
+        <img id="tn-check-1" class="b2-check" src="tuner-check.svg" />
+        <span id="tn-name-1" class="b2-name">A2</span>
+        <div id="tn-line-1" class="b2-line"></div>
+      </div>
+      <div id="tn-col-2" class="b2-col">
+        <img id="tn-check-2" class="b2-check" src="tuner-check.svg" />
+        <span id="tn-name-2" class="b2-name">D3</span>
+        <div id="tn-line-2" class="b2-line"></div>
+      </div>
+      <div id="tn-col-3" class="b2-col">
+        <img id="tn-check-3" class="b2-check" src="tuner-check.svg" />
+        <span id="tn-name-3" class="b2-name">G3</span>
+        <div id="tn-line-3" class="b2-line"></div>
+      </div>
+      <div id="tn-col-4" class="b2-col">
+        <img id="tn-check-4" class="b2-check" src="tuner-check.svg" />
+        <span id="tn-name-4" class="b2-name">B3</span>
+        <div id="tn-line-4" class="b2-line"></div>
+      </div>
+      <div id="tn-col-5" class="b2-col">
+        <img id="tn-check-5" class="b2-check" src="tuner-check.svg" />
+        <span id="tn-name-5" class="b2-name">E4</span>
+        <div id="tn-line-5" class="b2-line"></div>
+      </div>
+      <div id="tn-col-6" class="b2-col">
+        <img id="tn-check-6" class="b2-check" src="tuner-check.svg" />
+        <span id="tn-name-6" class="b2-name">E4</span>
+        <div id="tn-line-6" class="b2-line"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button id="tn-restart" class="action-btn primary-dark">
+      <img src="tuner-restart.svg" class="icon" />
+      <span class="icon-label">Restart</span>
+    </button>
+    <button id="tn-done" class="action-btn primary-light">
+      <img src="play-icon.svg" class="icon" />
+      <span class="icon-label">Done</span>
+    </button>
+  </div>
+</div>

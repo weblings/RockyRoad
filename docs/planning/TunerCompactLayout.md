@@ -87,6 +87,10 @@ page has no small-screen behavior.
   not distinct mics, and whether they differ in signal is untested.
 - **Entry:** `song-flow` only, matching desktop. Tune button on the Song actions bar and auto-tune
   before Play.
+- **Song buttons (decided 2026-10-15, guitar/bass only):** the secondary button is Tune on tuned
+  parts and hidden otherwise, replacing Reposition there. Reposition stays in the Play HUD. Play
+  calibrates on first use, then auto-tunes only when the part's tuning differs from the last tuned
+  one, as on desktop. Keys keep Reposition in that slot later. A Setup hub is revisited then.
 - **In-session grant (tested 2026-10-15):** with site and browser permission already granted, the
   mic starts automatically on entering XR. Without it, the request fires but the prompt is not
   visible until the user leaves immersive mode. No web way to show a system toast inside a session

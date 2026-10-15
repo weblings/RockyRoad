@@ -387,6 +387,10 @@
       <img src="recal-icon.svg" class="icon" />
       <span class="icon-label">Reposition</span>
     </button>
+    <button id="ps-tune" class="action-btn primary-dark">
+      <img src="tune-icon.svg" class="icon" />
+      <span class="icon-label">Tune</span>
+    </button>
     <button id="ps-play" class="action-btn primary-light">
       <img src="play-icon.svg" class="icon" />
       <span class="icon-label">Play</span>

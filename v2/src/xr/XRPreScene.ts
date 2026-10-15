@@ -73,13 +73,15 @@ export class XRPreScene {
         // Saved calibration exists — load song then open fine-tune panel directly.
         onReposition: (sourced: SourcedEntry, partName: string, difficulty: number | null) => void,
         onBack: () => void,
+        // Opens the tuner with the selected part's tuning offsets.
+        onTune: (tuningOffsets: number[]) => void,
     ): void {
         this._selectedPart = null;
         this._selectedDifficulty = null;
 
         const proceed = (doc: UIKitDocument) => {
             this._doc = doc;
-            this._render(doc, sourced, tryLoadCalibration, onPlay, onCalibratePlay, onReposition, onBack);
+            this._render(doc, sourced, tryLoadCalibration, onPlay, onCalibratePlay, onReposition, onBack, onTune);
         };
 
         if (this._doc) { proceed(this._doc); return; }
@@ -100,8 +102,9 @@ export class XRPreScene {
         onCalibratePlay: (sourced: SourcedEntry, partName: string, difficulty: number | null) => void,
         onReposition: (sourced: SourcedEntry, partName: string, difficulty: number | null) => void,
         onBack: () => void,
+        onTune: (tuningOffsets: number[]) => void,
     ): void {
-        const rerender = () => this._render(doc, sourced, tryLoadCalibration, onPlay, onCalibratePlay, onReposition, onBack);
+        const rerender = () => this._render(doc, sourced, tryLoadCalibration, onPlay, onCalibratePlay, onReposition, onBack, onTune);
 
         const { entry } = sourced;
 
@@ -129,7 +132,11 @@ export class XRPreScene {
         // Re-derives every render, not just once per mount — switching Instrument changes
         // calibration type entirely (Keys vs. Guitar family).
         const hasSavedCal = !!selectedPart && tryLoadCalibration(selectedPart.type);
-        this._setDisplay(doc, 'ps-recal', hasSavedCal);
+        // Tuned parts get Tune in the secondary slot, with Reposition left to the Play HUD.
+        const tuningOffsets = selectedPart?.tuningOffsets;
+        this._setDisplay(doc, 'ps-recal', hasSavedCal && !tuningOffsets);
+        this._setDisplay(doc, 'ps-tune', !!tuningOffsets);
+        if (tuningOffsets) this._setClick(doc, 'ps-tune', () => onTune(tuningOffsets));
 
         this._setDisabled(doc.getElementById('ps-play'), !hasPart);
 
