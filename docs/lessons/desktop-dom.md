@@ -198,3 +198,77 @@ Applies-when: adding a top bar to a screen whose body uses `align-items: center`
 A new in-flow `.tuner-nav-bar` took ~66px, so `.tuner-body` centered the controls and canvas in the
 space below it and the page looked pushed down. Making the bar `position: absolute` restores centering
 on the full screen, at the cost of possible overlap on very short windows.
+
+---
+
+## Draw an SVG icon on canvas with `Path2D`, and center asymmetric icons optically
+Tags: canvas, svg, path2d, icons, centering
+Applies-when: replacing a hand-stroked canvas glyph with a shared icon, or aligning an icon to text
+
+`new Path2D(d)` takes the `d` attribute of a `public/*.svg` icon directly, so the canvas and the DOM can
+share one shape: `translate`, `scale` (32-unit box to the target size), `fill`. A check's bounding box
+is centered but its mass sits low, so it looked lower than the label beside it.
+
+**How to apply:** nudge by about 1px per 16px of icon rather than trusting the bbox, and view it next to the text.
+
+
+---
+
+## `cqh` font sizing needs `container-type: size`, which stops the box sizing from its content
+Tags: css, container-queries, cqh, sizing, fit-text
+Applies-when: sizing text to its box's height with container query units
+
+`font-size: 42cqh` on the tuner label only works once the box has `container-type: size`. A size
+container ignores its children when sizing, so the box needs an explicit height (here from the fixed
+`.tuner-boxes` height) or it collapses to zero and the text goes with it.
+
+**How to apply:** set the height on the container first, then use `cqh`. Resize-driven layouts (4bi.9) must set it too.
+
+---
+
+## Clamp a label that tracks a moving marker with `left: p%` plus `translateX(-p%)`
+Tags: css, positioning, clamp, label, transform
+Applies-when: a text label follows a marker along a track and must stay inside the track's ends
+
+Placing the label at `left: p%` and shifting it by `translateX(-p%)` of its own width left-justifies
+it at 0% and right-justifies it at 100%, with a smooth slide between. No measuring or JS clamp needed,
+and the tuner's `Flat`/`Sharp` text justifies itself because the needle is pinned at the ends.
+
+**How to apply:** put marker and label in one lane whose x range equals the track's, so both share the same percentages.
+
+---
+
+## Wipe a DOM border with `clip-path: inset()` on a white duplicate, not with gradients
+Tags: css, clip-path, border, wipe, animation
+Applies-when: revealing an outline from a point outward, such as lock feedback on a bordered box
+
+Stack a white-bordered copy over the colored border and animate `clip-path: inset(0 R% 0 L%)`. For a
+wipe from x spreading both ways, `L = x * (1 - p)` and `R = 100 - (x + (100 - x) * p)`. At `p = 1` both
+are 0 and the sides are revealed last. Hide it with `inset(0 100% 0 100%)`.
+
+**How to apply:** compute the insets per frame from the shared dwell progress, the same input the canvas version uses.
+
+---
+
+## `container-type: size` on a stacked box collapses its height
+Tags: css, container-queries, flexbox, stacking, sizing
+Applies-when: stacking boxes vertically when one of them uses `cqh` units or `container-type: size`
+
+Size containment ignores content height, so a `container-type: size` box in a column with no explicit
+height renders 0 tall. Put it only on the box that has a fixed height and leave the content-sized box alone.
+
+**How to apply:** give the `cqh` box an explicit height and keep the other boxes `container-type: normal`.
+
+---
+
+## An absolute nav bar overlaps content on short screens, so put it in flow below a height or layout breakpoint
+Tags: css, nav-bar, overlap, responsive, has
+Applies-when: a top bar is `position: absolute` and the content below can grow taller than the screen
+
+Padding to clear the bar only works while the content fits. Switch the bar to `position: static` in the
+short or compact state so it becomes its own row, and center the content with `margin: auto` (not
+`align-items: center`, which clips the top when content overflows). A layout flag on a child can drive the
+bar via `.screen:has([data-layout]:not([data-layout="large"]))`.
+
+**How to apply:** use `@media (max-height: ...)` for pages without a layout flag, and place the rule after any earlier padding overrides.
+

@@ -332,6 +332,13 @@
       .pre-song-name { font-size: 16px; }
       .pre-artist-name { font-size: 13px; margin-bottom: 0; }
     }
+    /* Short screens: Back becomes its own row above the content so it can't overlap it. Placed
+       after the max-height: 480px block so its padding wins. margin:auto centers without clipping. */
+    @media (max-height: 700px) {
+      .pre-screen { flex-direction: column; align-items: stretch; justify-content: flex-start; }
+      .pre-back { position: static; align-self: flex-start; margin: 16px 16px 0; flex-shrink: 0; }
+      .pre-content { margin: auto; padding-top: 8px; }
+    }
     .pre-toggles { display: flex; flex-direction: column; width: 100%; }
     .pre-toggle-row {
       display: flex; align-items: center; justify-content: space-between;
@@ -378,19 +385,27 @@
 
     .tuner-body {
       flex: 1; display: flex; align-items: center; justify-content: center;
-      padding: 16px;
+      padding: 16px; min-height: 0;
     }
+    /* Compact layouts put the nav bar in flow as its own row and scroll the body if still too tall.
+       margin:auto centers without clipping the top when content overflows. */
+    .tuner-screen:has([data-layout]:not([data-layout="large"])) .tuner-nav-bar { position: static; }
+    .tuner-screen:has([data-layout]:not([data-layout="large"])) .tuner-body { overflow-y: auto; }
+    [data-layout]:not([data-layout="large"]) { margin: auto 0; }
 
     .tuner-main {
       display: flex; flex-direction: column; align-items: center; gap: 12px;
     }
 
+    /* Wraps so Gain drops under Input when the screen is narrow. */
     .tuner-controls-row {
-      display: flex; align-items: center; gap: 8px;
+      display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px 20px;
     }
+    /* Same size and ratio as the Song page's .pre-action-row buttons (312px row, two halves). */
+    .tuner-actions-row { width: 312px; display: flex; justify-content: center; gap: 8px; margin-top: 8px; }
+    .tuner-action-btn { width: calc(50% - 4px); aspect-ratio: 15 / 3.6; padding: 0; font-weight: 500; }
     .tuner-ctrl-inline { display: flex; align-items: center; gap: 6px; }
     .tuner-ctrl-label-inline { font-size: 13px; font-weight: 600; color: #ffffff; white-space: nowrap; }
-    .tuner-ctrl-divider { width: 1px; height: 20px; background: #333; flex-shrink: 0; }
 
     .tuner-select {
       padding: 8px 10px; background: #1a1a1a; border: 1px solid #333;
@@ -434,6 +449,51 @@
       overflow: hidden;
     }
     #tuner-canvas { display: block; }
+    [data-layout="large"] .tuner-boxes, [data-layout]:not([data-layout="large"]) #tuner-canvas { display: none; }
+
+    /* Medium and Narrow: the wrap fills the body up to the boxes' natural width. */
+    [data-layout]:not([data-layout="large"]) { width: 100%; }
+    [data-layout]:not([data-layout="large"]) .tuner-canvas-wrap { width: 100%; max-width: 744px; }
+    /* Overlay content shrinks to fit the short compact wrap. */
+    [data-layout]:not([data-layout="large"]) .tuner-complete-overlay .tuner-check { width: 36px; height: 36px; }
+
+    /* DOM box layouts: Medium side by side, Narrow stacked with Box 2 shrunk to its content. */
+    .tuner-boxes { display: flex; gap: 12px; width: 100%; padding: 12px; box-sizing: border-box; }
+    [data-layout="narrow"] .tuner-boxes { flex-direction: column; }
+    .tuner-box { position: relative; flex: 1; border-radius: 10px; }
+    .tuner-box1 { --string-color: #555; background: #111; height: 110px; container-type: size; }
+    [data-layout="narrow"] .tuner-box { flex: none; }
+    .tuner-box1-border, .tuner-box1-wipe {
+      position: absolute; inset: 0; border-radius: 10px; border: 3px solid var(--string-color); pointer-events: none;
+    }
+    .tuner-box1-wipe { border-color: #ffffff; clip-path: inset(0 100% 0 100%); }
+    /* Label sits left of the track, centered on it, sized to the box height with no minimum. */
+    .tuner-box1-label {
+      position: absolute; top: 50%; left: 5%; transform: translateY(-50%);
+      font-size: 42cqh; line-height: 1; font-weight: 600; color: var(--string-color);
+    }
+    /* Lane spans the track's x range, so bar and cents label share its left percentages. */
+    .tuner-box1-lane { position: absolute; left: 30%; right: 8%; top: 0; bottom: 0; }
+    .tuner-box1-track { position: absolute; left: 0; right: 0; top: 50%; height: 4px; border-radius: 2px; background: #2a2a2a; }
+    .tuner-box1-tick { position: absolute; left: 50%; top: -6px; bottom: -6px; width: 2px; margin-left: -1px; background: #3a3a3a; }
+    .tuner-box1-bar {
+      position: absolute; left: 50%; top: calc(50% - 14px); height: 32px; width: 4px; margin-left: -2px;
+      border-radius: 2px; background: #ffffff;
+    }
+    .tuner-box1-cents { position: absolute; top: calc(50% + 24px); font-size: 14px; color: #c8c8c8; white-space: nowrap; }
+    .tuner-box1-bar.hidden, .tuner-box1-cents.hidden { display: none; }
+
+    .tuner-box2 { background: #111; display: flex; justify-content: space-around; padding: 10px 8px 0; }
+    /* Check above the name, then a string line that fades out before the box bottom. */
+    .tuner-box2-col { display: flex; flex-direction: column; align-items: center; gap: 4px; opacity: 0.45; font-size: 16px; }
+    .tuner-box2-col.current { opacity: 1; font-weight: 700; }
+    .tuner-box2-col .tuner-check { width: 20px; height: 20px; visibility: hidden; }
+    .tuner-box2-line {
+      flex: 1; min-height: 24px; width: 3px; border-radius: 2px;
+      background: linear-gradient(to bottom, currentColor, transparent 85%);
+    }
+    .tuner-box2-col[data-check="done"] .tuner-check { visibility: visible; fill: #ffffff; }
+    .tuner-box2-col[data-check="pending"] .tuner-check { visibility: visible; fill: #515151; }
 
     .tuner-complete-overlay {
       position: absolute; inset: 0;
@@ -441,8 +501,8 @@
       background: rgba(0,0,0,0.75); gap: 8px;
     }
     .tuner-complete-overlay.hidden { display: none; }
-    /* Same check shape as the per-string checks drawn in TunerScreen's drawCheck(). */
-    .tuner-check { width: 72px; height: 72px; fill: none; stroke: #ffffff; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+    /* Same check icon as the per-string checks drawn in TunerScreen's drawCheck(). */
+    .tuner-check { width: 72px; height: 72px; fill: #ffffff; }
     .tuner-in-tune { font-size: 20px; font-weight: 600; color: #ffffff; }
 
     .tuner-exit-btn { margin-top: 8px; padding: 10px 28px; font-weight: 600; }

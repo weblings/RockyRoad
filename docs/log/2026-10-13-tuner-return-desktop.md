@@ -85,3 +85,85 @@ Desktop slice of [[tuner-v2]]. XR (RockyRoad-0q4) and the string-color bug (Rock
 - [[lesson-engineering-hygiene]]: shared App-owned UI needs per-screen context set and cleared.
 - [[lesson-engineering-hygiene]]: hold timers on noisy values need a grace period.
 - [[lesson-desktop-dom]]: clip-rect wipe for canvas outlines, absolute nav bar for centering.
+- [[lesson-desktop-dom]]: draw SVG icons on canvas via `Path2D`, center asymmetric icons optically.
+
+## Controls split (RockyRoad-4bi.6, closed 2026-10-14)
+
+- `.tuner-controls-row` now holds only Input (with meter) and Gain, wraps so Gain drops under Input when
+  narrow, divider removed. Restart and Play moved to `.tuner-actions-row` below the canvas: 312px row, two
+  `btn-lg` halves at 15:3.6 like the Song page's `.pre-action-row`, plus its 8px `margin-top` (20px total
+  with the 12px gap). XR `.actions` has no top padding of its own.
+- Restart has the Replay icon, Done became Play with the play icon (the tuner is only entered from the Song
+  page, `song-flow`; `menu` and `mid-song` contexts are still unreferenced). Overlay Done also became Play.
+- Checkmarks (overlay and per-string canvas) now use the `check.svg` path, as a `Path2D` on canvas. Canvas
+  check nudged up 1px for optical centering. `public/check.svg` and `public/replay.svg` committed.
+- Verified `tsc --noEmit` clean, layout and checks viewed by the user in the browser.
+
+## Compact layout planning (2026-10-14)
+
+- Design discussion for small screens recorded in [[tuner-compact-layout]]: two same-sized boxes
+  (current string with dwell-driven border wipe, string progress), row when wide and stacked when narrow.
+  Setup controls on top, Restart/Done at the bottom, short-landscape tier dropped, XR later.
+- Existing page has no responsive behavior: canvas fixed 960x540, controls row one non-wrapping line.
+- Beads filed under RockyRoad-4bi: .6 controls split, .7 state/draw separation, .8 DOM boxes behind a
+  toggle, .9 responsive switching, .10 viability check (gates RockyRoad-0q4).
+- Code unchanged. Wireframes were first drawn with 4 strings from a guess, not the code (tuner is 6).
+
+## Display state split (RockyRoad-4bi.7, closed 2026-10-14)
+
+- New `updateDisplayState(timestamp)` in `TunerScreen.ts` owns the median/easing/clarity gate for
+  `displayCents` and a new `dwellProgress` field. `tick()` calls it right before `drawCanvas()`, which now
+  only reads both (and lost its `timestamp` param). Pure refactor, intended for the DOM boxes in .8.
+- One benign difference: the update now runs when `offsets` is empty, where `drawCanvas()` used to return first.
+- Verified `tsc --noEmit` clean. Not run in the browser.
+- [[lesson-engineering-hygiene]]: derive shared display state in an update step, not inside a draw call.
+
+## DOM box layout (RockyRoad-4bi.8, 2026-10-14)
+
+- `?tunerBoxes` URL flag swaps the canvas for DOM Box 1 and Box 2 in `.tuner-boxes`, fixed 720x110.
+  Canvas stays default. `updateBoxes()` runs instead of `drawCanvas()` and reads the same
+  `displayCents`, `dwellProgress` and phase from `updateDisplayState`.
+- Box 1: string-colored border with a white `clip-path` wipe from the bar's x (follows the bar during the
+  hold), label left of the track and centered with it (`cqh` sized), dark track with center tick, 4px white
+  bar, cents label sharing the track's lane so it clamps with `Flat`/`Sharp` justified.
+- Box 2: each column is check, note name, then a string-colored line fading out before the box bottom.
+  Checks follow the canvas rules. The line was added because the names alone read as too abstract.
+- Order decision: Box 2 is always low string on the left, matching the low-to-high tuning order, independent
+  of `invertStrings`. Web research found low to high is the standard tuning order (Fender, guitartuner.io,
+  bass guides, CoachTuner, Roadie default), so a direction-by-invert tuning order was not built.
+- Plan doc updated and the `invertStrings` open item removed. Verified `tsc --noEmit` clean. The user
+  viewed the layout in the browser and checked it with a live mic. Bead closed.
+- Lessons filed in [[lesson-desktop-dom]]: `cqh` needs a size container, label clamp via `translateX`,
+  `clip-path` border wipe.
+
+## Lessons skill counts removed (2026-10-14)
+
+- The "N entries" wording in the desktop-dom, engineering-hygiene and song-content-authoring SKILL.md files
+  is gone. It had drifted ("five" vs 13) because only the README table count is checked. Filed under
+  [[lesson-engineering-hygiene]].
+
+## Responsive layout switching (RockyRoad-4bi.9, 2026-10-14)
+
+- `?tunerBoxes` is gone. Canvas and boxes are both mounted, and a `ResizeObserver` on `.tuner-body` sets
+  `data-layout` (large, medium, narrow) on `.tuner-main` via `applyLayout()`. `tick()` runs `drawCanvas()` in
+  Large and `updateBoxes()` otherwise. CSS shows one renderer.
+- Breakpoints: Large under 960x760 inner size switches to Medium immediately (no canvas scale floor), Medium
+  to Narrow under 560px wide. Recorded in [[tuner-compact-layout]].
+- Overlays stay on `.tuner-canvas-wrap`, so they cover whichever layout shows. The overlay check shrinks to
+  36px in compact layouts.
+- Narrow: boxes stacked, `container-type: size` moved to Box 1 only, since it would collapse Box 2's height.
+- Nav overlap fix: in Medium and Narrow the nav bar is in flow as its own row (`:has()` on the screen) and the
+  body scrolls with `margin: auto` centering. The Song page does the same under `max-height: 700px`, with
+  Back in flow and the content's top padding reduced. Resolves the nav overlap open item.
+- Side effect: with the nav in flow the body is about 66px shorter, so returning to Large needs that much
+  more height than leaving it. This gives hysteresis, not flicker.
+- Verified `tsc --noEmit` clean. The user viewed the result in the browser.
+- Lessons filed in [[lesson-desktop-dom]].
+
+## Compact layout viability check (RockyRoad-4bi.10, 2026-10-15)
+
+- Decision: keep. The user confirmed the Large, Medium and Narrow layouts on desktop and mobile across
+  window sizes and rotations. No adjustments were needed, and the dev toggle was already gone (4bi.9).
+- [[tuner-compact-layout]] Status was still "planned, not built" after 4bi.8 and 4bi.9 and now records the
+  decision. Gate on the XR tuner (RockyRoad-0q4) is cleared.
+- Lesson filed in [[lesson-engineering-hygiene]].

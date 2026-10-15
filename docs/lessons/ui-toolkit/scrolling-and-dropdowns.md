@@ -89,6 +89,18 @@ step differs.
 
 ---
 
+## An XR dropdown opens in whichever direction its screen's uikitml positions the menu
+Tags: dropdown, option-dropdown, position-top, layout
+Applies-when: placing an OptionDropdown near the bottom of a panel
+
+**Finding:** `OptionDropdown` has no open-direction logic. Each screen's `.option-menu` sets its own 
+`position-top` (3.4 in `song.uikitml` and `play.uikitml`) and the class only scrolls the inner list 
+inside that viewport. So a trigger near the bottom needs a different offset in that screen's 
+uikitml (menu height plus gap, negative), not a TS change. **How to apply:** prefer placing 
+dropdown triggers where downward opening fits; offsets are eyeballed, so confirm in-headset.
+
+---
+
 ## An analytic viewport-height fix for a dropdown's last-item-clipped scroll bug didn't work — unresolved
 Tags: dropdown, scroll, last-item, unresolved
 Applies-when: the last dropdown option doesn't scroll into view

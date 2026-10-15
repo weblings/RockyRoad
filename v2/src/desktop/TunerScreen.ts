@@ -10,6 +10,12 @@ import type { PitchDetector } from "../shared/PitchDetector";
 const BACK_SVG = `<svg width="14" height="14" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M13.0908 14.3334C12.972 14.3334 12.9125 14.1898 12.9965 14.1058L17.7021 9.40022C17.9625 9.13987 17.9625 8.71776 17.7021 8.45741L16.2879 7.04319C16.0275 6.78284 15.6054 6.78284 15.3451 7.04319L6.8598 15.5285C6.59945 15.7888 6.59945 16.2109 6.8598 16.4713L8.27401 17.8855L8.27536 17.8868L15.3453 24.9568C15.6057 25.2172 16.0278 25.2172 16.2881 24.9568L17.7024 23.5426C17.9627 23.2822 17.9627 22.8601 17.7024 22.5998L12.9969 17.8944C12.9129 17.8104 12.9724 17.6668 13.0912 17.6668L26 17.6668C26.3682 17.6668 26.6667 17.3683 26.6667 17.0001V15.0001C26.6667 14.6319 26.3682 14.3334 26 14.3334L13.0908 14.3334Z" fill="currentColor"/></svg>`;
 const SETTINGS_SVG = `<svg width="14" height="14" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M13.3321 4C12.598 4 11.9728 4.50932 11.8154 5.22745L11.4396 6.96752C10.8867 7.19965 10.3672 7.49361 9.88904 7.84127L8.19799 7.29239C7.50395 7.06339 6.74634 7.35056 6.37926 7.98082L4.71259 10.8636C4.34551 11.4939 4.48613 12.2948 5.04981 12.7627L6.42361 13.9071C6.38394 14.2002 6.36329 14.4981 6.36329 14.8C6.36329 15.1019 6.38394 15.3998 6.42361 15.6929L5.04981 16.8373C4.48613 17.3052 4.34551 18.1061 4.71259 18.7364L6.37926 21.6192C6.74634 22.2494 7.50395 22.5366 8.19799 22.3076L9.88904 21.7587C10.3672 22.1064 10.8867 22.4003 11.4396 22.6325L11.8154 24.3725C11.9728 25.0907 12.598 25.6 13.3321 25.6H16.6654C17.3994 25.6 18.0247 25.0907 18.182 24.3725L18.5579 22.6325C19.1107 22.4003 19.6303 22.1064 20.1084 21.7587L21.7995 22.3076C22.4935 22.5366 23.2511 22.2494 23.6182 21.6192L25.2849 18.7364C25.6519 18.1061 25.5113 17.3052 24.9476 16.8373L23.5738 15.6929C23.6135 15.3998 23.6342 15.1019 23.6342 14.8C23.6342 14.4981 23.6135 14.2002 23.5738 13.9071L24.9476 12.7627C25.5113 12.2948 25.6519 11.4939 25.2849 10.8636L23.6182 7.98082C23.2511 7.35056 22.4935 7.06339 21.7995 7.29239L20.1084 7.84127C19.6303 7.49361 19.1107 7.19965 18.5579 6.96752L18.182 5.22745C18.0247 4.50932 17.3994 4 16.6654 4H13.3321ZM14.9987 18.4C16.9869 18.4 18.5987 16.7882 18.5987 14.8C18.5987 12.8118 16.9869 11.2 14.9987 11.2C13.0105 11.2 11.3987 12.8118 11.3987 14.8C11.3987 16.7882 13.0105 18.4 14.9987 18.4Z" fill="currentColor"/></svg>`;
 
+const REPLAY_SVG = `<svg width="16" height="16" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M15.6038 12.2147C16.0439 12.5399 16.6667 12.2257 16.6667 11.6786V10.1789C16.6667 10.1001 16.7351 10.0384 16.8134 10.0479C20.1116 10.4494 22.6667 13.2593 22.6667 16.6659C22.6667 20.3481 19.6817 23.3332 15.9995 23.3332C12.542 23.3332 9.69927 20.7014 9.36509 17.332C9.32875 16.9655 9.03371 16.6662 8.66548 16.6662L6.66655 16.6666C6.29841 16.6666 5.99769 16.966 6.02187 17.3334C6.36494 22.5454 10.7012 26.6667 16 26.6667C21.5228 26.6667 26 22.1895 26 16.6667C26 11.4103 21.9444 7.10112 16.7916 6.69757C16.7216 6.69209 16.6667 6.63396 16.6667 6.56372V4.98824C16.6667 4.44106 16.0439 4.12689 15.6038 4.45206L11.0765 7.79738C10.7159 8.06387 10.7159 8.60326 11.0766 8.86973L15.6038 12.2147Z" fill="currentColor"/></svg>`;
+const PLAY_SVG = `<svg width="16" height="16" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M10.6667 6.6548C10.6667 6.10764 11.2894 5.79346 11.7295 6.11862L24.377 15.4634C24.7377 15.7298 24.7377 16.2692 24.3771 16.5357L11.7295 25.8813C11.2895 26.2065 10.6667 25.8923 10.6667 25.3451L10.6667 6.6548Z" fill="currentColor"/></svg>`;
+const CHECK_PATH = "M24.9266 7.57992C25.015 7.60672 25.0886 7.64746 25.2462 7.80506L26.956 9.51488C27.1136 9.67248 27.1543 9.74604 27.1811 9.83447C27.2079 9.9229 27.2079 10.0133 27.1811 10.1018C27.1543 10.1902 27.1136 10.2638 26.956 10.4214L13.1822 24.1951C13.0246 24.3527 12.951 24.3935 12.8626 24.4203C12.797 24.4402 12.7304 24.4453 12.6642 24.4357L12.7319 24.4203C12.6435 24.4471 12.553 24.4471 12.4646 24.4203C12.3762 24.3935 12.3026 24.3527 12.145 24.1951L5.04407 17.0942C4.88647 16.9366 4.84573 16.863 4.81893 16.7746C4.79213 16.6862 4.79213 16.5957 4.81893 16.5073C4.84573 16.4189 4.88647 16.3453 5.04407 16.1877L6.7539 14.4779C6.9115 14.3203 6.98506 14.2796 7.07349 14.2528C7.16191 14.226 7.25235 14.226 7.34078 14.2528C7.42921 14.2796 7.50277 14.3203 7.66037 14.4779L12.6628 19.4808L24.3397 7.80506C24.4973 7.64746 24.5709 7.60672 24.6593 7.57992C24.7477 7.55311 24.8382 7.55311 24.9266 7.57992Z";
+const CHECK_SVG = `<svg class="tuner-check" viewBox="0 0 32 32" aria-hidden="true"><path d="${CHECK_PATH}" /></svg>`;
+const CHECK_2D = new Path2D(CHECK_PATH);
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 export type TunerContext =
@@ -42,6 +48,13 @@ const NEEDLE_REACH = 0.45;
 const NEEDLE_THICKNESS = 4;
 // Width of the white outline that fills around the active string while the note is held.
 const LOCK_BORDER = 2;
+
+// Layout breakpoints on the tuner body's inner size. Large switches immediately when the 960x540
+// canvas stops fitting. Narrow starts when Box 1's track would drop under ~160px.
+const LARGE_MIN_W = 960;
+const LARGE_MIN_H = 760;
+const MEDIUM_MIN_W = 560;
+type TunerLayout = 'large' | 'medium' | 'narrow';
 
 // Tolerance thresholds (cents)
 const CORRECTION_PASS_CENTS = 10;
@@ -77,6 +90,8 @@ export class TunerScreen implements IScreen {
     // Eased copy of detectedCents for drawing only; the state machine keeps using the raw value.
     private displayCents: number | null = null;
     private detectedClarity = 0;
+    // Hold progress 0..1, nonzero only while the needle is shown. Shared by canvas and DOM renderers.
+    private dwellProgress = 0;
     private lastDrawTs = 0;
     private centsHistory: number[] = [];
     private historyString = -1;
@@ -89,6 +104,12 @@ export class TunerScreen implements IScreen {
     private meterFill: HTMLElement | null = null;
     private dpr = 1;
     private rafId = 0;
+    private layout: TunerLayout = 'large';
+    private layoutObserver: ResizeObserver | null = null;
+    private boxEls: {
+        box1: HTMLElement; wipe: HTMLElement; label: HTMLElement; bar: HTMLElement; cents: HTMLElement;
+        cols: HTMLElement[];
+    } | null = null;
 
     private detector: PitchDetector | null = null;
     private invertStrings = false;
@@ -145,7 +166,7 @@ export class TunerScreen implements IScreen {
                     </button>
                 </div>
                 <div class="tuner-body">
-                    <div class="tuner-main">
+                    <div class="tuner-main" data-layout="large">
 
                         <div class="tuner-controls-row">
                             <label class="tuner-ctrl-inline">
@@ -155,26 +176,34 @@ export class TunerScreen implements IScreen {
                                 </select>
                                 <div class="tuner-meter"><div class="tuner-meter-fill" id="tuner-meter-fill"></div></div>
                             </label>
-                            <div class="tuner-ctrl-divider"></div>
                             <label class="tuner-ctrl-inline">
                                 <span class="tuner-ctrl-label-inline">Gain</span>
                                 <input type="range" class="tuner-gain-slider" id="tuner-gain"
                                     min="1" max="24" step="0.5" value="${this.inputGain}" />
                                 <span id="tuner-gain-val">${this.inputGain}×</span>
                             </label>
-                            <div class="tuner-ctrl-divider"></div>
-                            <button class="btn btn-dark" id="tuner-restart">Restart</button>
-                            <button class="btn btn-light" id="tuner-back">Done</button>
                         </div>
 
                         <div class="tuner-canvas-wrap">
                             <canvas id="tuner-canvas" width="960" height="540"></canvas>
+                            ${this.boxesHtml()}
                             <div class="tuner-complete-overlay hidden" id="tuner-complete">
-                                <svg class="tuner-check" viewBox="0 0 16 16" aria-hidden="true"><polyline points="3,8 6.5,12 13,4" /></svg>
+                                ${CHECK_SVG}
                                 <div class="tuner-in-tune">In tune!</div>
-                                ${!autoAdvance ? `<button class="btn btn-light btn-lg tuner-exit-btn" id="tuner-exit-complete">Done</button>` : ''}
+                                ${!autoAdvance ? `<button class="btn btn-light btn-lg tuner-exit-btn" id="tuner-exit-complete">${PLAY_SVG}<span>Play</span></button>` : ''}
                             </div>
                             <div class="tuner-mic-wait hidden" id="tuner-mic-wait">Waiting for mic access…</div>
+                        </div>
+
+                        <div class="tuner-actions-row">
+                            <button class="btn btn-dark btn-lg tuner-action-btn" id="tuner-restart">
+                                ${REPLAY_SVG}
+                                <span>Restart</span>
+                            </button>
+                            <button class="btn btn-light btn-lg tuner-action-btn" id="tuner-back">
+                                ${PLAY_SVG}
+                                <span>Play</span>
+                            </button>
                         </div>
 
                     </div>
@@ -184,6 +213,7 @@ export class TunerScreen implements IScreen {
         this.canvas = container.querySelector<HTMLCanvasElement>('#tuner-canvas')!;
         this.meterFill = container.querySelector<HTMLElement>('#tuner-meter-fill');
         this.ctx2d  = this.canvas.getContext('2d')!;
+        this.bindBoxes(container);
 
         this.dpr = window.devicePixelRatio || 1;
         const cssW = this.canvas.width;
@@ -228,12 +258,19 @@ export class TunerScreen implements IScreen {
             saveSettings(s);
         });
 
+        const body = container.querySelector<HTMLElement>('.tuner-body')!;
+        this.layoutObserver = new ResizeObserver(() => this.applyLayout(body));
+        this.layoutObserver.observe(body);
+        this.applyLayout(body);
+
         this.rafId = requestAnimationFrame(t => this.tick(t));
         this.startDetector(container, this.inputGain);
     }
 
     unmount(): void {
         cancelAnimationFrame(this.rafId);
+        this.layoutObserver?.disconnect();
+        this.layoutObserver = null;
         this.app.activeInstrumentType = null;
         this.app.onSettingsChange = null;
         this.detector?.destroy();
@@ -242,6 +279,7 @@ export class TunerScreen implements IScreen {
         this.container = null;
         this.canvas = null;
         this.meterFill = null;
+        this.boxEls = null;
         this.ctx2d = null;
     }
 
@@ -314,7 +352,8 @@ export class TunerScreen implements IScreen {
             }
         }
 
-        this.drawCanvas(timestamp);
+        this.updateDisplayState(timestamp);
+        if (this.layout === 'large') this.drawCanvas(); else this.updateBoxes();
         this.rafId = requestAnimationFrame(t => this.tick(t));
 
         if (this.phase.tag === 'complete' && this.completeTimestamp > 0) {
@@ -460,7 +499,39 @@ export class TunerScreen implements IScreen {
         }
     }
 
-    private drawCanvas(timestamp: number): void {
+    // Updates the eased needle value and hold progress that every renderer reads.
+    private updateDisplayState(timestamp: number): void {
+        const currentString = this.phase.tag === 'complete' ? -1 : this.phase.stringIndex;
+
+        const dt = timestamp - this.lastDrawTs;
+        this.lastDrawTs = timestamp;
+        if (this.detectedCents === null || currentString !== this.historyString) this.centsHistory = [];
+        this.historyString = currentString;
+        if (this.detectedCents === null) {
+            this.displayCents = null;
+        } else {
+            // Low-clarity readings (harmonics, octave slips) are skipped for display only, so the
+            // needle holds its last spot instead of leaping.
+            if (this.detectedClarity >= NEEDLE_MIN_CLARITY) {
+                this.centsHistory.push(this.detectedCents);
+                if (this.centsHistory.length > NEEDLE_MEDIAN_WINDOW) this.centsHistory.shift();
+            }
+            if (this.centsHistory.length > 0) {
+                const target = [...this.centsHistory].sort((a, b) => a - b)[this.centsHistory.length >> 1];
+                this.displayCents = this.displayCents === null || this.centsHistory.length === 1
+                    ? target
+                    : this.displayCents + (target - this.displayCents) * (1 - Math.exp(-dt / NEEDLE_SMOOTHING_MS));
+            }
+        }
+
+        const showNeedle = this.detectedCents !== null && this.displayCents !== null && currentString >= 0;
+        const dwellMs = this.phase.tag === 'correction' ? CORRECTION_DWELL_MS : VALIDATION_DWELL_MS;
+        this.dwellProgress = showNeedle && this.dwellStart !== -Infinity
+            ? Math.min(1, (timestamp - this.dwellStart) / dwellMs)
+            : 0;
+    }
+
+    private drawCanvas(): void {
         const canvas = this.canvas!;
         const ctx = this.ctx2d!;
         const n = this.offsets.length;
@@ -494,42 +565,18 @@ export class TunerScreen implements IScreen {
                             : -1;
         const isValidation = this.phase.tag === 'validation';
 
-        const dt = timestamp - this.lastDrawTs;
-        this.lastDrawTs = timestamp;
-        if (this.detectedCents === null || currentString !== this.historyString) this.centsHistory = [];
-        this.historyString = currentString;
-        if (this.detectedCents === null) {
-            this.displayCents = null;
-        } else {
-            // Low-clarity readings (harmonics, octave slips) are skipped for display only, so the
-            // needle holds its last spot instead of leaping.
-            if (this.detectedClarity >= NEEDLE_MIN_CLARITY) {
-                this.centsHistory.push(this.detectedCents);
-                if (this.centsHistory.length > NEEDLE_MEDIAN_WINDOW) this.centsHistory.shift();
-            }
-            if (this.centsHistory.length > 0) {
-                const target = [...this.centsHistory].sort((a, b) => a - b)[this.centsHistory.length >> 1];
-                this.displayCents = this.displayCents === null || this.centsHistory.length === 1
-                    ? target
-                    : this.displayCents + (target - this.displayCents) * (1 - Math.exp(-dt / NEEDLE_SMOOTHING_MS));
-            }
-        }
+        const dwellProgress = this.dwellProgress;
 
         const stringLen = W - marginRight - marginLeft;
         // Needle sits in the gutter past the strings' right ends, so its label never overlaps one.
         const needleX = marginLeft + stringLen + 12;
         const showNeedle = this.detectedCents !== null && this.displayCents !== null && currentString >= 0;
         let needleY = 0;
-        let dwellProgress = 0;
         if (showNeedle) {
             const clamped = Math.max(-50, Math.min(50, this.displayCents!));
             const stringSpacing = n > 1 ? spacing : 50;
             const offsetY = -(clamped / 50) * stringSpacing * NEEDLE_REACH;
             needleY = stringY(currentString) + offsetY;
-            const dwellMs = this.phase.tag === 'correction' ? CORRECTION_DWELL_MS : VALIDATION_DWELL_MS;
-            dwellProgress = this.dwellStart !== -Infinity
-                ? Math.min(1, (timestamp - this.dwellStart) / dwellMs)
-                : 0;
 
             // During the hold the needle settles onto the string's height and thickens to match it.
             needleY = stringY(currentString) + offsetY * (1 - dwellProgress);
@@ -590,6 +637,96 @@ export class TunerScreen implements IScreen {
         }
     }
 
+    private boxesHtml(): string {
+        const n = this.offsets.length;
+        const cols = Array.from({ length: n }, (_, i) => i);
+        return `
+            <div class="tuner-boxes">
+                <div class="tuner-box tuner-box1" id="tuner-box1">
+                    <div class="tuner-box1-border"></div>
+                    <div class="tuner-box1-wipe" id="tuner-box1-wipe"></div>
+                    <div class="tuner-box1-label" id="tuner-box1-label"></div>
+                    <div class="tuner-box1-lane">
+                        <div class="tuner-box1-track"><div class="tuner-box1-tick"></div></div>
+                        <div class="tuner-box1-bar hidden" id="tuner-box1-bar"></div>
+                        <div class="tuner-box1-cents hidden" id="tuner-box1-cents"></div>
+                    </div>
+                </div>
+                <div class="tuner-box tuner-box2" id="tuner-box2">
+                    ${cols.map(i => `
+                        <div class="tuner-box2-col" data-string="${i}" style="color:${stringColorCss(i) ?? '#fff'}">
+                            ${CHECK_SVG}
+                            <span class="tuner-box2-name">${midiToNoteName(this.targetMidis[i])}</span>
+                            <div class="tuner-box2-line"></div>
+                        </div>`).join('')}
+                </div>
+            </div>`;
+    }
+
+    private bindBoxes(container: HTMLElement): void {
+        this.boxEls = {
+            box1: container.querySelector('#tuner-box1')!,
+            wipe: container.querySelector('#tuner-box1-wipe')!,
+            label: container.querySelector('#tuner-box1-label')!,
+            bar: container.querySelector('#tuner-box1-bar')!,
+            cents: container.querySelector('#tuner-box1-cents')!,
+            cols: [...container.querySelectorAll<HTMLElement>('.tuner-box2-col')],
+        };
+    }
+
+    // Picks Large, Medium or Narrow from the body's inner size and tags .tuner-main for the CSS.
+    private applyLayout(body: HTMLElement): void {
+        const w = body.clientWidth - 32, h = body.clientHeight - 32;
+        const next: TunerLayout = w >= LARGE_MIN_W && h >= LARGE_MIN_H ? 'large'
+            : w >= MEDIUM_MIN_W ? 'medium' : 'narrow';
+        if (next === this.layout) return;
+        this.layout = next;
+        body.querySelector('.tuner-main')?.setAttribute('data-layout', next);
+    }
+
+    // Drives the DOM boxes from the same display state and phase as the canvas.
+    private updateBoxes(): void {
+        const els = this.boxEls;
+        if (!els) return;
+        const current = this.phase.tag === 'complete' ? -1 : this.phase.stringIndex;
+        const color = current >= 0 ? stringColorCss(current) ?? '#fff' : '#555';
+        els.box1.style.setProperty('--string-color', color);
+        els.label.textContent = current >= 0 ? midiToNoteName(this.targetMidis[current]) : '';
+
+        const showNeedle = this.detectedCents !== null && this.displayCents !== null && current >= 0;
+        els.bar.classList.toggle('hidden', !showNeedle);
+        els.cents.classList.toggle('hidden', !showNeedle);
+        if (showNeedle) {
+            const pct = (Math.max(-50, Math.min(50, this.displayCents!)) + 50);
+            els.bar.style.left = `${pct}%`;
+            els.cents.style.left = `${pct}%`;
+            els.cents.style.transform = `translateX(-${pct}%)`;
+            const shown = Math.round(this.displayCents!);
+            els.cents.textContent = Math.abs(shown) > 99 ? (shown > 0 ? 'Sharp' : 'Flat') : (shown > 0 ? `+${shown}` : `${shown}`);
+            // Wipe spreads both ways from the bar's x and closes on the sides at full progress.
+            const p = this.dwellProgress;
+            const left = pct * (1 - p), right = 100 - (pct + (100 - pct) * p);
+            els.wipe.style.clipPath = p > 0 ? `inset(0 ${right}% 0 ${left}%)` : 'inset(0 100% 0 100%)';
+        } else {
+            els.wipe.style.clipPath = 'inset(0 100% 0 100%)';
+        }
+
+        for (const col of els.cols) {
+            const i = Number(col.dataset.string);
+            const checkState = this.phase.tag === 'complete' ? 'done'
+                : this.phase.tag === 'validation' ? (this.phase.results[i] ? 'done' : 'pending')
+                : (i < this.phase.stringIndex ? 'done' : null);
+            col.classList.toggle('current', i === current);
+            col.dataset.check = checkState ?? '';
+        }
+
+        if (this.meterFill) {
+            const rms = this.detector?.lastRms ?? 0;
+            this.meterFill.style.height = `${Math.min(rms * 6, 1) * 100}%`;
+            this.meterFill.style.background = rms > 0.05 ? '#44CC44' : '#CC8800';
+        }
+    }
+
     private computeTargetMidis(offsets: number[]): number[] {
         const base = STANDARD_BASE_NOTES[offsets.length];
         if (!base) return offsets.map(() => 69);
@@ -639,15 +776,11 @@ function strokeLockBorder(
 
 function drawCheck(ctx: CanvasRenderingContext2D, cx: number, cy: number, color: string): void {
     ctx.save();
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 2;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.beginPath();
-    ctx.moveTo(cx - 5, cy);
-    ctx.lineTo(cx - 1.5, cy + 4);
-    ctx.lineTo(cx + 5, cy - 4);
-    ctx.stroke();
+    // Half-size icon, nudged up 1px because the check's visual mass sits below its box center.
+    ctx.translate(cx - 8, cy - 9);
+    ctx.scale(0.5, 0.5);
+    ctx.fillStyle = color;
+    ctx.fill(CHECK_2D);
     ctx.restore();
 }
 
