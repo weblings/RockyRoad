@@ -7,8 +7,8 @@ allowed-tools: Read, Grep
 # Desktop DOM/CSS lessons
 
 Before writing or editing `src/desktop/` markup, CSS (`desktop.html`'s `<style>` block), or
-DOM-component/event-wiring code, check `docs/lessons/desktop-dom.md` — five entries,
-each with `Tags:`/`Applies-when:` lines for retrieval.
+DOM-component/event-wiring code, check `docs/lessons/desktop-dom.md` —
+each has `Tags:`/`Applies-when:` lines for retrieval.
 
 ## How to use this skill
 

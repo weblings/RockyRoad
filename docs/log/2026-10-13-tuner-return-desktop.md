@@ -132,6 +132,12 @@ Desktop slice of [[tuner-v2]]. XR (RockyRoad-0q4) and the string-color bug (Rock
   of `invertStrings`. Web research found low to high is the standard tuning order (Fender, guitartuner.io,
   bass guides, CoachTuner, Roadie default), so a direction-by-invert tuning order was not built.
 - Plan doc updated and the `invertStrings` open item removed. Verified `tsc --noEmit` clean. The user
-  viewed the layout in the browser. A live-mic check of the track at a few cents is still due before closing.
+  viewed the layout in the browser and checked it with a live mic. Bead closed.
 - Lessons filed in [[lesson-desktop-dom]]: `cqh` needs a size container, label clamp via `translateX`,
   `clip-path` border wipe.
+
+## Lessons skill counts removed (2026-10-14)
+
+- The "N entries" wording in the desktop-dom, engineering-hygiene and song-content-authoring SKILL.md files
+  is gone. It had drifted ("five" vs 13) because only the README table count is checked. Filed under
+  [[lesson-engineering-hygiene]].

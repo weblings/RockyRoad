@@ -8,7 +8,7 @@ allowed-tools: Read, Grep
 
 Before transcribing source material into a song's chart JSON, or editing an existing song's
 `song.json`/`lead.json`/`arrangement.json` (duration, sections, notes), check
-`docs/lessons/song-content-authoring.md` — 12 entries, each with `Tags:`/`Applies-when:`
+`docs/lessons/song-content-authoring.md` — each entry has `Tags:`/`Applies-when:`
 lines for retrieval.
 
 ## How to use this skill

@@ -325,3 +325,15 @@ exactly one update per frame), so calling the draw function twice would also dou
 **How to apply:** hoist the stateful math into one `update…(timestamp)` called once per frame before
 all renderers, stored on fields they only read. Check what the draw function's early returns used to
 skip, since the hoisted code now runs on those paths too.
+
+---
+
+## Keep a derived count in one enforced place, not copied into prose that nothing checks
+Tags: docs, maintenance, duplication, counts, skills
+Applies-when: writing "N entries" or any other derived number into a second document
+
+The desktop-dom skill said "five entries" while the file had 13, because only the README table's count
+was checked by `check-lessons.sh`. The skill copies served no purpose, since the skill already says to
+grep `Tags:` and read only matches. Remove duplicate counts rather than adding a check for them.
+
+**How to apply:** if a number can be derived, keep it where a script verifies it and link from elsewhere.

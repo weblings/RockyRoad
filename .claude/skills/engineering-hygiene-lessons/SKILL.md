@@ -9,7 +9,7 @@ allowed-tools: Read, Grep
 Before deleting or modifying shared global state, extending a data model that's consumed in
 multiple places, gating async work on a live condition, or reusing an existing "does everything"
 function/helper for a narrower purpose, check
-`docs/lessons/engineering-hygiene.md` — 21 entries, each with `Tags:`/`Applies-when:`
+`docs/lessons/engineering-hygiene.md` — each entry has `Tags:`/`Applies-when:`
 lines for retrieval.
 
 ## How to use this skill
