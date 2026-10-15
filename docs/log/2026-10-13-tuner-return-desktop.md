@@ -159,3 +159,11 @@ Desktop slice of [[tuner-v2]]. XR (RockyRoad-0q4) and the string-color bug (Rock
   more height than leaving it. This gives hysteresis, not flicker.
 - Verified `tsc --noEmit` clean. The user viewed the result in the browser.
 - Lessons filed in [[lesson-desktop-dom]].
+
+## Compact layout viability check (RockyRoad-4bi.10, 2026-10-15)
+
+- Decision: keep. The user confirmed the Large, Medium and Narrow layouts on desktop and mobile across
+  window sizes and rotations. No adjustments were needed, and the dev toggle was already gone (4bi.9).
+- [[tuner-compact-layout]] Status was still "planned, not built" after 4bi.8 and 4bi.9 and now records the
+  decision. Gate on the XR tuner (RockyRoad-0q4) is cleared.
+- Lesson filed in [[lesson-engineering-hygiene]].

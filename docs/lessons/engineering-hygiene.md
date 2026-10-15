@@ -337,3 +337,15 @@ was checked by `check-lessons.sh`. The skill copies served no purpose, since the
 grep `Tags:` and read only matches. Remove duplicate counts rather than adding a check for them.
 
 **How to apply:** if a number can be derived, keep it where a script verifies it and link from elsewhere.
+
+---
+
+## Update a planning doc's Status line in the commit that builds the plan
+Tags: docs, maintenance, planning, drift
+Applies-when: closing a bead that implements part or all of a planning doc
+
+[[tuner-compact-layout]] said "planned, not built" through two commits that built it (4bi.8, 4bi.9),
+because those edits only touched the Breakpoints section. The stale Status was found a bead later.
+
+**How to apply:** when a commit builds from a plan, edit the Status line in that same commit, even to
+say "partly built, see bead X".

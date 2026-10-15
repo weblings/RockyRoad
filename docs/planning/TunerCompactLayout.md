@@ -1,8 +1,9 @@
 # Tuner compact layout
 
 Id: tuner-compact-layout
-Status: planned 2026-10-14. Layout settled in design discussion, not built. Desktop first to test
-viability, XR tuner (RockyRoad-0q4) after.
+Status: keep, decided 2026-10-15. Built on desktop (4bi.8, 4bi.9) and confirmed on desktop and
+mobile across screen sizes and rotations. The dev toggle is gone and the layout is the default.
+Next is the XR tuner (RockyRoad-0q4).
 
 Builds on the desktop tuner from [[2026-10-13-tuner-return-desktop]] and [[tuner-v2]]. Today the
 canvas is a fixed 960x540 and the controls row is one non-wrapping line (about 560px), so the
