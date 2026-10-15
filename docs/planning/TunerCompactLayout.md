@@ -80,6 +80,21 @@ page has no small-screen behavior.
   variant is needed.
 - **Gain slider:** uikit has no native range input, so it needs a custom build.
 - **Border wipe:** uikit has no clip-rect, so the wipe needs edge strips.
+- **Mic (spike 0q4.1, 2026-10-15):** go. In the Quest Browser, `getUserMedia` is granted from a
+  button on the page before entering AR, and pitch detection keeps working inside the immersive
+  session. `enumerateDevices` lists three inputs: Default, Speakerphone and Headset earpiece.
+- **Input dropdown:** kept, with Default preselected. The extra two look like Android audio routes,
+  not distinct mics, and whether they differ in signal is untested.
+- **Entry:** `song-flow` only, matching desktop. Tune button on the Song actions bar and auto-tune
+  before Play.
+- **In-session grant (tested 2026-10-15):** with site and browser permission already granted, the
+  mic starts automatically on entering XR. Without it, the request fires but the prompt is not
+  visible until the user leaves immersive mode. No web way to show a system toast inside a session
+  was found. The first grant needs a pre-session step on the page (see RockyRoad-0q4.5).
+- **Mic permission design (decided 2026-10-15):** main path is a page step on `xr.html` before Enter
+  XR, shown on VR-capable devices when permission is `prompt`. Safety net is a tuner fail state
+  telling the user to exit immersive, accept the prompt and return, with a timeout and a denied
+  variant. Open: whether a pending request resolves after leaving immersive mode.
 
 ## Rejected
 

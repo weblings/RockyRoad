@@ -178,3 +178,13 @@ Applies-when: deploying under a subpath or adding a hardcoded absolute path in r
 **Root cause:** `base` only rewrites asset references Vite's own HTML/module-graph processing actually sees — `<script src>`, `<link href>`, imported assets. It has no way to find (and can't rewrite) a plain string like `'/UISheet0.png'` or `'/ui/library.json'` sitting in a `.ts` file, used later at runtime via `fetch()`/`.src =`/a component's `config:` prop. Those resolve against whatever origin the page is served from, ignoring `base` entirely.
 
 **Fix:** Any such hardcoded absolute-root path needs manual prefixing: `` `${import.meta.env.BASE_URL}UISheet0.png` `` instead of `'/UISheet0.png'`. Found ~15 call sites across `desktop/main.ts`, `xr/index.ts`, `desktop/SongLibraryScreen.ts`, `desktop/Dropdown.ts`, and `shared/SongSource.ts`'s `BakedSource` — grep the whole `src/` tree for `'/[A-Za-z]` when setting up a non-root deployment target, not just the files you expect to be affected.
+
+---
+
+## Quest Link runs the desktop browser, so headset-specific behavior needs standalone Quest Browser
+Tags: quest, quest-link, standalone, microphone, dev-server
+Applies-when: testing mic, permissions or other device behavior on a real headset
+
+**Symptom:** Under Quest Link, the page runs in desktop Chrome on the PC, so the mic, device list and permission prompts are the PC's, not the headset's.
+
+**Fix:** Run `npm run dev:device` (no IWER emulator) and open `https://<PC-LAN-IP>:8081/xr.html` in the standalone Quest Browser on the same wifi. Proceed past the mkcert certificate warning and allow port 8081 through the Windows firewall if needed.

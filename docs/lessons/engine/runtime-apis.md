@@ -147,3 +147,15 @@ Applies-when: upgrading three, or CanvasTextures invisible on Quest but fine in 
 The IWER emulator is not affected because it doesn't enable multiview (no `OCULUS_multiview` extension in browser), so texture uploads are not deferred.
 
 **Fix:** Pin to `"three": "npm:super-three@0.181.0"`. Do not upgrade unless the IWSDK itself upgrades and the deferred upload flush is confirmed to be restored in the new version.
+
+---
+
+## Quest Browser can't show a permission prompt inside an immersive session
+Tags: quest, webxr, getusermedia, microphone, permissions
+Applies-when: a feature needs a browser permission (mic, camera) that may not be granted yet
+
+**Symptom:** With site and browser mic permission already granted, `getUserMedia` starts on entering XR. Without it, the request fires but the prompt only appears after the user leaves immersive mode.
+
+**Root cause:** Browser permission UI isn't rendered in the headset during a session, so a first-time request made there stalls unseen.
+
+**Fix:** Request on a normal page before Enter XR, with a `getUserMedia` timeout and an in-XR fallback telling the user to exit, accept and return. Permission is per origin, so one grant covers both entry pages.
