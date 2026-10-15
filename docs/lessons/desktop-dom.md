@@ -247,3 +247,28 @@ wipe from x spreading both ways, `L = x * (1 - p)` and `R = 100 - (x + (100 - x)
 are 0 and the sides are revealed last. Hide it with `inset(0 100% 0 100%)`.
 
 **How to apply:** compute the insets per frame from the shared dwell progress, the same input the canvas version uses.
+
+---
+
+## `container-type: size` on a stacked box collapses its height
+Tags: css, container-queries, flexbox, stacking, sizing
+Applies-when: stacking boxes vertically when one of them uses `cqh` units or `container-type: size`
+
+Size containment ignores content height, so a `container-type: size` box in a column with no explicit
+height renders 0 tall. Put it only on the box that has a fixed height and leave the content-sized box alone.
+
+**How to apply:** give the `cqh` box an explicit height and keep the other boxes `container-type: normal`.
+
+---
+
+## An absolute nav bar overlaps content on short screens, so put it in flow below a height or layout breakpoint
+Tags: css, nav-bar, overlap, responsive, has
+Applies-when: a top bar is `position: absolute` and the content below can grow taller than the screen
+
+Padding to clear the bar only works while the content fits. Switch the bar to `position: static` in the
+short or compact state so it becomes its own row, and center the content with `margin: auto` (not
+`align-items: center`, which clips the top when content overflows). A layout flag on a child can drive the
+bar via `.screen:has([data-layout]:not([data-layout="large"]))`.
+
+**How to apply:** use `@media (max-height: ...)` for pages without a layout flag, and place the rule after any earlier padding overrides.
+

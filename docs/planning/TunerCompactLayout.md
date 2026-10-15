@@ -88,9 +88,15 @@ page has no small-screen behavior.
 - **Needle settling and thickening on lock:** not used in the box layouts.
 - **The current string's colored line as Box 1's track:** replaced by the abstract track.
 
+## Breakpoints (settled 2026-10-14, built in 4bi.9)
+
+- **Large to Medium:** switches immediately when the body's inner size drops under 960x760. No canvas
+  scale floor, so the canvas never needs a scaling path.
+- **Medium to Narrow:** under 560px inner width, where Box 1's track would fall under about 160px.
+- **Mechanism:** a `ResizeObserver` on the tuner body sets `data-layout` on `.tuner-main`. Both
+  renderers stay mounted and CSS shows one. Overlays sit on the shared `.tuner-canvas-wrap`.
+
 ## Open
 
-- **Breakpoints:** Large to Medium when the canvas no longer fits (scale down to a floor first, or
-  switch right away?). Medium to Narrow when Box 1's track drops below a minimum usable width.
 - **Nav overlap:** the absolute Back/Settings bar can overlap content on short landscape screens.
 - **Wipe origin:** fixed where the hold began, or following the bar during the hold.

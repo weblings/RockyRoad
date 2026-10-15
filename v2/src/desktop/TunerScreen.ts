@@ -49,8 +49,12 @@ const NEEDLE_THICKNESS = 4;
 // Width of the white outline that fills around the active string while the note is held.
 const LOCK_BORDER = 2;
 
-// Dev toggle for the DOM box layout: add ?tunerBoxes to the URL. Canvas stays the default.
-const USE_BOXES = new URLSearchParams(location.search).has('tunerBoxes');
+// Layout breakpoints on the tuner body's inner size. Large switches immediately when the 960x540
+// canvas stops fitting. Narrow starts when Box 1's track would drop under ~160px.
+const LARGE_MIN_W = 960;
+const LARGE_MIN_H = 760;
+const MEDIUM_MIN_W = 560;
+type TunerLayout = 'large' | 'medium' | 'narrow';
 
 // Tolerance thresholds (cents)
 const CORRECTION_PASS_CENTS = 10;
@@ -100,6 +104,8 @@ export class TunerScreen implements IScreen {
     private meterFill: HTMLElement | null = null;
     private dpr = 1;
     private rafId = 0;
+    private layout: TunerLayout = 'large';
+    private layoutObserver: ResizeObserver | null = null;
     private boxEls: {
         box1: HTMLElement; wipe: HTMLElement; label: HTMLElement; bar: HTMLElement; cents: HTMLElement;
         cols: HTMLElement[];
@@ -160,7 +166,7 @@ export class TunerScreen implements IScreen {
                     </button>
                 </div>
                 <div class="tuner-body">
-                    <div class="tuner-main">
+                    <div class="tuner-main" data-layout="large">
 
                         <div class="tuner-controls-row">
                             <label class="tuner-ctrl-inline">
@@ -180,7 +186,7 @@ export class TunerScreen implements IScreen {
 
                         <div class="tuner-canvas-wrap">
                             <canvas id="tuner-canvas" width="960" height="540"></canvas>
-                            ${USE_BOXES ? this.boxesHtml() : ''}
+                            ${this.boxesHtml()}
                             <div class="tuner-complete-overlay hidden" id="tuner-complete">
                                 ${CHECK_SVG}
                                 <div class="tuner-in-tune">In tune!</div>
@@ -207,7 +213,7 @@ export class TunerScreen implements IScreen {
         this.canvas = container.querySelector<HTMLCanvasElement>('#tuner-canvas')!;
         this.meterFill = container.querySelector<HTMLElement>('#tuner-meter-fill');
         this.ctx2d  = this.canvas.getContext('2d')!;
-        if (USE_BOXES) this.bindBoxes(container);
+        this.bindBoxes(container);
 
         this.dpr = window.devicePixelRatio || 1;
         const cssW = this.canvas.width;
@@ -252,12 +258,19 @@ export class TunerScreen implements IScreen {
             saveSettings(s);
         });
 
+        const body = container.querySelector<HTMLElement>('.tuner-body')!;
+        this.layoutObserver = new ResizeObserver(() => this.applyLayout(body));
+        this.layoutObserver.observe(body);
+        this.applyLayout(body);
+
         this.rafId = requestAnimationFrame(t => this.tick(t));
         this.startDetector(container, this.inputGain);
     }
 
     unmount(): void {
         cancelAnimationFrame(this.rafId);
+        this.layoutObserver?.disconnect();
+        this.layoutObserver = null;
         this.app.activeInstrumentType = null;
         this.app.onSettingsChange = null;
         this.detector?.destroy();
@@ -340,7 +353,7 @@ export class TunerScreen implements IScreen {
         }
 
         this.updateDisplayState(timestamp);
-        if (USE_BOXES) this.updateBoxes(); else this.drawCanvas();
+        if (this.layout === 'large') this.drawCanvas(); else this.updateBoxes();
         this.rafId = requestAnimationFrame(t => this.tick(t));
 
         if (this.phase.tag === 'complete' && this.completeTimestamp > 0) {
@@ -651,7 +664,6 @@ export class TunerScreen implements IScreen {
     }
 
     private bindBoxes(container: HTMLElement): void {
-        container.querySelector('#tuner-canvas')?.classList.add('hidden');
         this.boxEls = {
             box1: container.querySelector('#tuner-box1')!,
             wipe: container.querySelector('#tuner-box1-wipe')!,
@@ -660,6 +672,16 @@ export class TunerScreen implements IScreen {
             cents: container.querySelector('#tuner-box1-cents')!,
             cols: [...container.querySelectorAll<HTMLElement>('.tuner-box2-col')],
         };
+    }
+
+    // Picks Large, Medium or Narrow from the body's inner size and tags .tuner-main for the CSS.
+    private applyLayout(body: HTMLElement): void {
+        const w = body.clientWidth - 32, h = body.clientHeight - 32;
+        const next: TunerLayout = w >= LARGE_MIN_W && h >= LARGE_MIN_H ? 'large'
+            : w >= MEDIUM_MIN_W ? 'medium' : 'narrow';
+        if (next === this.layout) return;
+        this.layout = next;
+        body.querySelector('.tuner-main')?.setAttribute('data-layout', next);
     }
 
     // Drives the DOM boxes from the same display state and phase as the canvas.

@@ -141,3 +141,21 @@ Desktop slice of [[tuner-v2]]. XR (RockyRoad-0q4) and the string-color bug (Rock
 - The "N entries" wording in the desktop-dom, engineering-hygiene and song-content-authoring SKILL.md files
   is gone. It had drifted ("five" vs 13) because only the README table count is checked. Filed under
   [[lesson-engineering-hygiene]].
+
+## Responsive layout switching (RockyRoad-4bi.9, 2026-10-14)
+
+- `?tunerBoxes` is gone. Canvas and boxes are both mounted, and a `ResizeObserver` on `.tuner-body` sets
+  `data-layout` (large, medium, narrow) on `.tuner-main` via `applyLayout()`. `tick()` runs `drawCanvas()` in
+  Large and `updateBoxes()` otherwise. CSS shows one renderer.
+- Breakpoints: Large under 960x760 inner size switches to Medium immediately (no canvas scale floor), Medium
+  to Narrow under 560px wide. Recorded in [[tuner-compact-layout]].
+- Overlays stay on `.tuner-canvas-wrap`, so they cover whichever layout shows. The overlay check shrinks to
+  36px in compact layouts.
+- Narrow: boxes stacked, `container-type: size` moved to Box 1 only, since it would collapse Box 2's height.
+- Nav overlap fix: in Medium and Narrow the nav bar is in flow as its own row (`:has()` on the screen) and the
+  body scrolls with `margin: auto` centering. The Song page does the same under `max-height: 700px`, with
+  Back in flow and the content's top padding reduced. Resolves the nav overlap open item.
+- Side effect: with the nav in flow the body is about 66px shorter, so returning to Large needs that much
+  more height than leaving it. This gives hysteresis, not flicker.
+- Verified `tsc --noEmit` clean. The user viewed the result in the browser.
+- Lessons filed in [[lesson-desktop-dom]].
