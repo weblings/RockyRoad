@@ -440,33 +440,38 @@
     #tuner-canvas.hidden { display: none; }
 
     /* DOM box layout (dev toggle ?tunerBoxes): fixed size, two boxes side by side. */
-    .tuner-boxes { display: flex; gap: 12px; width: 720px; height: 200px; padding: 12px; box-sizing: content-box; }
+    .tuner-boxes { display: flex; gap: 12px; width: 720px; height: 110px; padding: 12px; box-sizing: content-box; }
     .tuner-box { position: relative; flex: 1; border-radius: 10px; container-type: size; }
     .tuner-box1 { --string-color: #555; background: #111; }
     .tuner-box1-border, .tuner-box1-wipe {
       position: absolute; inset: 0; border-radius: 10px; border: 3px solid var(--string-color); pointer-events: none;
     }
     .tuner-box1-wipe { border-color: #ffffff; clip-path: inset(0 100% 0 100%); }
-    /* Label fits the box height: no minimum size. */
+    /* Label sits left of the track, centered on it, sized to the box height with no minimum. */
     .tuner-box1-label {
-      position: absolute; top: 6cqh; left: 6cqh; font-size: 38cqh; line-height: 1; font-weight: 600;
-      color: var(--string-color);
+      position: absolute; top: 50%; left: 5%; transform: translateY(-50%);
+      font-size: 42cqh; line-height: 1; font-weight: 600; color: var(--string-color);
     }
     /* Lane spans the track's x range, so bar and cents label share its left percentages. */
-    .tuner-box1-lane { position: absolute; left: 8%; right: 8%; top: 0; bottom: 0; }
-    .tuner-box1-track { position: absolute; left: 0; right: 0; top: 68%; height: 4px; border-radius: 2px; background: #2a2a2a; }
+    .tuner-box1-lane { position: absolute; left: 30%; right: 8%; top: 0; bottom: 0; }
+    .tuner-box1-track { position: absolute; left: 0; right: 0; top: 50%; height: 4px; border-radius: 2px; background: #2a2a2a; }
     .tuner-box1-tick { position: absolute; left: 50%; top: -6px; bottom: -6px; width: 2px; margin-left: -1px; background: #3a3a3a; }
     .tuner-box1-bar {
-      position: absolute; left: 50%; top: calc(68% - 14px); height: 32px; width: 4px; margin-left: -2px;
+      position: absolute; left: 50%; top: calc(50% - 14px); height: 32px; width: 4px; margin-left: -2px;
       border-radius: 2px; background: #ffffff;
     }
-    .tuner-box1-cents { position: absolute; top: calc(68% + 24px); font-size: 14px; color: #c8c8c8; white-space: nowrap; }
+    .tuner-box1-cents { position: absolute; top: calc(50% + 24px); font-size: 14px; color: #c8c8c8; white-space: nowrap; }
     .tuner-box1-bar.hidden, .tuner-box1-cents.hidden { display: none; }
 
-    .tuner-box2 { background: #111; display: flex; align-items: center; justify-content: space-around; padding: 0 8px; }
-    .tuner-box2-col { display: flex; flex-direction: column; align-items: center; gap: 8px; opacity: 0.45; font-size: 16px; }
+    .tuner-box2 { background: #111; display: flex; justify-content: space-around; padding: 10px 8px 0; }
+    /* Check above the name, then a string line that fades out before the box bottom. */
+    .tuner-box2-col { display: flex; flex-direction: column; align-items: center; gap: 4px; opacity: 0.45; font-size: 16px; }
     .tuner-box2-col.current { opacity: 1; font-weight: 700; }
     .tuner-box2-col .tuner-check { width: 20px; height: 20px; visibility: hidden; }
+    .tuner-box2-line {
+      flex: 1; width: 3px; border-radius: 2px;
+      background: linear-gradient(to bottom, currentColor, transparent 85%);
+    }
     .tuner-box2-col[data-check="done"] .tuner-check { visibility: visible; fill: #ffffff; }
     .tuner-box2-col[data-check="pending"] .tuner-check { visibility: visible; fill: #515151; }
 

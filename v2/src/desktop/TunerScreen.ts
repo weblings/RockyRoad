@@ -627,7 +627,6 @@ export class TunerScreen implements IScreen {
     private boxesHtml(): string {
         const n = this.offsets.length;
         const cols = Array.from({ length: n }, (_, i) => i);
-        if (!this.invertStrings) cols.reverse();
         return `
             <div class="tuner-boxes">
                 <div class="tuner-box tuner-box1" id="tuner-box1">
@@ -643,8 +642,9 @@ export class TunerScreen implements IScreen {
                 <div class="tuner-box tuner-box2" id="tuner-box2">
                     ${cols.map(i => `
                         <div class="tuner-box2-col" data-string="${i}" style="color:${stringColorCss(i) ?? '#fff'}">
-                            <span class="tuner-box2-name">${midiToNoteName(this.targetMidis[i])}</span>
                             ${CHECK_SVG}
+                            <span class="tuner-box2-name">${midiToNoteName(this.targetMidis[i])}</span>
+                            <div class="tuner-box2-line"></div>
                         </div>`).join('')}
                 </div>
             </div>`;

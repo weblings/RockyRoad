@@ -117,3 +117,21 @@ Desktop slice of [[tuner-v2]]. XR (RockyRoad-0q4) and the string-color bug (Rock
 - One benign difference: the update now runs when `offsets` is empty, where `drawCanvas()` used to return first.
 - Verified `tsc --noEmit` clean. Not run in the browser.
 - [[lesson-engineering-hygiene]]: derive shared display state in an update step, not inside a draw call.
+
+## DOM box layout (RockyRoad-4bi.8, 2026-10-14)
+
+- `?tunerBoxes` URL flag swaps the canvas for DOM Box 1 and Box 2 in `.tuner-boxes`, fixed 720x110.
+  Canvas stays default. `updateBoxes()` runs instead of `drawCanvas()` and reads the same
+  `displayCents`, `dwellProgress` and phase from `updateDisplayState`.
+- Box 1: string-colored border with a white `clip-path` wipe from the bar's x (follows the bar during the
+  hold), label left of the track and centered with it (`cqh` sized), dark track with center tick, 4px white
+  bar, cents label sharing the track's lane so it clamps with `Flat`/`Sharp` justified.
+- Box 2: each column is check, note name, then a string-colored line fading out before the box bottom.
+  Checks follow the canvas rules. The line was added because the names alone read as too abstract.
+- Order decision: Box 2 is always low string on the left, matching the low-to-high tuning order, independent
+  of `invertStrings`. Web research found low to high is the standard tuning order (Fender, guitartuner.io,
+  bass guides, CoachTuner, Roadie default), so a direction-by-invert tuning order was not built.
+- Plan doc updated and the `invertStrings` open item removed. Verified `tsc --noEmit` clean. The user
+  viewed the layout in the browser. A live-mic check of the track at a few cents is still due before closing.
+- Lessons filed in [[lesson-desktop-dom]]: `cqh` needs a size container, label clamp via `translateX`,
+  `clip-path` border wipe.

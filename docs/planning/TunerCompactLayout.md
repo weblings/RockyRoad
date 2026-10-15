@@ -64,7 +64,8 @@ page has no small-screen behavior.
   dimmed.
 - **Checks:** today's rules. White when tuned, dim gray carried into validation, white again when
   re-verified.
-- **Order:** follows `invertStrings`.
+- **Order:** always low string on the left, matching the low-to-high tuning order. Independent of
+  `invertStrings` (settled 2026-10-14).
 
 ## Overlays
 
@@ -92,5 +93,4 @@ page has no small-screen behavior.
 - **Breakpoints:** Large to Medium when the canvas no longer fits (scale down to a floor first, or
   switch right away?). Medium to Narrow when Box 1's track drops below a minimum usable width.
 - **Nav overlap:** the absolute Back/Settings bar can overlap content on short landscape screens.
-- **`invertStrings` direction:** which left-to-right order is the default for Box 2.
 - **Wipe origin:** fixed where the hold began, or following the bar during the hold.

@@ -211,3 +211,39 @@ is centered but its mass sits low, so it looked lower than the label beside it.
 
 **How to apply:** nudge by about 1px per 16px of icon rather than trusting the bbox, and view it next to the text.
 
+
+---
+
+## `cqh` font sizing needs `container-type: size`, which stops the box sizing from its content
+Tags: css, container-queries, cqh, sizing, fit-text
+Applies-when: sizing text to its box's height with container query units
+
+`font-size: 42cqh` on the tuner label only works once the box has `container-type: size`. A size
+container ignores its children when sizing, so the box needs an explicit height (here from the fixed
+`.tuner-boxes` height) or it collapses to zero and the text goes with it.
+
+**How to apply:** set the height on the container first, then use `cqh`. Resize-driven layouts (4bi.9) must set it too.
+
+---
+
+## Clamp a label that tracks a moving marker with `left: p%` plus `translateX(-p%)`
+Tags: css, positioning, clamp, label, transform
+Applies-when: a text label follows a marker along a track and must stay inside the track's ends
+
+Placing the label at `left: p%` and shifting it by `translateX(-p%)` of its own width left-justifies
+it at 0% and right-justifies it at 100%, with a smooth slide between. No measuring or JS clamp needed,
+and the tuner's `Flat`/`Sharp` text justifies itself because the needle is pinned at the ends.
+
+**How to apply:** put marker and label in one lane whose x range equals the track's, so both share the same percentages.
+
+---
+
+## Wipe a DOM border with `clip-path: inset()` on a white duplicate, not with gradients
+Tags: css, clip-path, border, wipe, animation
+Applies-when: revealing an outline from a point outward, such as lock feedback on a bordered box
+
+Stack a white-bordered copy over the colored border and animate `clip-path: inset(0 R% 0 L%)`. For a
+wipe from x spreading both ways, `L = x * (1 - p)` and `R = 100 - (x + (100 - x) * p)`. At `p = 1` both
+are 0 and the sides are revealed last. Hide it with `inset(0 100% 0 100%)`.
+
+**How to apply:** compute the insets per frame from the shared dwell progress, the same input the canvas version uses.
