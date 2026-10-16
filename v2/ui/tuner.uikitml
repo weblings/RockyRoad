@@ -450,6 +450,61 @@
     color: #8b8b8b;
     font-size: 1.4;
   }
+  /* Built-in mic warning: the opaque .overlay is the scrim, this card sits centered on it.
+     One span per line and explicit widths so nothing relies on text wrapping. */
+  .warn-card {
+    width: 31;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex-shrink: 0;
+    position-type: relative;
+    position-top: -0.4;
+    gap-row: 0.4;
+    gap-column: 0.4;
+    padding-top: 0.9;
+    padding-right: 1.2;
+    padding-bottom: 0.9;
+    padding-left: 1.2;
+    background-color: #1a1a1a;
+    border-width: 0.1;
+    border-color: #333333;
+    border-radius: 0.8;
+  }
+  .warn-title {
+    color: #ffffff;
+    font-size: 1.5;
+    font-weight: bold;
+  }
+  .warn-line {
+    color: #8b8b8b;
+    font-size: 1.2;
+  }
+  .warn-quest {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex-shrink: 0;
+    gap-row: 0.5;
+    gap-column: 0.5;
+    padding-top: 0.3;
+  }
+  .warn-dismiss {
+    margin-top: 0.9;
+    width: 10;
+    height: 2.8;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    flex-grow: 0;
+    flex-shrink: 0;
+    border-radius: 0.5;
+    font-size: 1.3;
+    font-weight: medium;
+    cursor: pointer;
+  }
 
   .actions {
     display: flex;
@@ -572,6 +627,20 @@
     </div>
     <div id="tn-mic-overlay" class="overlay">
       <span id="tn-mic-text" class="overlay-text-dim">Waiting for mic access...</span>
+    </div>
+    <div id="tn-warn-overlay" class="overlay">
+      <div class="warn-card">
+        <span id="tn-warn-title" class="warn-title">Headset mic can't hear guitar well</span>
+        <span id="tn-warn-l1" class="warn-line">Plug in a USB mic, then pick it in Input.</span>
+        <span id="tn-warn-l1b" class="warn-line">headset, connect it and pick it in Input.</span>
+        <div id="tn-warn-quest" class="warn-quest">
+          <span class="warn-line">Not listed? Settings > Experimental ></span>
+          <span class="warn-line">External Microphone, then restart headset.</span>
+        </div>
+        <button id="tn-warn-dismiss" class="warn-dismiss primary-light">
+          <span>Dismiss</span>
+        </button>
+      </div>
     </div>
   </div>
 

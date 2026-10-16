@@ -2,11 +2,12 @@ import type { Entity, UIKitDocument } from "@iwsdk/core";
 import { PanelDocument } from "@iwsdk/core";
 import { TunerMachine, midiToNoteName, centsLabel } from "../shared/TunerMachine";
 import type { PitchDetector } from "../shared/PitchDetector";
-import { shortMicLabel } from "../shared/MicLabel";
+import { shortMicLabel, isBuiltInMic } from "../shared/MicLabel";
 import { stringColorCss } from "../shared/StringColors";
 import { loadSettings, saveSettings } from "../shared/Settings";
 import type { OptionMenuLayout, WorldPointerEvent } from "./OptionDropdown";
 import { OptionDropdown } from "./OptionDropdown";
+import { debugLog, debugAudio, debugEnabled } from "../shared/DebugLog";
 
 // ── XRTunerScene ──────────────────────────────────────────────────────────────
 // uikit panel (see ui/tuner.uikitml). Drives the shared TunerMachine from a PitchDetector each
@@ -19,6 +20,10 @@ const OPTION_MENU_LAYOUT: OptionMenuLayout = {
     menuHeight: 8,
 };
 
+// Dropdown grows to fit this many inputs before it needs scrolling. Padding/border slack is added.
+const MAX_MENU_ITEMS = 6;
+const MENU_SLACK = 1.0;
+
 // Box 2 column slots present in the markup (7-string guitar).
 const MAX_STRINGS = 7;
 // How long the mic request may stay pending before the panel explains the invisible prompt.
@@ -29,6 +34,9 @@ const MAX_GAIN = 24;
 const GAIN_STEP = 0.5;
 // Lower than the detector default because the Quest mic is quiet. Raising gain would amplify noise too.
 const XR_MIN_RMS = 0.001;
+const MIN_HZ_RATIO = 0.8;
+// Dismissed for the rest of the page session.
+let warnDismissed = false;
 const IDLE_COLOR = '#555555';
 // Box 1 width in panel cm (40 minus .boxes side padding) and its corner radius as a percent
 // of that. The wipe strips stop short of the corners so they stay inside the curve.
@@ -37,6 +45,8 @@ const BOX1_CORNER_PCT = (0.8 / BOX1_WIDTH) * 100;
 // Same mapping as the desktop meter: full at rms 1/6, green once clearly audible.
 const METER_SCALE = 6;
 const METER_LIVE_RMS = 0.05;
+// Dev capture: longest raw mic recording kept per tuner visit.
+const DEBUG_CAPTURE_SECONDS = 90;
 
 export class XRTunerScene {
     private _doc: UIKitDocument | null = null;
@@ -55,6 +65,11 @@ export class XRTunerScene {
     // Last values written by tick, so unchanged frames skip setProperties.
     private _lastLive = new Map<string, string>();
     private _lastStringSig = '';
+    private _captureCount = 0;
+    private _inputsListed = false;
+    private _warnShown = false;
+    // Set once the user chooses an input, so auto-select never overrides them.
+    private _userPicked = false;
 
     private _inputDropdown = new OptionDropdown({
         trigger: 'tn-input-trigger',
@@ -73,7 +88,9 @@ export class XRTunerScene {
     ): void {
         this._stopDetector();
         this._inputs = [];
+        this._inputsListed = false;
         this._inputId = undefined;
+        this._userPicked = false;
         this._gain = Math.min(loadSettings().inputGain ?? 1, MAX_GAIN);
         this._machine = new TunerMachine(tuningOffsets, this._gain, g => this._detector?.setGain(g));
         this._onDone = onDone;
@@ -106,6 +123,8 @@ export class XRTunerScene {
 
         this._setClick(doc, 'tn-back', onBack);
         this._setClick(doc, 'tn-done', () => onDone(m.phase.tag === 'complete'));
+        this._applyWarnText(doc);
+        this._setClick(doc, 'tn-warn-dismiss', () => { warnDismissed = true; });
         this._setClick(doc, 'tn-restart', () => { m.restart(); this._lastStringSig = ''; });
 
         const options: { id: string | undefined; label: string }[] = [
@@ -114,10 +133,18 @@ export class XRTunerScene {
         ];
         const selected = options.find(o => o.id === this._inputId) ?? options[0];
         this._inputDropdown.setTriggerLabel(doc, `Input: ${selected.label}`, 'option-label');
+        // Size the menu to its options so a few inputs never need the drag-scroll.
+        const shown = Math.min(options.length, MAX_MENU_ITEMS);
+        const menuHeight = shown * OPTION_MENU_LAYOUT.itemHeight + (shown - 1) * OPTION_MENU_LAYOUT.itemGap + MENU_SLACK;
+        doc.getElementById('tn-input-menu')?.setProperties({ height: menuHeight });
         this._inputDropdown.renderDynamic(
             doc,
-            options.map(o => ({ label: o.label, selected: o === selected, onSelect: () => this._selectInput(o.id) })),
-            OPTION_MENU_LAYOUT,
+            options.map(o => ({
+                label: o.label,
+                selected: o === selected,
+                onSelect: () => { this._userPicked = true; this._selectInput(o.id); },
+            })),
+            { ...OPTION_MENU_LAYOUT, menuHeight },
             rerender,
         );
 
@@ -180,6 +207,11 @@ export class XRTunerScene {
         const result = this._detector?.detect() ?? null;
         const rms = this._detector?.lastRms ?? 0;
         m.update(timestamp, result, rms);
+        debugLog('f', {
+            s: m.currentString, ph: m.phase.tag, rms: +rms.toFixed(5),
+            hz: result ? +result.frequency.toFixed(2) : null, cl: result ? +result.clarity.toFixed(3) : null,
+            c: m.displayCents === null ? null : +m.displayCents.toFixed(1),
+        });
         if (m.takeCompleteHold(timestamp) && (loadSettings().tunerAutoAdvance ?? true)) {
             this._onDone(true);
             return;
@@ -208,9 +240,18 @@ export class XRTunerScene {
         try {
             const devices = await navigator.mediaDevices.enumerateDevices();
             if (gen !== this._showGen) return;
+            console.log('inputs:', devices.filter(d => d.kind === 'audioinput').map(d => d.label || d.deviceId.slice(0, 6)).join(' | '));
+            debugLog('audio-devices', { devices: devices.map(d => ({ kind: d.kind, label: d.label, id: d.deviceId.slice(0, 8) })) });
+            this._inputsListed = true;
             this._inputs = devices
                 .filter(d => d.kind === 'audioinput' && d.deviceId !== 'default')
                 .map(d => ({ id: d.deviceId, label: shortMicLabel(d.label) || d.deviceId }));
+            // Prefer an external mic over the headset's gated built-in one, unless the user chose.
+            const external = this._inputs.find(i => !isBuiltInMic(i.label));
+            if (external && !this._userPicked && this._inputId === undefined) {
+                this._selectInput(external.id);
+                return;
+            }
             this._rerender();
         } catch { /* keep Default only */ }
     }
@@ -221,11 +262,15 @@ export class XRTunerScene {
             if (gen === this._showGen && this._micState === 'waiting') this._micState = 'timeout';
         }, MIC_TIMEOUT_MS);
         import('../shared/PitchDetector')
-            .then(({ PitchDetector }) => PitchDetector.create(this._inputId, this._gain, XR_MIN_RMS))
+            .then(({ PitchDetector }) => PitchDetector.create(this._inputId, this._gain, XR_MIN_RMS, this._minHz()))
             .then(det => {
                 if (gen !== this._showGen) { det.destroy(); return; }
                 this._detector = det;
                 this._micState = 'ready';
+                if (debugEnabled) {
+                    debugLog('tuner-mic-ready', { label: this._inputs.find(i => i.id === this._inputId)?.label ?? 'Default', n: this._captureCount, rate: det.sampleRate, gain: this._gain, minRms: XR_MIN_RMS, settings: det.trackSettings });
+                    det.startCapture(DEBUG_CAPTURE_SECONDS);
+                }
                 this._clearMicTimer();
                 if (this._inputs.length === 0) void this._listInputs(gen);
             })
@@ -236,6 +281,20 @@ export class XRTunerScene {
             });
     }
 
+    // Sends the dev recording (if any) to the PC before the detector is released.
+    private _uploadCapture(): void {
+        const det = this._detector;
+        const pcm = det?.stopCapture();
+        if (det && pcm && pcm.length > 0) debugAudio(`tuner${this._captureCount++}`, pcm, det.sampleRate);
+    }
+
+    // Lowest pitch worth hearing: a bit under the lowest target, so a flat string is still found
+    // but room rumble is not.
+    private _minHz(): number {
+        const lowest = Math.min(...(this._machine?.targetMidis ?? [40]));
+        return 440 * Math.pow(2, (lowest - 69) / 12) * MIN_HZ_RATIO;
+    }
+
     private _clearMicTimer(): void {
         if (this._micTimer) clearTimeout(this._micTimer);
         this._micTimer = null;
@@ -243,6 +302,7 @@ export class XRTunerScene {
 
     private _stopDetector(): void {
         this._clearMicTimer();
+        this._uploadCapture();
         this._detector?.destroy();
         this._detector = null;
     }
@@ -290,14 +350,36 @@ export class XRTunerScene {
         });
     }
 
+    // The Settings path is verified on Quest only, so other headsets get the general wording.
+    private _applyWarnText(doc: UIKitDocument): void {
+        const quest = /OculusBrowser|Quest/i.test(navigator.userAgent);
+        doc.getElementById('tn-warn-quest')?.setProperties({ display: quest ? 'flex' : 'none' });
+        doc.getElementById('tn-warn-l1b')?.setProperties({ display: quest ? 'none' : 'flex' });
+        if (quest) return;
+        doc.getElementById('tn-warn-title')?.setProperties({ text: 'Headset mics often miss guitar' });
+        doc.getElementById('tn-warn-l1')?.setProperties({ text: 'If a USB or wireless mic works with your' });
+    }
+
+    // True once the input list is known and holds nothing but the headset's built-in routes.
+    private _weakMic(): boolean {
+        if (warnDismissed || this._micState !== 'ready' || !this._inputsListed) return false;
+        return this._inputs.every(i => isBuiltInMic(i.label));
+    }
+
     private _updateOverlays(doc: UIKitDocument, m: TunerMachine): void {
         const done = m.phase.tag === 'complete';
         const waiting = !done && this._micState !== 'ready';
+        const warn = !done && !waiting && this._weakMic();
+        if (warn !== this._warnShown) {
+            this._warnShown = warn;
+            debugLog('weak-mic-warning', { shown: warn });
+        }
+        this._setLive(doc, 'tn-warn-overlay', { display: warn ? 'flex' : 'none' });
         this._setLive(doc, 'tn-done-overlay', { display: done ? 'flex' : 'none' });
         this._setLive(doc, 'tn-mic-overlay', { display: waiting ? 'flex' : 'none' });
         // Hidden under an overlay so their images can't z-fight through it.
-        this._setLive(doc, 'tn-box1', { display: done || waiting ? 'none' : 'flex' });
-        this._setLive(doc, 'tn-box2', { display: done || waiting ? 'none' : 'flex' });
+        this._setLive(doc, 'tn-box1', { display: done || waiting || warn ? 'none' : 'flex' });
+        this._setLive(doc, 'tn-box2', { display: done || waiting || warn ? 'none' : 'flex' });
         this._setLive(doc, 'tn-mic-text', {
             text: this._micState === 'denied' ? 'Mic blocked. Allow it in the browser site settings.'
                 : this._micState === 'timeout' ? 'No mic prompt yet. Exit VR, tap Allow on the page, then re-enter.'
