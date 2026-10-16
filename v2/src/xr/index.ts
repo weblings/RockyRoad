@@ -46,6 +46,7 @@ import { XRSongLibrary } from "./XRSongLibrary";
 import { loadAllSources, type SourcedEntry } from "../shared/SongSource";
 import { XRPreScene } from "./XRPreScene";
 import { XRTunerScene } from "./XRTunerScene";
+import { offerMicPermission } from "./MicPermission";
 import { XRActiveScene } from "./XRActiveScene";
 import { XRSettingsScene } from "./XRSettingsScene";
 import { loadSettings, type Settings } from "../shared/Settings";
@@ -333,6 +334,8 @@ class HighwaySystem extends createSystem({}) {
 const assets: AssetManifest = {
     atlas: { url: ATLAS_URL, type: AssetType.Texture },
 };
+
+void offerMicPermission();
 
 World.create(document.getElementById("scene-container") as HTMLDivElement, {
     assets,
@@ -892,8 +895,20 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         setTunerPanelInteractive(false);
     }
 
-    // Static tuner panel for the song's chosen part. Back and Done both return to the Song page.
-    function showTuner(sourced: SourcedEntry, tuningOffsets: number[]): void {
+    // Stringified offsets of the last tuning completed this session, as on desktop. null = none yet.
+    let lastTuningKey: string | null = null;
+
+    // Runs the tuner first when this part's tuning differs from the last one completed, then next().
+    // Back returns to the Song page, Done continues even if the tuning wasn't finished.
+    function autoTuneThen(sourced: SourcedEntry, partName: string, next: () => void): void {
+        const offsets = sourced.entry.parts.find(p => p.name === partName)?.tuningOffsets;
+        if (!offsets || lastTuningKey === JSON.stringify(offsets)) { next(); return; }
+        showTuner(sourced, offsets, next);
+    }
+
+    // Tuner panel for the song's chosen part. Back returns to the Song page, Done to onDone
+    // (default: the Song page).
+    function showTuner(sourced: SourcedEntry, tuningOffsets: number[], onDone?: () => void): void {
         libraryPanelObj.visible = false;
         setLibraryPanelInteractive(false);
         preScenePanelObj.visible = false;
@@ -903,7 +918,10 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         tunerPanelObj.visible = true;
         setTunerPanelInteractive(true);
         const back = () => showPreScene(sourced);
-        tuner.show(tunerPanelEntity, tuningOffsets, back, back);
+        tuner.show(tunerPanelEntity, tuningOffsets, back, complete => {
+            if (complete) lastTuningKey = JSON.stringify(tuningOffsets);
+            (onDone ?? back)();
+        });
     }
     world.globals.showTuner = showTuner;
 
@@ -920,8 +938,8 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
             sourced,
             (instrumentType: string) =>
                 (world.globals.tryLoadCalibration as ((t: string) => boolean) | undefined)?.(instrumentType) ?? false,
-            playEntry,
-            calibrateAndPlay,
+            (sourced, partName, difficulty) => autoTuneThen(sourced, partName, () => { void playEntry(sourced, partName, difficulty); }),
+            (sourced, partName, difficulty) => autoTuneThen(sourced, partName, () => { void calibrateAndPlay(sourced, partName, difficulty); }),
             repositionEntry,
             showLibrary,
             (offsets: number[]) => showTuner(sourced, offsets),

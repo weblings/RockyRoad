@@ -20,6 +20,8 @@ const OPTION_MENU_LAYOUT: OptionMenuLayout = {
 
 // Box 2 column slots present in the markup (7-string guitar).
 const MAX_STRINGS = 7;
+// How long the mic request may stay pending before the panel explains the invisible prompt.
+const MIC_TIMEOUT_MS = 8000;
 // Same range and step as the desktop tuner's gain slider.
 const MIN_GAIN = 1;
 const MAX_GAIN = 24;
@@ -38,10 +40,11 @@ export class XRTunerScene {
     private _machine: TunerMachine | null = null;
     private _gain = 1;
     private _detector: PitchDetector | null = null;
-    private _micState: 'waiting' | 'ready' | 'denied' = 'waiting';
+    private _micState: 'waiting' | 'timeout' | 'ready' | 'denied' = 'waiting';
     private _active = false;
     private _showGen = 0;
-    private _onDone: () => void = () => {};
+    private _onDone: (complete: boolean) => void = () => {};
+    private _micTimer: ReturnType<typeof setTimeout> | null = null;
     // Last values written by tick, so unchanged frames skip setProperties.
     private _lastLive = new Map<string, string>();
     private _lastStringSig = '';
@@ -59,7 +62,7 @@ export class XRTunerScene {
         panelEntity: Entity,
         tuningOffsets: number[],
         onBack: () => void,
-        onDone: () => void,
+        onDone: (complete: boolean) => void,
     ): void {
         this._stopDetector();
         this._gain = loadSettings().inputGain ?? 1;
@@ -86,13 +89,13 @@ export class XRTunerScene {
         poll();
     }
 
-    private _render(doc: UIKitDocument, onBack: () => void, onDone: () => void): void {
+    private _render(doc: UIKitDocument, onBack: () => void, onDone: (complete: boolean) => void): void {
         const m = this._machine;
         if (!m) return;
         const rerender = () => this._render(doc, onBack, onDone);
 
         this._setClick(doc, 'tn-back', onBack);
-        this._setClick(doc, 'tn-done', onDone);
+        this._setClick(doc, 'tn-done', () => onDone(m.phase.tag === 'complete'));
         this._setClick(doc, 'tn-restart', () => { m.restart(); this._lastStringSig = ''; });
 
         // Only Default is listed until the input list is wired to enumerateDevices.
@@ -161,7 +164,7 @@ export class XRTunerScene {
         const rms = this._detector?.lastRms ?? 0;
         m.update(timestamp, result, rms);
         if (m.takeCompleteHold(timestamp) && (loadSettings().tunerAutoAdvance ?? true)) {
-            this._onDone();
+            this._onDone(true);
             return;
         }
 
@@ -176,17 +179,32 @@ export class XRTunerScene {
     }
 
     private _startDetector(gen: number): void {
+        // Quest shows the permission prompt outside the session, so a pending request looks like a hang.
+        this._micTimer = setTimeout(() => {
+            if (gen === this._showGen && this._micState === 'waiting') this._micState = 'timeout';
+        }, MIC_TIMEOUT_MS);
         import('../shared/PitchDetector')
             .then(({ PitchDetector }) => PitchDetector.create(undefined, this._gain))
             .then(det => {
                 if (gen !== this._showGen) { det.destroy(); return; }
                 this._detector = det;
                 this._micState = 'ready';
+                this._clearMicTimer();
             })
-            .catch(() => { if (gen === this._showGen) this._micState = 'denied'; });
+            .catch(() => {
+                if (gen !== this._showGen) return;
+                this._micState = 'denied';
+                this._clearMicTimer();
+            });
+    }
+
+    private _clearMicTimer(): void {
+        if (this._micTimer) clearTimeout(this._micTimer);
+        this._micTimer = null;
     }
 
     private _stopDetector(): void {
+        this._clearMicTimer();
         this._detector?.destroy();
         this._detector = null;
     }
@@ -239,8 +257,8 @@ export class XRTunerScene {
         this._setLive(doc, 'tn-done-overlay', { display: done ? 'flex' : 'none' });
         this._setLive(doc, 'tn-mic-overlay', { display: !done && this._micState !== 'ready' ? 'flex' : 'none' });
         this._setLive(doc, 'tn-mic-text', {
-            text: this._micState === 'denied'
-                ? 'Mic access denied. Allow it in site settings.'
+            text: this._micState === 'denied' ? 'Mic blocked. Allow it in the browser site settings.'
+                : this._micState === 'timeout' ? 'No mic prompt yet. Exit VR, tap Allow on the page, then re-enter.'
                 : 'Waiting for mic access...',
         });
     }

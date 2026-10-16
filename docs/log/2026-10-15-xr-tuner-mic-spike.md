@@ -49,3 +49,12 @@ XR slice of [[tuner-v2]], gated on [[tuner-compact-layout]].
 - Border wipe without a clip-rect: Box 1's border moved onto an overlay child, white strips along the top and bottom edges spread both ways from the bar, and a full white border appears at 100%. Strips stop short of the rounded corners.
 - Writes are skipped when a value is unchanged since the last frame.
 - `tsc --noEmit` and `vite build` clean. Not yet verified in the headset: strip alignment on the border, overlay look, percent `transformTranslateX` set at runtime.
+
+## Entry points and mic permission (RockyRoad-0q4.5)
+
+- Play auto-tunes through `autoTuneThen` in `index.ts` by desktop's rule: only when the part's `tuningOffsets` differ from the in-memory `lastTuningKey`, which is set when a tuning completes (Tune button or auto). Done continues to play even if unfinished, Back returns to the Song page.
+- Deviation from the bead note: auto-tune runs before first-time calibration, not after, so the highway is not built behind the tuner panel.
+- `MicPermission.offerMicPermission` shows a page bar with an Allow button on VR-capable devices when the permission state is `prompt`. It is non-blocking, so Enter XR still works.
+- Safety net in the panel: if `getUserMedia` is still pending after 8s the overlay says to exit VR, allow on the page and re-enter. A late grant still starts the detector. Denial shows a site-settings message.
+- No detector hand-off: XR's active scene has no pitch detection, so nothing could consume a live detector. `hide()` releases the mic on leaving the tuner, which keeps one stream at a time. Revisit when XR play gets note detection.
+- `tsc --noEmit` and `vite build` clean. Headset flow Song, Tune, Play is unverified, as is whether a pending request resolves after leaving immersive mode.
