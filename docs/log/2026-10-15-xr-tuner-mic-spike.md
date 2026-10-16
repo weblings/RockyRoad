@@ -58,3 +58,13 @@ XR slice of [[tuner-v2]], gated on [[tuner-compact-layout]].
 - Safety net in the panel: if `getUserMedia` is still pending after 8s the overlay says to exit VR, allow on the page and re-enter. A late grant still starts the detector. Denial shows a site-settings message.
 - No detector hand-off: XR's active scene has no pitch detection, so nothing could consume a live detector. `hide()` releases the mic on leaving the tuner, which keeps one stream at a time. Revisit when XR play gets note detection.
 - `tsc --noEmit` and `vite build` clean. Headset flow Song, Tune, Play is unverified, as is whether a pending request resolves after leaving immersive mode.
+
+## Headset feedback on 0q4.4 and 0q4.5
+
+- Animations looked right. The Quest mic was too quiet even at 24x, so 48x was tried first. It got through all six strings but still needed the guitar at the headset.
+- Gain does not improve accuracy: the detector is a normalized autocorrelation, so gain only lets weak frames past the `rms < 0.005` silence cutoff while amplifying noise equally. XR is back to 1x to 24x, and `PitchDetector.create` takes a `minRms` that XR sets to 0.001. The clarity gates still guard accuracy.
+- The Input dropdown lists `enumerateDevices` audio inputs once the mic is granted, and picking one restarts the detector on that device. `shortMicLabel` moved to `shared/MicLabel.ts`.
+- XR border wipe now spreads from the bar's center target (50%) instead of the needle's x, so it always starts at the tuning target. Desktop's box layouts still start at the needle.
+- Unverified: whether 0.001 is low enough, and whether Speakerphone and Headset earpiece are real separate mics.
+- The In tune and Waiting for mic overlays are now fully opaque and hide Box 1 and Box 2 underneath. The 0.94 opacity let the six Box 2 check images z-fight through the scrim.
+- Confirmed in headset: the clipping fix, the Input dropdown, all six strings tuning, and the animations.

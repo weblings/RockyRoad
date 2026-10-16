@@ -169,4 +169,6 @@ misses it by the border width.
 **Fix:** give the box no border of its own and draw the border as a full-size absolute child, so
 strip coordinates match the border exactly. Animate a wipe with thin white strips whose
 `positionLeft`/`width` percentages change, stopped short of the rounded corners, then swap to a
-full white border at 100%. For a scrim use a dark fill with `opacity` around 0.94.
+full white border at 100%. A translucent scrim (`opacity` below 1) over images lets them z-fight
+through it (Box 2 checks flickered over the In tune scrim), so make the scrim fully opaque and set
+the covered elements to `display: none` while it shows.

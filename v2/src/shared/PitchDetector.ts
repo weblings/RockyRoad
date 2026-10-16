@@ -10,6 +10,8 @@ export interface PitchResult {
     rms: number;        // 0–1, signal level at time of detection
 }
 
+const DEFAULT_MIN_RMS = 0.005;
+
 export class PitchDetector {
     private ctx: AudioContext;
     private analyser: AnalyserNode;
@@ -21,7 +23,12 @@ export class PitchDetector {
     // when no pitch is found — lets the UI show a signal meter without a null check.
     lastRms = 0;
 
-    private constructor(ctx: AudioContext, analyser: AnalyserNode, gainNode: GainNode, stream: MediaStream) {
+    private minRms: number;
+
+    private constructor(
+        ctx: AudioContext, analyser: AnalyserNode, gainNode: GainNode, stream: MediaStream, minRms: number,
+    ) {
+        this.minRms   = minRms;
         this.ctx      = ctx;
         this.analyser = analyser;
         this.gainNode = gainNode;
@@ -29,7 +36,8 @@ export class PitchDetector {
         this.stream   = stream;
     }
 
-    static async create(deviceId?: string, gain = 1): Promise<PitchDetector> {
+    // minRms is the post-gain level below which a frame is treated as silence.
+    static async create(deviceId?: string, gain = 1, minRms = DEFAULT_MIN_RMS): Promise<PitchDetector> {
         const constraints: MediaStreamConstraints = {
             audio: {
                 deviceId:           deviceId ? { exact: deviceId } : undefined,
@@ -48,7 +56,7 @@ export class PitchDetector {
         analyser.smoothingTimeConstant = 0;
         source.connect(gainNode);
         gainNode.connect(analyser);
-        return new PitchDetector(ctx, analyser, gainNode, stream);
+        return new PitchDetector(ctx, analyser, gainNode, stream, minRms);
     }
 
     setGain(value: number): void {
@@ -57,7 +65,7 @@ export class PitchDetector {
 
     detect(): PitchResult | null {
         this.analyser.getFloatTimeDomainData(this.buf);
-        const result = autocorrelate(this.buf, this.ctx.sampleRate);
+        const result = autocorrelate(this.buf, this.ctx.sampleRate, this.minRms);
         this.lastRms = result?.rms ?? computeRms(this.buf);
         return result;
     }
@@ -74,11 +82,11 @@ function computeRms(buf: Float32Array): number {
     return Math.sqrt(sum / buf.length);
 }
 
-function autocorrelate(buf: Float32Array, sampleRate: number): PitchResult | null {
+function autocorrelate(buf: Float32Array, sampleRate: number, minRms: number): PitchResult | null {
     const N = buf.length;
 
     const rms = computeRms(buf);
-    if (rms < 0.005) return null;
+    if (rms < minRms) return null;
 
     const minLag = Math.floor(sampleRate / 1400);
     const maxLag = Math.ceil(sampleRate / 30);

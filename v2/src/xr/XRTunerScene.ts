@@ -2,6 +2,7 @@ import type { Entity, UIKitDocument } from "@iwsdk/core";
 import { PanelDocument } from "@iwsdk/core";
 import { TunerMachine, midiToNoteName, centsLabel } from "../shared/TunerMachine";
 import type { PitchDetector } from "../shared/PitchDetector";
+import { shortMicLabel } from "../shared/MicLabel";
 import { stringColorCss } from "../shared/StringColors";
 import { loadSettings, saveSettings } from "../shared/Settings";
 import type { OptionMenuLayout, WorldPointerEvent } from "./OptionDropdown";
@@ -26,6 +27,8 @@ const MIC_TIMEOUT_MS = 8000;
 const MIN_GAIN = 1;
 const MAX_GAIN = 24;
 const GAIN_STEP = 0.5;
+// Lower than the detector default because the Quest mic is quiet. Raising gain would amplify noise too.
+const XR_MIN_RMS = 0.001;
 const IDLE_COLOR = '#555555';
 // Box 1 width in panel cm (40 minus .boxes side padding) and its corner radius as a percent
 // of that. The wipe strips stop short of the corners so they stay inside the curve.
@@ -44,6 +47,10 @@ export class XRTunerScene {
     private _active = false;
     private _showGen = 0;
     private _onDone: (complete: boolean) => void = () => {};
+    // Audio inputs from enumerateDevices, filled once the mic is granted (labels are empty before).
+    private _inputs: { id: string; label: string }[] = [];
+    private _inputId: string | undefined;
+    private _rerender: () => void = () => {};
     private _micTimer: ReturnType<typeof setTimeout> | null = null;
     // Last values written by tick, so unchanged frames skip setProperties.
     private _lastLive = new Map<string, string>();
@@ -65,7 +72,9 @@ export class XRTunerScene {
         onDone: (complete: boolean) => void,
     ): void {
         this._stopDetector();
-        this._gain = loadSettings().inputGain ?? 1;
+        this._inputs = [];
+        this._inputId = undefined;
+        this._gain = Math.min(loadSettings().inputGain ?? 1, MAX_GAIN);
         this._machine = new TunerMachine(tuningOffsets, this._gain, g => this._detector?.setGain(g));
         this._onDone = onDone;
         this._micState = 'waiting';
@@ -93,15 +102,23 @@ export class XRTunerScene {
         const m = this._machine;
         if (!m) return;
         const rerender = () => this._render(doc, onBack, onDone);
+        this._rerender = rerender;
 
         this._setClick(doc, 'tn-back', onBack);
         this._setClick(doc, 'tn-done', () => onDone(m.phase.tag === 'complete'));
         this._setClick(doc, 'tn-restart', () => { m.restart(); this._lastStringSig = ''; });
 
-        // Only Default is listed until the input list is wired to enumerateDevices.
-        this._inputDropdown.setTriggerLabel(doc, 'Input: Default', 'option-label');
+        const options: { id: string | undefined; label: string }[] = [
+            { id: undefined, label: 'Default' },
+            ...this._inputs,
+        ];
+        const selected = options.find(o => o.id === this._inputId) ?? options[0];
+        this._inputDropdown.setTriggerLabel(doc, `Input: ${selected.label}`, 'option-label');
         this._inputDropdown.renderDynamic(
-            doc, [{ label: 'Default', selected: true, onSelect: () => {} }], OPTION_MENU_LAYOUT, rerender,
+            doc,
+            options.map(o => ({ label: o.label, selected: o === selected, onSelect: () => this._selectInput(o.id) })),
+            OPTION_MENU_LAYOUT,
+            rerender,
         );
 
         this._applyGain(doc);
@@ -178,18 +195,39 @@ export class XRTunerScene {
         this._updateOverlays(doc, m);
     }
 
+    private _selectInput(id: string | undefined): void {
+        if (id === this._inputId) return;
+        this._inputId = id;
+        this._stopDetector();
+        this._micState = 'waiting';
+        this._startDetector(++this._showGen);
+        this._rerender();
+    }
+
+    private async _listInputs(gen: number): Promise<void> {
+        try {
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            if (gen !== this._showGen) return;
+            this._inputs = devices
+                .filter(d => d.kind === 'audioinput' && d.deviceId !== 'default')
+                .map(d => ({ id: d.deviceId, label: shortMicLabel(d.label) || d.deviceId }));
+            this._rerender();
+        } catch { /* keep Default only */ }
+    }
+
     private _startDetector(gen: number): void {
         // Quest shows the permission prompt outside the session, so a pending request looks like a hang.
         this._micTimer = setTimeout(() => {
             if (gen === this._showGen && this._micState === 'waiting') this._micState = 'timeout';
         }, MIC_TIMEOUT_MS);
         import('../shared/PitchDetector')
-            .then(({ PitchDetector }) => PitchDetector.create(undefined, this._gain))
+            .then(({ PitchDetector }) => PitchDetector.create(this._inputId, this._gain, XR_MIN_RMS))
             .then(det => {
                 if (gen !== this._showGen) { det.destroy(); return; }
                 this._detector = det;
                 this._micState = 'ready';
                 this._clearMicTimer();
+                if (this._inputs.length === 0) void this._listInputs(gen);
             })
             .catch(() => {
                 if (gen !== this._showGen) return;
@@ -230,10 +268,10 @@ export class XRTunerScene {
             ...(show ? { text: centsLabel(m.displayCents!) } : {}),
         });
 
-        // White strips spread both ways from the bar along the top and bottom edges, then the
-        // full white border takes over at 100%.
-        const lo = Math.max(pct * (1 - p), BOX1_CORNER_PCT);
-        const hi = Math.min(pct + (100 - pct) * p, 100 - BOX1_CORNER_PCT);
+        // White strips spread both ways from the bar's center target along the top and bottom
+        // edges, then the full white border takes over at 100%.
+        const lo = Math.max(50 * (1 - p), BOX1_CORNER_PCT);
+        const hi = Math.min(50 + 50 * p, 100 - BOX1_CORNER_PCT);
         const strip = {
             display: p > 0 && p < 1 ? 'flex' : 'none',
             positionLeft: `${lo}%`,
@@ -254,8 +292,12 @@ export class XRTunerScene {
 
     private _updateOverlays(doc: UIKitDocument, m: TunerMachine): void {
         const done = m.phase.tag === 'complete';
+        const waiting = !done && this._micState !== 'ready';
         this._setLive(doc, 'tn-done-overlay', { display: done ? 'flex' : 'none' });
-        this._setLive(doc, 'tn-mic-overlay', { display: !done && this._micState !== 'ready' ? 'flex' : 'none' });
+        this._setLive(doc, 'tn-mic-overlay', { display: waiting ? 'flex' : 'none' });
+        // Hidden under an overlay so their images can't z-fight through it.
+        this._setLive(doc, 'tn-box1', { display: done || waiting ? 'none' : 'flex' });
+        this._setLive(doc, 'tn-box2', { display: done || waiting ? 'none' : 'flex' });
         this._setLive(doc, 'tn-mic-text', {
             text: this._micState === 'denied' ? 'Mic blocked. Allow it in the browser site settings.'
                 : this._micState === 'timeout' ? 'No mic prompt yet. Exit VR, tap Allow on the page, then re-enter.'

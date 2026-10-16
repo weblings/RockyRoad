@@ -419,8 +419,8 @@
     font-weight: bold;
   }
 
-  /* Cover both boxes for In tune and Waiting for mic. Near-opaque, since uikit has no
-     background alpha. */
+  /* Cover both boxes for In tune and Waiting for mic. Fully opaque, and the boxes are hidden
+     underneath, because a translucent overlay let the Box 2 checks z-fight through it. */
   .overlay {
     position-type: absolute;
     position-top: 0;
@@ -434,7 +434,6 @@
     gap-row: 1;
     gap-column: 1;
     background-color: #0a0a0a;
-    opacity: 0.94;
     border-radius: 0.8;
     z-index: 1;
   }
@@ -530,7 +529,7 @@
       <div id="tn-strip-bottom" class="b1-strip b1-strip-bottom"></div>
       <div id="tn-lock" class="b1-lock"></div>
     </div>
-    <div class="box2">
+    <div id="tn-box2" class="box2">
       <div id="tn-col-0" class="b2-col">
         <img id="tn-check-0" class="b2-check" src="tuner-check.svg" />
         <span id="tn-name-0" class="b2-name">E2</span>

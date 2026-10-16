@@ -159,3 +159,15 @@ Applies-when: a feature needs a browser permission (mic, camera) that may not be
 **Root cause:** Browser permission UI isn't rendered in the headset during a session, so a first-time request made there stalls unseen.
 
 **Fix:** Request on a normal page before Enter XR, with a `getUserMedia` timeout and an in-XR fallback telling the user to exit, accept and return. Permission is per origin, so one grant covers both entry pages.
+
+---
+
+## Raising mic gain doesn't make a normalized pitch detector more accurate
+Tags: pitch-detection, gain, rms, microphone, autocorrelation
+Applies-when: a quiet mic (Quest) makes the tuner or note detector miss or need the instrument held close
+
+**Symptom:** Even at max gain the Quest mic needed the guitar held at the headset. Doubling the gain range to 48x got through all six strings but gave no accuracy benefit.
+
+**Root cause:** `PitchDetector` is a normalized autocorrelation, so scaling the signal doesn't change the pitch. Gain only lets weak frames past the `rms < minRms` silence cutoff, and it amplifies mic noise by the same factor.
+
+**Fix:** Lower the cutoff for the quiet device (`PitchDetector.create`'s `minRms`, XR uses 0.001) and keep the clarity gates. Don't extend the gain slider to compensate.
