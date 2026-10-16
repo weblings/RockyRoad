@@ -362,3 +362,23 @@ as-is into `src/shared`, it would drag a detector and the DOM into XR.
 **How to apply:** pass collaborator effects in as a constructor callback (`onGain`). Expose state the
 view can poll (`phase`, `checkState(i)`, `takeCompleteHold`) instead of the logic touching the view.
 
+
+---
+
+## Gate a user warning on a condition known at entry, not on a timer
+Tags: ux, warnings, timers, tuner
+Applies-when: showing a "this setup won't work" notice for a known-bad configuration
+
+The first weak-mic warning waited 15 s with no string finished. Headset logs showed every tuner visit was shorter than 15 s and the timer restarted on each visit, so it never appeared.
+
+**How to apply:** if the bad state can be read directly (here, the input list holds only built-in routes), show the notice on entry and give it a Dismiss button. Use a timer only for states that cannot be known up front, and check real visit lengths in the logs first.
+
+---
+
+## Check a scoring proxy against the physics before calling the misses errors
+Tags: analysis, ground-truth, tuner, measurement
+Applies-when: judging a detector or classifier against labels inferred from app state
+
+Scoring frames against "the string the tuner is on" counted 600 misses on a clean recording. Most were 400 to 500 cents below the target, which is the previously plucked string still ringing. The detector was right and the label was wrong.
+
+**How to apply:** histogram the misses relative to the label before tuning anything. A tight cluster at a musical interval points to a labeling gap, not an algorithm fault.

@@ -171,3 +171,37 @@ Applies-when: a quiet mic (Quest) makes the tuner or note detector miss or need 
 **Root cause:** `PitchDetector` is a normalized autocorrelation, so scaling the signal doesn't change the pitch. Gain only lets weak frames past the `rms < minRms` silence cutoff, and it amplifies mic noise by the same factor.
 
 **Fix:** Lower the cutoff for the quiet device (`PitchDetector.create`'s `minRms`, XR uses 0.001) and keep the clarity gates. Don't extend the gain slider to compensate.
+
+---
+
+## Quest built-in mic gates guitar to digital silence, and a USB mic bypasses it
+Tags: quest, microphone, noise-gate, usb, pitch-detection
+Applies-when: the tuner or note detector gets few or no pitches from the Quest built-in mic
+
+**Symptom:** On the built-in mic, 51 to 69% of captured samples were exact zeros, the detector found a pitch on about 21% of frames, and low strings were missing their fundamentals. A web tuner also failed at normal playing distance, yet speech made it jump.
+
+**Root cause:** The platform applies processing below the browser. `getUserMedia` reported `noiseSuppression`, `echoCancellation` and `autoGainControl` all false at 48 kHz, so the constraints are honored in name only. AirPods routed as "Headset earpiece" were no better.
+
+**Fix:** Use an external mic. With a USB mic (ATR2100x-USB, a foot from the guitar) there were no gated blocks and 72% of frames had a pitch. Quest needs Settings > Experimental > External Microphone on, plus a restart, before a USB mic is listed. The tuner now prefers a non-built-in input and warns when only built-in ones exist.
+
+---
+
+## A lowered pitch floor needs the McLeod key-maximum rule or sub-octaves win
+Tags: pitch-detection, autocorrelation, nsdf, octave-error, mcleod
+Applies-when: the detector reports a string at half, a third or a quarter of its pitch
+
+**Symptom:** After lowering the minimum frequency, D read 73 Hz, G read 98 Hz and B or high E read 82 Hz. The tuner correction of plus or minus one octave cannot fix a third or quarter.
+
+**Root cause:** The detector took the tallest NSDF peak. A multiple of the true period can be slightly taller, and a longer search range exposes more of them.
+
+**Fix:** Take the first peak within 90% of the tallest (`KEY_RATIO` in `PitchDetector.ts`). Replayed on a live recording this cut octave-off frames from 234 to 58. Readings a fourth or third below the target are usually the previous string still ringing, not detector errors.
+
+---
+
+## Room and table rumble reads as a 30 Hz note unless the floor follows the lowest target
+Tags: pitch-detection, high-pass, rumble, min-frequency
+Applies-when: idle frames report a pitch near 30 Hz or the low string rarely registers
+
+**Symptom:** With a clean USB mic, 767 frames read below 60 Hz and low E (82 Hz) hit only 95 times.
+
+**Fix:** `PitchDetector.create` takes `minHz`, which limits the lag search and sets a high-pass at 0.9 times that. XR passes 0.8 times its lowest target, so bass and drop tunings still work. The same replay gave 0 rumble frames and 258 low E hits.

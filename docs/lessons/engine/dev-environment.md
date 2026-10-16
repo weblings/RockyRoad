@@ -188,3 +188,13 @@ Applies-when: testing mic, permissions or other device behavior on a real headse
 **Symptom:** Under Quest Link, the page runs in desktop Chrome on the PC, so the mic, device list and permission prompts are the PC's, not the headset's.
 
 **Fix:** Run `npm run dev:device` (no IWER emulator) and open `https://<PC-LAN-IP>:8081/xr.html` in the standalone Quest Browser on the same wifi. Proceed past the mkcert certificate warning and allow port 8081 through the Windows firewall if needed.
+
+---
+
+## The dev server can receive headset logs and raw audio over the same LAN origin
+Tags: quest, debugging, vite-plugin, logging, audio-capture
+Applies-when: a headset-only problem needs more data than a person can read off the screen
+
+**Symptom:** Reading values off the in-headset console and retyping them does not scale to per-frame detector output or raw audio.
+
+**Fix:** `tools/debugLogPlugin.ts` adds `POST /__debug/log` (JSON lines to `v2/.debug/<session>.jsonl`) and `POST /__debug/audio` (Int16 PCM saved as a playable `.wav`). `shared/DebugLog.ts` batches lines once a second and is a no-op outside `import.meta.env.DEV`. The tuner logs every frame and records up to 90 s of raw mic per visit. Give each capture a unique name, or a later upload overwrites it. Replay `.wav` files offline against detector variants instead of going back into the headset.

@@ -68,3 +68,20 @@ XR slice of [[tuner-v2]], gated on [[tuner-compact-layout]].
 - Unverified: whether 0.001 is low enough, and whether Speakerphone and Headset earpiece are real separate mics.
 - The In tune and Waiting for mic overlays are now fully opaque and hide Box 1 and Box 2 underneath. The 0.94 opacity let the six Box 2 check images z-fight through the scrim.
 - Confirmed in headset: the clipping fix, the Input dropdown, all six strings tuning, and the animations.
+
+## Mic investigation and weak-mic warning (2026-10-16, RockyRoad-0q4.6)
+
+- Built a dev debug channel (`/__debug` Vite plugin, `shared/DebugLog.ts`) so the headset sends per-frame detector logs and raw mic audio to `v2/.debug/`. Recordings replay offline against detector variants.
+- Quest built-in mic is gated to digital silence (51 to 69% exact-zero blocks, pitch on 21% of frames), and low-string fundamentals are missing. AirPods as "Headset earpiece" were no better. Browser constraints are reported off, so the processing is below the browser.
+- A USB mic (ATR2100x-USB, a foot from the guitar) worked: no gating, pitch on 72% of frames, all six strings tuned. Quest lists it only after Settings > Experimental > External Microphone is on and the headset restarts.
+- Detector: `minHz` floor with a matching high-pass (rumble 767 frames to 0, low E hits 95 to 258), and the McLeod key-maximum rule (octave-off frames 234 to 58). Details in [[lesson-engine-runtime-apis]].
+- Tuner now auto-selects a non-built-in input unless the user picked one, sizes the Input menu to its options, and shows an opaque weak-mic overlay with a Dismiss button on entry when the input list holds only built-in routes. Quest gets the Settings path, other headsets get general wording.
+- Web research found no documented USB mic support on Pico, Galaxy XR, Vive Focus Vision or Vision Pro, so guidance stays Quest only.
+- Not verified in headset: the overlay layout and text fit, USB auto-select, and the sized menu. Desktop tuner picks up the key-maximum rule and is untested.
+- Open: the live detector hand-off to the active scene is still absent, and the Rocksmith cable has not been tried.
+- The 15 s timer version of the warning never showed, because every logged tuner visit was under 15 s. It now shows on entry when the input list is built-in only ([[lesson-engineering-hygiene]]).
+- Warning is a card centered on the opaque scrim, like the In tune overlay. The first version shrink-wrapped its Quest text block, so a line wrapped and overlapped, and the stack ran into the actions bar. Fixed with a fixed-width card, shorter lines, a width of 100% on the text group, a Dismiss top margin and a small `position-top` nudge. Headset screenshot confirmed it reads well enough ([[lesson-uikit-syntax-and-styling]]).
+- Scoring detector output against the tuner's current string overcounted errors. Most "other" frames were the previous string ringing.
+- Follow-up beads: RockyRoad-0q4.7 (Rocksmith cable), RockyRoad-0q4.9 (permission fail states as a card), and a flicker-on-enter bug under RockyRoad-0q4.
+- Lessons filed: engine `runtime-apis.md` (mic gating, key-maximum rule, rumble floor), `dev-environment.md` (debug channel), ui-toolkit `scrolling-and-dropdowns.md` (menu sizing) and `syntax-and-styling.md` (card width), and `engineering-hygiene.md` (entry-time warnings, scoring proxies).
+- Tooling note: `bd update --notes` replaces the whole field. Use `--append-notes`. This overwrote RockyRoad-0q4.5's notes once, restored from the earlier `bd show`.

@@ -172,3 +172,13 @@ strip coordinates match the border exactly. Animate a wipe with thin white strip
 full white border at 100%. A translucent scrim (`opacity` below 1) over images lets them z-fight
 through it (Box 2 checks flickered over the In tune scrim), so make the scrim fully opaque and set
 the covered elements to `display: none` while it shows.
+
+---
+
+## A column inside a centered card needs an explicit width or its text wraps and overlaps
+Tags: card, wrapping, overlay, width, centering, text
+Applies-when: stacking text lines in a flex-column wrapper inside an overlay or card
+
+**Symptom:** A wrapper div holding two text lines shrink-wrapped to its narrowest content. The longer line wrapped onto a second line that drew over the line above, and the stack overflowed into the buttons below.
+
+**Fix:** give the wrapper `width: 100%` of a card with a fixed width, one span per line, and keep each line well under the card's inner width. For a message on the opaque scrim, center a bordered card (`#1a1a1a`, border `#333333`, rounded) in the `.overlay` instead of loose text. Nudge a flex-centered child with `position-type: relative` and a small `position-top`, and space a button from text with `margin-top`. Budget the card height against the overlay, because overflow is silent.
