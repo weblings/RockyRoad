@@ -158,3 +158,18 @@ back on, it decoded to an unusable/zero-size texture.
 **Fix:** Any SVG destined to be loaded via `Image`/`TextureLoader` (as opposed to a plain `<img>` in
 markup) needs explicit `width`/`height` attributes on its root `<svg>` element, matching the
 `viewBox`, not just the `viewBox` alone.
+
+---
+
+## uikit has no gradients and `Image` ignores `color` — a fade in a string color needs one pre-colored PNG per color
+Tags: gradient, image, tint, color, fade, png
+Applies-when: wanting a gradient, fade or tinted image in a uikit panel
+
+**Symptom:** A white fade PNG with `setProperties({ color })` set to a string color rendered white or grey.
+
+**Root cause:** The flex schema has no gradient property, and `Image` (`components/image.js`) writes a
+fixed `0xffffff` with only opacity, so `color` is never applied to the texture. Stepped-opacity
+segments work but read as visibly banded.
+
+**Fix:** Generate one PNG per color from the shared palette (`tools/gen-tuner-fade.ts`) and swap `src`,
+with `keepAspectRatio: false`. Re-run the generator when the palette changes.

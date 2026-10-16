@@ -36,6 +36,8 @@ XR slice of [[tuner-v2]], gated on [[tuner-compact-layout]].
 - The Song page gets a Tune button for parts with `tuningOffsets`, which hides Reposition there. Reposition stays in the Play HUD, and Play will auto-tune by desktop's rule in 0q4.5. Decision recorded in [[tuner-compact-layout]].
 - The gain slider is real: tap or drag with pointer capture, 1 to 24 in 0.5 steps, saved to `inputGain`. It does not drive a detector yet. The mic meter is vertical and static.
 - New icon SVGs with literal fills (`tuner-check`, `tuner-restart`, `tune-icon`), copied from desktop because `currentColor` breaks the loader. Done uses the play icon like desktop's Play button but keeps its label.
-- Headset review caught a missing thumb and non-interactive slider, mismatched icons, and thumb overlap with the Gain labels (fixed with half-thumb margins). The Box 2 string lines were added after that review and are not yet seen in the headset. Box 1 is a fixed 6.5cm to make room, and the lines do not fade like desktop's.
+- Headset review caught a missing thumb and non-interactive slider, mismatched icons, thumb overlap with the Gain labels (fixed with half-thumb margins), and missing Box 2 string lines. Box 1 and Box 2 now share the height equally.
+- The string lines fade with one pre-colored PNG per string color (`tools/gen-tuner-fade.ts`), since uikit has no gradients and `Image` ignores `color`. Stepped opacity segments were tried first and rejected as too banded. A single atlas texture was judged overkill: `Image` has no UV crop, so it would need a custom material for about 2KB of saving.
+- Lessons filed in [[lesson-uikit-assets-tooling-debugging]] and [[lesson-uikit-pointer-interaction]].
 - `tsc --noEmit` and `vite build` clean. Compiled JSON checked for shorthand properties and unmatched classes.
 - Open: Input dropdown lists only Default, Back and Done both return to the Song page and reset its Instrument and Difficulty selection.
