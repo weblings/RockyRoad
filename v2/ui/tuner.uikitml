@@ -261,9 +261,9 @@
   }
 
   .box1 {
-    height: 6.5;
-    flex-grow: 0;
-    flex-shrink: 0;
+    flex-grow: 1;
+    flex-shrink: 1;
+    flex-basis: 0;
     display: flex;
     flex-direction: row;
     align-items: center;
@@ -347,14 +347,14 @@
     width: 1.4;
     height: 1.4;
   }
-  /* String line in the string's color, running to the box bottom like desktop. */
+  /* Fade image per string color (public/tuner-fade-<hex>.png), swapped in by XRTunerScene. */
   .b2-line {
     flex-grow: 1;
     flex-shrink: 1;
     flex-basis: 0;
     min-height: 2;
     width: 0.3;
-    border-radius: 0.2;
+    object-fit: fill;
   }
   .b2-name {
     font-size: 1.8;
@@ -437,37 +437,37 @@
       <div id="tn-col-0" class="b2-col">
         <img id="tn-check-0" class="b2-check" src="tuner-check.svg" />
         <span id="tn-name-0" class="b2-name">E2</span>
-        <div id="tn-line-0" class="b2-line"></div>
+        <img id="tn-line-0" class="b2-line" src="tuner-fade-ffffff.png" />
       </div>
       <div id="tn-col-1" class="b2-col">
         <img id="tn-check-1" class="b2-check" src="tuner-check.svg" />
         <span id="tn-name-1" class="b2-name">A2</span>
-        <div id="tn-line-1" class="b2-line"></div>
+        <img id="tn-line-1" class="b2-line" src="tuner-fade-ffffff.png" />
       </div>
       <div id="tn-col-2" class="b2-col">
         <img id="tn-check-2" class="b2-check" src="tuner-check.svg" />
         <span id="tn-name-2" class="b2-name">D3</span>
-        <div id="tn-line-2" class="b2-line"></div>
+        <img id="tn-line-2" class="b2-line" src="tuner-fade-ffffff.png" />
       </div>
       <div id="tn-col-3" class="b2-col">
         <img id="tn-check-3" class="b2-check" src="tuner-check.svg" />
         <span id="tn-name-3" class="b2-name">G3</span>
-        <div id="tn-line-3" class="b2-line"></div>
+        <img id="tn-line-3" class="b2-line" src="tuner-fade-ffffff.png" />
       </div>
       <div id="tn-col-4" class="b2-col">
         <img id="tn-check-4" class="b2-check" src="tuner-check.svg" />
         <span id="tn-name-4" class="b2-name">B3</span>
-        <div id="tn-line-4" class="b2-line"></div>
+        <img id="tn-line-4" class="b2-line" src="tuner-fade-ffffff.png" />
       </div>
       <div id="tn-col-5" class="b2-col">
         <img id="tn-check-5" class="b2-check" src="tuner-check.svg" />
         <span id="tn-name-5" class="b2-name">E4</span>
-        <div id="tn-line-5" class="b2-line"></div>
+        <img id="tn-line-5" class="b2-line" src="tuner-fade-ffffff.png" />
       </div>
       <div id="tn-col-6" class="b2-col">
         <img id="tn-check-6" class="b2-check" src="tuner-check.svg" />
         <span id="tn-name-6" class="b2-name">E4</span>
-        <div id="tn-line-6" class="b2-line"></div>
+        <img id="tn-line-6" class="b2-line" src="tuner-fade-ffffff.png" />
       </div>
     </div>
   </div>

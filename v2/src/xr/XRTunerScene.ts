@@ -104,7 +104,12 @@ export class XRTunerScene {
                 text: midiToNoteName(m.targetMidis[i]),
                 color: stringColor,
             });
-            doc.getElementById(`tn-line-${i}`)?.setProperties({ backgroundColor: stringColor });
+            // uikit can't tint images, so each string color has its own pre-faded PNG (tools/gen-tuner-fade.ts).
+            // keepAspectRatio off so the texture doesn't resize the line once it loads.
+            doc.getElementById(`tn-line-${i}`)?.setProperties({
+                src: `${import.meta.env.BASE_URL}tuner-fade-${stringColor.slice(1)}.png`,
+                keepAspectRatio: false,
+            });
             // Pending checks stay dim, done checks are white.
             doc.getElementById(`tn-check-${i}`)?.setProperties({
                 opacity: state === 'done' ? 1 : state === 'pending' ? 0.25 : 0,
