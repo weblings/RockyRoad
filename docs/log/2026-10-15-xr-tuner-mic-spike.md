@@ -41,3 +41,11 @@ XR slice of [[tuner-v2]], gated on [[tuner-compact-layout]].
 - Lessons filed in [[lesson-uikit-assets-tooling-debugging]] and [[lesson-uikit-pointer-interaction]].
 - `tsc --noEmit` and `vite build` clean. Compiled JSON checked for shorthand properties and unmatched classes.
 - Open: Input dropdown lists only Default, Back and Done both return to the Song page and reset its Instrument and Difficulty selection.
+
+## Animated pieces (RockyRoad-0q4.4)
+
+- `XRTunerScene.tick` runs from `HighwaySystem.update` via `world.globals.tunerTick`. It feeds `TunerMachine` from a `PitchDetector` the scene creates itself, and `hide()` releases the mic. Permission flow and hand-off to the active scene stay in 0q4.5.
+- Box 1 gets a needle bar and cents label on the lane's left percentages, the mic meter fill (height and color), and Waiting for mic and In tune overlays. The overlays are near-opaque, since uikit has no background alpha.
+- Border wipe without a clip-rect: Box 1's border moved onto an overlay child, white strips along the top and bottom edges spread both ways from the bar, and a full white border appears at 100%. Strips stop short of the rounded corners.
+- Writes are skipped when a value is unchanged since the last frame.
+- `tsc --noEmit` and `vite build` clean. Not yet verified in the headset: strip alignment on the border, overlay look, percent `transformTranslateX` set at runtime.

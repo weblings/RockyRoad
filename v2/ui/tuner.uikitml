@@ -247,6 +247,7 @@
 
   /* Boxes stack with Box 2 hugging its content. */
   .boxes {
+    position-type: relative;
     flex-grow: 1;
     flex-shrink: 1;
     flex-basis: 0;
@@ -273,11 +274,45 @@
     padding-right: 1.5;
     padding-bottom: 0.8;
     padding-left: 1.5;
+    position-type: relative;
     background-color: #111111;
-    border-width: 0.3;
-    border-color: #1ccc00;
     border-radius: 0.8;
   }
+
+  /* Border and wipe are overlays (no clip-rect in uikit): colored border, white edge strips
+     that XRTunerScene spreads from the bar, and a full white border once the hold completes. */
+  .b1-border {
+    position-type: absolute;
+    position-top: 0;
+    position-left: 0;
+    width: 100%;
+    height: 100%;
+    border-width: 0.3;
+    border-color: #555555;
+    border-radius: 0.8;
+  }
+  .b1-lock {
+    position-type: absolute;
+    position-top: 0;
+    position-left: 0;
+    width: 100%;
+    height: 100%;
+    display: none;
+    border-width: 0.3;
+    border-color: #ffffff;
+    border-radius: 0.8;
+  }
+  .b1-strip {
+    position-type: absolute;
+    position-left: 0%;
+    width: 0%;
+    height: 0.3;
+    display: none;
+    background-color: #ffffff;
+  }
+
+  .b1-strip-top { position-top: 0; }
+  .b1-strip-bottom { position-bottom: 0; }
 
   .b1-label {
     width: 7;
@@ -289,6 +324,7 @@
   }
 
   .b1-lane {
+    position-type: relative;
     flex-grow: 1;
     flex-shrink: 1;
     flex-basis: 0;
@@ -313,6 +349,28 @@
     height: 1.4;
     flex-shrink: 0;
     background-color: #555555;
+  }
+  /* Needle bar and cents label share the lane's left percentages, centered on their x. */
+  .b1-bar {
+    position-type: absolute;
+    position-top: 50%;
+    position-left: 50%;
+    transform-translate-x: -50%;
+    transform-translate-y: -50%;
+    width: 0.3;
+    height: 2.6;
+    display: none;
+    background-color: #ffffff;
+    border-radius: 0.15;
+  }
+  .b1-cents {
+    position-type: absolute;
+    position-top: 50%;
+    position-left: 50%;
+    margin-top: 1.8;
+    display: none;
+    color: #c8c8c8;
+    font-size: 1.3;
   }
 
   .box2 {
@@ -359,6 +417,39 @@
   .b2-name {
     font-size: 1.8;
     font-weight: bold;
+  }
+
+  /* Cover both boxes for In tune and Waiting for mic. Near-opaque, since uikit has no
+     background alpha. */
+  .overlay {
+    position-type: absolute;
+    position-top: 0;
+    position-left: 0;
+    width: 100%;
+    height: 100%;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap-row: 1;
+    gap-column: 1;
+    background-color: #0a0a0a;
+    opacity: 0.94;
+    border-radius: 0.8;
+    z-index: 1;
+  }
+  .overlay-check {
+    width: 5;
+    height: 5;
+  }
+  .overlay-text {
+    color: #ffffff;
+    font-size: 1.8;
+    font-weight: bold;
+  }
+  .overlay-text-dim {
+    color: #8b8b8b;
+    font-size: 1.4;
   }
 
   .actions {
@@ -431,7 +522,13 @@
       <span id="tn-b1-label" class="b1-label">E2</span>
       <div class="b1-lane">
         <div class="b1-track"><div class="b1-tick"></div></div>
+        <div id="tn-bar" class="b1-bar"></div>
+        <span id="tn-cents" class="b1-cents">0</span>
       </div>
+      <div id="tn-b1-border" class="b1-border"></div>
+      <div id="tn-strip-top" class="b1-strip b1-strip-top"></div>
+      <div id="tn-strip-bottom" class="b1-strip b1-strip-bottom"></div>
+      <div id="tn-lock" class="b1-lock"></div>
     </div>
     <div class="box2">
       <div id="tn-col-0" class="b2-col">
@@ -469,6 +566,13 @@
         <span id="tn-name-6" class="b2-name">E4</span>
         <img id="tn-line-6" class="b2-line" src="tuner-fade-ffffff.png" />
       </div>
+    </div>
+    <div id="tn-done-overlay" class="overlay">
+      <img src="tuner-check.svg" class="overlay-check" />
+      <span class="overlay-text">In tune!</span>
+    </div>
+    <div id="tn-mic-overlay" class="overlay">
+      <span id="tn-mic-text" class="overlay-text-dim">Waiting for mic access...</span>
     </div>
   </div>
 

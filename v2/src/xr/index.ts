@@ -170,6 +170,8 @@ class HighwaySystem extends createSystem({}) {
     }
 
     update(delta: number, _time: number): void {
+        (this.world.globals.tunerTick as (() => void) | undefined)?.();
+
         // ── Highway scene — only when a song is loaded ────────────────────────
         const scene = this.world.globals.highwayScene as KeysPlayerScene3D | FretPlayerScene3D | undefined;
         if (scene) {
@@ -885,6 +887,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     world.globals.showLibrary = showLibrary;
 
     function hideTuner(): void {
+        tuner.hide();
         tunerPanelObj.visible = false;
         setTunerPanelInteractive(false);
     }
@@ -1315,6 +1318,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
 
     // ── Systems ───────────────────────────────────────────────────────────────
 
+    world.globals.tunerTick = () => tuner.tick(performance.now());
     world.registerSystem(CalibrationSystem);
     world.registerSystem(HighwaySystem);
 

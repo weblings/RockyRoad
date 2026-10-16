@@ -1,14 +1,15 @@
 import type { Entity, UIKitDocument } from "@iwsdk/core";
 import { PanelDocument } from "@iwsdk/core";
-import { TunerMachine, midiToNoteName } from "../shared/TunerMachine";
+import { TunerMachine, midiToNoteName, centsLabel } from "../shared/TunerMachine";
+import type { PitchDetector } from "../shared/PitchDetector";
 import { stringColorCss } from "../shared/StringColors";
 import { loadSettings, saveSettings } from "../shared/Settings";
 import type { OptionMenuLayout, WorldPointerEvent } from "./OptionDropdown";
 import { OptionDropdown } from "./OptionDropdown";
 
 // ── XRTunerScene ──────────────────────────────────────────────────────────────
-// uikit panel (see ui/tuner.uikitml). Renders the shared TunerMachine's state statically:
-// no mic, detector or needle yet.
+// uikit panel (see ui/tuner.uikitml). Drives the shared TunerMachine from a PitchDetector each
+// frame (tick) and renders needle, cents label, border wipe, checks, meter and overlays.
 
 // Mirrors .option-item/.option-menu-inner/.option-menu in ui/tuner.uikitml.
 const OPTION_MENU_LAYOUT: OptionMenuLayout = {
@@ -24,11 +25,26 @@ const MIN_GAIN = 1;
 const MAX_GAIN = 24;
 const GAIN_STEP = 0.5;
 const IDLE_COLOR = '#555555';
+// Box 1 width in panel cm (40 minus .boxes side padding) and its corner radius as a percent
+// of that. The wipe strips stop short of the corners so they stay inside the curve.
+const BOX1_WIDTH = 33;
+const BOX1_CORNER_PCT = (0.8 / BOX1_WIDTH) * 100;
+// Same mapping as the desktop meter: full at rms 1/6, green once clearly audible.
+const METER_SCALE = 6;
+const METER_LIVE_RMS = 0.05;
 
 export class XRTunerScene {
     private _doc: UIKitDocument | null = null;
     private _machine: TunerMachine | null = null;
     private _gain = 1;
+    private _detector: PitchDetector | null = null;
+    private _micState: 'waiting' | 'ready' | 'denied' = 'waiting';
+    private _active = false;
+    private _showGen = 0;
+    private _onDone: () => void = () => {};
+    // Last values written by tick, so unchanged frames skip setProperties.
+    private _lastLive = new Map<string, string>();
+    private _lastStringSig = '';
 
     private _inputDropdown = new OptionDropdown({
         trigger: 'tn-input-trigger',
@@ -45,8 +61,15 @@ export class XRTunerScene {
         onBack: () => void,
         onDone: () => void,
     ): void {
+        this._stopDetector();
         this._gain = loadSettings().inputGain ?? 1;
-        this._machine = new TunerMachine(tuningOffsets, this._gain, () => {});
+        this._machine = new TunerMachine(tuningOffsets, this._gain, g => this._detector?.setGain(g));
+        this._onDone = onDone;
+        this._micState = 'waiting';
+        this._lastLive.clear();
+        this._lastStringSig = '';
+        this._active = true;
+        this._startDetector(++this._showGen);
 
         const proceed = (doc: UIKitDocument) => {
             this._doc = doc;
@@ -70,7 +93,7 @@ export class XRTunerScene {
 
         this._setClick(doc, 'tn-back', onBack);
         this._setClick(doc, 'tn-done', onDone);
-        this._setClick(doc, 'tn-restart', () => { m.restart(); rerender(); });
+        this._setClick(doc, 'tn-restart', () => { m.restart(); this._lastStringSig = ''; });
 
         // Only Default is listed until the input list is wired to enumerateDevices.
         this._inputDropdown.setTriggerLabel(doc, 'Input: Default', 'option-label');
@@ -81,9 +104,13 @@ export class XRTunerScene {
         this._applyGain(doc);
         this._wireGainDrag(doc);
 
+        this._renderStrings(doc, m);
+    }
+
+    private _renderStrings(doc: UIKitDocument, m: TunerMachine): void {
         const current = m.currentString;
         const color = current >= 0 ? stringColorCss(current) ?? '#ffffff' : IDLE_COLOR;
-        doc.getElementById('tn-box1')?.setProperties({ borderColor: color });
+        doc.getElementById('tn-b1-border')?.setProperties({ borderColor: color });
         doc.getElementById('tn-b1-label')?.setProperties({
             text: current >= 0 ? midiToNoteName(m.targetMidis[current]) : '',
             color,
@@ -117,6 +144,107 @@ export class XRTunerScene {
         }
     }
 
+    // Releases the mic. Called when the panel is hidden.
+    hide(): void {
+        this._active = false;
+        this._showGen++;
+        this._stopDetector();
+    }
+
+    // Runs every frame while the panel is shown. timestamp is performance.now() in ms.
+    tick(timestamp: number): void {
+        const doc = this._doc;
+        const m = this._machine;
+        if (!this._active || !doc || !m) return;
+
+        const result = this._detector?.detect() ?? null;
+        const rms = this._detector?.lastRms ?? 0;
+        m.update(timestamp, result, rms);
+        if (m.takeCompleteHold(timestamp) && (loadSettings().tunerAutoAdvance ?? true)) {
+            this._onDone();
+            return;
+        }
+
+        const sig = `${m.phase.tag}|${m.currentString}|${m.offsets.map((_, i) => m.checkState(i) ?? '-').join()}`;
+        if (sig !== this._lastStringSig) {
+            this._lastStringSig = sig;
+            this._renderStrings(doc, m);
+        }
+        this._updateNeedle(doc, m);
+        this._updateMeter(doc, rms);
+        this._updateOverlays(doc, m);
+    }
+
+    private _startDetector(gen: number): void {
+        import('../shared/PitchDetector')
+            .then(({ PitchDetector }) => PitchDetector.create(undefined, this._gain))
+            .then(det => {
+                if (gen !== this._showGen) { det.destroy(); return; }
+                this._detector = det;
+                this._micState = 'ready';
+            })
+            .catch(() => { if (gen === this._showGen) this._micState = 'denied'; });
+    }
+
+    private _stopDetector(): void {
+        this._detector?.destroy();
+        this._detector = null;
+    }
+
+    // Writes properties only when they changed since the last frame.
+    private _setLive(doc: UIKitDocument, id: string, props: Record<string, unknown>): void {
+        const key = JSON.stringify(props);
+        if (this._lastLive.get(id) === key) return;
+        this._lastLive.set(id, key);
+        doc.getElementById(id)?.setProperties(props);
+    }
+
+    private _updateNeedle(doc: UIKitDocument, m: TunerMachine): void {
+        const show = m.showNeedle;
+        const pct = show ? Math.round((Math.max(-50, Math.min(50, m.displayCents!)) + 50) * 10) / 10 : 50;
+        const p = show ? Math.round(m.dwellProgress * 50) / 50 : 0;
+
+        this._setLive(doc, 'tn-bar', { display: show ? 'flex' : 'none', positionLeft: `${pct}%` });
+        this._setLive(doc, 'tn-cents', {
+            display: show ? 'flex' : 'none',
+            positionLeft: `${pct}%`,
+            transformTranslateX: `-${pct}%`,
+            ...(show ? { text: centsLabel(m.displayCents!) } : {}),
+        });
+
+        // White strips spread both ways from the bar along the top and bottom edges, then the
+        // full white border takes over at 100%.
+        const lo = Math.max(pct * (1 - p), BOX1_CORNER_PCT);
+        const hi = Math.min(pct + (100 - pct) * p, 100 - BOX1_CORNER_PCT);
+        const strip = {
+            display: p > 0 && p < 1 ? 'flex' : 'none',
+            positionLeft: `${lo}%`,
+            width: `${Math.max(0, hi - lo)}%`,
+        };
+        this._setLive(doc, 'tn-strip-top', strip);
+        this._setLive(doc, 'tn-strip-bottom', strip);
+        this._setLive(doc, 'tn-lock', { display: p >= 1 ? 'flex' : 'none' });
+    }
+
+    private _updateMeter(doc: UIKitDocument, rms: number): void {
+        const pct = Math.round(Math.min(rms * METER_SCALE, 1) * 50) * 2;
+        this._setLive(doc, 'tn-meter-fill', {
+            height: `${pct}%`,
+            backgroundColor: rms > METER_LIVE_RMS ? '#44cc44' : '#cc8800',
+        });
+    }
+
+    private _updateOverlays(doc: UIKitDocument, m: TunerMachine): void {
+        const done = m.phase.tag === 'complete';
+        this._setLive(doc, 'tn-done-overlay', { display: done ? 'flex' : 'none' });
+        this._setLive(doc, 'tn-mic-overlay', { display: !done && this._micState !== 'ready' ? 'flex' : 'none' });
+        this._setLive(doc, 'tn-mic-text', {
+            text: this._micState === 'denied'
+                ? 'Mic access denied. Allow it in site settings.'
+                : 'Waiting for mic access...',
+        });
+    }
+
     private _applyGain(doc: UIKitDocument): void {
         const pct = ((this._gain - MIN_GAIN) / (MAX_GAIN - MIN_GAIN)) * 100;
         doc.getElementById('tn-gain-fill')?.setProperties({ width: `${pct}%` });
@@ -138,6 +266,7 @@ export class XRTunerScene {
             if (gain === this._gain) return;
             this._gain = gain;
             this._machine?.setInputGain(gain);
+            this._detector?.setGain(gain);
             this._applyGain(doc);
         };
 

@@ -155,3 +155,18 @@ inherited color/font-size from its parent button, but easy to miss otherwise).
 
 **How to avoid next time:** Run this diff — alongside the shorthand-property grep above — on the
 compiled JSON before every in-headset handoff, not just eyeballing the source file.
+
+---
+
+## No clip-rect and no background alpha: build wipes from overlay strips and use near-opaque overlays
+Tags: wipe, clip, overlay, opacity, border, absolute
+Applies-when: porting a CSS clip-path reveal, a translucent scrim, or a border animation to uikit
+
+uikit has no `clip-path` and no background alpha (`opacity` fades the element and its children).
+An absolute child is positioned inside its parent's border, so a strip meant to cover the border
+misses it by the border width.
+
+**Fix:** give the box no border of its own and draw the border as a full-size absolute child, so
+strip coordinates match the border exactly. Animate a wipe with thin white strips whose
+`positionLeft`/`width` percentages change, stopped short of the rounded corners, then swap to a
+full white border at 100%. For a scrim use a dark fill with `opacity` around 0.94.
