@@ -895,20 +895,9 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         setTunerPanelInteractive(false);
     }
 
-    // Stringified offsets of the last tuning completed this session, as on desktop. null = none yet.
-    let lastTuningKey: string | null = null;
-
-    // Runs the tuner first when this part's tuning differs from the last one completed, then next().
-    // Back returns to the Song page, Done continues even if the tuning wasn't finished.
-    function autoTuneThen(sourced: SourcedEntry, partName: string, next: () => void): void {
-        const offsets = sourced.entry.parts.find(p => p.name === partName)?.tuningOffsets;
-        if (!offsets || lastTuningKey === JSON.stringify(offsets)) { next(); return; }
-        showTuner(sourced, offsets, next);
-    }
-
-    // Tuner panel for the song's chosen part. Back returns to the Song page, Done to onDone
-    // (default: the Song page).
-    function showTuner(sourced: SourcedEntry, tuningOffsets: number[], onDone?: () => void): void {
+    // Optional tuner panel (headset mics are unreliable, so Play never opens it on its own).
+    // Back returns to the Song page, Play runs onPlay even if the tuning wasn't finished.
+    function showTuner(sourced: SourcedEntry, tuningOffsets: number[], onPlay: () => void): void {
         libraryPanelObj.visible = false;
         setLibraryPanelInteractive(false);
         preScenePanelObj.visible = false;
@@ -918,12 +907,8 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         tunerPanelObj.visible = true;
         setTunerPanelInteractive(true);
         const back = () => showPreScene(sourced);
-        tuner.show(tunerPanelEntity, tuningOffsets, back, complete => {
-            if (complete) lastTuningKey = JSON.stringify(tuningOffsets);
-            (onDone ?? back)();
-        });
+        tuner.show(tunerPanelEntity, tuningOffsets, back, onPlay);
     }
-    world.globals.showTuner = showTuner;
 
     function showPreScene(sourced: SourcedEntry): void {
         hideTuner();
@@ -938,11 +923,11 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
             sourced,
             (instrumentType: string) =>
                 (world.globals.tryLoadCalibration as ((t: string) => boolean) | undefined)?.(instrumentType) ?? false,
-            (sourced, partName, difficulty) => autoTuneThen(sourced, partName, () => { void playEntry(sourced, partName, difficulty); }),
-            (sourced, partName, difficulty) => autoTuneThen(sourced, partName, () => { void calibrateAndPlay(sourced, partName, difficulty); }),
+            (sourced, partName, difficulty) => { void playEntry(sourced, partName, difficulty); },
+            (sourced, partName, difficulty) => { void calibrateAndPlay(sourced, partName, difficulty); },
             repositionEntry,
             showLibrary,
-            (offsets: number[]) => showTuner(sourced, offsets),
+            (offsets, play) => showTuner(sourced, offsets, play),
         );
     }
 

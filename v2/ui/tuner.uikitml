@@ -651,7 +651,7 @@
     </button>
     <button id="tn-done" class="action-btn primary-light">
       <img src="play-icon.svg" class="icon" />
-      <span class="icon-label">Done</span>
+      <span class="icon-label">Play</span>
     </button>
   </div>
 </div>

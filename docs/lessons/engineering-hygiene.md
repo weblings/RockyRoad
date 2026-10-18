@@ -382,3 +382,23 @@ Applies-when: judging a detector or classifier against labels inferred from app 
 Scoring frames against "the string the tuner is on" counted 600 misses on a clean recording. Most were 400 to 500 cents below the target, which is the previously plucked string still ringing. The detector was right and the label was wrong.
 
 **How to apply:** histogram the misses relative to the label before tuning anything. A tight cluster at a musical interval points to a labeling gap, not an algorithm fault.
+
+---
+
+## Re-check a ported default against the new platform's reliability
+Tags: porting, defaults, xr, tuner
+Applies-when: copying a desktop auto-launch or auto-run rule into XR or another platform
+
+XR copied desktop's rule of opening the tuner before Play whenever the tuning changed. Desktop mics are dependable, but the Quest's built-in mic is gated to silence on guitar and only a USB mic works. The port made every XR user walk through a step most of them could not finish.
+
+**How to apply:** when porting an automatic step, ask whether its input is as reliable on the new platform. If not, make it opt-in (a button) and log the decision with the evidence.
+
+---
+
+## Check that a hand-off has a consumer before tracking the producer side
+Tags: planning, beads, hand-off, xr
+Applies-when: a bead or design says to pass a live object (detector, stream, handle) from one screen to the next
+
+RockyRoad-0q4.5 carried "hand the live PitchDetector into the active scene" while XR Play had no PitchDetector or NoteDetector at all. The gap was not the hand-off but the missing note detection, and it stayed hidden until someone asked why Play could not receive it.
+
+**How to apply:** grep the receiving side for the type before specifying the transfer. If nothing consumes it, file the consumer as its own bead and drop the hand-off from the producer bead.

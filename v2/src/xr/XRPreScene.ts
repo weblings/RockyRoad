@@ -73,8 +73,8 @@ export class XRPreScene {
         // Saved calibration exists — load song then open fine-tune panel directly.
         onReposition: (sourced: SourcedEntry, partName: string, difficulty: number | null) => void,
         onBack: () => void,
-        // Opens the tuner with the selected part's tuning offsets.
-        onTune: (tuningOffsets: number[]) => void,
+        // Opens the tuner with the selected part's tuning offsets. play is what the tuner's Play button runs.
+        onTune: (tuningOffsets: number[], play: () => void) => void,
     ): void {
         this._selectedPart = null;
         this._selectedDifficulty = null;
@@ -102,7 +102,7 @@ export class XRPreScene {
         onCalibratePlay: (sourced: SourcedEntry, partName: string, difficulty: number | null) => void,
         onReposition: (sourced: SourcedEntry, partName: string, difficulty: number | null) => void,
         onBack: () => void,
-        onTune: (tuningOffsets: number[]) => void,
+        onTune: (tuningOffsets: number[], play: () => void) => void,
     ): void {
         const rerender = () => this._render(doc, sourced, tryLoadCalibration, onPlay, onCalibratePlay, onReposition, onBack, onTune);
 
@@ -136,7 +136,6 @@ export class XRPreScene {
         const tuningOffsets = selectedPart?.tuningOffsets;
         this._setDisplay(doc, 'ps-recal', hasSavedCal && !tuningOffsets);
         this._setDisplay(doc, 'ps-tune', !!tuningOffsets);
-        if (tuningOffsets) this._setClick(doc, 'ps-tune', () => onTune(tuningOffsets));
 
         this._setDisabled(doc.getElementById('ps-play'), !hasPart);
 
@@ -158,12 +157,15 @@ export class XRPreScene {
             saveSettings(s);
         };
 
+        const play = (): void => {
+            commitInstrument();
+            (hasSavedCal ? onPlay : onCalibratePlay)(sourced, partName, this._selectedDifficulty);
+        };
+        this._setClick(doc, 'ps-play', play);
         if (hasSavedCal) {
-            this._setClick(doc, 'ps-play',  () => { commitInstrument(); onPlay(sourced, partName, this._selectedDifficulty); });
             this._setClick(doc, 'ps-recal', () => { commitInstrument(); onReposition(sourced, partName, this._selectedDifficulty); });
-        } else {
-            this._setClick(doc, 'ps-play', () => { commitInstrument(); onCalibratePlay(sourced, partName, this._selectedDifficulty); });
         }
+        if (tuningOffsets) this._setClick(doc, 'ps-tune', () => onTune(tuningOffsets, play));
     }
 
     // Instrument dropdown popover — same shape as Play's Difficulty (renderDynamic(), since the

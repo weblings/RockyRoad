@@ -52,7 +52,7 @@ XR slice of [[tuner-v2]], gated on [[tuner-compact-layout]].
 
 ## Entry points and mic permission (RockyRoad-0q4.5)
 
-- Play auto-tunes through `autoTuneThen` in `index.ts` by desktop's rule: only when the part's `tuningOffsets` differ from the in-memory `lastTuningKey`, which is set when a tuning completes (Tune button or auto). Done continues to play even if unfinished, Back returns to the Song page.
+- Tuning is optional in XR (decided 2026-10-18, since only an external USB mic works reliably). Play never opens the tuner. The Song page Tune button opens it, and the tuner's Play button runs the same play or calibrate-and-play path as the Song page's Play. Back returns to the Song page.
 - Deviation from the bead note: auto-tune runs before first-time calibration, not after, so the highway is not built behind the tuner panel.
 - `MicPermission.offerMicPermission` shows a page bar with an Allow button on VR-capable devices when the permission state is `prompt`. It is non-blocking, so Enter XR still works.
 - Safety net in the panel: if `getUserMedia` is still pending after 8s the overlay says to exit VR, allow on the page and re-enter. A late grant still starts the detector. Denial shows a site-settings message.
@@ -85,3 +85,13 @@ XR slice of [[tuner-v2]], gated on [[tuner-compact-layout]].
 - Follow-up beads: RockyRoad-0q4.7 (Rocksmith cable), RockyRoad-0q4.9 (permission fail states as a card), and a flicker-on-enter bug under RockyRoad-0q4.
 - Lessons filed: engine `runtime-apis.md` (mic gating, key-maximum rule, rumble floor), `dev-environment.md` (debug channel), ui-toolkit `scrolling-and-dropdowns.md` (menu sizing) and `syntax-and-styling.md` (card width), and `engineering-hygiene.md` (entry-time warnings, scoring proxies).
 - Tooling note: `bd update --notes` replaces the whole field. Use `--append-notes`. This overwrote RockyRoad-0q4.5's notes once, restored from the earlier `bd show`.
+
+## Tuning made optional in XR (2026-10-18, RockyRoad-0q4.5)
+
+- Decided: Play never opens the tuner in XR, because only an external USB mic works reliably. The Song page Tune button is the only entry. Removed `autoTuneThen`, `lastTuningKey` and `world.globals.showTuner` from `index.ts`.
+- The tuner's button now reads Play, not Done. `XRPreScene` builds one `play` action (play with a saved calibration, calibrate-and-play without) and passes it to `onTune`, so the tuner's Play button lands in the same place as the Song page's Play. Back still returns to Song.
+- Why the hand-off cannot happen yet: XR Play has no `PitchDetector` or `NoteDetector`. Desktop `ActiveSceneScreen` takes an optional detector and runs `NoteDetector` on it. That is a missing feature, not a missing transfer ([[lesson-engineering-hygiene]]).
+- Gaps vs desktop found while comparing: no Settings button on the XR tuner, one layout instead of three, no Play button on the In tune overlay (the Done button below stays visible), and the XR input list filters out the `default` device.
+- Undecided, filed as RockyRoad-0q4.10: scoring and auto re-tune only for users who tuned. Leading shape is a derived "tuned" state plus one persisted scoring preference, so tuning never flips a visible setting. Re-tune would follow from scoring being on and the tuning differing, not get its own bool. Open: toggle location, session-only vs persisted "tuned", and whether feedback UI hides when off. The tuner's chosen input is not persisted yet, so scoring would fall back to the weak built-in mic.
+- `tsc --noEmit` clean. The Song, Tune, Play flow is still unverified in headset.
+
