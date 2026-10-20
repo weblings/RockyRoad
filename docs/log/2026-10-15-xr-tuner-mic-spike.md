@@ -83,7 +83,7 @@ XR slice of [[tuner-v2]], gated on [[tuner-compact-layout]].
 - Warning is a card centered on the opaque scrim, like the In tune overlay. The first version shrink-wrapped its Quest text block, so a line wrapped and overlapped, and the stack ran into the actions bar. Fixed with a fixed-width card, shorter lines, a width of 100% on the text group, a Dismiss top margin and a small `position-top` nudge. Headset screenshot confirmed it reads well enough ([[lesson-uikit-syntax-and-styling]]).
 - Scoring detector output against the tuner's current string overcounted errors. Most "other" frames were the previous string ringing.
 - Follow-up beads: RockyRoad-0q4.7 (Rocksmith cable), RockyRoad-0q4.9 (permission fail states as a card), and a flicker-on-enter bug under RockyRoad-0q4.
-- Lessons filed: engine `runtime-apis.md` (mic gating, key-maximum rule, rumble floor), `dev-environment.md` (debug channel), ui-toolkit `scrolling-and-dropdowns.md` (menu sizing) and `syntax-and-styling.md` (card width), and `engineering-hygiene.md` (entry-time warnings, scoring proxies).
+- Lessons filed: [[lesson-engine-runtime-apis]] (mic gating, key-maximum rule, rumble floor), [[lesson-engine-dev-environment]] (debug channel), [[lesson-uikit-scrolling-and-dropdowns]] (menu sizing), [[lesson-uikit-syntax-and-styling]] (card width) and [[lesson-engineering-hygiene]] (entry-time warnings, scoring proxies).
 - Tooling note: `bd update --notes` replaces the whole field. Use `--append-notes`. This overwrote RockyRoad-0q4.5's notes once, restored from the earlier `bd show`.
 
 ## Tuning made optional in XR (2026-10-18, RockyRoad-0q4.5)
@@ -95,3 +95,13 @@ XR slice of [[tuner-v2]], gated on [[tuner-compact-layout]].
 - Undecided, filed as RockyRoad-0q4.10: scoring and auto re-tune only for users who tuned. Leading shape is a derived "tuned" state plus one persisted scoring preference, so tuning never flips a visible setting. Re-tune would follow from scoring being on and the tuning differing, not get its own bool. Open: toggle location, session-only vs persisted "tuned", and whether feedback UI hides when off. The tuner's chosen input is not persisted yet, so scoring would fall back to the weak built-in mic.
 - `tsc --noEmit` clean. The Song, Tune, Play flow is still unverified in headset.
 
+
+## Mic flash on enter and debug log mask (2026-10-20, RockyRoad-0q4.8, RockyRoad-0q4.11)
+
+- Flicker cause found by reading `XRTunerScene`, not reproduced separately. Three sources: with a USB mic, the auto-select restart set the state back to waiting after ready (waiting, tuner, waiting, tuner). Without one, the boxes showed between mic ready and `enumerateDevices` resolving, then the weak-mic card replaced them. On first open the boxes were also visible until the first tick, because overlays default to `display: none` and only `tick` wrote them.
+- Fix: the waiting overlay now holds until the mic is ready and the input list is known (`_inputsListed`). The auto-select restart happens in the same step the list resolves, so the overlay never drops. `show()` writes the overlay state right away and resets `_warnShown`.
+- Edge cases handled: a failed `enumerateDevices` sets `_inputsListed` so the overlay cannot hang, and `_weakMic` needs at least one input so an empty list shows the tuner instead of the warning. Cost is a longer Waiting frame, by one device list call or one detector restart. Not timed.
+- Confirmed in headset by the user. `tsc --noEmit` clean.
+- `shared/DebugLog.ts` logged everything on any dev session, including the per-frame `f` event and the mic WAV upload. It now takes a feature first (`debugLog(feature, event, data)`, `debugAudio(feature, ...)`, `debugOn(feature)`) and logs only features listed in the `DEBUG_FEATURES` constant, empty by default. Features: `tuner` (mic ready, devices, weak-mic warning, capture) and `tuner-frames` (per-frame stream).
+- The constant follows `DEBUG_CONSOLE_ENABLED` in `xr/index.ts`: edit the source to turn it on, hot reload applies it. A URL param was considered and not chosen. Add `'tuner'` or `'tuner-frames'` to the list while investigating and revert before committing.
+- Debug channel entry in [[lesson-engine-dev-environment]] updated.

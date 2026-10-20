@@ -7,7 +7,7 @@ import { stringColorCss } from "../shared/StringColors";
 import { loadSettings, saveSettings } from "../shared/Settings";
 import type { OptionMenuLayout, WorldPointerEvent } from "./OptionDropdown";
 import { OptionDropdown } from "./OptionDropdown";
-import { debugLog, debugAudio, debugEnabled } from "../shared/DebugLog";
+import { debugLog, debugAudio, debugOn } from "../shared/DebugLog";
 
 // ── XRTunerScene ──────────────────────────────────────────────────────────────
 // uikit panel (see ui/tuner.uikitml). Drives the shared TunerMachine from a PitchDetector each
@@ -97,12 +97,15 @@ export class XRTunerScene {
         this._micState = 'waiting';
         this._lastLive.clear();
         this._lastStringSig = '';
+        this._warnShown = false;
         this._active = true;
         this._startDetector(++this._showGen);
 
         const proceed = (doc: UIKitDocument) => {
             this._doc = doc;
             this._render(doc, onBack, onDone);
+            // Cover the boxes right away instead of waiting for the first tick.
+            this._updateOverlays(doc, this._machine!);
         };
 
         if (this._doc) { proceed(this._doc); return; }
@@ -207,7 +210,7 @@ export class XRTunerScene {
         const result = this._detector?.detect() ?? null;
         const rms = this._detector?.lastRms ?? 0;
         m.update(timestamp, result, rms);
-        debugLog('f', {
+        debugLog('tuner-frames', 'f', {
             s: m.currentString, ph: m.phase.tag, rms: +rms.toFixed(5),
             hz: result ? +result.frequency.toFixed(2) : null, cl: result ? +result.clarity.toFixed(3) : null,
             c: m.displayCents === null ? null : +m.displayCents.toFixed(1),
@@ -241,7 +244,7 @@ export class XRTunerScene {
             const devices = await navigator.mediaDevices.enumerateDevices();
             if (gen !== this._showGen) return;
             console.log('inputs:', devices.filter(d => d.kind === 'audioinput').map(d => d.label || d.deviceId.slice(0, 6)).join(' | '));
-            debugLog('audio-devices', { devices: devices.map(d => ({ kind: d.kind, label: d.label, id: d.deviceId.slice(0, 8) })) });
+            debugLog('tuner', 'audio-devices', { devices: devices.map(d => ({ kind: d.kind, label: d.label, id: d.deviceId.slice(0, 8) })) });
             this._inputsListed = true;
             this._inputs = devices
                 .filter(d => d.kind === 'audioinput' && d.deviceId !== 'default')
@@ -253,7 +256,10 @@ export class XRTunerScene {
                 return;
             }
             this._rerender();
-        } catch { /* keep Default only */ }
+        } catch {
+            // Keep Default only, and stop holding the waiting overlay for a list that won't come.
+            this._inputsListed = true;
+        }
     }
 
     private _startDetector(gen: number): void {
@@ -267,8 +273,8 @@ export class XRTunerScene {
                 if (gen !== this._showGen) { det.destroy(); return; }
                 this._detector = det;
                 this._micState = 'ready';
-                if (debugEnabled) {
-                    debugLog('tuner-mic-ready', { label: this._inputs.find(i => i.id === this._inputId)?.label ?? 'Default', n: this._captureCount, rate: det.sampleRate, gain: this._gain, minRms: XR_MIN_RMS, settings: det.trackSettings });
+                if (debugOn('tuner')) {
+                    debugLog('tuner', 'tuner-mic-ready', { label: this._inputs.find(i => i.id === this._inputId)?.label ?? 'Default', n: this._captureCount, rate: det.sampleRate, gain: this._gain, minRms: XR_MIN_RMS, settings: det.trackSettings });
                     det.startCapture(DEBUG_CAPTURE_SECONDS);
                 }
                 this._clearMicTimer();
@@ -285,7 +291,7 @@ export class XRTunerScene {
     private _uploadCapture(): void {
         const det = this._detector;
         const pcm = det?.stopCapture();
-        if (det && pcm && pcm.length > 0) debugAudio(`tuner${this._captureCount++}`, pcm, det.sampleRate);
+        if (det && pcm && pcm.length > 0) debugAudio('tuner', `tuner${this._captureCount++}`, pcm, det.sampleRate);
     }
 
     // Lowest pitch worth hearing: a bit under the lowest target, so a flat string is still found
@@ -363,16 +369,17 @@ export class XRTunerScene {
     // True once the input list is known and holds nothing but the headset's built-in routes.
     private _weakMic(): boolean {
         if (warnDismissed || this._micState !== 'ready' || !this._inputsListed) return false;
-        return this._inputs.every(i => isBuiltInMic(i.label));
+        return this._inputs.length > 0 && this._inputs.every(i => isBuiltInMic(i.label));
     }
 
     private _updateOverlays(doc: UIKitDocument, m: TunerMachine): void {
         const done = m.phase.tag === 'complete';
-        const waiting = !done && this._micState !== 'ready';
+        // Held until the input list is known so the boxes never flash before the warning or an auto-select restart.
+        const waiting = !done && (this._micState !== 'ready' || !this._inputsListed);
         const warn = !done && !waiting && this._weakMic();
         if (warn !== this._warnShown) {
             this._warnShown = warn;
-            debugLog('weak-mic-warning', { shown: warn });
+            debugLog('tuner', 'weak-mic-warning', { shown: warn });
         }
         this._setLive(doc, 'tn-warn-overlay', { display: warn ? 'flex' : 'none' });
         this._setLive(doc, 'tn-done-overlay', { display: done ? 'flex' : 'none' });
