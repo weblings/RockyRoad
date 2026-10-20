@@ -116,3 +116,12 @@ XR slice of [[tuner-v2]], gated on [[tuner-compact-layout]].
 - Follow-up beads: RockyRoad-0q4.12 (two-card flow), .13 (Settings deep link test), .14 (speakers with USB mic), .15 (browser vs OS permission detection), .16 (browser step in addition to OS).
 - `tsc --noEmit` clean.
 
+
+## Settings deep link test (2026-10-20, RockyRoad-0q4.13)
+
+- Tried an Open Settings button on the Quest weak-mic card with `location.href = 'systemux://settings'` from the click. Settings did not open and the session exited immersive mode.
+- Second round, four buttons on the card: `location.href`, a clicked anchor, `window.open` and an `intent://settings#Intent;scheme=systemux;end` URL. None opened Settings. Research agreed: Meta documents `systemux://` for installed apps only and forum reports say browser links to apps fail.
+- Browser settings: they open as a separate tab, and `chrome://settings` typed by hand works, with a different UI that edits the same Allowed and Not Allowed list. Path there is Settings > Site Settings > Microphone. A page link to `chrome://settings` or `chrome://settings/content/microphone` also failed on every variant.
+- Result: all test buttons removed, no code change kept. The cards keep the written Settings path. The menu name for External Microphone (Experimental or Advanced) is still unconfirmed.
+- Added to RockyRoad-0q4.16: the site card path is confirmed on headset (Settings > Privacy and Security > Website Permissions > Microphone), and the Browser settings tab is a second route.
+- Lesson: [[lesson-engine-runtime-apis]].

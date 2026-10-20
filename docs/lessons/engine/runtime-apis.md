@@ -205,3 +205,15 @@ Applies-when: idle frames report a pitch near 30 Hz or the low string rarely reg
 **Symptom:** With a clean USB mic, 767 frames read below 60 Hz and low E (82 Hz) hit only 95 times.
 
 **Fix:** `PitchDetector.create` takes `minHz`, which limits the lag search and sets a high-pass at 0.9 times that. XR passes 0.8 times its lowest target, so bass and drop tunings still work. The same replay gave 0 rumble frames and 258 low E hits.
+
+---
+
+## A page cannot open Quest OS Settings or Browser settings
+Tags: quest, webxr, settings, deep-link, permissions
+Applies-when: a card wants a button that jumps the user to a Settings screen
+
+**Symptom:** `systemux://settings` and `chrome://settings` (also `chrome://settings/content/microphone`) from a click did not open anything. `location.href` to `systemux://settings` exited immersive mode and stopped there.
+
+**Root cause:** Meta documents `systemux://` for installed native apps only. A web page may not navigate to `chrome://`. Tried on Quest: `location.href`, a clicked `<a>`, `window.open` and an `intent://` URL, all with no effect.
+
+**Fix:** Show the written path instead. The Browser's own settings open as a separate browser tab and reach the same Allowed and Not Allowed list at Settings > Privacy and Security > Website Permissions > Microphone (or Settings > Site Settings > Microphone through `chrome://settings` typed by hand). Do not add a jump button.
