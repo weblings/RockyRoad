@@ -7,6 +7,7 @@ import { stringColorCss } from "../shared/StringColors";
 import { loadSettings, saveSettings } from "../shared/Settings";
 import type { OptionMenuLayout, WorldPointerEvent } from "./OptionDropdown";
 import { OptionDropdown } from "./OptionDropdown";
+import { micPermissionState } from "./MicPermission";
 import { debugLog, debugAudio, debugOn } from "../shared/DebugLog";
 
 // ── XRTunerScene ──────────────────────────────────────────────────────────────
@@ -28,6 +29,13 @@ const MENU_SLACK = 1.0;
 const MAX_STRINGS = 7;
 // How long the mic request may stay pending before the panel explains the invisible prompt.
 const MIC_TIMEOUT_MS = 8000;
+// Mic card [title, ...up to 4 lines] per state. One short line each, no text wrapping.
+const MIC_CARD_TEXT = {
+    waiting: ['Waiting for mic access', 'Tap Allow if the headset asks.'],
+    prompt: ['Mic permission needed', 'The mic dialog is outside VR.', 'Press the button below to exit,', 'tap Allow Mic, then re-enter.'],
+    siteBlocked: ['Mic blocked for this site', 'Settings > Privacy and Security >', 'Website Permissions > Microphone:', 'remove this site from Not Allowed,', 'then re-enter VR.'],
+    appBlocked: ['Mic is off for Browser', 'Settings > Privacy and Safety >', 'App Permissions > Microphone >', 'turn on Browser, then re-enter VR.'],
+} as const;
 // Same range and step as the desktop tuner's gain slider.
 const MIN_GAIN = 1;
 const MAX_GAIN = 24;
@@ -53,7 +61,7 @@ export class XRTunerScene {
     private _machine: TunerMachine | null = null;
     private _gain = 1;
     private _detector: PitchDetector | null = null;
-    private _micState: 'waiting' | 'timeout' | 'ready' | 'denied' = 'waiting';
+    private _micState: 'waiting' | 'prompt' | 'ready' | 'siteBlocked' | 'appBlocked' = 'waiting';
     private _active = false;
     private _showGen = 0;
     private _onDone: (complete: boolean) => void = () => {};
@@ -128,6 +136,7 @@ export class XRTunerScene {
         this._setClick(doc, 'tn-done', () => onDone(m.phase.tag === 'complete'));
         this._applyWarnText(doc);
         this._setClick(doc, 'tn-warn-dismiss', () => { warnDismissed = true; });
+        this._setClick(doc, 'tn-mic-exit', () => this._requestMic());
         this._setClick(doc, 'tn-restart', () => { m.restart(); this._lastStringSig = ''; });
 
         const options: { id: string | undefined; label: string }[] = [
@@ -263,9 +272,36 @@ export class XRTunerScene {
     }
 
     private _startDetector(gen: number): void {
-        // Quest shows the permission prompt outside the session, so a pending request looks like a hang.
+        // Quest shows the mic prompt outside the session, so asking in here would hang unseen.
+        // A known 'prompt' state skips the request and offers Exit VR instead.
+        void micPermissionState().then(state => {
+            if (gen !== this._showGen) return;
+            if (state === 'prompt') { this._micState = 'prompt'; return; }
+            this._openMic(gen);
+        });
+    }
+
+    // Ask from the button's own gesture so the Quest prompt may show without leaving VR.
+    private _requestMic(): void {
+        debugLog('tuner', 'mic-request-click', {});
+        navigator.mediaDevices.getUserMedia({ audio: true })
+            .then(stream => {
+                stream.getTracks().forEach(t => t.stop());
+                debugLog('tuner', 'mic-request-granted', {});
+                this._micState = 'waiting';
+                this._startDetector(++this._showGen);
+            })
+            .catch(async (e: unknown) => {
+                debugLog('tuner', 'mic-request-failed', { name: (e as { name?: string })?.name });
+                const state = await micPermissionState();
+                this._micState = state === 'denied' ? 'siteBlocked' : state === 'prompt' ? 'prompt' : 'appBlocked';
+            });
+    }
+
+    private _openMic(gen: number): void {
+        // Fallback when the permission state can't be read and the request stays pending.
         this._micTimer = setTimeout(() => {
-            if (gen === this._showGen && this._micState === 'waiting') this._micState = 'timeout';
+            if (gen === this._showGen && this._micState === 'waiting') this._micState = 'prompt';
         }, MIC_TIMEOUT_MS);
         import('../shared/PitchDetector')
             .then(({ PitchDetector }) => PitchDetector.create(this._inputId, this._gain, XR_MIN_RMS, this._minHz()))
@@ -280,10 +316,13 @@ export class XRTunerScene {
                 this._clearMicTimer();
                 if (this._inputs.length === 0) void this._listInputs(gen);
             })
-            .catch(() => {
+            .catch(async () => {
                 if (gen !== this._showGen) return;
-                this._micState = 'denied';
                 this._clearMicTimer();
+                // A stored site denial reads 'denied'. Anything else points at the OS-level Browser toggle.
+                const state = await micPermissionState();
+                if (gen !== this._showGen) return;
+                this._micState = state === 'denied' ? 'siteBlocked' : 'appBlocked';
             });
     }
 
@@ -387,11 +426,13 @@ export class XRTunerScene {
         // Hidden under an overlay so their images can't z-fight through it.
         this._setLive(doc, 'tn-box1', { display: done || waiting || warn ? 'none' : 'flex' });
         this._setLive(doc, 'tn-box2', { display: done || waiting || warn ? 'none' : 'flex' });
-        this._setLive(doc, 'tn-mic-text', {
-            text: this._micState === 'denied' ? 'Mic blocked. Allow it in the browser site settings.'
-                : this._micState === 'timeout' ? 'No mic prompt yet. Exit VR, tap Allow on the page, then re-enter.'
-                : 'Waiting for mic access...',
-        });
+        const [title, ...lines] = MIC_CARD_TEXT[this._micState === 'ready' ? 'waiting' : this._micState];
+        this._setLive(doc, 'tn-mic-title', { text: title });
+        for (let i = 0; i < 4; i++) {
+            const line = lines[i];
+            this._setLive(doc, `tn-mic-l${i + 1}`, line ? { text: line, display: 'flex' } : { display: 'none' });
+        }
+        this._setLive(doc, 'tn-mic-exit', { display: this._micState === 'prompt' ? 'flex' : 'none' });
     }
 
     private _applyGain(doc: UIKitDocument): void {

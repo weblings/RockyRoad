@@ -158,7 +158,7 @@ Applies-when: a feature needs a browser permission (mic, camera) that may not be
 
 **Root cause:** Browser permission UI isn't rendered in the headset during a session, so a first-time request made there stalls unseen.
 
-**Fix:** Request on a normal page before Enter XR, with a `getUserMedia` timeout and an in-XR fallback telling the user to exit, accept and return. Permission is per origin, so one grant covers both entry pages.
+**Fix:** Read `navigator.permissions.query({ name: 'microphone' })` on entry. If it is `prompt`, show a card with an Allow Mic button whose click calls `getUserMedia` directly. That call from a button gesture raises the real Quest prompt, so no custom page prompt is needed. The prompt is still outside immersive mode, so the card tells the user to exit, allow and re-enter. Permission is per origin. A failed request is split by the permission state afterwards (`denied` is the site's Not Allowed list, anything else is guessed to be the OS Browser mic toggle, unverified).
 
 ---
 

@@ -105,3 +105,14 @@ XR slice of [[tuner-v2]], gated on [[tuner-compact-layout]].
 - `shared/DebugLog.ts` logged everything on any dev session, including the per-frame `f` event and the mic WAV upload. It now takes a feature first (`debugLog(feature, event, data)`, `debugAudio(feature, ...)`, `debugOn(feature)`) and logs only features listed in the `DEBUG_FEATURES` constant, empty by default. Features: `tuner` (mic ready, devices, weak-mic warning, capture) and `tuner-frames` (per-frame stream).
 - The constant follows `DEBUG_CONSOLE_ENABLED` in `xr/index.ts`: edit the source to turn it on, hot reload applies it. A URL param was considered and not chosen. Add `'tuner'` or `'tuner-frames'` to the list while investigating and revert before committing.
 - Debug channel entry in [[lesson-engine-dev-environment]] updated.
+
+## Mic permission card in XR (2026-10-20, RockyRoad-0q4.9)
+
+- The Waiting, timeout and denied states were dim text on the scrim. They are now a `.warn-card` on the scrim with a title, up to four short lines and an optional button. Text lives in `MIC_CARD_TEXT` in `XRTunerScene`.
+- Flow change: the page-load "Allow microphone" bar is gone. On entry the tuner reads the permission state. If it is `prompt`, the card says the dialog is outside VR and its Allow Mic button calls `getUserMedia` from the click. Confirmed in headset: this raises the real Quest prompt, so the custom page prompt was retired and `MicPermission.ts` only exports `micPermissionState`.
+- Failed requests show a site card (state `denied`: Settings > Privacy and Security > Website Permissions > Microphone, remove the site from Not Allowed) or an OS card (otherwise: Settings > Privacy and Safety > App Permissions > Microphone > Browser). The split is a guess and untested ([[lesson-engine-runtime-apis]]).
+- Research: no documented way for a page to open Settings. Meta lists `systemux://settings` for native apps only, and forum reports say app deep links from Quest Browser fail. One post puts the External Microphone toggle under Settings > Advanced, not Experimental. Users report a USB mic can mute the headset speakers.
+- Designed but not built: a two-card setup (info page with Skip tuning and Continue, then the permission card) so users learn a USB mic is needed before the exit and re-enter loop.
+- Follow-up beads: RockyRoad-0q4.12 (two-card flow), .13 (Settings deep link test), .14 (speakers with USB mic), .15 (browser vs OS permission detection), .16 (browser step in addition to OS).
+- `tsc --noEmit` clean.
+

@@ -46,7 +46,6 @@ import { XRSongLibrary } from "./XRSongLibrary";
 import { loadAllSources, type SourcedEntry } from "../shared/SongSource";
 import { XRPreScene } from "./XRPreScene";
 import { XRTunerScene } from "./XRTunerScene";
-import { offerMicPermission } from "./MicPermission";
 import { XRActiveScene } from "./XRActiveScene";
 import { XRSettingsScene } from "./XRSettingsScene";
 import { loadSettings, type Settings } from "../shared/Settings";
@@ -334,8 +333,6 @@ class HighwaySystem extends createSystem({}) {
 const assets: AssetManifest = {
     atlas: { url: ATLAS_URL, type: AssetType.Texture },
 };
-
-void offerMicPermission();
 
 World.create(document.getElementById("scene-container") as HTMLDivElement, {
     assets,
