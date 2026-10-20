@@ -46,6 +46,7 @@ import { XRSongLibrary } from "./XRSongLibrary";
 import { loadAllSources, type SourcedEntry } from "../shared/SongSource";
 import { XRPreScene } from "./XRPreScene";
 import { XRTunerScene } from "./XRTunerScene";
+import { showMicSiteBlockedToast } from "./MicPermission";
 import { XRActiveScene } from "./XRActiveScene";
 import { XRSettingsScene } from "./XRSettingsScene";
 import { loadSettings, type Settings } from "../shared/Settings";
@@ -904,7 +905,11 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         tunerPanelObj.visible = true;
         setTunerPanelInteractive(true);
         const back = () => showPreScene(sourced);
-        tuner.show(tunerPanelEntity, tuningOffsets, back, onPlay, () => { void world.renderer.xr.getSession()?.end(); });
+        tuner.show(tunerPanelEntity, tuningOffsets, back, onPlay, (siteBlocked: boolean) => {
+            const session = world.renderer.xr.getSession();
+            if (siteBlocked) session?.addEventListener('end', showMicSiteBlockedToast, { once: true });
+            void session?.end();
+        });
     }
 
     function showPreScene(sourced: SourcedEntry): void {

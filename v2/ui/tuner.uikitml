@@ -626,7 +626,7 @@
       <span class="overlay-text">In tune!</span>
     </div>
     <div id="tn-mic-overlay" class="overlay">
-      <div class="warn-card">
+      <div id="tn-mic-card" class="warn-card">
         <span id="tn-mic-title" class="warn-title">Waiting for mic access</span>
         <span id="tn-mic-l1" class="warn-line">Tap Allow if the headset asks.</span>
         <span id="tn-mic-l2" class="warn-line">line 2</span>

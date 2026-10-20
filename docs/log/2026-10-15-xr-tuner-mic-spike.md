@@ -129,8 +129,15 @@ XR slice of [[tuner-v2]], gated on [[tuner-compact-layout]].
 
 ## Browser vs OS mic permission (2026-10-20, RockyRoad-0q4.15)
 
-- Site denial is detectable: `getUserMedia` rejects with `NotAllowedError` ("Permission denied") and `permissions.query` reads `denied`. Same result on the auto-start and Allow Mic paths.
-- OS Browser mic off is not an error. With the site allowed, `getUserMedia` never settles and the state reads `granted`. The old split never reached the OS card, and repeated Allow Mic taps did nothing.
-- Fix: 8s hang timers on both paths. A hang with the state not `denied` shows the OS card (auto-start only when `granted`, otherwise the Allow Mic card). Taps while a request is pending are ignored. New log events: `mic-open-failed`, `mic-open-hung`, `mic-request-hung`.
-- With the OS toggle off, leaving VR shows a Browser prompt to enable the mic with a Settings button. The OS card's button now reads Exit VR and ends the session, and the written Settings path stays as backup. Confirmed in headset.
+- Site denial is detectable: `getUserMedia` rejects with `NotAllowedError` and `permissions.query` reads `denied`. A site that has not been asked reads `prompt`.
+- OS Browser mic off is not an error. With the site allowed, `getUserMedia` never settles and the state reads `granted`. The pending call resolves on its own once the toggle is on (19s to 31s later in tests).
+- A granted mic opens in about 75ms (76, 71, 73). The hang timer is 500ms on both the auto-start and Allow Mic paths. `enumerateDevices` looks normal with the OS off (3 devices, 1 audio input, labels present), so it is no shortcut.
+- The page sees nothing when Browser raises its own dialog: no blur, focus or visibility events, and `document.hasFocus()` stays false. Browser dialogs can't be detected.
+- With the OS toggle off, Browser shows its own enable-mic prompt with a Settings button when VR is left. The OS card's button reads Exit VR and just ends the session. No page toast for this case.
+- Site-blocked card gets the same Exit VR button. Leaving from it shows a bottom page toast with the Browser settings path. The toast follows the permission state: blocked text, then an Allow microphone button when the state becomes `prompt` (called from the click so the real prompt shows on the flat page), then a confirmation on `granted`. An early version said "Mic allowed" as soon as the state left `denied`, which was wrong because unblocking only returns it to `prompt`.
+- In VR the card re-reads the state once a second while it shows the site-blocked or Allow Mic card, so it moves to the right card or starts the detector if the user changed permission outside VR.
+- The mic overlay hides its card while the state is still unknown, so the waiting text no longer flashes before the real card.
+- Card text trimmed to a title and one line. The full Settings path lives in the toast. All confirmed in headset.
+- New log events: `mic-open-failed`, `mic-open-hung`, `mic-request-hung`, and `ms` on the grant events.
+- Follow-up: RockyRoad-0q4.17 (audit card, button and prompt wording in each state).
 - Lesson: [[lesson-engine-runtime-apis]].
