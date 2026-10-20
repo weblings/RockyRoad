@@ -125,3 +125,12 @@ XR slice of [[tuner-v2]], gated on [[tuner-compact-layout]].
 - Result: all test buttons removed, no code change kept. The cards keep the written Settings path. The menu name for External Microphone (Experimental or Advanced) is still unconfirmed.
 - Added to RockyRoad-0q4.16: the site card path is confirmed on headset (Settings > Privacy and Security > Website Permissions > Microphone), and the Browser settings tab is a second route.
 - Lesson: [[lesson-engine-runtime-apis]].
+
+
+## Browser vs OS mic permission (2026-10-20, RockyRoad-0q4.15)
+
+- Site denial is detectable: `getUserMedia` rejects with `NotAllowedError` ("Permission denied") and `permissions.query` reads `denied`. Same result on the auto-start and Allow Mic paths.
+- OS Browser mic off is not an error. With the site allowed, `getUserMedia` never settles and the state reads `granted`. The old split never reached the OS card, and repeated Allow Mic taps did nothing.
+- Fix: 8s hang timers on both paths. A hang with the state not `denied` shows the OS card (auto-start only when `granted`, otherwise the Allow Mic card). Taps while a request is pending are ignored. New log events: `mic-open-failed`, `mic-open-hung`, `mic-request-hung`.
+- With the OS toggle off, leaving VR shows a Browser prompt to enable the mic with a Settings button. The OS card's button now reads Exit VR and ends the session, and the written Settings path stays as backup. Confirmed in headset.
+- Lesson: [[lesson-engine-runtime-apis]].

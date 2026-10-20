@@ -633,7 +633,7 @@
         <span id="tn-mic-l3" class="warn-line">line 3</span>
         <span id="tn-mic-l4" class="warn-line">line 4</span>
         <button id="tn-mic-exit" class="warn-dismiss primary-light">
-          <span>Allow Mic</span>
+          <span id="tn-mic-exit-label">Allow Mic</span>
         </button>
       </div>
     </div>

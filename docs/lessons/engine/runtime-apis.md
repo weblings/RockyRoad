@@ -158,7 +158,7 @@ Applies-when: a feature needs a browser permission (mic, camera) that may not be
 
 **Root cause:** Browser permission UI isn't rendered in the headset during a session, so a first-time request made there stalls unseen.
 
-**Fix:** Read `navigator.permissions.query({ name: 'microphone' })` on entry. If it is `prompt`, show a card with an Allow Mic button whose click calls `getUserMedia` directly. That call from a button gesture raises the real Quest prompt, so no custom page prompt is needed. The prompt is still outside immersive mode, so the card tells the user to exit, allow and re-enter. Permission is per origin. A failed request is split by the permission state afterwards (`denied` is the site's Not Allowed list, anything else is guessed to be the OS Browser mic toggle, unverified).
+**Fix:** Read `navigator.permissions.query({ name: 'microphone' })` on entry. If it is `prompt`, show a card with an Allow Mic button whose click calls `getUserMedia` directly. That call from a button gesture raises the real Quest prompt, so no custom page prompt is needed. The prompt is still outside immersive mode, so the card tells the user to exit, allow and re-enter. Permission is per origin. A failed request is split by the permission state afterwards (`denied` is the site's Not Allowed list). With the OS Browser mic toggle off, `getUserMedia` never settles and the state reads `granted`, so detect it with an 8s hang timer, not a catch. Verified on Quest 2026-10-20.
 
 ---
 

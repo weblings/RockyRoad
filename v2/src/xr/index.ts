@@ -904,7 +904,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         tunerPanelObj.visible = true;
         setTunerPanelInteractive(true);
         const back = () => showPreScene(sourced);
-        tuner.show(tunerPanelEntity, tuningOffsets, back, onPlay);
+        tuner.show(tunerPanelEntity, tuningOffsets, back, onPlay, () => { void world.renderer.xr.getSession()?.end(); });
     }
 
     function showPreScene(sourced: SourcedEntry): void {
