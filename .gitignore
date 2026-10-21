@@ -8,3 +8,4 @@
 
 # Dev debug channel output
 v2/.debug/
+.debug/
