@@ -33,9 +33,9 @@ const PERM_RECHECK_MS = 1000;
 // Mic card [title, ...up to 4 lines] per state. One short line each, no text wrapping.
 const MIC_CARD_TEXT = {
     waiting: ['Waiting for mic access', 'Tap Allow if the headset asks.'],
-    prompt: ['Mic permission needed', 'The mic dialog is outside VR.', 'Press the button below to exit,', 'tap Allow Mic, then re-enter.'],
-    siteBlocked: ['Mic blocked for this site', 'Exit VR to fix it in Browser settings.'],
-    appBlocked: ['Mic is off for Browser', 'Exit VR, then tap Allow on the prompt.'],
+    prompt: ['Mic permission needed', 'The prompt shows in the 2D browser.'],
+    siteBlocked: ['Mic blocked for this site', 'Exit VR for the fix steps.', 'They are in the Browser app, not Settings.'],
+    appBlocked: ['Mic is off for Browser', 'Exit VR, then tap Go to Settings.'],
 } as const;
 // Same range and step as the desktop tuner's gain slider.
 const MIN_GAIN = 1;
@@ -485,7 +485,7 @@ export class XRTunerScene {
         }
         const blocked = this._micState === 'appBlocked' || this._micState === 'siteBlocked';
         this._setLive(doc, 'tn-mic-exit', { display: this._micState === 'prompt' || blocked ? 'flex' : 'none' });
-        this._setLive(doc, 'tn-mic-exit-label', { text: blocked ? 'Exit VR' : 'Allow Mic' });
+        this._setLive(doc, 'tn-mic-exit-label', { text: 'Exit VR' });
     }
 
     private _applyGain(doc: UIKitDocument): void {
