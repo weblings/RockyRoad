@@ -504,6 +504,7 @@
     flex-grow: 1;
     padding-bottom: 3;
   }
+  .page-body-low { padding-bottom: 1.5; }
   .page-block {
     display: flex;
     flex-direction: column;
@@ -641,7 +642,7 @@
   </div>
 
   <div id="tn-intro-page" class="page">
-    <div class="page-body">
+    <div class="page-body page-body-low">
       <div class="page-block">
         <span class="page-title">XR Tuner needs both:</span>
       <div class="page-list">

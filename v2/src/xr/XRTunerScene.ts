@@ -46,6 +46,8 @@ const XR_MIN_RMS = 0.001;
 const MIN_HZ_RATIO = 0.8;
 // Dismissed for the rest of the page session.
 let warnDismissed = false;
+// Setup page 1 shows on the first tuner entry per page session.
+let introShown = false;
 // The Bluetooth audio reminder shows once per page session.
 let reminderShown = false;
 const IDLE_COLOR = '#555555';
@@ -90,9 +92,8 @@ export class XRTunerScene {
     // After the first open, a switch to another input can be slow (USB), so wait longer before calling it hung.
     private _micOpened = false;
     private _stopInputWatch: (() => void) | null = null;
-    // 'intro' is setup page 1 (shown only when the mic permission is still undecided), 'remind' the Bluetooth audio page.
+    // 'intro' is setup page 1 (first entry per page session), 'remind' the Bluetooth audio page.
     private _stage: 'tuner' | 'intro' | 'remind' = 'tuner';
-    private _introDone = false;
     private _remindComplete = false;
 
     private _inputDropdown = new OptionDropdown({
@@ -127,7 +128,6 @@ export class XRTunerScene {
         this._warnShown = false;
         this._micOpened = false;
         this._stage = 'tuner';
-        this._introDone = false;
         this._active = true;
         this._startDetector(++this._showGen);
 
@@ -157,7 +157,7 @@ export class XRTunerScene {
         this._setClick(doc, 'tn-back', onBack);
         this._setClick(doc, 'tn-done', () => this._finish(m.phase.tag === 'complete'));
         this._setClick(doc, 'tn-intro-skip', () => onDone(false));
-        this._setClick(doc, 'tn-intro-continue', () => { this._introDone = true; this._stage = 'tuner'; });
+        this._setClick(doc, 'tn-intro-continue', () => { this._stage = 'tuner'; });
         this._setClick(doc, 'tn-remind-play', () => onDone(this._remindComplete));
         this._applyWarnText(doc);
         this._setClick(doc, 'tn-warn-dismiss', () => { warnDismissed = true; });
@@ -270,10 +270,10 @@ export class XRTunerScene {
         this._updateOverlays(doc, m);
     }
 
-    // First undecided visit starts on the setup page. Granted or denied skips it.
+    // The first tuner entry per page session starts on the setup page, whatever the permission.
     private _enterIntro(): void {
-        if (this._introDone) return;
-        this._introDone = true;
+        if (introShown) return;
+        introShown = true;
         this._stage = 'intro';
     }
 
@@ -355,12 +355,12 @@ export class XRTunerScene {
     private _startDetector(gen: number): void {
         // Quest shows the mic prompt outside the session, so asking in here would hang unseen.
         // A known 'prompt' state skips the request and offers Exit VR instead.
+        this._enterIntro();
         void micPermissionState().then(async state => {
             if (gen !== this._showGen) return;
-            debugLog('tuner', 'mic-start-permission', { state, introDone: this._introDone });
+            debugLog('tuner', 'mic-start-permission', { state, introShown });
             if (state === 'prompt') {
                 this._micState = 'prompt';
-                this._enterIntro();
                 return;
             }
             // List first so an external mic is chosen before opening, with no Default-then-USB flash.
@@ -383,7 +383,7 @@ export class XRTunerScene {
             if (gen !== this._showGen) return;
             if (state === 'granted' && (this._micState === 'siteBlocked' || this._micState === 'prompt')) {
                 this._micState = 'waiting';
-                this._stage = 'tuner';
+                if (this._stage !== 'intro') this._stage = 'tuner';
                 this._startDetector(++this._showGen);
             } else if (state === 'prompt' && this._micState === 'siteBlocked') {
                 this._micState = 'prompt';
@@ -431,7 +431,6 @@ export class XRTunerScene {
             debugLog('tuner', 'mic-open-hung', { state });
             if (gen !== this._showGen || this._micState !== 'waiting') return;
             this._micState = state === 'granted' ? 'appBlocked' : 'prompt';
-            if (this._micState === 'prompt') this._enterIntro();
         }, this._micOpened ? MIC_REOPEN_TIMEOUT_MS : MIC_TIMEOUT_MS);
         import('../shared/PitchDetector')
             .then(({ PitchDetector }) => PitchDetector.create(this._inputId, this._gain, XR_MIN_RMS, this._minHz()))
