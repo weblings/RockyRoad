@@ -141,3 +141,13 @@ XR slice of [[tuner-v2]], gated on [[tuner-compact-layout]].
 - New log events: `mic-open-failed`, `mic-open-hung`, `mic-request-hung`, and `ms` on the grant events.
 - Follow-up: RockyRoad-0q4.17 (audit card, button and prompt wording in each state).
 - Lesson: [[lesson-engine-runtime-apis]].
+
+## Live USB mic detection (2026-10-21, RockyRoad-0q4.18)
+
+- Tested on Quest Browser with a throwaway probe (removed). `devicechange` fires on plug and unplug, within about 25ms of a 1s poll seeing the same change, so either source works. Both were used.
+- At site permission `prompt` the first `enumerateDevices` returns one unlabeled entry. Real labels appeared within seconds, with the mic still ungranted. The tuner only lists inputs once the mic is ready, so `prompt` needs nothing.
+- The tuner now re-lists inputs on `devicechange` plus a 1s poll once the mic is ready. A new external mic is auto-selected unless the user picked a non-default input. Picking Default does not lock the choice. If the active input is unplugged it falls back to another external mic, else Default.
+- The weak-mic warning now follows the active input: it shows for any built-in route even with USB in the list, and hides when the active input is external.
+- Reopening the mic after the first open waits 3s before the hang card (was 500ms). A USB switch could exceed 500ms and flash the OS mic-off card.
+- Inputs are listed before the first open, so entering Tuning with USB plugged in no longer shows a Default-then-USB flash.
+- All confirmed in headset.

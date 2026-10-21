@@ -56,6 +56,8 @@ const METER_SCALE = 6;
 const METER_LIVE_RMS = 0.05;
 // Dev capture: longest raw mic recording kept per tuner visit.
 const DEBUG_CAPTURE_SECONDS = 90;
+const INPUT_POLL_MS = 1000;
+const MIC_REOPEN_TIMEOUT_MS = 3000;
 
 export class XRTunerScene {
     private _doc: UIKitDocument | null = null;
@@ -80,8 +82,12 @@ export class XRTunerScene {
     private _captureCount = 0;
     private _inputsListed = false;
     private _warnShown = false;
-    // Set once the user chooses an input, so auto-select never overrides them.
+    // Set once the user chooses a non-default input, so auto-select never overrides them.
     private _userPicked = false;
+    private _inputSig = '';
+    // After the first open, a switch to another input can be slow (USB), so wait longer before calling it hung.
+    private _micOpened = false;
+    private _stopInputWatch: (() => void) | null = null;
 
     private _inputDropdown = new OptionDropdown({
         trigger: 'tn-input-trigger',
@@ -100,6 +106,7 @@ export class XRTunerScene {
         onExitVR: (siteBlocked: boolean) => void = () => {},
     ): void {
         this._onExitVR = onExitVR;
+        this._stopInputWatch?.();
         this._stopDetector();
         this._inputs = [];
         this._inputsListed = false;
@@ -112,6 +119,7 @@ export class XRTunerScene {
         this._lastLive.clear();
         this._lastStringSig = '';
         this._warnShown = false;
+        this._micOpened = false;
         this._active = true;
         this._startDetector(++this._showGen);
 
@@ -164,7 +172,7 @@ export class XRTunerScene {
             options.map(o => ({
                 label: o.label,
                 selected: o === selected,
-                onSelect: () => { this._userPicked = true; this._selectInput(o.id); },
+                onSelect: () => { this._userPicked = o.id !== undefined; this._selectInput(o.id); },
             })),
             { ...OPTION_MENU_LAYOUT, menuHeight },
             rerender,
@@ -217,6 +225,7 @@ export class XRTunerScene {
     hide(): void {
         this._active = false;
         this._showGen++;
+        this._stopInputWatch?.();
         this._stopDetector();
     }
 
@@ -253,10 +262,35 @@ export class XRTunerScene {
     private _selectInput(id: string | undefined): void {
         if (id === this._inputId) return;
         this._inputId = id;
+        this._restartMic();
+    }
+
+    private _restartMic(): void {
         this._stopDetector();
         this._micState = 'waiting';
         this._startDetector(++this._showGen);
         this._rerender();
+    }
+
+    // Re-lists inputs on devicechange, with a poll as backup, so a USB mic plugged in or pulled mid-tuning is followed.
+    private _watchInputs(): void {
+        if (this._stopInputWatch) return;
+        const check = async (): Promise<void> => {
+            if (!this._active) return;
+            try {
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const sig = devices.filter(d => d.kind === 'audioinput').map(d => d.deviceId).join('|');
+                if (sig !== this._inputSig) void this._listInputs(this._showGen);
+            } catch { /* keep the current list */ }
+        };
+        const onChange = (): void => { void check(); };
+        navigator.mediaDevices.addEventListener('devicechange', onChange);
+        const timer = setInterval(onChange, INPUT_POLL_MS);
+        this._stopInputWatch = () => {
+            navigator.mediaDevices.removeEventListener('devicechange', onChange);
+            clearInterval(timer);
+            this._stopInputWatch = null;
+        };
     }
 
     private async _listInputs(gen: number): Promise<void> {
@@ -266,15 +300,21 @@ export class XRTunerScene {
             console.log('inputs:', devices.filter(d => d.kind === 'audioinput').map(d => d.label || d.deviceId.slice(0, 6)).join(' | '));
             debugLog('tuner', 'audio-devices', { devices: devices.map(d => ({ kind: d.kind, label: d.label, id: d.deviceId.slice(0, 8) })) });
             this._inputsListed = true;
+            this._inputSig = devices.filter(d => d.kind === 'audioinput').map(d => d.deviceId).join('|');
             this._inputs = devices
                 .filter(d => d.kind === 'audioinput' && d.deviceId !== 'default')
                 .map(d => ({ id: d.deviceId, label: shortMicLabel(d.label) || d.deviceId }));
+            // An unplugged active input falls back to Default, or to another external mic below.
+            const lost = this._inputId !== undefined && !this._inputs.some(i => i.id === this._inputId);
+            debugLog('tuner', 'inputs-refresh', { inputs: this._inputs.map(i => i.label), active: this._inputId?.slice(0, 8), userPicked: this._userPicked, lost });
+            if (lost) { this._userPicked = false; this._inputId = undefined; }
             // Prefer an external mic over the headset's gated built-in one, unless the user chose.
             const external = this._inputs.find(i => !isBuiltInMic(i.label));
             if (external && !this._userPicked && this._inputId === undefined) {
                 this._selectInput(external.id);
                 return;
             }
+            if (lost) { this._restartMic(); return; }
             this._rerender();
         } catch {
             // Keep Default only, and stop holding the waiting overlay for a list that won't come.
@@ -285,9 +325,14 @@ export class XRTunerScene {
     private _startDetector(gen: number): void {
         // Quest shows the mic prompt outside the session, so asking in here would hang unseen.
         // A known 'prompt' state skips the request and offers Exit VR instead.
-        void micPermissionState().then(state => {
+        void micPermissionState().then(async state => {
             if (gen !== this._showGen) return;
             if (state === 'prompt') { this._micState = 'prompt'; return; }
+            // List first so an external mic is chosen before opening, with no Default-then-USB flash.
+            if (!this._inputsListed) {
+                await this._listInputs(gen);
+                if (gen !== this._showGen) return;
+            }
             this._openMic(gen);
         });
     }
@@ -350,19 +395,21 @@ export class XRTunerScene {
             debugLog('tuner', 'mic-open-hung', { state });
             if (gen !== this._showGen || this._micState !== 'waiting') return;
             this._micState = state === 'granted' ? 'appBlocked' : 'prompt';
-        }, MIC_TIMEOUT_MS);
+        }, this._micOpened ? MIC_REOPEN_TIMEOUT_MS : MIC_TIMEOUT_MS);
         import('../shared/PitchDetector')
             .then(({ PitchDetector }) => PitchDetector.create(this._inputId, this._gain, XR_MIN_RMS, this._minHz()))
             .then(det => {
                 if (gen !== this._showGen) { det.destroy(); return; }
                 this._detector = det;
                 this._micState = 'ready';
+                this._micOpened = true;
                 if (debugOn('tuner')) {
                     debugLog('tuner', 'tuner-mic-ready', { ms: Math.round(performance.now() - t0), label: this._inputs.find(i => i.id === this._inputId)?.label ?? 'Default', n: this._captureCount, rate: det.sampleRate, gain: this._gain, minRms: XR_MIN_RMS, settings: det.trackSettings });
                     det.startCapture(DEBUG_CAPTURE_SECONDS);
                 }
                 this._clearMicTimer();
                 if (this._inputs.length === 0) void this._listInputs(gen);
+                this._watchInputs();
             })
             .catch(async (e: unknown) => {
                 if (gen !== this._showGen) return;
@@ -454,10 +501,11 @@ export class XRTunerScene {
         doc.getElementById('tn-warn-l1')?.setProperties({ text: 'If a USB or wireless mic works with your' });
     }
 
-    // True once the input list is known and holds nothing but the headset's built-in routes.
+    // True once the input list is known and the active input is one of the headset's built-in routes.
     private _weakMic(): boolean {
-        if (warnDismissed || this._micState !== 'ready' || !this._inputsListed) return false;
-        return this._inputs.length > 0 && this._inputs.every(i => isBuiltInMic(i.label));
+        if (warnDismissed || this._micState !== 'ready' || !this._inputsListed || this._inputs.length === 0) return false;
+        const active = this._inputs.find(i => i.id === this._inputId);
+        return !active || isBuiltInMic(active.label);
     }
 
     private _updateOverlays(doc: UIKitDocument, m: TunerMachine): void {
