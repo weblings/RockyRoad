@@ -2,6 +2,7 @@ import { iwsdkDev }     from "@iwsdk/vite-plugin-dev";
 import { compileUIKit } from "@iwsdk/vite-plugin-uikitml";
 import { defineConfig } from "vite";
 import mkcert           from "vite-plugin-mkcert";
+import { debugLogPlugin } from "./tools/debugLogPlugin";
 
 export default defineConfig(({ mode }) => {
   const deviceMode = mode === "device";
@@ -9,6 +10,7 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [
       mkcert(),
+      debugLogPlugin("./.debug"),
       // IWSDK emulator: skip in device mode; harmless on desktop.html because
       // it only activates when World.create() is called, which desktop never does.
       ...(deviceMode ? [] : [

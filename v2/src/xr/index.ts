@@ -45,6 +45,8 @@ import { CalibrationSystem } from "./CalibrationSystem";
 import { XRSongLibrary } from "./XRSongLibrary";
 import { loadAllSources, type SourcedEntry } from "../shared/SongSource";
 import { XRPreScene } from "./XRPreScene";
+import { XRTunerScene } from "./XRTunerScene";
+import { showMicSiteBlockedToast } from "./MicPermission";
 import { XRActiveScene } from "./XRActiveScene";
 import { XRSettingsScene } from "./XRSettingsScene";
 import { loadSettings, type Settings } from "../shared/Settings";
@@ -169,6 +171,8 @@ class HighwaySystem extends createSystem({}) {
     }
 
     update(delta: number, _time: number): void {
+        (this.world.globals.tunerTick as (() => void) | undefined)?.();
+
         // ── Highway scene — only when a song is loaded ────────────────────────
         const scene = this.world.globals.highwayScene as KeysPlayerScene3D | FretPlayerScene3D | undefined;
         if (scene) {
@@ -722,6 +726,36 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     setCalibrationPanelInteractive(false);
     world.globals.setCalibrationPanelInteractive = setCalibrationPanelInteractive;
 
+    // Tuner uikit panel — same slot/pattern as the panels above, fixed 0.4m x 0.3m.
+    const tunerPanelObj = new Object3D();
+    tunerPanelObj.position.set(0, 0.169, 0);
+    tunerPanelObj.visible = false;
+    const tunerPanelEntity = world.createTransformEntity(tunerPanelObj, {
+        parent: grabBarEntity,
+        persistent: true,
+    });
+    tunerPanelEntity.addComponent(PanelUI, {
+        config: `${import.meta.env.BASE_URL}ui/tuner.json`,
+        maxWidth: 0.4,
+        maxHeight: 0.3,
+    });
+
+    function setTunerPanelInteractive(enabled: boolean): void {
+        if (enabled) {
+            if (!tunerPanelEntity.hasComponent(RayInteractable)) {
+                tunerPanelEntity.addComponent(RayInteractable);
+            }
+        } else {
+            if (tunerPanelEntity.hasComponent(RayInteractable)) {
+                tunerPanelEntity.removeComponent(RayInteractable);
+            }
+        }
+        const doc = tunerPanelEntity.getValue(PanelDocument, 'document') as
+            { rootElement: { setProperties: (p: Record<string, unknown>) => void } } | null;
+        doc?.rootElement.setProperties({ pointerEvents: enabled ? 'auto' : 'none' });
+    }
+    setTunerPanelInteractive(false);
+
     // ── Guitar/Bass highway grab bar + content-scroll node ──────────────────────
     // Sits "beneath" the fret volume. Grabbing it repositions the whole volume
     // (position handled by IWSDK DistanceGrabbable; yaw billboard is custom, see
@@ -842,6 +876,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         setLibraryPanelInteractive(true);
         preScenePanelObj.visible = false;
         setPreScenePanelInteractive(false);
+        hideTuner();
         playPanelObj.visible     = false;
         setPlayPanelInteractive(false);
         calibrationPanelObj.visible = false;
@@ -852,7 +887,33 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     }
     world.globals.showLibrary = showLibrary;
 
+    function hideTuner(): void {
+        tuner.hide();
+        tunerPanelObj.visible = false;
+        setTunerPanelInteractive(false);
+    }
+
+    // Optional tuner panel (headset mics are unreliable, so Play never opens it on its own).
+    // Back returns to the Song page, Play runs onPlay even if the tuning wasn't finished.
+    function showTuner(sourced: SourcedEntry, tuningOffsets: number[], onPlay: () => void): void {
+        libraryPanelObj.visible = false;
+        setLibraryPanelInteractive(false);
+        preScenePanelObj.visible = false;
+        setPreScenePanelInteractive(false);
+        calibrationPanelObj.visible = false;
+        setCalibrationPanelInteractive(false);
+        tunerPanelObj.visible = true;
+        setTunerPanelInteractive(true);
+        const back = () => showPreScene(sourced);
+        tuner.show(tunerPanelEntity, tuningOffsets, back, onPlay, (siteBlocked: boolean) => {
+            const session = world.renderer.xr.getSession();
+            if (siteBlocked) session?.addEventListener('end', showMicSiteBlockedToast, { once: true });
+            void session?.end();
+        });
+    }
+
     function showPreScene(sourced: SourcedEntry): void {
+        hideTuner();
         libraryPanelObj.visible = false;
         setLibraryPanelInteractive(false);
         calibrationPanelObj.visible = false;
@@ -864,10 +925,11 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
             sourced,
             (instrumentType: string) =>
                 (world.globals.tryLoadCalibration as ((t: string) => boolean) | undefined)?.(instrumentType) ?? false,
-            playEntry,
-            calibrateAndPlay,
+            (sourced, partName, difficulty) => { void playEntry(sourced, partName, difficulty); },
+            (sourced, partName, difficulty) => { void calibrateAndPlay(sourced, partName, difficulty); },
             repositionEntry,
             showLibrary,
+            (offsets, play) => showTuner(sourced, offsets, play),
         );
     }
 
@@ -1096,6 +1158,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         setSettingsPanelInteractive(false);
         preScenePanelObj.visible = false;
         setPreScenePanelInteractive(false);
+        hideTuner();
         calibrationPanelObj.visible = false;
         setCalibrationPanelInteractive(false);
         playPanelObj.visible     = true;
@@ -1189,6 +1252,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         setSettingsPanelInteractive(true);
         playPanelObj.visible     = false;
         setPlayPanelInteractive(false);
+        hideTuner();
         calibrationPanelObj.visible = false;
         setCalibrationPanelInteractive(false);
         world.globals.updateActivePanel = undefined;
@@ -1253,11 +1317,13 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
 
     const library       = new XRSongLibrary(sourcedEntries);
     const preScene      = new XRPreScene();
+    const tuner         = new XRTunerScene();
     const activeScene   = new XRActiveScene();
     const settingsScene = new XRSettingsScene();
 
     // ── Systems ───────────────────────────────────────────────────────────────
 
+    world.globals.tunerTick = () => tuner.tick(performance.now());
     world.registerSystem(CalibrationSystem);
     world.registerSystem(HighwaySystem);
 

@@ -155,3 +155,30 @@ inherited color/font-size from its parent button, but easy to miss otherwise).
 
 **How to avoid next time:** Run this diff — alongside the shorthand-property grep above — on the
 compiled JSON before every in-headset handoff, not just eyeballing the source file.
+
+---
+
+## No clip-rect and no background alpha: build wipes from overlay strips and use near-opaque overlays
+Tags: wipe, clip, overlay, opacity, border, absolute
+Applies-when: porting a CSS clip-path reveal, a translucent scrim, or a border animation to uikit
+
+uikit has no `clip-path` and no background alpha (`opacity` fades the element and its children).
+An absolute child is positioned inside its parent's border, so a strip meant to cover the border
+misses it by the border width.
+
+**Fix:** give the box no border of its own and draw the border as a full-size absolute child, so
+strip coordinates match the border exactly. Animate a wipe with thin white strips whose
+`positionLeft`/`width` percentages change, stopped short of the rounded corners, then swap to a
+full white border at 100%. A translucent scrim (`opacity` below 1) over images lets them z-fight
+through it (Box 2 checks flickered over the In tune scrim), so make the scrim fully opaque and set
+the covered elements to `display: none` while it shows.
+
+---
+
+## A column inside a centered card needs an explicit width or its text wraps and overlaps
+Tags: card, wrapping, overlay, width, centering, text
+Applies-when: stacking text lines in a flex-column wrapper inside an overlay or card
+
+**Symptom:** A wrapper div holding two text lines shrink-wrapped to its narrowest content. The longer line wrapped onto a second line that drew over the line above, and the stack overflowed into the buttons below.
+
+**Fix:** give the wrapper `width: 100%` of a card with a fixed width, one span per line, and keep each line well under the card's inner width. For a message on the opaque scrim, center a bordered card (`#1a1a1a`, border `#333333`, rounded) in the `.overlay` instead of loose text. Nudge a flex-centered child with `position-type: relative` and a small `position-top`, and space a button from text with `margin-top`. Budget the card height against the overlay, because overflow is silent.

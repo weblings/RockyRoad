@@ -155,3 +155,11 @@ to skip the now-unreliable identity check entirely for that click.
 that runs *after* another handler for the same event may have already fired (bubble phase, by
 definition), ask whether that earlier handler's own side effects (destroy+recreate patterns
 especially) could invalidate the very node being checked.
+
+---
+
+## Size a short dropdown menu to its options so it never needs the drag-scroll
+Tags: dropdown, scroll, menu-height, input-list
+Applies-when: a dropdown has a handful of dynamic options and the list would not scroll or clipped the last item
+
+The fixed 8 cm menu showed only three Input options, and the shared drag-scroll was hard to use in the headset. The tuner sets the menu `height` from the option count (up to 6 items plus 1 cm of padding and border slack) and passes the same height to `computeCenteredOffset`. Scrolling still applies beyond 6. This avoids the unresolved last-item scroll bug above for short lists.

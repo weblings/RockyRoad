@@ -349,3 +349,56 @@ because those edits only touched the Breakpoints section. The stale Status was f
 
 **How to apply:** when a commit builds from a plan, edit the Status line in that same commit, even to
 say "partly built, see bead X".
+
+---
+
+## Extract shared logic with side effects behind callbacks and derived state
+Tags: refactor, shared-code, separation, tuner
+Applies-when: moving state-machine or game logic out of a screen class so another platform can reuse it
+
+The desktop tuner's phase logic called `detector.setGain` and unhid a DOM overlay mid-transition. Moved
+as-is into `src/shared`, it would drag a detector and the DOM into XR.
+
+**How to apply:** pass collaborator effects in as a constructor callback (`onGain`). Expose state the
+view can poll (`phase`, `checkState(i)`, `takeCompleteHold`) instead of the logic touching the view.
+
+
+---
+
+## Gate a user warning on a condition known at entry, not on a timer
+Tags: ux, warnings, timers, tuner
+Applies-when: showing a "this setup won't work" notice for a known-bad configuration
+
+The first weak-mic warning waited 15 s with no string finished. Headset logs showed every tuner visit was shorter than 15 s and the timer restarted on each visit, so it never appeared.
+
+**How to apply:** if the bad state can be read directly (here, the input list holds only built-in routes), show the notice on entry and give it a Dismiss button. Use a timer only for states that cannot be known up front, and check real visit lengths in the logs first.
+
+---
+
+## Check a scoring proxy against the physics before calling the misses errors
+Tags: analysis, ground-truth, tuner, measurement
+Applies-when: judging a detector or classifier against labels inferred from app state
+
+Scoring frames against "the string the tuner is on" counted 600 misses on a clean recording. Most were 400 to 500 cents below the target, which is the previously plucked string still ringing. The detector was right and the label was wrong.
+
+**How to apply:** histogram the misses relative to the label before tuning anything. A tight cluster at a musical interval points to a labeling gap, not an algorithm fault.
+
+---
+
+## Re-check a ported default against the new platform's reliability
+Tags: porting, defaults, xr, tuner
+Applies-when: copying a desktop auto-launch or auto-run rule into XR or another platform
+
+XR copied desktop's rule of opening the tuner before Play whenever the tuning changed. Desktop mics are dependable, but the Quest's built-in mic is gated to silence on guitar and only a USB mic works. The port made every XR user walk through a step most of them could not finish.
+
+**How to apply:** when porting an automatic step, ask whether its input is as reliable on the new platform. If not, make it opt-in (a button) and log the decision with the evidence.
+
+---
+
+## Check that a hand-off has a consumer before tracking the producer side
+Tags: planning, beads, hand-off, xr
+Applies-when: a bead or design says to pass a live object (detector, stream, handle) from one screen to the next
+
+RockyRoad-0q4.5 carried "hand the live PitchDetector into the active scene" while XR Play had no PitchDetector or NoteDetector at all. The gap was not the hand-off but the missing note detection, and it stayed hidden until someone asked why Play could not receive it.
+
+**How to apply:** grep the receiving side for the type before specifying the transfer. If nothing consumes it, file the consumer as its own bead and drop the hand-off from the producer bead.

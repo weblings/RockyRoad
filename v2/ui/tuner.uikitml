@@ -1,0 +1,802 @@
+<style>
+  /* Scale: 1 unit = 1cm on the fixed 40x30cm panel. Header, option-dropdown and action
+     classes are hand-duplicated from song.uikitml (no @import). Narrow arrangement from
+     docs/planning/TunerCompactLayout.md: setup row, Box 1 over Box 2, actions bar. */
+
+  .panel {
+    width: 40;
+    height: 30;
+    display: flex;
+    flex-direction: column;
+    background-color: #0a0a0a;
+    border-radius: 1.2;
+    font-family: inter;
+    font-weight: medium;
+    pointer-events: none;
+  }
+
+  .header {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    flex-grow: 0;
+    flex-shrink: 0;
+    padding-top: 1;
+    padding-right: 1;
+    padding-bottom: 0;
+    padding-left: 1;
+  }
+
+  .icon {
+    width: 1;
+    height: 1;
+    margin-left: -0.1;
+  }
+  .icon-label {
+    position-type: relative;
+    margin-left: 0.4;
+    position-top: -0.05;
+  }
+
+  .back-btn {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    flex-grow: 0;
+    flex-shrink: 0;
+    padding-top: 0.8;
+    padding-right: 0.8;
+    padding-bottom: 0.8;
+    padding-left: 0.8;
+    border-radius: 0.5;
+    font-size: 1.2;
+    cursor: pointer;
+  }
+
+  .primary-dark {
+    background-color: #333333;
+    color: #ffffff;
+  }
+  .primary-dark:hover  { background-color: #515151; }
+  .primary-dark:active { background-color: #7c7c7c; }
+
+  .primary-light {
+    background-color: #dadada;
+    color: #111111;
+  }
+  .primary-light:hover  { background-color: #bebebe; }
+  .primary-light:active { background-color: #9c9c9c; }
+
+  /* Input dropdown, mic meter and Gain on one line (about 33cm). */
+  .setup-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    flex-grow: 0;
+    flex-shrink: 0;
+    justify-content: center;
+    gap-row: 1;
+    gap-column: 1;
+    padding-top: 0.8;
+    padding-right: 1;
+    padding-bottom: 0.8;
+    padding-left: 1;
+  }
+
+  .option-dropdown {
+    position-type: relative;
+    flex-grow: 0;
+    flex-shrink: 0;
+  }
+
+  .option-trigger {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap-row: 0.6;
+    gap-column: 0.6;
+    padding-top: 0.7;
+    padding-right: 1;
+    padding-bottom: 0.7;
+    padding-left: 1;
+    width: 14;
+    background-color: #333333;
+    border-width: 0.1;
+    border-color: #444444;
+    border-radius: 0.6;
+    cursor: pointer;
+  }
+  .option-trigger:hover  { background-color: #444444; }
+  .option-trigger:active { background-color: #515151; }
+
+  .option-label {
+    color: #c8c8c8;
+    font-size: 1.2;
+  }
+
+  .option-chevron {
+    width: 0.9;
+    height: 0.9;
+  }
+
+  /* Opens downward over the boxes. position-top is a literal estimate of the trigger height. */
+  .option-menu {
+    position-type: absolute;
+    position-top: 3.4;
+    position-left: 0;
+    z-index: 2;
+    pointer-events: auto;
+    transform-translate-z: 0.15;
+    display: none;
+    flex-direction: column;
+    height: 8;
+    overflow: hidden;
+    background-color: #1a1a1a;
+    border-width: 0.1;
+    border-color: #333333;
+    border-radius: 0.6;
+    width: 14;
+    padding-top: 0.4;
+    padding-right: 0.4;
+    padding-bottom: 0.4;
+    padding-left: 0.4;
+  }
+
+  .option-menu-inner {
+    position-type: relative;
+    position-top: 0;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    gap-row: 0.3;
+  }
+
+  .option-item {
+    flex-shrink: 0;
+    padding-top: 0.5;
+    padding-right: 1;
+    padding-bottom: 0.5;
+    padding-left: 1;
+    color: #c8c8c8;
+    font-size: 1.2;
+    cursor: pointer;
+  }
+  .option-item:hover  { background-color: #2a2a2a; color: #ffffff; }
+  .option-item:active { background-color: #515151; color: #ffffff; }
+  .option-item-selected { background-color: #242424; color: #ffffff; }
+
+  /* Vertical mic meter as tall as the dropdown, filled from the bottom. */
+  .meter {
+    width: 0.8;
+    height: 3;
+    flex-grow: 0;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    background-color: #333333;
+    border-radius: 0.4;
+    overflow: hidden;
+  }
+  .meter-fill {
+    width: 100%;
+    height: 0%;
+    background-color: #cc8800;
+  }
+
+  .gain {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    flex-grow: 0;
+    flex-shrink: 0;
+    gap-row: 0.8;
+    gap-column: 0.8;
+  }
+  .setup-label {
+    color: #ffffff;
+    font-size: 1.2;
+    font-weight: bold;
+  }
+  .gain-val {
+    width: 2.6;
+    color: #c8c8c8;
+    font-size: 1.2;
+    text-align: right;
+  }
+
+  /* Tall hit area so the thin track is easy to ray-target. Thumb is a solid white circle. */
+  .gain-slider {
+    position-type: relative;
+    width: 7;
+    height: 2.4;
+    margin-left: 0.9;
+    margin-right: 0.9;
+    flex-grow: 0;
+    flex-shrink: 0;
+    cursor: pointer;
+  }
+  .gain-track {
+    position-type: absolute;
+    position-top: 0.8;
+    position-left: 0;
+    width: 100%;
+    height: 0.8;
+    background-color: #333333;
+    border-radius: 0.4;
+  }
+  .gain-fill {
+    width: 0%;
+    height: 0.8;
+    background-color: #8b8b8b;
+    border-radius: 0.4;
+  }
+  .gain-thumb {
+    position-type: absolute;
+    position-top: 0.3;
+    position-left: 0%;
+    transform-translate-x: -50%;
+    width: 1.8;
+    height: 1.8;
+    background-color: #ffffff;
+    border-radius: 0.9;
+    z-index: 1;
+  }
+
+  /* Boxes stack with Box 2 hugging its content. */
+  .boxes {
+    position-type: relative;
+    flex-grow: 1;
+    flex-shrink: 1;
+    flex-basis: 0;
+    display: flex;
+    flex-direction: column;
+    gap-row: 1;
+    gap-column: 1;
+    padding-top: 0;
+    padding-right: 3.5;
+    padding-bottom: 1;
+    padding-left: 3.5;
+  }
+
+  .box1 {
+    flex-grow: 1;
+    flex-shrink: 1;
+    flex-basis: 0;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap-row: 1.5;
+    gap-column: 1.5;
+    padding-top: 0.8;
+    padding-right: 1.5;
+    padding-bottom: 0.8;
+    padding-left: 1.5;
+    position-type: relative;
+    background-color: #111111;
+    border-radius: 0.8;
+  }
+
+  /* Border and wipe are overlays (no clip-rect in uikit): colored border, white edge strips
+     that XRTunerScene spreads from the bar, and a full white border once the hold completes. */
+  .b1-border {
+    position-type: absolute;
+    position-top: 0;
+    position-left: 0;
+    width: 100%;
+    height: 100%;
+    border-width: 0.3;
+    border-color: #555555;
+    border-radius: 0.8;
+  }
+  .b1-lock {
+    position-type: absolute;
+    position-top: 0;
+    position-left: 0;
+    width: 100%;
+    height: 100%;
+    display: none;
+    border-width: 0.3;
+    border-color: #ffffff;
+    border-radius: 0.8;
+  }
+  .b1-strip {
+    position-type: absolute;
+    position-left: 0%;
+    width: 0%;
+    height: 0.3;
+    display: none;
+    background-color: #ffffff;
+  }
+
+  .b1-strip-top { position-top: 0; }
+  .b1-strip-bottom { position-bottom: 0; }
+
+  .b1-label {
+    width: 7;
+    flex-grow: 0;
+    flex-shrink: 0;
+    color: #1ccc00;
+    font-size: 4;
+    font-weight: bold;
+  }
+
+  .b1-lane {
+    position-type: relative;
+    flex-grow: 1;
+    flex-shrink: 1;
+    flex-basis: 0;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .b1-track {
+    width: 100%;
+    height: 0.2;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    background-color: #333333;
+  }
+  .b1-tick {
+    width: 0.2;
+    height: 1.4;
+    flex-shrink: 0;
+    background-color: #555555;
+  }
+  /* Needle bar and cents label share the lane's left percentages, centered on their x. */
+  .b1-bar {
+    position-type: absolute;
+    position-top: 50%;
+    position-left: 50%;
+    transform-translate-x: -50%;
+    transform-translate-y: -50%;
+    width: 0.3;
+    height: 2.6;
+    display: none;
+    background-color: #ffffff;
+    border-radius: 0.15;
+  }
+  .b1-cents {
+    position-type: absolute;
+    position-top: 50%;
+    position-left: 50%;
+    margin-top: 1.8;
+    display: none;
+    color: #c8c8c8;
+    font-size: 1.3;
+  }
+
+  .box2 {
+    flex-grow: 1;
+    flex-shrink: 1;
+    flex-basis: 0;
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    justify-content: space-around;
+    padding-top: 1;
+    padding-right: 1;
+    padding-bottom: 0;
+    padding-left: 1;
+    overflow: hidden;
+    background-color: #111111;
+    border-width: 0.1;
+    border-color: #333333;
+    border-radius: 0.8;
+  }
+
+  .b2-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex-grow: 0;
+    flex-shrink: 0;
+    gap-row: 0.4;
+    gap-column: 0.4;
+  }
+  .b2-check {
+    width: 1.4;
+    height: 1.4;
+  }
+  /* Fade image per string color (public/tuner-fade-<hex>.png), swapped in by XRTunerScene. */
+  .b2-line {
+    flex-grow: 1;
+    flex-shrink: 1;
+    flex-basis: 0;
+    min-height: 2;
+    width: 0.3;
+    object-fit: fill;
+  }
+  .b2-name {
+    font-size: 1.8;
+    font-weight: bold;
+  }
+
+  /* Cover both boxes for In tune and Waiting for mic. Fully opaque, and the boxes are hidden
+     underneath, because a translucent overlay let the Box 2 checks z-fight through it. */
+  .overlay {
+    position-type: absolute;
+    position-top: 0;
+    position-left: 0;
+    width: 100%;
+    height: 100%;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap-row: 1;
+    gap-column: 1;
+    background-color: #0a0a0a;
+    border-radius: 0.8;
+    z-index: 1;
+  }
+  .overlay-check {
+    width: 5;
+    height: 5;
+  }
+  .overlay-text {
+    color: #ffffff;
+    font-size: 1.8;
+    font-weight: bold;
+  }
+  .overlay-text-dim {
+    color: #8b8b8b;
+    font-size: 1.4;
+  }
+  /* Built-in mic warning: the opaque .overlay is the scrim, this card sits centered on it.
+     One span per line and explicit widths so nothing relies on text wrapping. */
+  .warn-card {
+    width: 31;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex-shrink: 0;
+    position-type: relative;
+    position-top: -0.4;
+    gap-row: 0.4;
+    gap-column: 0.4;
+    padding-top: 0.9;
+    padding-right: 1.2;
+    padding-bottom: 0.9;
+    padding-left: 1.2;
+    background-color: #1a1a1a;
+    border-width: 0.1;
+    border-color: #333333;
+    border-radius: 0.8;
+  }
+  .warn-title {
+    color: #ffffff;
+    font-size: 1.5;
+    font-weight: bold;
+  }
+  .warn-line {
+    color: #8b8b8b;
+    font-size: 1.2;
+  }
+  .warn-quest {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex-shrink: 0;
+    gap-row: 0.5;
+    gap-column: 0.5;
+    padding-top: 0.3;
+  }
+  /* Setup page 1: replaces the whole panel content, no tuner controls. Bottom bar reuses .actions. */
+  .page {
+    display: none;
+    flex-direction: column;
+    flex-grow: 1;
+  }
+  .page-body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex-grow: 1;
+    padding-bottom: 3;
+  }
+  .page-body-low { padding-bottom: 1.5; }
+  .page-block {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap-row: 0.3;
+    gap-column: 0.3;
+  }
+  .page-block-c { align-items: center; }
+  .page-list {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap-row: 0.5;
+    gap-column: 0.5;
+    padding-left: 1.5;
+  }
+  .page-title {
+    color: #ffffff;
+    font-size: 2.4;
+    font-weight: bold;
+  }
+  .page-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap-row: 0.5;
+    gap-column: 0.5;
+    padding-top: 0.6;
+  }
+  .page-dot {
+    width: 0.7;
+    height: 0.7;
+    flex-shrink: 0;
+    background-color: #ffffff;
+    border-radius: 0.35;
+  }
+  .page-item {
+    color: #ffffff;
+    font-size: 1.5;
+    font-weight: bold;
+  }
+  .page-sub {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap-row: 0.5;
+    gap-column: 0.5;
+    padding-left: 1.6;
+  }
+  .page-subdot {
+    width: 0.6;
+    height: 0.6;
+    flex-shrink: 0;
+    border-width: 0.1;
+    border-color: #8b8b8b;
+    border-radius: 0.3;
+  }
+  .page-line {
+    color: #8b8b8b;
+    font-size: 1.2;
+  }
+  .page-foot {
+    align-self: center;
+    color: #ffffff;
+    font-size: 1.2;
+    padding-bottom: 1.5;
+  }
+
+  .warn-buttons {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    gap-row: 1;
+    gap-column: 1;
+  }
+  .warn-dismiss {
+    margin-top: 0.7;
+    width: 10;
+    height: 2.8;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    flex-grow: 0;
+    flex-shrink: 0;
+    border-radius: 0.5;
+    font-size: 1.3;
+    font-weight: medium;
+    cursor: pointer;
+  }
+
+  .actions {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    flex-grow: 0;
+    flex-shrink: 0;
+    gap-row: 1;
+    gap-column: 1;
+    padding-top: 0;
+    padding-right: 1;
+    padding-bottom: 1;
+    padding-left: 1;
+  }
+
+  .action-btn {
+    width: 15;
+    height: 3.6;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    flex-grow: 0;
+    flex-shrink: 0;
+    padding-top: 0.8;
+    padding-right: 0.8;
+    padding-bottom: 0.8;
+    padding-left: 0.8;
+    border-radius: 0.5;
+    font-size: 1.3;
+    font-weight: medium;
+    cursor: pointer;
+  }
+</style>
+
+<div class="panel">
+  <div id="tn-header" class="header">
+    <button id="tn-back" class="back-btn primary-dark">
+      <img src="back-arrow.svg" class="icon" />
+      <span class="icon-label">Song</span>
+    </button>
+  </div>
+
+  <div id="tn-intro-page" class="page">
+    <div class="page-body page-body-low">
+      <div class="page-block">
+        <span class="page-title">XR Tuner needs both:</span>
+      <div class="page-list">
+        <div class="page-row"><div class="page-dot"></div><span class="page-item">External mic</span></div>
+        <div class="page-sub"><div class="page-subdot"></div><span class="page-line">Headset mic can't hear guitar correctly</span></div>
+        <div class="page-sub"><div class="page-subdot"></div><span class="page-line">Plugs in to headset's USB-C port</span></div>
+        <div class="page-row"><div class="page-dot"></div><span class="page-item">Bluetooth audio</span></div>
+        <div class="page-sub"><div class="page-subdot"></div><span class="page-line">External mic mutes headset speakers</span></div>
+      </div>
+      </div>
+    </div>
+    <span class="page-foot">Don't have both? Just select Play.</span>
+    <div class="actions">
+      <button id="tn-intro-skip" class="action-btn primary-dark">
+        <img src="play-icon-white.svg" class="icon" />
+        <span class="icon-label">Play</span>
+      </button>
+      <button id="tn-intro-continue" class="action-btn primary-light">
+        <img src="tune-icon-dark.svg" class="icon" />
+        <span class="icon-label">Continue</span>
+      </button>
+    </div>
+  </div>
+
+  <div id="tn-remind-page" class="page">
+    <div class="page-body">
+      <div class="page-block page-block-c">
+        <span class="page-title">Bluetooth Audio Reminder</span>
+        <span class="page-line">The external mic mutes the speakers</span>
+        <span class="page-line">Pair Bluetooth audio to hear music</span>
+      </div>
+    </div>
+    <div class="actions">
+      <button id="tn-remind-play" class="action-btn primary-light">
+        <img src="play-icon.svg" class="icon" />
+        <span class="icon-label">Play</span>
+      </button>
+    </div>
+  </div>
+
+  <div id="tn-setup-row" class="setup-row">
+    <div id="tn-input-dropdown" class="option-dropdown">
+      <button id="tn-input-trigger" class="option-trigger">
+        <div id="tn-input-trigger-label-slot"></div>
+        <img id="tn-input-chevron-down" class="option-chevron" src="chevron-down.svg" />
+        <img id="tn-input-chevron-up" class="option-chevron" src="chevron-up.svg" />
+      </button>
+      <div id="tn-input-menu" class="option-menu">
+        <div id="tn-input-menu-inner" class="option-menu-inner"></div>
+      </div>
+    </div>
+    <div class="meter"><div id="tn-meter-fill" class="meter-fill"></div></div>
+    <div class="gain">
+      <span class="setup-label">Gain</span>
+      <div id="tn-gain-slider" class="gain-slider">
+        <div class="gain-track"><div id="tn-gain-fill" class="gain-fill"></div></div>
+        <div id="tn-gain-thumb" class="gain-thumb"></div>
+      </div>
+      <span id="tn-gain-val" class="gain-val">1x</span>
+    </div>
+  </div>
+
+  <div id="tn-boxes" class="boxes">
+    <div id="tn-box1" class="box1">
+      <span id="tn-b1-label" class="b1-label">E2</span>
+      <div class="b1-lane">
+        <div class="b1-track"><div class="b1-tick"></div></div>
+        <div id="tn-bar" class="b1-bar"></div>
+        <span id="tn-cents" class="b1-cents">0</span>
+      </div>
+      <div id="tn-b1-border" class="b1-border"></div>
+      <div id="tn-strip-top" class="b1-strip b1-strip-top"></div>
+      <div id="tn-strip-bottom" class="b1-strip b1-strip-bottom"></div>
+      <div id="tn-lock" class="b1-lock"></div>
+    </div>
+    <div id="tn-box2" class="box2">
+      <div id="tn-col-0" class="b2-col">
+        <img id="tn-check-0" class="b2-check" src="tuner-check.svg" />
+        <span id="tn-name-0" class="b2-name">E2</span>
+        <img id="tn-line-0" class="b2-line" src="tuner-fade-ffffff.png" />
+      </div>
+      <div id="tn-col-1" class="b2-col">
+        <img id="tn-check-1" class="b2-check" src="tuner-check.svg" />
+        <span id="tn-name-1" class="b2-name">A2</span>
+        <img id="tn-line-1" class="b2-line" src="tuner-fade-ffffff.png" />
+      </div>
+      <div id="tn-col-2" class="b2-col">
+        <img id="tn-check-2" class="b2-check" src="tuner-check.svg" />
+        <span id="tn-name-2" class="b2-name">D3</span>
+        <img id="tn-line-2" class="b2-line" src="tuner-fade-ffffff.png" />
+      </div>
+      <div id="tn-col-3" class="b2-col">
+        <img id="tn-check-3" class="b2-check" src="tuner-check.svg" />
+        <span id="tn-name-3" class="b2-name">G3</span>
+        <img id="tn-line-3" class="b2-line" src="tuner-fade-ffffff.png" />
+      </div>
+      <div id="tn-col-4" class="b2-col">
+        <img id="tn-check-4" class="b2-check" src="tuner-check.svg" />
+        <span id="tn-name-4" class="b2-name">B3</span>
+        <img id="tn-line-4" class="b2-line" src="tuner-fade-ffffff.png" />
+      </div>
+      <div id="tn-col-5" class="b2-col">
+        <img id="tn-check-5" class="b2-check" src="tuner-check.svg" />
+        <span id="tn-name-5" class="b2-name">E4</span>
+        <img id="tn-line-5" class="b2-line" src="tuner-fade-ffffff.png" />
+      </div>
+      <div id="tn-col-6" class="b2-col">
+        <img id="tn-check-6" class="b2-check" src="tuner-check.svg" />
+        <span id="tn-name-6" class="b2-name">E4</span>
+        <img id="tn-line-6" class="b2-line" src="tuner-fade-ffffff.png" />
+      </div>
+    </div>
+    <div id="tn-done-overlay" class="overlay">
+      <img src="tuner-check.svg" class="overlay-check" />
+      <span class="overlay-text">In tune!</span>
+    </div>
+    <div id="tn-mic-overlay" class="overlay">
+      <div id="tn-mic-card" class="warn-card">
+        <span id="tn-mic-title" class="warn-title">Waiting for mic access</span>
+        <span id="tn-mic-l1" class="warn-line">Tap Allow if the headset asks.</span>
+        <span id="tn-mic-l2" class="warn-line">line 2</span>
+        <span id="tn-mic-l3" class="warn-line">line 3</span>
+        <span id="tn-mic-l4" class="warn-line">line 4</span>
+        <div class="warn-buttons">
+          <button id="tn-mic-exit" class="warn-dismiss primary-light">
+            <span id="tn-mic-exit-label">Allow Mic</span>
+          </button>
+        </div>
+      </div>
+    </div>
+    <div id="tn-warn-overlay" class="overlay">
+      <div class="warn-card">
+        <span id="tn-warn-title" class="warn-title">Headset mic can't hear guitar well</span>
+        <span id="tn-warn-l1" class="warn-line">Plug in a USB mic, then pick it in Input.</span>
+        <span id="tn-warn-l1b" class="warn-line">headset, connect it and pick it in Input.</span>
+        <div id="tn-warn-quest" class="warn-quest">
+          <span class="warn-line">Not listed? Settings > Experimental ></span>
+          <span class="warn-line">External Microphone, then restart headset.</span>
+        </div>
+        <button id="tn-warn-dismiss" class="warn-dismiss primary-light">
+          <span>Dismiss</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div id="tn-actions" class="actions">
+    <button id="tn-restart" class="action-btn primary-dark">
+      <img src="tuner-restart.svg" class="icon" />
+      <span class="icon-label">Restart</span>
+    </button>
+    <button id="tn-done" class="action-btn primary-light">
+      <img src="play-icon.svg" class="icon" />
+      <span class="icon-label">Play</span>
+    </button>
+  </div>
+</div>

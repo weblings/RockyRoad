@@ -78,3 +78,16 @@ drag: flip the panel root to `'none'`, give the dragged element its own explicit
 `pointer-events: auto;` in `.uikitml` to override it. Only toggle once a drag is *confirmed* (past
 the movement threshold) — it's re-checked live on every raycast, so flipping it before a tap's
 matching `pointerup` could change what object the release resolves to.
+
+---
+
+## A custom slider needs a tall hit area and half-thumb margins on both ends
+Tags: slider, thumb, hit-area, layout, overlap
+Applies-when: building a slider or scrubber with a thin track and a circular thumb
+
+A 0.8cm track is hard to ray-target, and a thumb centered on `position-left: 0%` or `100%` pokes half
+its width past the track into whatever sits beside it (it covered the "Gain" label and value).
+
+**Fix:** put the pointer handlers on a taller wrapper (2.4cm) that holds the track and thumb, and give
+that wrapper left and right margins of half the thumb width. Use `worldToLocal` on the wrapper per the
+drag-math entry above.

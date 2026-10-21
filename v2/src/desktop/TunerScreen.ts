@@ -2,9 +2,10 @@ import * as THREE from "three";
 import type { App, IScreen } from "./App";
 import type { SongIndexEntry, SongIndexPart } from "../shared/SongIndex";
 import type { ISongSource } from "../shared/SongSource";
-import { STANDARD_BASE_NOTES } from "../shared/SongIndex";
+import { TunerMachine, midiToNoteName, centsLabel } from "../shared/TunerMachine";
 import { loadSettings, saveSettings } from "../shared/Settings";
 import { stringColorCss } from "../shared/StringColors";
+import { shortMicLabel } from "../shared/MicLabel";
 import type { PitchDetector } from "../shared/PitchDetector";
 
 const BACK_SVG = `<svg width="14" height="14" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M13.0908 14.3334C12.972 14.3334 12.9125 14.1898 12.9965 14.1058L17.7021 9.40022C17.9625 9.13987 17.9625 8.71776 17.7021 8.45741L16.2879 7.04319C16.0275 6.78284 15.6054 6.78284 15.3451 7.04319L6.8598 15.5285C6.59945 15.7888 6.59945 16.2109 6.8598 16.4713L8.27401 17.8855L8.27536 17.8868L15.3453 24.9568C15.6057 25.2172 16.0278 25.2172 16.2881 24.9568L17.7024 23.5426C17.9627 23.2822 17.9627 22.8601 17.7024 22.5998L12.9969 17.8944C12.9129 17.8104 12.9724 17.6668 13.0912 17.6668L26 17.6668C26.3682 17.6668 26.6667 17.3683 26.6667 17.0001V15.0001C26.6667 14.6319 26.3682 14.3334 26 14.3334L13.0908 14.3334Z" fill="currentColor"/></svg>`;
@@ -16,25 +17,6 @@ const CHECK_PATH = "M24.9266 7.57992C25.015 7.60672 25.0886 7.64746 25.2462 7.80
 const CHECK_SVG = `<svg class="tuner-check" viewBox="0 0 32 32" aria-hidden="true"><path d="${CHECK_PATH}" /></svg>`;
 const CHECK_2D = new Path2D(CHECK_PATH);
 
-// ── Types ─────────────────────────────────────────────────────────────────────
-
-export type TunerContext =
-    | 'song-flow'   // pre-scene → active scene (start song)
-    | 'mid-song'    // settings panel during active scene → 3-2-1 → resume
-    | 'menu';       // settings panel from library/pre-scene → return to previous screen
-
-type TunerPhase =
-    | { tag: 'correction'; stringIndex: number }
-    | { tag: 'validation'; stringIndex: number; results: boolean[] }
-    | { tag: 'complete' };
-
-// Per-string colors, low string first (index 0 = thickest).
-// Time constant for easing the needle toward the detected pitch; higher is calmer but laggier.
-const NEEDLE_SMOOTHING_MS = 160;
-// Readings in the median filter that rejects single-frame spikes before easing.
-const NEEDLE_MEDIAN_WINDOW = 7;
-// Minimum pitch-detector clarity (0 to 1) for a reading to move the needle.
-const NEEDLE_MIN_CLARITY = 0.8;
 // Matches the mic meter's 8px thickness and full rounding.
 const STRING_THICKNESS = 8;
 // Needle's length, the right-hand gutter (gap + needle + gap + label) it lives in, and the width of the
@@ -56,20 +38,6 @@ const LARGE_MIN_H = 760;
 const MEDIUM_MIN_W = 560;
 type TunerLayout = 'large' | 'medium' | 'narrow';
 
-// Tolerance thresholds (cents)
-const CORRECTION_PASS_CENTS = 10;
-const VALIDATION_PASS_CENTS = 15;
-
-// How long the string must stay in tune before advancing (ms)
-const CORRECTION_DWELL_MS = 475;
-const VALIDATION_DWELL_MS = 235;
-
-// How long a reading may stay out of tolerance (or missing) before the hold resets (ms)
-const DWELL_GRACE_MS = 150;
-
-// How long the ✓ stays before auto-advancing (ms)
-const COMPLETE_HOLD_MS = 1000;
-
 // ── TunerScreen ───────────────────────────────────────────────────────────────
 
 export class TunerScreen implements IScreen {
@@ -78,25 +46,9 @@ export class TunerScreen implements IScreen {
     private source: ISongSource;
     private entry: SongIndexEntry;
     private part: SongIndexPart;
-    private context: TunerContext;
     private selectedDifficulty: number | null;
-    private pausedAt: number;   // only relevant for mid-song
 
-    private offsets: number[];
-    private targetMidis: number[];
-
-    private phase: TunerPhase = { tag: 'correction', stringIndex: 0 };
-    private detectedCents: number | null = null;
-    // Eased copy of detectedCents for drawing only; the state machine keeps using the raw value.
-    private displayCents: number | null = null;
-    private detectedClarity = 0;
-    // Hold progress 0..1, nonzero only while the needle is shown. Shared by canvas and DOM renderers.
-    private dwellProgress = 0;
-    private lastDrawTs = 0;
-    private centsHistory: number[] = [];
-    private historyString = -1;
-    private completeTimestamp = 0;
-
+    private machine: TunerMachine;
 
     private container: HTMLElement | null = null;
     private canvas: HTMLCanvasElement | null = null;
@@ -115,35 +67,24 @@ export class TunerScreen implements IScreen {
     private invertStrings = false;
     private inputGain = 1;
 
-    private dwellStart = -Infinity;
-    private dwellMissSince = -Infinity;
-
-    private validationStringEnteredAt = -Infinity;
-
-    private signalPresentNoDetectStart = -Infinity;
-    private autoBoostActive = false;
-
     constructor(
         app: App,
         texture: THREE.Texture,
         source: ISongSource,
         entry: SongIndexEntry,
         part: SongIndexPart,
-        context: TunerContext,
         selectedDifficulty: number | null = null,
-        pausedAt = 0,
     ) {
         this.app = app;
         this.texture = texture;
         this.source = source;
         this.entry = entry;
         this.part = part;
-        this.context = context;
         this.selectedDifficulty = selectedDifficulty;
-        this.pausedAt = pausedAt;
 
-        this.offsets = part.tuningOffsets ?? [];
-        this.targetMidis = this.computeTargetMidis(this.offsets);
+        this.machine = new TunerMachine(
+            part.tuningOffsets ?? [], loadSettings().inputGain ?? 1, g => this.detector?.setGain(g),
+        );
     }
 
     async mount(container: HTMLElement): Promise<void> {
@@ -152,6 +93,7 @@ export class TunerScreen implements IScreen {
         const autoAdvance = settings.tunerAutoAdvance ?? true;
         this.invertStrings = settings.invertStrings;
         this.inputGain = settings.inputGain ?? 1;
+        this.machine.setInputGain(this.inputGain);
 
         container.innerHTML = `
             <div class="tuner-screen">
@@ -250,6 +192,7 @@ export class TunerScreen implements IScreen {
             paintGainFill();
             const val = parseFloat((e.target as HTMLInputElement).value);
             this.inputGain = val;
+            this.machine.setInputGain(val);
             const label = container.querySelector('#tuner-gain-val');
             if (label) label.textContent = `${val}×`;
             this.detector?.setGain(val);
@@ -320,221 +263,52 @@ export class TunerScreen implements IScreen {
         if (!this.canvas || !this.ctx2d) return;
 
         const result = this.detector?.detect() ?? null;
-        const n = this.offsets.length;
-
-        if (this.phase.tag === 'correction' && !this.autoBoostActive) {
-            const rms = this.detector?.lastRms ?? 0;
-            if (result === null && rms > 0.02) {
-                if (this.signalPresentNoDetectStart === -Infinity)
-                    this.signalPresentNoDetectStart = timestamp;
-                if (timestamp - this.signalPresentNoDetectStart >= 2000) {
-                    this.detector?.setGain(Math.min(24, this.inputGain * 2));
-                    this.autoBoostActive = true;
-                }
-            } else if (result !== null) {
-                this.signalPresentNoDetectStart = -Infinity;
-            }
+        this.machine.update(timestamp, result, this.detector?.lastRms ?? 0);
+        if (this.machine.phase.tag === 'complete') {
+            this.container?.querySelector('#tuner-complete')?.classList.remove('hidden');
         }
 
-        if (this.phase.tag !== 'complete' && n > 0) {
-            const currentString = this.phase.tag === 'correction'
-                ? this.phase.stringIndex
-                : this.phase.stringIndex;
-
-            if (result) {
-                const cents = centDeviationWithOctaveCorrection(result.frequency, this.targetMidis[currentString]);
-                this.detectedCents = cents;
-                this.detectedClarity = result.clarity;
-                this.advanceStateMachine(cents, timestamp);
-            } else {
-                this.detectedCents = null;
-                this.breakDwell(timestamp);
-            }
-        }
-
-        this.updateDisplayState(timestamp);
         if (this.layout === 'large') this.drawCanvas(); else this.updateBoxes();
         this.rafId = requestAnimationFrame(t => this.tick(t));
 
-        if (this.phase.tag === 'complete' && this.completeTimestamp > 0) {
-            const settings = loadSettings();
-            const autoAdvance = settings.tunerAutoAdvance ?? true;
-            if (autoAdvance && timestamp - this.completeTimestamp >= COMPLETE_HOLD_MS) {
-                this.completeTimestamp = 0;
-                this.exit();
-            }
-        }
-    }
-
-    private static readonly VALIDATION_TIMEOUT_MS = 5000;
-
-    // Resets the hold only after readings stay bad past the grace period, so single-frame jitter
-    // doesn't snap the lock outline back to empty.
-    private breakDwell(timestamp: number): void {
-        if (this.dwellStart === -Infinity) return;
-        if (this.dwellMissSince === -Infinity) this.dwellMissSince = timestamp;
-        if (timestamp - this.dwellMissSince >= DWELL_GRACE_MS) {
-            this.dwellStart = -Infinity;
-            this.dwellMissSince = -Infinity;
-        }
-    }
-
-    private advanceStateMachine(cents: number, timestamp: number): void {
-        const n = this.offsets.length;
-
-        if (this.phase.tag === 'correction') {
-            if (Math.abs(cents) <= CORRECTION_PASS_CENTS) {
-                this.dwellMissSince = -Infinity;
-                if (this.dwellStart === -Infinity) this.dwellStart = timestamp;
-
-                if (timestamp - this.dwellStart >= CORRECTION_DWELL_MS) {
-                    this.dwellStart = -Infinity;
-                    this.signalPresentNoDetectStart = -Infinity;
-                    this.autoBoostActive = false;
-                    this.detector?.setGain(this.inputGain);
-
-                    const next = this.phase.stringIndex + 1;
-                    if (next >= n) {
-                        this.validationStringEnteredAt = timestamp;
-                        this.phase = { tag: 'validation', stringIndex: 0, results: new Array(n).fill(false) };
-                    } else {
-                        this.phase = { tag: 'correction', stringIndex: next };
-                    }
-                }
-            } else {
-                this.breakDwell(timestamp);
-            }
-        } else if (this.phase.tag === 'validation') {
-            if (Math.abs(cents) <= VALIDATION_PASS_CENTS) {
-                this.dwellMissSince = -Infinity;
-                if (this.dwellStart === -Infinity) this.dwellStart = timestamp;
-
-                if (timestamp - this.dwellStart >= VALIDATION_DWELL_MS) {
-                    this.dwellStart = -Infinity;
-                    const results = [...this.phase.results];
-                    results[this.phase.stringIndex] = true;
-                    const next = this.phase.stringIndex + 1;
-                    if (next >= n) {
-                        this.phase = { tag: 'complete' };
-                        this.completeTimestamp = timestamp;
-                        this.showCompleteOverlay();
-                    } else {
-                        this.validationStringEnteredAt = timestamp;
-                        this.phase = { tag: 'validation', stringIndex: next, results };
-                    }
-                }
-            } else {
-                this.breakDwell(timestamp);
-                if (timestamp - this.validationStringEnteredAt >= TunerScreen.VALIDATION_TIMEOUT_MS) {
-                    this.validationStringEnteredAt = -Infinity;
-                    this.phase = { tag: 'correction', stringIndex: this.phase.stringIndex };
-                }
-            }
-        }
-    }
-
-    private showCompleteOverlay(): void {
-        this.container?.querySelector('#tuner-complete')?.classList.remove('hidden');
+        const autoAdvance = loadSettings().tunerAutoAdvance ?? true;
+        if (autoAdvance && this.machine.takeCompleteHold(timestamp)) this.exit();
     }
 
     private restart(): void {
-        this.phase = { tag: 'correction', stringIndex: 0 };
-        this.detectedCents = null;
-        this.dwellStart = -Infinity;
-        this.dwellMissSince = -Infinity;
-        this.validationStringEnteredAt = -Infinity;
-        this.signalPresentNoDetectStart = -Infinity;
-        this.autoBoostActive = false;
-        this.detector?.setGain(this.inputGain);
+        this.machine.restart();
         this.container?.querySelector('#tuner-complete')?.classList.add('hidden');
-        this.completeTimestamp = 0;
     }
 
-    // Leaves without marking the tuning done, returning to the screen that opened the tuner.
+    // Leaves without marking the tuning done, returning to the pre-scene screen.
     private back(): void {
         cancelAnimationFrame(this.rafId);
-        switch (this.context) {
-            case 'song-flow':
-                import('./PreSceneScreen').then(({ PreSceneScreen }) => {
-                    this.app.navigate(new PreSceneScreen(this.app, this.texture, this.source, this.entry));
-                });
-                break;
-            case 'mid-song':
-                this.app.resumeWithCountdown(this.pausedAt);
-                break;
-            case 'menu':
-                import('./SongLibraryScreen').then(({ SongLibraryScreen }) => {
-                    this.app.navigate(new SongLibraryScreen(this.app, this.texture));
-                });
-                break;
-        }
+        import('./PreSceneScreen').then(({ PreSceneScreen }) => {
+            this.app.navigate(new PreSceneScreen(this.app, this.texture, this.source, this.entry));
+        });
     }
 
     private exit(): void {
-        if (this.phase.tag === 'complete') {
-            this.app.lastTuningKey = JSON.stringify(this.offsets);
+        if (this.machine.phase.tag === 'complete') {
+            this.app.lastTuningKey = JSON.stringify(this.machine.offsets);
         }
         cancelAnimationFrame(this.rafId);
 
-        switch (this.context) {
-            case 'song-flow': {
-                const det = this.detector;
-                this.detector = null;
-                import('./ActiveSceneScreen').then(({ ActiveSceneScreen }) => {
-                    this.app.navigate(new ActiveSceneScreen(
-                        this.app, this.texture, this.source, this.entry, this.part,
-                        this.selectedDifficulty, det,
-                    ));
-                });
-                break;
-            }
-            case 'mid-song':
-                this.app.resumeWithCountdown(this.pausedAt);
-                break;
-            case 'menu':
-                import('./SongLibraryScreen').then(({ SongLibraryScreen }) => {
-                    this.app.navigate(new SongLibraryScreen(this.app, this.texture));
-                });
-                break;
-        }
-    }
-
-    // Updates the eased needle value and hold progress that every renderer reads.
-    private updateDisplayState(timestamp: number): void {
-        const currentString = this.phase.tag === 'complete' ? -1 : this.phase.stringIndex;
-
-        const dt = timestamp - this.lastDrawTs;
-        this.lastDrawTs = timestamp;
-        if (this.detectedCents === null || currentString !== this.historyString) this.centsHistory = [];
-        this.historyString = currentString;
-        if (this.detectedCents === null) {
-            this.displayCents = null;
-        } else {
-            // Low-clarity readings (harmonics, octave slips) are skipped for display only, so the
-            // needle holds its last spot instead of leaping.
-            if (this.detectedClarity >= NEEDLE_MIN_CLARITY) {
-                this.centsHistory.push(this.detectedCents);
-                if (this.centsHistory.length > NEEDLE_MEDIAN_WINDOW) this.centsHistory.shift();
-            }
-            if (this.centsHistory.length > 0) {
-                const target = [...this.centsHistory].sort((a, b) => a - b)[this.centsHistory.length >> 1];
-                this.displayCents = this.displayCents === null || this.centsHistory.length === 1
-                    ? target
-                    : this.displayCents + (target - this.displayCents) * (1 - Math.exp(-dt / NEEDLE_SMOOTHING_MS));
-            }
-        }
-
-        const showNeedle = this.detectedCents !== null && this.displayCents !== null && currentString >= 0;
-        const dwellMs = this.phase.tag === 'correction' ? CORRECTION_DWELL_MS : VALIDATION_DWELL_MS;
-        this.dwellProgress = showNeedle && this.dwellStart !== -Infinity
-            ? Math.min(1, (timestamp - this.dwellStart) / dwellMs)
-            : 0;
+        const det = this.detector;
+        this.detector = null;
+        import('./ActiveSceneScreen').then(({ ActiveSceneScreen }) => {
+            this.app.navigate(new ActiveSceneScreen(
+                this.app, this.texture, this.source, this.entry, this.part,
+                this.selectedDifficulty, det,
+            ));
+        });
     }
 
     private drawCanvas(): void {
         const canvas = this.canvas!;
         const ctx = this.ctx2d!;
-        const n = this.offsets.length;
+        const m = this.machine;
+        const n = m.offsets.length;
         const W = canvas.width / this.dpr;
         const H = canvas.height / this.dpr;
 
@@ -560,20 +334,18 @@ export class TunerScreen implements IScreen {
             ? marginTop + i * spacing
             : marginTop + (n - 1 - i) * spacing;
 
-        const currentString = this.phase.tag === 'correction' ? this.phase.stringIndex
-                            : this.phase.tag === 'validation'  ? this.phase.stringIndex
-                            : -1;
-        const isValidation = this.phase.tag === 'validation';
+        const currentString = m.currentString;
+        const isValidation = m.phase.tag === 'validation';
 
-        const dwellProgress = this.dwellProgress;
+        const dwellProgress = m.dwellProgress;
 
         const stringLen = W - marginRight - marginLeft;
         // Needle sits in the gutter past the strings' right ends, so its label never overlaps one.
         const needleX = marginLeft + stringLen + 12;
-        const showNeedle = this.detectedCents !== null && this.displayCents !== null && currentString >= 0;
+        const showNeedle = m.showNeedle;
         let needleY = 0;
         if (showNeedle) {
-            const clamped = Math.max(-50, Math.min(50, this.displayCents!));
+            const clamped = Math.max(-50, Math.min(50, m.displayCents!));
             const stringSpacing = n > 1 ? spacing : 50;
             const offsetY = -(clamped / 50) * stringSpacing * NEEDLE_REACH;
             needleY = stringY(currentString) + offsetY;
@@ -604,7 +376,7 @@ export class TunerScreen implements IScreen {
                 strokeLockBorder(ctx, marginLeft, y, stringLen, dwellProgress);
             }
 
-            const midi = this.targetMidis[i];
+            const midi = m.targetMidis[i];
             ctx.fillStyle = isActive ? '#fff' : '#8b8b8b';
             ctx.font = `${isActive ? '600 ' : ''}16px 'Inter', system-ui, sans-serif`;
             ctx.textAlign = 'left';
@@ -613,9 +385,7 @@ export class TunerScreen implements IScreen {
 
             // Correction pass: tuned strings get a bright check. Validation pass: every string
             // starts with a dim check from correction and brightens as it is re-verified.
-            const checkState = this.phase.tag === 'complete' ? 'done'
-                : this.phase.tag === 'validation' ? (this.phase.results[i] ? 'done' : 'pending')
-                : (i < this.phase.stringIndex ? 'done' : null);
+            const checkState = m.checkState(i);
             if (checkState) drawCheck(ctx, PAD + 6, y, checkState === 'done' ? '#ffffff' : '#515151');
         }
 
@@ -624,10 +394,7 @@ export class TunerScreen implements IScreen {
             ctx.font = "14px 'Inter', system-ui, sans-serif";
             ctx.textAlign = 'left';
             ctx.textBaseline = 'middle';
-            const shown = Math.round(this.displayCents!);
-            // Past ±99 the exact number adds nothing (needle is pinned), so say which way to go.
-            const label = Math.abs(shown) > 99 ? (shown > 0 ? 'Sharp' : 'Flat') : (shown > 0 ? `+${shown}` : `${shown}`);
-            ctx.fillText(label, needleX + NEEDLE_LENGTH + 8, needleY);
+            ctx.fillText(centsLabel(m.displayCents!), needleX + NEEDLE_LENGTH + 8, needleY);
         }
 
         if (this.meterFill) {
@@ -638,7 +405,7 @@ export class TunerScreen implements IScreen {
     }
 
     private boxesHtml(): string {
-        const n = this.offsets.length;
+        const n = this.machine.offsets.length;
         const cols = Array.from({ length: n }, (_, i) => i);
         return `
             <div class="tuner-boxes">
@@ -656,7 +423,7 @@ export class TunerScreen implements IScreen {
                     ${cols.map(i => `
                         <div class="tuner-box2-col" data-string="${i}" style="color:${stringColorCss(i) ?? '#fff'}">
                             ${CHECK_SVG}
-                            <span class="tuner-box2-name">${midiToNoteName(this.targetMidis[i])}</span>
+                            <span class="tuner-box2-name">${midiToNoteName(this.machine.targetMidis[i])}</span>
                             <div class="tuner-box2-line"></div>
                         </div>`).join('')}
                 </div>
@@ -688,23 +455,23 @@ export class TunerScreen implements IScreen {
     private updateBoxes(): void {
         const els = this.boxEls;
         if (!els) return;
-        const current = this.phase.tag === 'complete' ? -1 : this.phase.stringIndex;
+        const m = this.machine;
+        const current = m.currentString;
         const color = current >= 0 ? stringColorCss(current) ?? '#fff' : '#555';
         els.box1.style.setProperty('--string-color', color);
-        els.label.textContent = current >= 0 ? midiToNoteName(this.targetMidis[current]) : '';
+        els.label.textContent = current >= 0 ? midiToNoteName(m.targetMidis[current]) : '';
 
-        const showNeedle = this.detectedCents !== null && this.displayCents !== null && current >= 0;
+        const showNeedle = m.showNeedle;
         els.bar.classList.toggle('hidden', !showNeedle);
         els.cents.classList.toggle('hidden', !showNeedle);
         if (showNeedle) {
-            const pct = (Math.max(-50, Math.min(50, this.displayCents!)) + 50);
+            const pct = (Math.max(-50, Math.min(50, m.displayCents!)) + 50);
             els.bar.style.left = `${pct}%`;
             els.cents.style.left = `${pct}%`;
             els.cents.style.transform = `translateX(-${pct}%)`;
-            const shown = Math.round(this.displayCents!);
-            els.cents.textContent = Math.abs(shown) > 99 ? (shown > 0 ? 'Sharp' : 'Flat') : (shown > 0 ? `+${shown}` : `${shown}`);
+            els.cents.textContent = centsLabel(m.displayCents!);
             // Wipe spreads both ways from the bar's x and closes on the sides at full progress.
-            const p = this.dwellProgress;
+            const p = m.dwellProgress;
             const left = pct * (1 - p), right = 100 - (pct + (100 - pct) * p);
             els.wipe.style.clipPath = p > 0 ? `inset(0 ${right}% 0 ${left}%)` : 'inset(0 100% 0 100%)';
         } else {
@@ -713,9 +480,7 @@ export class TunerScreen implements IScreen {
 
         for (const col of els.cols) {
             const i = Number(col.dataset.string);
-            const checkState = this.phase.tag === 'complete' ? 'done'
-                : this.phase.tag === 'validation' ? (this.phase.results[i] ? 'done' : 'pending')
-                : (i < this.phase.stringIndex ? 'done' : null);
+            const checkState = m.checkState(i);
             col.classList.toggle('current', i === current);
             col.dataset.check = checkState ?? '';
         }
@@ -727,34 +492,10 @@ export class TunerScreen implements IScreen {
         }
     }
 
-    private computeTargetMidis(offsets: number[]): number[] {
-        const base = STANDARD_BASE_NOTES[offsets.length];
-        if (!base) return offsets.map(() => 69);
-        return base.map((b, i) => b + (offsets[i] ?? 0));
-    }
 }
 
 // ── Utility functions ─────────────────────────────────────────────────────────
 
-function centDeviation(detectedFreq: number, targetMidi: number): number {
-    const targetFreq = 440 * Math.pow(2, (targetMidi - 69) / 12);
-    return 1200 * Math.log2(detectedFreq / targetFreq);
-}
-
-function centDeviationWithOctaveCorrection(detectedFreq: number, targetMidi: number): number {
-    const raw = centDeviation(detectedFreq, targetMidi);
-    const below = raw - 1200;
-    const above = raw + 1200;
-    const candidates = [raw, below, above];
-    return candidates.reduce((best, c) => Math.abs(c) < Math.abs(best) ? c : best);
-}
-
-const NOTE_NAMES_SHARP = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-
-function midiToNoteName(midi: number): string {
-    const octave = Math.floor(midi / 12) - 1;
-    return NOTE_NAMES_SHARP[midi % 12] + octave;
-}
 
 // Outlines the string's rounded rect, revealed by a wipe from the right end (beside the needle) leftward.
 function strokeLockBorder(
@@ -782,11 +523,6 @@ function drawCheck(ctx: CanvasRenderingContext2D, cx: number, cy: number, color:
     ctx.fillStyle = color;
     ctx.fill(CHECK_2D);
     ctx.restore();
-}
-
-// Drops Chrome's trailing hardware id, e.g. "Mic (046d:0825)" -> "Mic", so collapsed names stay short.
-function shortMicLabel(label: string): string {
-    return label.replace(/\s*\([0-9a-f]{4}:[0-9a-f]{4}\)\s*$/i, '');
 }
 
 function esc(s: string): string {

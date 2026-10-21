@@ -147,3 +147,73 @@ Applies-when: upgrading three, or CanvasTextures invisible on Quest but fine in 
 The IWER emulator is not affected because it doesn't enable multiview (no `OCULUS_multiview` extension in browser), so texture uploads are not deferred.
 
 **Fix:** Pin to `"three": "npm:super-three@0.181.0"`. Do not upgrade unless the IWSDK itself upgrades and the deferred upload flush is confirmed to be restored in the new version.
+
+---
+
+## Quest Browser can't show a permission prompt inside an immersive session
+Tags: quest, webxr, getusermedia, microphone, permissions
+Applies-when: a feature needs a browser permission (mic, camera) that may not be granted yet
+
+**Symptom:** With site and browser mic permission already granted, `getUserMedia` starts on entering XR. Without it, the request fires but the prompt only appears after the user leaves immersive mode.
+
+**Root cause:** Browser permission UI isn't rendered in the headset during a session, so a first-time request made there stalls unseen.
+
+**Fix:** Read `navigator.permissions.query({ name: 'microphone' })` on entry. If it is `prompt`, show a card with an Allow Mic button whose click calls `getUserMedia` directly. That call from a button gesture raises the real Quest prompt, so no custom page prompt is needed. The prompt is still outside immersive mode, so the card tells the user to exit, allow and re-enter. Permission is per origin. The permission state tells the cases apart: `prompt` (not asked), `denied` (site's Not Allowed list) and `granted`. With the OS Browser mic toggle off, `getUserMedia` never settles and the state reads `granted`, so detect it with a short hang timer (500ms, a real grant takes about 75ms), not a catch. The pending call resolves by itself when the toggle is turned on. Page code can't see Browser's own dialogs (no focus or visibility events). Unblocking a denied site returns the state to `prompt`, not `granted`, so a flat-page toast must offer an Allow button (click-initiated `getUserMedia`) before confirming. The in-VR card should re-read the state periodically, since the user changes it outside VR. Verified on Quest 2026-10-20.
+
+---
+
+## Raising mic gain doesn't make a normalized pitch detector more accurate
+Tags: pitch-detection, gain, rms, microphone, autocorrelation
+Applies-when: a quiet mic (Quest) makes the tuner or note detector miss or need the instrument held close
+
+**Symptom:** Even at max gain the Quest mic needed the guitar held at the headset. Doubling the gain range to 48x got through all six strings but gave no accuracy benefit.
+
+**Root cause:** `PitchDetector` is a normalized autocorrelation, so scaling the signal doesn't change the pitch. Gain only lets weak frames past the `rms < minRms` silence cutoff, and it amplifies mic noise by the same factor.
+
+**Fix:** Lower the cutoff for the quiet device (`PitchDetector.create`'s `minRms`, XR uses 0.001) and keep the clarity gates. Don't extend the gain slider to compensate.
+
+---
+
+## Quest built-in mic gates guitar to digital silence, and a USB mic bypasses it
+Tags: quest, microphone, noise-gate, usb, pitch-detection
+Applies-when: the tuner or note detector gets few or no pitches from the Quest built-in mic
+
+**Symptom:** On the built-in mic, 51 to 69% of captured samples were exact zeros, the detector found a pitch on about 21% of frames, and low strings were missing their fundamentals. A web tuner also failed at normal playing distance, yet speech made it jump.
+
+**Root cause:** The platform applies processing below the browser. `getUserMedia` reported `noiseSuppression`, `echoCancellation` and `autoGainControl` all false at 48 kHz, so the constraints are honored in name only. AirPods routed as "Headset earpiece" were no better.
+
+**Fix:** Use an external mic. With a USB mic (ATR2100x-USB, a foot from the guitar) there were no gated blocks and 72% of frames had a pitch. Quest needs Settings > Experimental > External Microphone on, plus a restart, before a USB mic is listed. The tuner now prefers a non-built-in input and warns when only built-in ones exist.
+
+---
+
+## A lowered pitch floor needs the McLeod key-maximum rule or sub-octaves win
+Tags: pitch-detection, autocorrelation, nsdf, octave-error, mcleod
+Applies-when: the detector reports a string at half, a third or a quarter of its pitch
+
+**Symptom:** After lowering the minimum frequency, D read 73 Hz, G read 98 Hz and B or high E read 82 Hz. The tuner correction of plus or minus one octave cannot fix a third or quarter.
+
+**Root cause:** The detector took the tallest NSDF peak. A multiple of the true period can be slightly taller, and a longer search range exposes more of them.
+
+**Fix:** Take the first peak within 90% of the tallest (`KEY_RATIO` in `PitchDetector.ts`). Replayed on a live recording this cut octave-off frames from 234 to 58. Readings a fourth or third below the target are usually the previous string still ringing, not detector errors.
+
+---
+
+## Room and table rumble reads as a 30 Hz note unless the floor follows the lowest target
+Tags: pitch-detection, high-pass, rumble, min-frequency
+Applies-when: idle frames report a pitch near 30 Hz or the low string rarely registers
+
+**Symptom:** With a clean USB mic, 767 frames read below 60 Hz and low E (82 Hz) hit only 95 times.
+
+**Fix:** `PitchDetector.create` takes `minHz`, which limits the lag search and sets a high-pass at 0.9 times that. XR passes 0.8 times its lowest target, so bass and drop tunings still work. The same replay gave 0 rumble frames and 258 low E hits.
+
+---
+
+## A page cannot open Quest OS Settings or Browser settings
+Tags: quest, webxr, settings, deep-link, permissions
+Applies-when: a card wants a button that jumps the user to a Settings screen
+
+**Symptom:** `systemux://settings` and `chrome://settings` (also `chrome://settings/content/microphone`) from a click did not open anything. `location.href` to `systemux://settings` exited immersive mode and stopped there.
+
+**Root cause:** Meta documents `systemux://` for installed native apps only. A web page may not navigate to `chrome://`. Tried on Quest: `location.href`, a clicked `<a>`, `window.open` and an `intent://` URL, all with no effect.
+
+**Fix:** Show the written path instead. The Browser's own settings open as a separate browser tab and reach the same Allowed and Not Allowed list at Settings > Privacy and Security > Website Permissions > Microphone (or Settings > Site Settings > Microphone through `chrome://settings` typed by hand). Do not add a jump button.
