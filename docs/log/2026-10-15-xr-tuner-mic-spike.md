@@ -151,3 +151,20 @@ XR slice of [[tuner-v2]], gated on [[tuner-compact-layout]].
 - Reopening the mic after the first open waits 3s before the hang card (was 500ms). A USB switch could exceed 500ms and flash the OS mic-off card.
 - Inputs are listed before the first open, so entering Tuning with USB plugged in no longer shows a Default-then-USB flash.
 - All confirmed in headset.
+
+## Setup pages (2026-10-21, RockyRoad-0q4.12)
+
+- Built, not yet seen in the headset after the last round of edits (headset battery died). Page 1 and the Bluetooth audio page are not finalized.
+- Page 1 ("XR Tuner needs both:"): full-panel page, tuner controls hidden, Song button kept. Bullets External mic and Bluetooth audio with open-circle sub-bullets. Footer "Don't have both? Just select Play." Dark Play button (goes straight to play) and white Continue button with the tune icon (goes to the permission card).
+- Bluetooth Audio Reminder: full-panel page with the same tokens. Title, two grey centered lines, one white Play button.
+- Permission card ("Mic permission needed") keeps only Exit VR. The Back button from the original spec was removed because the Song button already leaves.
+- Page 1 condition as built: shown when the permission reads `prompt` at tuner entry, or when the open-hang fallback lands on `prompt`. Once per tuner visit. Skipped when `granted`, `denied` or unreadable. Not shown when the card later moves from site-blocked to `prompt`.
+- Reminder condition as built: on Play press or auto-advance when the active input is not a built-in route. Once per page session. Never after Play on page 1 or the Song button.
+- New log event `mic-start-permission` records the state at entry and whether page 1 was already shown.
+- Open for next session, to agree and then test in the headset:
+  - Page 1 only reaching first-time users. A user with the mic granted and the headset mic selected never sees it, and only the weak-mic card explains USB.
+  - Whether the reminder should fire once per page session or per tuner visit.
+  - The reminder interrupting auto-advance, which now needs a Play press.
+  - No Bluetooth detection exists, so the reminder shows even when audio is already paired.
+  - Page layout: title and bullet position, text sizes, sub-bullet ring rendering.
+- Test plan: reset the site mic permission to undecided and confirm page 1 then the permission card. Then with permission granted confirm page 1 is skipped. Plug in a USB mic, finish tuning, confirm the reminder once and not again.
