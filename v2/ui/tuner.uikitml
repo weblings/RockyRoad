@@ -502,14 +502,16 @@
     align-items: center;
     justify-content: center;
     flex-grow: 1;
+    padding-bottom: 3;
   }
   .page-block {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap-row: 1;
-    gap-column: 1;
+    gap-row: 0.3;
+    gap-column: 0.3;
   }
+  .page-block-c { align-items: center; }
   .page-list {
     display: flex;
     flex-direction: column;
@@ -664,6 +666,22 @@
     </div>
   </div>
 
+  <div id="tn-remind-page" class="page">
+    <div class="page-body">
+      <div class="page-block page-block-c">
+        <span class="page-title">Bluetooth Audio Reminder</span>
+        <span class="page-line">The external mic mutes the speakers</span>
+        <span class="page-line">Pair Bluetooth audio to hear music</span>
+      </div>
+    </div>
+    <div class="actions">
+      <button id="tn-remind-play" class="action-btn primary-light">
+        <img src="play-icon.svg" class="icon" />
+        <span class="icon-label">Play</span>
+      </button>
+    </div>
+  </div>
+
   <div id="tn-setup-row" class="setup-row">
     <div id="tn-input-dropdown" class="option-dropdown">
       <button id="tn-input-trigger" class="option-trigger">
@@ -748,23 +766,8 @@
         <span id="tn-mic-l3" class="warn-line">line 3</span>
         <span id="tn-mic-l4" class="warn-line">line 4</span>
         <div class="warn-buttons">
-          <button id="tn-mic-back" class="warn-dismiss primary-dark">
-            <span>Back</span>
-          </button>
           <button id="tn-mic-exit" class="warn-dismiss primary-light">
             <span id="tn-mic-exit-label">Allow Mic</span>
-          </button>
-        </div>
-      </div>
-    </div>
-    <div id="tn-remind-overlay" class="overlay">
-      <div class="warn-card">
-        <span class="warn-title">Bluetooth Audio Reminder</span>
-        <span class="warn-line">The external mic mutes the speakers.</span>
-        <span class="warn-line">Pair Bluetooth audio to hear music.</span>
-        <div class="warn-buttons">
-          <button id="tn-remind-play" class="warn-dismiss primary-light">
-            <span>Play</span>
           </button>
         </div>
       </div>

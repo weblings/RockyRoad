@@ -90,7 +90,7 @@ export class XRTunerScene {
     // After the first open, a switch to another input can be slow (USB), so wait longer before calling it hung.
     private _micOpened = false;
     private _stopInputWatch: (() => void) | null = null;
-    // 'intro' is setup page 1 (shown only when the mic permission is still undecided), 'remind' the Bluetooth card.
+    // 'intro' is setup page 1 (shown only when the mic permission is still undecided), 'remind' the Bluetooth audio page.
     private _stage: 'tuner' | 'intro' | 'remind' = 'tuner';
     private _introDone = false;
     private _remindComplete = false;
@@ -158,7 +158,6 @@ export class XRTunerScene {
         this._setClick(doc, 'tn-done', () => this._finish(m.phase.tag === 'complete'));
         this._setClick(doc, 'tn-intro-skip', () => onDone(false));
         this._setClick(doc, 'tn-intro-continue', () => { this._introDone = true; this._stage = 'tuner'; });
-        this._setClick(doc, 'tn-mic-back', () => { this._stage = 'intro'; });
         this._setClick(doc, 'tn-remind-play', () => onDone(this._remindComplete));
         this._applyWarnText(doc);
         this._setClick(doc, 'tn-warn-dismiss', () => { warnDismissed = true; });
@@ -554,8 +553,8 @@ export class XRTunerScene {
         const waiting = !done && !intro && !remind && (this._micState !== 'ready' || !this._inputsListed);
         const warn = !done && !waiting && !intro && !remind && this._weakMic();
         this._setLive(doc, 'tn-intro-page', { display: intro ? 'flex' : 'none' });
-        for (const id of ['tn-setup-row', 'tn-boxes', 'tn-actions']) this._setLive(doc, id, { display: intro ? 'none' : 'flex' });
-        this._setLive(doc, 'tn-remind-overlay', { display: remind ? 'flex' : 'none' });
+        for (const id of ['tn-setup-row', 'tn-boxes', 'tn-actions']) this._setLive(doc, id, { display: intro || remind ? 'none' : 'flex' });
+        this._setLive(doc, 'tn-remind-page', { display: remind ? 'flex' : 'none' });
         if (warn !== this._warnShown) {
             this._warnShown = warn;
             debugLog('tuner', 'weak-mic-warning', { shown: warn });
@@ -578,7 +577,6 @@ export class XRTunerScene {
         const blocked = this._micState === 'appBlocked' || this._micState === 'siteBlocked';
         this._setLive(doc, 'tn-mic-exit', { display: this._micState === 'prompt' || blocked ? 'flex' : 'none' });
         this._setLive(doc, 'tn-mic-exit-label', { text: 'Exit VR' });
-        this._setLive(doc, 'tn-mic-back', { display: this._micState === 'prompt' ? 'flex' : 'none' });
     }
 
     private _applyGain(doc: UIKitDocument): void {
