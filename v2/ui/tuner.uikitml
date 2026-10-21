@@ -490,8 +490,97 @@
     gap-column: 0.5;
     padding-top: 0.3;
   }
+  /* Setup page 1: replaces the whole panel content, no tuner controls. Bottom bar reuses .actions. */
+  .page {
+    display: none;
+    flex-direction: column;
+    flex-grow: 1;
+  }
+  .page-body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex-grow: 1;
+  }
+  .page-block {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap-row: 1;
+    gap-column: 1;
+  }
+  .page-list {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap-row: 0.5;
+    gap-column: 0.5;
+    padding-left: 1.5;
+  }
+  .page-title {
+    color: #ffffff;
+    font-size: 2.4;
+    font-weight: bold;
+  }
+  .page-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap-row: 0.5;
+    gap-column: 0.5;
+    padding-top: 0.6;
+  }
+  .page-dot {
+    width: 0.7;
+    height: 0.7;
+    flex-shrink: 0;
+    background-color: #ffffff;
+    border-radius: 0.35;
+  }
+  .page-item {
+    color: #ffffff;
+    font-size: 1.5;
+    font-weight: bold;
+  }
+  .page-sub {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap-row: 0.5;
+    gap-column: 0.5;
+    padding-left: 1.6;
+  }
+  .page-subdot {
+    width: 0.6;
+    height: 0.6;
+    flex-shrink: 0;
+    border-width: 0.1;
+    border-color: #8b8b8b;
+    border-radius: 0.3;
+  }
+  .page-line {
+    color: #8b8b8b;
+    font-size: 1.2;
+  }
+  .page-foot {
+    align-self: center;
+    color: #ffffff;
+    font-size: 1.2;
+    padding-bottom: 1.5;
+  }
+
+  .warn-buttons {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    gap-row: 1;
+    gap-column: 1;
+  }
   .warn-dismiss {
-    margin-top: 0.9;
+    margin-top: 0.7;
     width: 10;
     height: 2.8;
     display: flex;
@@ -542,14 +631,40 @@
 </style>
 
 <div class="panel">
-  <div class="header">
+  <div id="tn-header" class="header">
     <button id="tn-back" class="back-btn primary-dark">
       <img src="back-arrow.svg" class="icon" />
       <span class="icon-label">Song</span>
     </button>
   </div>
 
-  <div class="setup-row">
+  <div id="tn-intro-page" class="page">
+    <div class="page-body">
+      <div class="page-block">
+        <span class="page-title">XR Tuner needs both:</span>
+      <div class="page-list">
+        <div class="page-row"><div class="page-dot"></div><span class="page-item">External mic</span></div>
+        <div class="page-sub"><div class="page-subdot"></div><span class="page-line">Headset mic can't hear guitar correctly</span></div>
+        <div class="page-sub"><div class="page-subdot"></div><span class="page-line">Plugs in to headset's USB-C port</span></div>
+        <div class="page-row"><div class="page-dot"></div><span class="page-item">Bluetooth audio</span></div>
+        <div class="page-sub"><div class="page-subdot"></div><span class="page-line">External mic mutes headset speakers</span></div>
+      </div>
+      </div>
+    </div>
+    <span class="page-foot">Don't have both? Just select Play.</span>
+    <div class="actions">
+      <button id="tn-intro-skip" class="action-btn primary-dark">
+        <img src="play-icon-white.svg" class="icon" />
+        <span class="icon-label">Play</span>
+      </button>
+      <button id="tn-intro-continue" class="action-btn primary-light">
+        <img src="tune-icon-dark.svg" class="icon" />
+        <span class="icon-label">Continue</span>
+      </button>
+    </div>
+  </div>
+
+  <div id="tn-setup-row" class="setup-row">
     <div id="tn-input-dropdown" class="option-dropdown">
       <button id="tn-input-trigger" class="option-trigger">
         <div id="tn-input-trigger-label-slot"></div>
@@ -571,7 +686,7 @@
     </div>
   </div>
 
-  <div class="boxes">
+  <div id="tn-boxes" class="boxes">
     <div id="tn-box1" class="box1">
       <span id="tn-b1-label" class="b1-label">E2</span>
       <div class="b1-lane">
@@ -632,9 +747,26 @@
         <span id="tn-mic-l2" class="warn-line">line 2</span>
         <span id="tn-mic-l3" class="warn-line">line 3</span>
         <span id="tn-mic-l4" class="warn-line">line 4</span>
-        <button id="tn-mic-exit" class="warn-dismiss primary-light">
-          <span id="tn-mic-exit-label">Allow Mic</span>
-        </button>
+        <div class="warn-buttons">
+          <button id="tn-mic-back" class="warn-dismiss primary-dark">
+            <span>Back</span>
+          </button>
+          <button id="tn-mic-exit" class="warn-dismiss primary-light">
+            <span id="tn-mic-exit-label">Allow Mic</span>
+          </button>
+        </div>
+      </div>
+    </div>
+    <div id="tn-remind-overlay" class="overlay">
+      <div class="warn-card">
+        <span class="warn-title">Bluetooth Audio Reminder</span>
+        <span class="warn-line">The external mic mutes the speakers.</span>
+        <span class="warn-line">Pair Bluetooth audio to hear music.</span>
+        <div class="warn-buttons">
+          <button id="tn-remind-play" class="warn-dismiss primary-light">
+            <span>Play</span>
+          </button>
+        </div>
       </div>
     </div>
     <div id="tn-warn-overlay" class="overlay">
@@ -653,7 +785,7 @@
     </div>
   </div>
 
-  <div class="actions">
+  <div id="tn-actions" class="actions">
     <button id="tn-restart" class="action-btn primary-dark">
       <img src="tuner-restart.svg" class="icon" />
       <span class="icon-label">Restart</span>

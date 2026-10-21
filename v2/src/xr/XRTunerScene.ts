@@ -46,6 +46,8 @@ const XR_MIN_RMS = 0.001;
 const MIN_HZ_RATIO = 0.8;
 // Dismissed for the rest of the page session.
 let warnDismissed = false;
+// The Bluetooth audio reminder shows once per page session.
+let reminderShown = false;
 const IDLE_COLOR = '#555555';
 // Box 1 width in panel cm (40 minus .boxes side padding) and its corner radius as a percent
 // of that. The wipe strips stop short of the corners so they stay inside the curve.
@@ -88,6 +90,10 @@ export class XRTunerScene {
     // After the first open, a switch to another input can be slow (USB), so wait longer before calling it hung.
     private _micOpened = false;
     private _stopInputWatch: (() => void) | null = null;
+    // 'intro' is setup page 1 (shown only when the mic permission is still undecided), 'remind' the Bluetooth card.
+    private _stage: 'tuner' | 'intro' | 'remind' = 'tuner';
+    private _introDone = false;
+    private _remindComplete = false;
 
     private _inputDropdown = new OptionDropdown({
         trigger: 'tn-input-trigger',
@@ -120,6 +126,8 @@ export class XRTunerScene {
         this._lastStringSig = '';
         this._warnShown = false;
         this._micOpened = false;
+        this._stage = 'tuner';
+        this._introDone = false;
         this._active = true;
         this._startDetector(++this._showGen);
 
@@ -147,7 +155,11 @@ export class XRTunerScene {
         this._rerender = rerender;
 
         this._setClick(doc, 'tn-back', onBack);
-        this._setClick(doc, 'tn-done', () => onDone(m.phase.tag === 'complete'));
+        this._setClick(doc, 'tn-done', () => this._finish(m.phase.tag === 'complete'));
+        this._setClick(doc, 'tn-intro-skip', () => onDone(false));
+        this._setClick(doc, 'tn-intro-continue', () => { this._introDone = true; this._stage = 'tuner'; });
+        this._setClick(doc, 'tn-mic-back', () => { this._stage = 'intro'; });
+        this._setClick(doc, 'tn-remind-play', () => onDone(this._remindComplete));
         this._applyWarnText(doc);
         this._setClick(doc, 'tn-warn-dismiss', () => { warnDismissed = true; });
         // On a blocked card the button just leaves VR. Allow Mic is only for the prompt state.
@@ -245,7 +257,7 @@ export class XRTunerScene {
             c: m.displayCents === null ? null : +m.displayCents.toFixed(1),
         });
         if (m.takeCompleteHold(timestamp) && (loadSettings().tunerAutoAdvance ?? true)) {
-            this._onDone(true);
+            this._finish(true);
             return;
         }
 
@@ -257,6 +269,25 @@ export class XRTunerScene {
         this._updateNeedle(doc, m);
         this._updateMeter(doc, rms);
         this._updateOverlays(doc, m);
+    }
+
+    // First undecided visit starts on the setup page. Granted or denied skips it.
+    private _enterIntro(): void {
+        if (this._introDone) return;
+        this._introDone = true;
+        this._stage = 'intro';
+    }
+
+    // Leaving for play. An external mic mutes the speakers, so remind once before going.
+    private _finish(complete: boolean): void {
+        const active = this._inputs.find(i => i.id === this._inputId);
+        if (!reminderShown && active && !isBuiltInMic(active.label)) {
+            reminderShown = true;
+            this._remindComplete = complete;
+            this._stage = 'remind';
+            return;
+        }
+        this._onDone(complete);
     }
 
     private _selectInput(id: string | undefined): void {
@@ -327,7 +358,12 @@ export class XRTunerScene {
         // A known 'prompt' state skips the request and offers Exit VR instead.
         void micPermissionState().then(async state => {
             if (gen !== this._showGen) return;
-            if (state === 'prompt') { this._micState = 'prompt'; return; }
+            debugLog('tuner', 'mic-start-permission', { state, introDone: this._introDone });
+            if (state === 'prompt') {
+                this._micState = 'prompt';
+                this._enterIntro();
+                return;
+            }
             // List first so an external mic is chosen before opening, with no Default-then-USB flash.
             if (!this._inputsListed) {
                 await this._listInputs(gen);
@@ -348,6 +384,7 @@ export class XRTunerScene {
             if (gen !== this._showGen) return;
             if (state === 'granted' && (this._micState === 'siteBlocked' || this._micState === 'prompt')) {
                 this._micState = 'waiting';
+                this._stage = 'tuner';
                 this._startDetector(++this._showGen);
             } else if (state === 'prompt' && this._micState === 'siteBlocked') {
                 this._micState = 'prompt';
@@ -395,6 +432,7 @@ export class XRTunerScene {
             debugLog('tuner', 'mic-open-hung', { state });
             if (gen !== this._showGen || this._micState !== 'waiting') return;
             this._micState = state === 'granted' ? 'appBlocked' : 'prompt';
+            if (this._micState === 'prompt') this._enterIntro();
         }, this._micOpened ? MIC_REOPEN_TIMEOUT_MS : MIC_TIMEOUT_MS);
         import('../shared/PitchDetector')
             .then(({ PitchDetector }) => PitchDetector.create(this._inputId, this._gain, XR_MIN_RMS, this._minHz()))
@@ -509,10 +547,15 @@ export class XRTunerScene {
     }
 
     private _updateOverlays(doc: UIKitDocument, m: TunerMachine): void {
-        const done = m.phase.tag === 'complete';
+        const intro = this._stage === 'intro';
+        const remind = this._stage === 'remind';
+        const done = m.phase.tag === 'complete' && !remind;
         // Held until the input list is known so the boxes never flash before the warning or an auto-select restart.
-        const waiting = !done && (this._micState !== 'ready' || !this._inputsListed);
-        const warn = !done && !waiting && this._weakMic();
+        const waiting = !done && !intro && !remind && (this._micState !== 'ready' || !this._inputsListed);
+        const warn = !done && !waiting && !intro && !remind && this._weakMic();
+        this._setLive(doc, 'tn-intro-page', { display: intro ? 'flex' : 'none' });
+        for (const id of ['tn-setup-row', 'tn-boxes', 'tn-actions']) this._setLive(doc, id, { display: intro ? 'none' : 'flex' });
+        this._setLive(doc, 'tn-remind-overlay', { display: remind ? 'flex' : 'none' });
         if (warn !== this._warnShown) {
             this._warnShown = warn;
             debugLog('tuner', 'weak-mic-warning', { shown: warn });
@@ -521,8 +564,9 @@ export class XRTunerScene {
         this._setLive(doc, 'tn-done-overlay', { display: done ? 'flex' : 'none' });
         this._setLive(doc, 'tn-mic-overlay', { display: waiting ? 'flex' : 'none' });
         // Hidden under an overlay so their images can't z-fight through it.
-        this._setLive(doc, 'tn-box1', { display: done || waiting || warn ? 'none' : 'flex' });
-        this._setLive(doc, 'tn-box2', { display: done || waiting || warn ? 'none' : 'flex' });
+        const covered = done || waiting || warn || intro || remind;
+        this._setLive(doc, 'tn-box1', { display: covered ? 'none' : 'flex' });
+        this._setLive(doc, 'tn-box2', { display: covered ? 'none' : 'flex' });
         // No card text while the answer is still unknown, so the wrong message never flashes.
         this._setLive(doc, 'tn-mic-card', { display: this._micState === 'waiting' || this._micState === 'ready' ? 'none' : 'flex' });
         const [title, ...lines] = MIC_CARD_TEXT[this._micState === 'ready' ? 'waiting' : this._micState];
@@ -534,6 +578,7 @@ export class XRTunerScene {
         const blocked = this._micState === 'appBlocked' || this._micState === 'siteBlocked';
         this._setLive(doc, 'tn-mic-exit', { display: this._micState === 'prompt' || blocked ? 'flex' : 'none' });
         this._setLive(doc, 'tn-mic-exit-label', { text: 'Exit VR' });
+        this._setLive(doc, 'tn-mic-back', { display: this._micState === 'prompt' ? 'flex' : 'none' });
     }
 
     private _applyGain(doc: UIKitDocument): void {
