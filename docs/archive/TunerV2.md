@@ -1,6 +1,6 @@
 # Tuner screen — v0 vs v2 visual alignment
 
-Status: active — findings feed bead RockyRoad-4bi (Tuner screen return); archive when it closes
+Status: archived 2026-10-21 — done; v2 tuner reached parity with the removed v0 build (RockyRoad-4bi children closed)
 Id: tuner-v2
 
 **Sources:**

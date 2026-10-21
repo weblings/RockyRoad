@@ -1,8 +1,8 @@
 # RockyRoad — agent instructions
 
 Three.js + WebXR note-highway music app (guitar/piano), distilled from ChartPlayer
-into TypeScript. Self-hosted; `v2/` is the current single build (desktop + XR),
-`v0/` the legacy flat build.
+into TypeScript. Self-hosted; `v2/` is the current single build (desktop + XR).
+The legacy flat build (`v0/`) was removed, see the `v0.2.5` tag.
 
 ## Comment style
 
