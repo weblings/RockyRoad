@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Verify every doc reference under docs/, .claude/skills/, the root
-README/AGENTS/CLAUDE files and the v2 slice docs resolves:
+README/AGENTS/CLAUDE files and the slice docs resolves:
 markdown links [text](target), bare `path.md` mentions, and [[id]]/[[id#anchor]]
 wikilinks alike. Exit 1 on any dead reference or id-index problem (duplicate
 id, multiple Id: lines in one file, unresolvable [[id]]); a [[id]] that only
@@ -59,12 +59,12 @@ def find_all_md_files():
                     yield os.path.join(dirpath, fn)
 
 
-# Root agent files and the v2 slice docs cite docs too but sit outside
+# Root agent files and the slice docs cite docs too but sit outside
 # docs/ -- citers only: the id index is built from docs/ and skills, so
 # these never define ids. Missing files (AGENTS.md lands at step 9) are
 # skipped, not failures.
 EXTRA_CITER_ROOT_FILES = ('README.md', 'AGENTS.md', 'CLAUDE.md', 'CONTRIBUTING.md')
-EXTRA_CITER_FILES = ('v2/ARCHITECTURE.md', 'v2/Setup.md')
+EXTRA_CITER_FILES = ('ARCHITECTURE.md', 'Setup.md')
 
 
 def find_extra_citer_files():

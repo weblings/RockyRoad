@@ -1,4 +1,4 @@
-# ChartPlayer — v2 (Web / WebXR client)
+# ChartPlayer — Web / WebXR client
 
 A distilled version of [ChartPlayer](https://github.com/mikeoliphant/ChartPlayer) into Typescript, ThreeJS to run natively in browser. IWSDK and WebXR then add support for XR headsets.
 
@@ -6,9 +6,9 @@ It reads the same [OpenSongChart](https://github.com/mikeoliphant/OpenSongChart)
 the original desktop `ChartPlayer`/`ChartConverter` apps this was distilled from.
 
 For environment setup (Node, HTTPS certs, running the dev server, feeding it a song
-library), see ["Play your own songs"](../README.md#play-your-own-songs) at the repo root.
+library), see ["Play your own songs"](README.md#play-your-own-songs) at the repo root.
 For gotchas hit while building this project, see
-[`../docs/lessons/README.md`](../docs/lessons/README.md) — the repo's single
+[`docs/lessons/README.md`](docs/lessons/README.md) — the repo's single
 lessons-learned location, not a doc local to this subproject. It's written primarily for AI
 coding agents working in this repo, but worth a skim if you're a human onboarding too.
 
@@ -38,7 +38,7 @@ from one to the other is a full page load back to that mode's library screen.
   the `ui/*.uikitml` panel sources into runtime UI assets under `public/ui` — every XR
   screen (library, settings, pre-scene, active, calibration) is uikit-based; an earlier
   `html2canvas`-based panel-snapshot approach was fully migrated away (the dependency is
-  still in `package.json` but unused — see `../docs/lessons/` for why)
+  still in `package.json` but unused — see `docs/lessons/` for why)
 - The IWSDK dev plugin (`@iwsdk/vite-plugin-dev`) adds an in-browser XR emulator
   (IWER) for testing without a headset
 
@@ -58,12 +58,11 @@ from one to the other is a full page load back to that mode's library screen.
 - A handful of demo songs ship in `public/songs/` for a working app out of the box
 - `tools/song-server.ts` is a standalone HTTP(S) server (with CORS) for pointing the
   app at a full local song library without bundling it into the build — see
-  ["Play your own songs"](../README.md#play-your-own-songs) for how to configure and run it
+  ["Play your own songs"](README.md#play-your-own-songs) for how to configure and run it
 
 ## Directory layout
 
 ```
-v2/
   desktop.html, xr.html   entry points
   vite.config.ts          two-entry build, dev proxy, mkcert
   tools/                  bake-songs, song-server
@@ -76,7 +75,7 @@ v2/
 ```
 
 ## Development History
-- If you look in the [`docs/archive/`](../docs/archive/) folder and the legacy `v0/` folder (removed from `main`, still viewable at the `v0.2.5` tag) you can see the process of analyzing and then distilling ChartPlayer into a typescript and ThreeJS environment.
+- If you look in the [`docs/archive/`](docs/archive/) folder and the legacy `v0/` folder (removed from `main`, still viewable at the `v0.2.5` tag) you can see the process of analyzing and then distilling ChartPlayer into a typescript and ThreeJS environment.
 - The XRProto and v1 folders that are now deleted were experimenting with translating the guitar-specific chart logic to support piano, supporting the ECS framework of IWSDK, and discovering a viable UI framework for WebXR.
 - AI had generated the screens for v0 desktop and XR screens without worrying about UX and design cohesion. I exported those screens into Figma, created a unified design system, and updated the screens in both domains to be cohesive. That was the v2 release that also integrated desktop and XR into a single app rather than being two separate forks.
 - With the screens in a more stable place, the XR UI system migrated from html2canvas to the more IWSDK-specific uikitml which greatly improved XR performance.

@@ -34,5 +34,5 @@ A bare relative-path citation breaks silently on move or rename. New docs use a 
 
 Run `python3 docs/check-links.py` and `bash docs/check-lessons.sh`, and `grep -rn '<old-filename>'`
 over the whole repo (not just `docs/`) — the checker also scans `.claude/skills/`, root files, and
-the `v2/` READMEs, but a citer anywhere else can go dead silently. Convert what the grep finds to
+the root slice docs, but a citer anywhere else can go dead silently. Convert what the grep finds to
 `[[id]]`.

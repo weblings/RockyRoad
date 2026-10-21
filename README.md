@@ -1,12 +1,12 @@
 <p align="center">
-  <img src="v2/public/README/RockyRoadLogo.png" alt="RockyRoad logo" width="324" />
+  <img src="public/README/RockyRoadLogo.png" alt="RockyRoad logo" width="324" />
 </p>
 
 <p align="center">
-  <img src="v2/public/README/Desktop_Guitar_2.0.4-ezgif.com-crop.gif" width="200" />
-  <img src="v2/public/README/XR_Guitar_2.0.5.gif" width="200" />
-  <img src="v2/public/README/Desktop_Piano_2.0.4-ezgif.com-crop (2).gif" width="200" />
-  <img src="v2/public/README/XR_Piano_2.0.4-ezgif.com-optimize.gif" width="200" />
+  <img src="public/README/Desktop_Guitar_2.0.4-ezgif.com-crop.gif" width="200" />
+  <img src="public/README/XR_Guitar_2.0.5.gif" width="200" />
+  <img src="public/README/Desktop_Piano_2.0.4-ezgif.com-crop (2).gif" width="200" />
+  <img src="public/README/XR_Piano_2.0.4-ezgif.com-optimize.gif" width="200" />
 </p>
 
 # RockyRoad
@@ -25,7 +25,7 @@
 2. **Get the code.** Either `git clone https://github.com/weblings/RockyRoad.git`, or on the
    [GitHub repo page](https://github.com/weblings/RockyRoad), click the green **Code**
    button → **Download ZIP**, then unzip it — no git required.
-3. **Open a terminal in this project's `v2` folder.**
+3. **Open a terminal in this project folder.**
 4. **Run `npm install`.** This downloads the project's dependencies into a `node_modules` folder —
    one-time setup, takes a minute or two. You'll see a wall of text; that's normal.
 5. **Run `npm run dev`.** This starts the app's local server. When it's ready, it prints a URL that
@@ -39,7 +39,7 @@
    - **Using the demo:** use the "Load local songs" button in the top-right corner. 
       - **Note:** this only works if your charts are stored on same the machine with the demo open. To load charts from a device on your local network (advised path for XR devices), you should self-host.
    - **Self-hosting:** continue to steps 2-3 below.
-2. **Point RockyRoad at your converted songs** (self-hosting only). In the `v2` folder, make a copy
+2. **Point RockyRoad at your converted songs** (self-hosting only). In the project folder, make a copy
    of `song-server.config.example.json` and rename the copy to `song-server.config.json`, then edit
    its `songsDir` field to a path pointing to the folder containing your converted songs.
 3. **Restart `npm run dev`** (self-hosting only). Your songs will now always automatically show up
@@ -101,7 +101,7 @@ No technical blocker. I don't play drums or have access to a drumset currently.
 
 ## For developers
 
-- [`v2/ARCHITECTURE.md`](v2/ARCHITECTURE.md) — tech stack, architecture, directory layout.
+- [`ARCHITECTURE.md`](ARCHITECTURE.md) — tech stack, architecture, directory layout.
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) — task tracking (beads), pre-commit doc checks, docs
   conventions, quality gates.
 - [`docs/README.md`](docs/README.md) — map of plans, archive, lessons, and milestone log.

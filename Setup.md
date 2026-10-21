@@ -1,17 +1,16 @@
-# Setup — v2
+# Setup
 
 Environment setup for the desktop + WebXR client. For what this project is and how
 it's put together, see [`ARCHITECTURE.md`](ARCHITECTURE.md).
 
 Assumes you've already cloned the `RockyRoad` repo and installed Node.js — see the
-[Quick Start](../README.md#quick-start) at the repo root for those steps.
+[Quick Start](README.md#quick-start) at the repo root for those steps.
 
 ---
 
 ## Install
 
 ```bash
-cd v2
 npm install   # first run also downloads ~100MB Playwright/Chromium for the XR emulator
 ```
 

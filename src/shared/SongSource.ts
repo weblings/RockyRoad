@@ -109,7 +109,7 @@ export async function loadAllSources(remoteServerUrl: string): Promise<SourcedEn
         } else if (sources[i] instanceof RemoteSource && isDevFallback) {
             // No remoteServerUrl configured — this is the dev-only auto-fallback to the local
             // song-server proxy, not a broken user-configured server. Say so plainly.
-            console.warn(`[SongSource] No local song-server running at ${DEV_DEFAULT_REMOTE}. See v2/Setup.md to set one up`);
+            console.warn(`[SongSource] No local song-server running at ${DEV_DEFAULT_REMOTE}. See Setup.md to set one up`);
         } else {
             console.warn(`[SongSource] Failed to load "${sources[i].label}":`, r.reason);
         }
