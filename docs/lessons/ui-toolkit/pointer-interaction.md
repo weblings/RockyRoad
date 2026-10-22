@@ -91,3 +91,17 @@ its width past the track into whatever sits beside it (it covered the "Gain" lab
 **Fix:** put the pointer handlers on a taller wrapper (2.4cm) that holds the track and thumb, and give
 that wrapper left and right margins of half the thumb width. Use `worldToLocal` on the wrapper per the
 drag-math entry above.
+
+---
+
+## A press stays captured on the card it started on, so releasing after a scroll drag still clicks that card
+Tags: click, scroll, drag, pointer-capture, library
+Applies-when: dragging to scroll a list of clickable cards opens a card on release
+
+**Root cause:** uikit's scroll captures the pointer on the pressed child, so the release lands on that
+same card and uikit synthesizes a click (it needs down and up on the same object). No `pointerleave`
+fires mid-drag, the log showed `pu` always on the row where `pd` happened.
+
+**Fix:** track hit-point travel from pointerdown in the card's own pointer handlers and swallow the next
+click once it passed 1.5 cm (`DRAG_CLICK_THRESHOLD` in `XRSongLibrary.ts`). Use travel, not scroll
+position, so a drag at the very end of the list, where position cannot change, is covered too.

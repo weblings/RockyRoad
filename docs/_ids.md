@@ -9,6 +9,7 @@ every run. Human lookup for `[[id]]` citations elsewhere in `docs/`.
 | `2026-10-08-docs-reorg-followups` | [log/2026-10-08-docs-reorg-followups.md](log/2026-10-08-docs-reorg-followups.md) | Docs reorg follow-ups |
 | `2026-10-13-tuner-return-desktop` | [log/2026-10-13-tuner-return-desktop.md](log/2026-10-13-tuner-return-desktop.md) | Tuner return: desktop enable and styling |
 | `2026-10-15-xr-tuner-mic-spike` | [log/2026-10-15-xr-tuner-mic-spike.md](log/2026-10-15-xr-tuner-mic-spike.md) | XR tuner: split and mic spike |
+| `2026-10-22-v0-3-0-release-prep` | [log/2026-10-22-v0-3-0-release-prep.md](log/2026-10-22-v0-3-0-release-prep.md) | 0.3.0 release prep and XR Library fixes |
 | `aurora-docs-migration` | [archive/AuroraDocsMigrationPlan.md](archive/AuroraDocsMigrationPlan.md) | Migrate docs infra to Aurora's system (+ beads, AGENTS.md) |
 | `camera3d-conversion` | [archive/Camera3D.md](archive/Camera3D.md) | Camera3D.cs — Conversion Analysis |
 | `chart-player-game-conversion` | [archive/ChartPlayerGame.md](archive/ChartPlayerGame.md) | ChartPlayerGame.cs — Conversion Analysis |

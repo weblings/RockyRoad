@@ -34,7 +34,7 @@ either end would crop to the track's rounded shape instead of poking out past th
 track's thumb kept as an unclipped sibling outside that wrapper (so it could still overhang the
 top edge). In-headset, this did not produce the expected clipping — reverted.
 
-**Status:** not root-caused. Didn't get to dig into *why* before reverting (the wrapper approach
+**Status:** not root-caused. See also the Image-clipping entry below, which explains the missing clip for Images. Didn't get to dig into *why* before reverting (the wrapper approach
 was replaced with a pragmatic percentage-based skip — don't generate a tick within the first/last
 ~3% of the track's width at all — see `_buildSectionTicks()` in `XRActiveScene.ts`). Worth
 investigating properly before relying on `overflow: hidden` for clipping purposes elsewhere (e.g.
@@ -163,3 +163,45 @@ Tags: dropdown, scroll, menu-height, input-list
 Applies-when: a dropdown has a handful of dynamic options and the list would not scroll or clipped the last item
 
 The fixed 8 cm menu showed only three Input options, and the shared drag-scroll was hard to use in the headset. The tuner sets the menu `height` from the option count (up to 6 items plus 1 cm of padding and border slack) and passes the same height to `computeCenteredOffset`. Scrolling still applies beyond 6. This avoids the unresolved last-item scroll bug above for short lists.
+
+---
+
+## uikit's scroll tags the shared native event "already scrolled" past 5 units from both ends, so a long XR list stops after one drag
+Tags: scroll, overflow, nativeEvent, was-scrolled, onScroll, xr
+Applies-when: a long overflow: scroll list in XR scrolls a few units, then ignores every later drag
+
+**Symptom:** Library's list (37 rows, scroll range 38.3) scrolled to about 6.5 or 7.8, then never moved
+again. Presses and moves kept arriving (`down` returned to 0, 16 to 176 moves per press), so this is not
+the capture wedge above.
+
+**Root cause:** `scroll()` in uikit's `scroll.js` sets a private "was-scrolled" symbol on
+`event.nativeEvent` once the position is more than 5 from both ends (meant to stop nested scrollers
+double-scrolling) and zeroes the delta whenever it reads that flag. XR pointers reuse one native event
+object, so the flag never clears. Settings and short lists never get 5 units from both ends, which hid it.
+
+**Fix:** set `onScroll` on the list to delete that symbol from `event.nativeEvent` each step
+(`clearWasScrolled()` in `XRSongLibrary.ts`, found by the symbol's description). Not retested on the Speed
+dropdown, whose "worked once, never scrolled again" report may be this same cause.
+
+---
+
+## uikit hides an Image only when it is fully outside its clip rect, so a straddling Image draws in full
+Tags: image, clipping, overflow, localClippingEnabled, z-index, scroll, thumbnail
+Applies-when: thumbnails or icons draw over a panel's toolbar or footer, or past its edge, while a list scrolls
+
+**Symptom:** Library thumbnails and badge icons drew over the footer and below the panel edge as their
+cards scrolled out, and reappeared briefly below the footer.
+
+**Root cause:** Text and container backgrounds clip in uikit's own shader. `Image` clips with three's
+`material.clippingPlanes`, which three ignores unless `renderer.localClippingEnabled` is true, and this
+app never sets it. Without it an Image is culled only once fully outside, never partly clipped. Debug
+probes showed the planes themselves are right in world space (Root matrix identity, positive inside,
+negative outside). Enabling the flag gave odd rendering (the thumbnail's grey background showing, cause
+unconfirmed, possibly planes coinciding with the thumbnail's own `overflow: hidden` edges) and still
+did not clip at the footer. `overflow: hidden` on the card changed nothing.
+
+**Fix (workaround):** cover the overflow instead. Toolbar and footer have an opaque background and
+`z-index: 5` so they paint over Images, and the footer is taller than the tallest Image (the 4 unit
+thumbnail) so a straddling one stays behind it, not poking out past the panel. Costs about 1.6 units of
+list height. Untried: hide each card's images by scroll position, or the flag with the thumbnail's own
+`overflow: hidden` removed. See also the unresolved `overflow: hidden` entry above.

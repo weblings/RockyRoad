@@ -336,6 +336,8 @@
     border-radius: 0.36;
   }
   /* Fixed row under the scrolling list. Text set at runtime from __APP_VERSION__. */
+  /* Taller than a thumbnail (4) so an image straddling the list's bottom edge, which uikit
+     doesn't clip, stays fully behind this strip instead of poking out below the panel. */
   .version-footer {
     display: flex;
     flex-direction: row;
@@ -343,8 +345,7 @@
     justify-content: center;
     flex-grow: 0;
     flex-shrink: 0;
-    padding-top: 0.6;
-    padding-bottom: 0.8;
+    height: 4.2;
     background-color: #0a0a0a;
     border-bottom-left-radius: 1.2;
     border-bottom-right-radius: 1.2;

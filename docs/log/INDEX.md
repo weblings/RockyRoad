@@ -13,3 +13,4 @@ history. This log starts on migration day (2026-10-08).
 | 2026-10-08 | Docs reorg follow-ups ([[2026-10-08-docs-reorg-followups]]) | RockyRoad-k9h |
 | 2026-10-13 | Tuner return, desktop enable and styling ([[2026-10-13-tuner-return-desktop]]) | RockyRoad-4bi (open) |
 | 2026-10-15 | XR tuner split and mic spike ([[2026-10-15-xr-tuner-mic-spike]]) | RockyRoad-0q4 (open), RockyRoad-0q4.1, RockyRoad-0q4.2, RockyRoad-0q4.3, RockyRoad-0q4.6, RockyRoad-0q4.8, RockyRoad-0q4.11, RockyRoad-0q4.13, RockyRoad-0q4.9, RockyRoad-0q4.10 (open) |
+| 2026-10-22 | 0.3.0 release prep and XR Library fixes ([[2026-10-22-v0-3-0-release-prep]]) | RockyRoad-211 |
