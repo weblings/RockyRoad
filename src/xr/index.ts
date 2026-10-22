@@ -41,6 +41,7 @@ import { KeysPlayerScene3D } from "../shared/KeysPlayerScene3D";
 import { FretPlayerScene3D } from "../shared/FretPlayerScene3D";
 import { resolveNotesForDifficulty } from "../shared/DifficultyResolve";
 import { SongPlayer } from "../shared/SongPlayer";
+import { CountdownTimer } from "../shared/CountdownTimer";
 import { CalibrationSystem } from "./CalibrationSystem";
 import { XRSongLibrary } from "./XRSongLibrary";
 import { loadAllSources, type SourcedEntry } from "../shared/SongSource";
@@ -846,9 +847,9 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     // back into Play HUD once the timer elapses. Also hides the in-scene
     // countdown overlay immediately, since HighwaySystem.update() otherwise
     // keeps it visible/updating regardless of which screen is showing.
-    let countdownGen = 0;
+    const countdown = new CountdownTimer();
     function cancelCountdown(): void {
-        countdownGen++;
+        countdown.cancel();
         world.globals.countdownN = undefined;
     }
     // Exposed so CalibrationSystem.ts (a separately-registered ECS system,
@@ -1301,16 +1302,14 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
 
         world.globals.rollbackState = { from: pausedAt, to: resumeAt, startMs: performance.now() };
 
-        const myGen = ++countdownGen;
-        world.globals.countdownN = 3;
-        setTimeout(() => { if (countdownGen === myGen) world.globals.countdownN = 2; }, 1000);
-        setTimeout(() => { if (countdownGen === myGen) world.globals.countdownN = 1; }, 2000);
-        setTimeout(() => {
-            if (countdownGen !== myGen) return;
-            world.globals.countdownN = undefined;
-            songPlayer.play();
-            showActiveScene(entry, songPlayer, sections, totalDuration, noteMin, noteMax, availableDifficulties, initialDifficulty, partName);
-        }, 3000);
+        countdown.start(
+            n => { world.globals.countdownN = n; },
+            () => {
+                world.globals.countdownN = undefined;
+                songPlayer.play();
+                showActiveScene(entry, songPlayer, sections, totalDuration, noteMin, noteMax, availableDifficulties, initialDifficulty, partName);
+            },
+        );
     }
 
     // ── Screens ───────────────────────────────────────────────────────────────

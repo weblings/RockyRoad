@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import type { Scene3D } from "../shared/Scene3D";
+import { CountdownTimer } from "../shared/CountdownTimer";
 import { loadSettings, saveSettings, type Settings } from "../shared/Settings";
 import type { SongIndexEntry, SongIndexPart } from "../shared/SongIndex";
 import { Dropdown, type DropdownOption } from "./Dropdown";
@@ -68,6 +69,8 @@ export class App {
     private countdownOverlay: HTMLElement;
     private songPausedBySettings = false;
     private pausedAtSeconds = 0;
+    private readonly countdown = new CountdownTimer();
+    private countdownPausedAt = 0;
     private noteNumbersDropdown: Dropdown | null = null;
 
     constructor(canvas: HTMLCanvasElement) {
@@ -143,6 +146,7 @@ export class App {
     }
 
     navigate(screen: IScreen): void {
+        this.cancelCountdown();
         this.currentScreen?.unmount();
         this.renderer.clear();
         this.currentScreen = screen;
@@ -154,10 +158,11 @@ export class App {
     resumeWithCountdown(pausedAt: number): void {
         if (!this.onSongResume) return;
         const resumeAt = Math.max(0, pausedAt - 3);
+        this.countdownPausedAt = pausedAt;
         // Roll back the scene immediately so the user can see the upcoming notes
         // during the countdown, not just after it.
         this.onSongRollback?.(resumeAt);
-        this.startCountdown(() => this.onSongResume!(resumeAt));
+        this.startCountdown(() => this.onSongResume?.(resumeAt));
     }
 
     private refreshNoteNumbersDropdown(v: number): void {
@@ -169,7 +174,11 @@ export class App {
 
     openSettings(): void {
         this.songPausedBySettings = false;
-        if (this.onSongPause) {
+        if (this.cancelCountdown()) {
+            // Mid-countdown the song is already paused: close restarts it from the same point.
+            this.pausedAtSeconds = this.countdownPausedAt;
+            this.songPausedBySettings = true;
+        } else if (this.onSongPause) {
             const pos = this.onSongPause();
             if (pos !== null) {
                 this.pausedAtSeconds = pos;
@@ -198,28 +207,28 @@ export class App {
     closeSettings(): void {
         this.settingsOverlay.classList.add("hidden");
         if (this.songPausedBySettings && this.onSongResume) {
-            const resumeAt = Math.max(0, this.pausedAtSeconds - 3);
-            this.onSongRollback?.(resumeAt);
-            this.startCountdown(() => this.onSongResume!(resumeAt));
+            this.resumeWithCountdown(this.pausedAtSeconds);
         }
         this.songPausedBySettings = false;
     }
 
     private startCountdown(onComplete: () => void): void {
-        let count = 3;
-        this.countdownOverlay.textContent = String(count);
-        this.countdownOverlay.classList.remove("hidden");
-        const tick = () => {
-            count--;
-            if (count <= 0) {
+        this.countdown.start(
+            n => {
+                this.countdownOverlay.textContent = String(n);
+                this.countdownOverlay.classList.remove("hidden");
+            },
+            () => {
                 this.countdownOverlay.classList.add("hidden");
                 onComplete();
-            } else {
-                this.countdownOverlay.textContent = String(count);
-                setTimeout(tick, 1000);
-            }
-        };
-        setTimeout(tick, 1000);
+            },
+        );
+    }
+
+    // Returns whether a countdown was pending.
+    private cancelCountdown(): boolean {
+        this.countdownOverlay.classList.add("hidden");
+        return this.countdown.cancel();
     }
 
     private loop(time: number): void {
