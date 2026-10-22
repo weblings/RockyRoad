@@ -60,6 +60,18 @@ npm run dev:device    # IWER disabled — for testing with a real headset via Qu
 Serves at `https://localhost:8081`. Visit `/xr.html` directly to load the WebXR entry
 point in-browser (with the emulator) instead of `desktop.html`.
 
+Dev-only toggles can go in a git-ignored `.env.local` (restart the dev server after editing), so
+nothing needs reverting before a commit and every client, including a headset, picks them up:
+
+```
+VITE_FAKE_SONGS=30          # placeholder songs for testing Library scrolling, can't be played
+VITE_DEBUG=library,console  # comma list: tuner, tuner-frames, library, console
+```
+
+`npm run dev:fake` / `dev:device:fake` set `VITE_FAKE_SONGS=30` for one run. `?fakeSongs=N` and
+`?debug=a,b` on a page URL override the env values for that page. Debug logs land in `.debug/`
+on the PC, `console` mirrors console output onto an in-scene plane instead.
+
 ---
 
 ## Song library

@@ -1,11 +1,13 @@
 // Dev-only channel to the PC (see tools/debugLogPlugin.ts). No-ops in production builds.
 // Files land in .debug/<session>.jsonl and <session>-<name>.wav.
 
-export type DebugFeature = 'tuner' | 'tuner-frames';
+export type DebugFeature = 'tuner' | 'tuner-frames' | 'library' | 'console';
 
-// Features that log this session, like DEBUG_CONSOLE_ENABLED in xr/index.ts. Empty means off.
+// Comma list from ?debug=a,b or VITE_DEBUG (put it in .env.local, no source edit to revert).
 // 'tuner-frames' is the per-frame detector stream, kept apart from the lower-volume 'tuner' events.
-const DEBUG_FEATURES: DebugFeature[] = [];
+// 'console' mirrors console output onto an in-scene plane (xr/index.ts), not the PC channel.
+const DEBUG_FEATURES = (new URLSearchParams(location.search).get('debug') ?? import.meta.env.VITE_DEBUG ?? '')
+    .split(',').map((s: string) => s.trim()).filter(Boolean);
 
 const DEV = import.meta.env.DEV;
 const SESSION = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);

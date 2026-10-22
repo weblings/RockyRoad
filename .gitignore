@@ -23,3 +23,6 @@ public/ui/*.json
 .mcp.json
 .cursor/mcp.json
 .vscode/mcp.json
+
+# Local dev toggles (VITE_DEBUG, VITE_FAKE_SONGS), see Setup.md
+.env.local

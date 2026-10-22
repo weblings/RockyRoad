@@ -56,6 +56,8 @@
     padding-left: 1;
     border-bottom-width: 0.1;
     border-color: #1e1e1e;
+    background-color: #0a0a0a;
+    z-index: 5;
   }
 
   .search-row {
@@ -333,6 +335,27 @@
     padding-left: 0.48;
     border-radius: 0.36;
   }
+  /* Fixed row under the scrolling list. Text set at runtime from __APP_VERSION__. */
+  .version-footer {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    flex-grow: 0;
+    flex-shrink: 0;
+    padding-top: 0.6;
+    padding-bottom: 0.8;
+    background-color: #0a0a0a;
+    border-bottom-left-radius: 1.2;
+    border-bottom-right-radius: 1.2;
+    z-index: 5;
+  }
+  .version-text {
+    color: #8c8c8c;
+    font-size: 1.0;
+    font-weight: medium;
+  }
+
   /* BADGE_STYLE === 'icon' variant — sized/dimmed to match desktop's 16px/40px/opacity:0.55. */
   .song-badge-icon {
     width: 1.6;
@@ -372,4 +395,8 @@
   </div>
 
   <div class="song-list" id="lib-song-list"></div>
+
+  <div class="version-footer">
+    <span id="lib-version" class="version-text">v0.0.0</span>
+  </div>
 </div>

@@ -114,5 +114,28 @@ export async function loadAllSources(remoteServerUrl: string): Promise<SourcedEn
             console.warn(`[SongSource] Failed to load "${sources[i].label}":`, r.reason);
         }
     }
+    if (import.meta.env.DEV) entries.push(...fakeEntries());
     return entries;
+}
+
+// Dev-only: VITE_FAKE_SONGS=N (npm run dev:fake) or ?fakeSongs=N appends N placeholder songs
+// to test Library scrolling. Selecting one fails to load, no song files exist behind it.
+const FAKE_PART_SETS = [['LeadGuitar'], ['LeadGuitar', 'BassGuitar'], ['Keys'], ['RhythmGuitar', 'BassGuitar']];
+
+function fakeEntries(): SourcedEntry[] {
+    const n = Number(new URLSearchParams(location.search).get('fakeSongs') ?? import.meta.env.VITE_FAKE_SONGS);
+    if (!(n > 0)) return [];
+    const source: ISongSource = { label: 'Test', getManifest: async () => [], getFileUrl: () => '', getAlbumArtUrl: () => null };
+    return Array.from({ length: n }, (_, i) => ({
+        source,
+        entry: {
+            folderPath: `fake/${i}`,
+            songName: `Test Song ${String(i + 1).padStart(2, '0')}`,
+            artistName: `Test Artist ${i + 1}`,
+            lengthSeconds: 0,
+            parts: FAKE_PART_SETS[i % FAKE_PART_SETS.length].map(type => ({
+                type, name: type.replace('Guitar', '').toLowerCase(), difficulty: i % 5,
+            })),
+        },
+    }));
 }
