@@ -87,7 +87,7 @@ export class Scene3D {
             // by the caller (xr/index.ts), so parent text sprites there instead. 2.5x size
             // since the XR volume is viewed up close, unlike desktop's screen-at-a-distance.
             this.threeScene = null;
-            this.textBatch  = new TextBatch(this.quadBatch.mesh, 2.5);
+            this.textBatch  = new TextBatch(this.quadBatch.mesh, 2.5, false);
         }
     }
 
