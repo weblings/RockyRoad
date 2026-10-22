@@ -314,10 +314,41 @@
                 "type": "svg",
                 "sourceTag": "img",
                 "properties": {
-                  "src": "play-icon.svg",
+                  "src": "tune-icon.svg",
                   "class": "icon"
                 },
                 "dataUid": "uid-33"
+              },
+              {
+                "sourceTag": "span",
+                "type": "custom",
+                "children": [
+                  "Tune"
+                ],
+                "properties": {
+                  "class": "icon-label"
+                },
+                "dataUid": "uid-34"
+              }
+            ],
+            "properties": {
+              "id": "ps-tune",
+              "class": "action-btn primary-dark"
+            },
+            "dataUid": "uid-32"
+          },
+          {
+            "sourceTag": "button",
+            "type": "custom",
+            "children": [
+              {
+                "type": "svg",
+                "sourceTag": "img",
+                "properties": {
+                  "src": "play-icon.svg",
+                  "class": "icon"
+                },
+                "dataUid": "uid-36"
               },
               {
                 "sourceTag": "span",
@@ -328,14 +359,14 @@
                 "properties": {
                   "class": "icon-label"
                 },
-                "dataUid": "uid-34"
+                "dataUid": "uid-37"
               }
             ],
             "properties": {
               "id": "ps-play",
               "class": "action-btn primary-light"
             },
-            "dataUid": "uid-32"
+            "dataUid": "uid-35"
           }
         ],
         "properties": {
@@ -954,7 +985,7 @@
         "column": 0
       },
       "end": {
-        "line": 394,
+        "line": 398,
         "column": 6
       }
     },
@@ -1224,7 +1255,7 @@
         "column": 2
       },
       "end": {
-        "line": 393,
+        "line": 397,
         "column": 8
       }
     },
@@ -1285,6 +1316,36 @@
       },
       "end": {
         "line": 391,
+        "column": 42
+      }
+    },
+    "uid-35": {
+      "start": {
+        "line": 393,
+        "column": 4
+      },
+      "end": {
+        "line": 396,
+        "column": 13
+      }
+    },
+    "uid-36": {
+      "start": {
+        "line": 394,
+        "column": 6
+      },
+      "end": {
+        "line": 394,
+        "column": 46
+      }
+    },
+    "uid-37": {
+      "start": {
+        "line": 395,
+        "column": 6
+      },
+      "end": {
+        "line": 395,
         "column": 42
       }
     }

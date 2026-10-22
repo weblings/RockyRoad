@@ -5,182 +5,208 @@
       "TimeLength": 0.75,
       "Note": 76,
       "Velocity": 50,
-      "Hand": "right"
+      "Hand": "right",
+      "EndTime": 0.75
     },
     {
       "TimeOffset": 1.125,
       "TimeLength": 0.375,
       "Note": 74,
       "Velocity": 50,
-      "Hand": "right"
+      "Hand": "right",
+      "EndTime": 1.5
     },
     {
       "TimeOffset": 1.5,
       "TimeLength": 0.375,
       "Note": 72,
       "Velocity": 50,
-      "Hand": "right"
+      "Hand": "right",
+      "EndTime": 1.875
     },
     {
       "TimeOffset": 2.25,
       "TimeLength": 0.375,
       "Note": 74,
       "Velocity": 50,
-      "Hand": "right"
+      "Hand": "right",
+      "EndTime": 2.625
     },
     {
       "TimeOffset": 3,
       "TimeLength": 0.375,
       "Note": 76,
       "Velocity": 50,
-      "Hand": "right"
+      "Hand": "right",
+      "EndTime": 3.375
     },
     {
       "TimeOffset": 3.75,
       "TimeLength": 0.375,
       "Note": 76,
       "Velocity": 50,
-      "Hand": "right"
+      "Hand": "right",
+      "EndTime": 4.125
     },
     {
       "TimeOffset": 4.5,
       "TimeLength": 0.75,
       "Note": 76,
       "Velocity": 50,
-      "Hand": "right"
+      "Hand": "right",
+      "EndTime": 5.25
     },
     {
       "TimeOffset": 5.625,
       "TimeLength": 0.375,
       "Note": 74,
       "Velocity": 50,
-      "Hand": "right"
+      "Hand": "right",
+      "EndTime": 6.0
     },
     {
       "TimeOffset": 6.375,
       "TimeLength": 0.375,
       "Note": 74,
       "Velocity": 50,
-      "Hand": "right"
+      "Hand": "right",
+      "EndTime": 6.75
     },
     {
       "TimeOffset": 7.125,
       "TimeLength": 0.75,
       "Note": 74,
       "Velocity": 50,
-      "Hand": "right"
+      "Hand": "right",
+      "EndTime": 7.875
     },
     {
       "TimeOffset": 8.25,
       "TimeLength": 0.375,
       "Note": 76,
       "Velocity": 50,
-      "Hand": "right"
+      "Hand": "right",
+      "EndTime": 8.625
     },
     {
       "TimeOffset": 9,
       "TimeLength": 0.375,
       "Note": 79,
       "Velocity": 50,
-      "Hand": "right"
+      "Hand": "right",
+      "EndTime": 9.375
     },
     {
       "TimeOffset": 9.75,
       "TimeLength": 0.75,
       "Note": 79,
       "Velocity": 50,
-      "Hand": "right"
+      "Hand": "right",
+      "EndTime": 10.5
     },
     {
       "TimeOffset": 10.875,
       "TimeLength": 0.75,
       "Note": 76,
       "Velocity": 50,
-      "Hand": "right"
+      "Hand": "right",
+      "EndTime": 11.625
     },
     {
       "TimeOffset": 12,
       "TimeLength": 0.375,
       "Note": 74,
       "Velocity": 50,
-      "Hand": "right"
+      "Hand": "right",
+      "EndTime": 12.375
     },
     {
       "TimeOffset": 12.375,
       "TimeLength": 0.375,
       "Note": 72,
       "Velocity": 50,
-      "Hand": "right"
+      "Hand": "right",
+      "EndTime": 12.75
     },
     {
       "TimeOffset": 13.125,
       "TimeLength": 0.375,
       "Note": 74,
       "Velocity": 50,
-      "Hand": "right"
+      "Hand": "right",
+      "EndTime": 13.5
     },
     {
       "TimeOffset": 13.875,
       "TimeLength": 0.375,
       "Note": 76,
       "Velocity": 50,
-      "Hand": "right"
+      "Hand": "right",
+      "EndTime": 14.25
     },
     {
       "TimeOffset": 14.625,
       "TimeLength": 0.375,
       "Note": 76,
       "Velocity": 50,
-      "Hand": "right"
+      "Hand": "right",
+      "EndTime": 15.0
     },
     {
       "TimeOffset": 15.375,
       "TimeLength": 0.375,
       "Note": 76,
       "Velocity": 50,
-      "Hand": "right"
+      "Hand": "right",
+      "EndTime": 15.75
     },
     {
       "TimeOffset": 16.125,
       "TimeLength": 0.375,
       "Note": 72,
       "Velocity": 50,
-      "Hand": "right"
+      "Hand": "right",
+      "EndTime": 16.5
     },
     {
       "TimeOffset": 16.875,
       "TimeLength": 0.375,
       "Note": 74,
       "Velocity": 50,
-      "Hand": "right"
+      "Hand": "right",
+      "EndTime": 17.25
     },
     {
       "TimeOffset": 17.625,
       "TimeLength": 0.375,
       "Note": 74,
       "Velocity": 50,
-      "Hand": "right"
+      "Hand": "right",
+      "EndTime": 18.0
     },
     {
       "TimeOffset": 18.375,
       "TimeLength": 0.75,
       "Note": 76,
       "Velocity": 50,
-      "Hand": "right"
+      "Hand": "right",
+      "EndTime": 19.125
     },
     {
       "TimeOffset": 19.125,
       "TimeLength": 0.375,
       "Note": 74,
       "Velocity": 50,
-      "Hand": "right"
+      "Hand": "right",
+      "EndTime": 19.5
     },
     {
       "TimeOffset": 19.5,
       "TimeLength": 0.375,
       "Note": 72,
       "Velocity": 50,
-      "Hand": "right"
+      "Hand": "right",
+      "EndTime": 19.875
     }
   ]
 }
