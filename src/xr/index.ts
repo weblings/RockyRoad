@@ -166,9 +166,20 @@ class HighwaySystem extends createSystem({}) {
             if (e.pointerId !== this.guitarGrabPointerId) return;
             this.guitarIsGrabbed     = false;
             this.guitarGrabPointerId = null;
+            // Persist the grabbed pose (snapping yaw to its target) so the next song reuses it.
+            guitarGrabBarHit.rotation.y = this.guitarYawCurrent = this.guitarYawTarget;
+            (this.world.globals.saveGuitarCalibration as (() => void) | undefined)?.();
             (this.input.multiPointers.left  as unknown as { ray: { visual: { enabled: boolean } } }).ray.visual.enabled = true;
             (this.input.multiPointers.right as unknown as { ray: { visual: { enabled: boolean } } }).ray.visual.enabled = true;
         });
+
+        // Placement/load sets the bar's yaw directly; without this the damping in update()
+        // would rotate it back to the stale target from the last grab (or 0).
+        this.world.globals.syncGuitarBarYaw = (): void => {
+            const yaw = guitarGrabBarHit?.rotation.y ?? 0;
+            this.guitarYawCurrent = yaw;
+            this.guitarYawTarget  = yaw;
+        };
     }
 
     update(delta: number, _time: number): void {
@@ -1099,6 +1110,8 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         const result = await loadSong(entry, partName, difficulty);
         if (!result) { showLibrary(); return; }
         const { songPlayer, sections, totalDuration, noteMin, noteMax, availableDifficulties } = result;
+        // Saved position was already loaded by the Song page, reveal it now that we're playing.
+        if (world.globals.currentPartType !== 'Keys') guitarGrabBarHit.visible = true;
         showActiveScene(entry, songPlayer, sections, totalDuration, noteMin, noteMax, availableDifficulties, difficulty, partName);
     }
 

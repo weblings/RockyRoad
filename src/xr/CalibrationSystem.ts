@@ -119,9 +119,8 @@ export class CalibrationSystem extends createSystem({}) {
 
         this.world.globals.tryLoadCalibration = (instrumentType: string): boolean => {
             if (instrumentType !== 'Keys') {
-                if (!this.loadGuitarCalibration()) return false;
-                this.setGuitarBarVisible(true);
-                return true;
+                // Loads position only, the bar is revealed once Play starts.
+                return this.loadGuitarCalibration();
             }
             if (!this.loadCalibration()) return false;
             this.reapply();
@@ -172,7 +171,9 @@ export class CalibrationSystem extends createSystem({}) {
             this.reapply();
         };
 
-        this.world.globals.setGuitarHighwayScale = (multiplier: number): void => {
+        this.world.globals.saveGuitarCalibration = (): void => this.saveGuitarCalibration();
+
+        this.world.globals.setGuitarHighwayScale =(multiplier: number): void => {
             this.applyGuitarHighwayScale(multiplier);
         };
     }
@@ -432,6 +433,7 @@ export class CalibrationSystem extends createSystem({}) {
         // Scale lives on guitarScaleNode, not the bar itself — the bar (and its
         // visual pill) must stay a constant physical size, same as the menu bar.
         this.applyGuitarHighwayScale(loadSettings().guitarHighwayScale);
+        (this.world.globals.syncGuitarBarYaw as (() => void) | undefined)?.();
     }
 
     private saveGuitarCalibration(): void {
@@ -460,6 +462,7 @@ export class CalibrationSystem extends createSystem({}) {
             // Scale is settings-driven (Settings.guitarHighwayScale), not part of
             // saved position/rotation calibration data.
             this.applyGuitarHighwayScale(loadSettings().guitarHighwayScale);
+            (this.world.globals.syncGuitarBarYaw as (() => void) | undefined)?.();
             return true;
         } catch {
             return false;
