@@ -1055,7 +1055,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
             scene.leftHandColor  = fromHex(saved.keysLeftHandColor);
 
             const firstNoteTime = rawNotes.Notes[0]?.TimeOffset ?? 0;
-            if (firstNoteTime > 0) songPlayer.seekTo(firstNoteTime);
+            if (saved.skipIntro && firstNoteTime > 0) songPlayer.seekTo(firstNoteTime);
             scene.currentSecond = songPlayer.currentSecond;
 
             highwayEntity = world.createTransformEntity(scene.mesh, {
@@ -1082,7 +1082,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         await audioLoad;
         if (!result) return null;
 
-        if (result.firstNoteTime > 0) songPlayer.seekTo(result.firstNoteTime);
+        if (saved.skipIntro && result.firstNoteTime > 0) songPlayer.seekTo(result.firstNoteTime);
 
         const totalDuration = songPlayer.duration > 0
             ? songPlayer.duration
