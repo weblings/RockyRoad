@@ -140,7 +140,7 @@ export class TunerScreen implements IScreen {
                         <div class="tuner-actions-row">
                             <button class="btn btn-dark btn-lg tuner-action-btn" id="tuner-restart">
                                 ${REPLAY_SVG}
-                                <span>Restart</span>
+                                <span>Retune</span>
                             </button>
                             <button class="btn btn-light btn-lg tuner-action-btn" id="tuner-back">
                                 ${PLAY_SVG}
