@@ -1,8 +1,8 @@
 # RockyRoad — agent instructions
 
 Three.js + WebXR note-highway music app (guitar/piano), distilled from ChartPlayer
-into TypeScript. Self-hosted; `v2/` is the current single build (desktop + XR),
-`v0/` the legacy flat build.
+into TypeScript. Self-hosted; the repo root is the single build (desktop + XR).
+The legacy flat build (`v0/`) was removed, see the `v0.2.5` tag.
 
 ## Comment style
 
@@ -25,7 +25,7 @@ exists somewhere, `find . -iname "*lesson*"` before creating one.
 
 **Part 2 of any lessons-capture pass: check docs, not just gotchas.** After filing whatever
 gotcha prompted the capture, also check whether that same session's code change made any
-README/doc (root, `v2/ARCHITECTURE.md`, `RockyRoadImport/README.md`) claim stale — a moved/removed
+README/doc (root, `ARCHITECTURE.md`, `RockyRoadImport/README.md`) claim stale — a moved/removed
 feature, a changed tech-stack detail, a broken link — and fix it in the same pass rather than
 leaving it for a later cleanup.
 
@@ -39,7 +39,7 @@ leaving it for a later cleanup.
   fails); if a failed import left an empty DB, delete `.beads/embeddeddolt/` and retry.
 - Doc-lint pre-commit hook: activate per clone with `git config core.hooksPath .beads/hooks`.
   Runs `docs/check-lessons.sh` + `docs/check-links.py` only on commits touching `docs/`,
-  skills, READMEs, AGENTS.md/CLAUDE.md/CONTRIBUTING.md, or the `v2/` slice docs (`--no-verify` bypasses).
+  skills, READMEs, AGENTS.md/CLAUDE.md/CONTRIBUTING.md, or the root slice docs (`--no-verify` bypasses).
 - Non-obvious gotchas worth saving future time: `docs/lessons/`, with `Tags:`/`Applies-when:`,
   routed by the matching `.claude/skills/` skill — check it before changing
   that area, file per `docs/lessons/README.md`.
@@ -50,13 +50,13 @@ leaving it for a later cleanup.
   relative path — see `docs/README.md`'s "Citing other docs" section for
   the full convention. New docs get an `Id:` line under the H1 at creation, not as a
   later cleanup pass. `check-links.py` scans `docs/`, `.claude/skills/`, the root
-  agent files, and the `v2/` slice docs, so keep those citers live too.
+  agent files, and the root slice docs, so keep those citers live too.
 - **Required at close, not later:** when closing a milestone bead, check its description for a
   referenced `docs/*.md` prerequisite analysis or plan. If that doc's `Status:` line
   doesn't already say shipped/superseded, correct it and move the doc to
   `docs/archive/` in this same close. A doc that fed already-shipped work and still reads as
   "exploratory" or "in progress" later is a bug, not a style choice.
-- **Slice docs** (`v2/ARCHITECTURE.md`, `v2/Setup.md`) carry only what doesn't go stale:
+- **Slice docs** (`ARCHITECTURE.md`, `Setup.md`) carry only what doesn't go stale:
   what the slice is, entry points, slice-specific build toggles, keep-in-sync invariants,
   and `[[id]]` pointers. No status or "not yet built" sections — that lives in `Status:`
   lines, beads, and `docs/log/`. When closing a bead that changes what a slice does or how

@@ -65,7 +65,7 @@ _repo_root=$(git rev-parse --show-toplevel)
 _docs_touched=0
 for _f in $(git diff --cached --name-only); do
   case "$_f" in
-    docs/*|.claude/skills/*|*/README.md|*/CLAUDE.md|README.md|AGENTS.md|CLAUDE.md|CONTRIBUTING.md|v2/ARCHITECTURE.md|v2/Setup.md)
+    docs/*|.claude/skills/*|*/README.md|*/CLAUDE.md|README.md|AGENTS.md|CLAUDE.md|CONTRIBUTING.md|ARCHITECTURE.md|Setup.md)
       _docs_touched=1
       break
       ;;

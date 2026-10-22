@@ -99,7 +99,7 @@ Open (recommendations inline):
    Done when: `grep -L '^Id:' docs/**/*.md` lists only lessons files, READMEs, INDEX files.
 4. **Port the scripts.** Copy Aurora's `check-links.py` (not RockyRoadImport's older `.sh` copy) and
    `check-lessons.sh`. Empty `GRANDFATHERED`; point the extra-citer scan at this repo's
-   outside-`docs/` files (`README.md`, AGENTS.md, `CLAUDE.md`, `v2/ARCHITECTURE.md`, `v2/Setup.md`).
+   outside-`docs/` files (`README.md`, AGENTS.md, `CLAUDE.md`, `ARCHITECTURE.md`, `Setup.md`).
    Make `check-lessons.sh` recurse into subdirs and check counts against the index that lists each file
    (`lessons/README.md` or `<subdir>/INDEX.md`). Run `check-links.py` twice (first run generates `_ids.md`).
    Done when: both green.
@@ -135,7 +135,7 @@ Open (recommendations inline):
    Add Aurora's `SessionStart` hook (`bd prime --hook-json`) to a tracked `.claude/settings.json` if
    `bd init` didn't, so Claude sessions load the clone's memories. Replace `CLAUDE.md` with Aurora's pointer stub.
    Done when: no rule from the old `CLAUDE.md` is lost (diff them side by side).
-10. **Sweep other docs + memory.** Root `README.md`, `v2/ARCHITECTURE.md`, `v2/Setup.md`: fix `Analysis/`
+10. **Sweep other docs + memory.** Root `README.md`, `ARCHITECTURE.md`, `Setup.md`: fix `Analysis/`
     and `ThreeCP` path refs. Check the Claude memory dir for `Analysis/` paths. Check RockyRoadImport and
     Aurora for citers of this repo's old paths (Aurora's grandfathered `RockyRoad/docs/...` entries can
     then be dropped — separate repo, separate change).
@@ -144,8 +144,8 @@ Open (recommendations inline):
 11. **Wire the checkers into pre-commit.** Last, so the hook doesn't block the migration's own
     in-progress commits. Copy Aurora's `PROJECT DOC-LINT HOOKS` block from its `.beads/hooks/pre-commit`
     (below the beads markers): runs both scripts only when staged paths touch `docs/`, `.claude/skills/`,
-    a `README.md`/`CLAUDE.md`, or AGENTS.md, and re-stages `docs/_ids.md`. Add `v2/ARCHITECTURE.md` and
-    `v2/Setup.md` to its path filter.
+    a `README.md`/`CLAUDE.md`, or AGENTS.md, and re-stages `docs/_ids.md`. Add `ARCHITECTURE.md` and
+    `Setup.md` to its path filter.
     - **Activate per clone:** Aurora's Linux checkout has the hooks tracked but inactive (`core.hooksPath`
       unset, `.git/hooks/` only samples, 2026-10-08), so they never run there. Set
       `git config core.hooksPath .beads/hooks`, document it in AGENTS.md, and file the same fix as an Aurora bead.

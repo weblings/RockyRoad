@@ -40,7 +40,7 @@ Applies-when: needing console output from the app on a Quest headset
 **Problem:** `console.log` output from a WebXR app running in Meta Quest Browser is not accessible — no DevTools on-device and the Quest can't inspect itself.
 
 **Preferred solution — in-scene debug console:** flip `DEBUG_CONSOLE_ENABLED` to `true` near the
-top of `v2/src/xr/index.ts`. This monkey-patches `console.log`/`warn`/`error` and
+top of `src/xr/index.ts`. This monkey-patches `console.log`/`warn`/`error` and
 `window.onerror`/`unhandledrejection` to also draw each line onto a `CanvasTexture` plane in the
 scene, readable directly in-headset. No USB/ADB, no external dependency, works every time. Flip it
 back to `false` when done — it's off by default.
@@ -197,4 +197,4 @@ Applies-when: a headset-only problem needs more data than a person can read off 
 
 **Symptom:** Reading values off the in-headset console and retyping them does not scale to per-frame detector output or raw audio.
 
-**Fix:** `tools/debugLogPlugin.ts` adds `POST /__debug/log` (JSON lines to `v2/.debug/<session>.jsonl`) and `POST /__debug/audio` (Int16 PCM saved as a playable `.wav`). `shared/DebugLog.ts` batches lines once a second and is a no-op outside `import.meta.env.DEV` and for any feature not listed in its `DEBUG_FEATURES` constant (empty by default, so add e.g. `'tuner'` or `'tuner-frames'` while investigating). The tuner logs every frame and records up to 90 s of raw mic per visit. Give each capture a unique name, or a later upload overwrites it. Replay `.wav` files offline against detector variants instead of going back into the headset.
+**Fix:** `tools/debugLogPlugin.ts` adds `POST /__debug/log` (JSON lines to `.debug/<session>.jsonl`) and `POST /__debug/audio` (Int16 PCM saved as a playable `.wav`). `shared/DebugLog.ts` batches lines once a second and is a no-op outside `import.meta.env.DEV` and for any feature not listed in its `DEBUG_FEATURES` constant (empty by default, so add e.g. `'tuner'` or `'tuner-frames'` while investigating). The tuner logs every frame and records up to 90 s of raw mic per visit. Give each capture a unique name, or a later upload overwrites it. Replay `.wav` files offline against detector variants instead of going back into the headset.

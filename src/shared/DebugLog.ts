@@ -1,5 +1,5 @@
 // Dev-only channel to the PC (see tools/debugLogPlugin.ts). No-ops in production builds.
-// Files land in v2/.debug/<session>.jsonl and <session>-<name>.wav.
+// Files land in .debug/<session>.jsonl and <session>-<name>.wav.
 
 export type DebugFeature = 'tuner' | 'tuner-frames';
 

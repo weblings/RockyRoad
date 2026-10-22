@@ -1,7 +1,7 @@
 # Contributing to RockyRoad
 
-Environment setup (Node, HTTPS certs, dev server) lives in [v2/Setup.md](v2/Setup.md); how the
-app is put together in [v2/ARCHITECTURE.md](v2/ARCHITECTURE.md). This file covers the workflow
+Environment setup (Node, HTTPS certs, dev server) lives in [Setup.md](Setup.md); how the
+app is put together in [ARCHITECTURE.md](ARCHITECTURE.md). This file covers the workflow
 around the code. Coding agents: the full rules are in [AGENTS.md](AGENTS.md).
 
 ## Tasks: beads, not TODO lists
@@ -37,7 +37,7 @@ git config core.hooksPath .beads/hooks
 ```
 
 On commits touching `docs/`, `.claude/skills/`, READMEs, `AGENTS.md`/`CLAUDE.md`/
-`CONTRIBUTING.md`, or the `v2/` slice docs, the hook runs `docs/check-lessons.sh` and
+`CONTRIBUTING.md`, or the root slice docs, the hook runs `docs/check-lessons.sh` and
 `docs/check-links.py`. Run them by hand mid-change too; `--no-verify` bypasses.
 
 ## Docs
@@ -53,5 +53,5 @@ On commits touching `docs/`, `.claude/skills/`, READMEs, `AGENTS.md`/`CLAUDE.md`
 
 ## Quality gates
 
-- `npm run build` in `v2/` (bake + `tsc` + Vite build) must pass before finishing.
+- `npm run build` (bake + `tsc` + Vite build) must pass before finishing.
 - Check the change in the running app (`npm run dev`) — there's no automated test suite.
