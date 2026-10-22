@@ -1,5 +1,9 @@
-v0.2.6:
-- Fix: Piano long held notes render correctly. Sample songs updated.
+v0.3.0:
+- Guitar Tuning - Desktop - Tuning logic from v0 updated to the new design system
+- Guitar Tuning - XR - Compact tuning UI added. For Quest (target platform) this feature requires a USB mic and Bluetooth audio. Microphone permission must also be enabled for Browser and the website.
+- Dev - Now that v2 replicates all of v0 logic, v0 folder has been removed (can still be accessed on v0.2.5 branch). v2 contents have been brought to repo root
+- Dev - docs, Lessons, Logs, and Task Tracking (beads) system from Aurora adopted
+- More fixes and UX polish
 
 v0.2.5:
 - Added a README and created a logo
