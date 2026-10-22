@@ -45,6 +45,7 @@ import { CountdownTimer } from "../shared/CountdownTimer";
 import { CalibrationSystem } from "./CalibrationSystem";
 import { XRSongLibrary } from "./XRSongLibrary";
 import { loadAllSources, type SourcedEntry } from "../shared/SongSource";
+import { debugOn } from "../shared/DebugLog";
 import { XRPreScene } from "./XRPreScene";
 import { XRTunerScene } from "./XRTunerScene";
 import { showMicSiteBlockedToast } from "./MicPermission";
@@ -62,7 +63,7 @@ import type {
 // has proven unreliable. Plain CanvasTexture, not uikit — deliberately
 // independent of anything it might be used to debug. See the
 // "Debugging JS console from Quest Browser on PC" lesson.
-const DEBUG_CONSOLE_ENABLED = false;
+const DEBUG_CONSOLE_ENABLED = debugOn('console');
 
 const debugLines: string[] = [];
 const DEBUG_MAX_LINES = 22;

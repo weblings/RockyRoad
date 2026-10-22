@@ -2,6 +2,8 @@ import type { Entity, UIKitDocument } from "@iwsdk/core";
 import { PanelDocument, UIKit } from "@iwsdk/core";
 import type { SourcedEntry } from "../shared/SongSource";
 import { BADGE_LABELS, BADGE_ICONS, BADGE_STYLE } from "../shared/InstrumentSelect";
+import { debugLog, debugOn } from "../shared/DebugLog";
+import type { Vector3 } from "three";
 
 // uikit-based (see ui/library.uikitml), migrated off html2canvas — same idiom as
 // XRSettingsScene.ts/XRActiveScene.ts: poll for the PanelDocument once, then wire
@@ -25,17 +27,30 @@ const SORT_OPTIONS = [
 
 type SortValue = (typeof SORT_OPTIONS)[number]['value'];
 
-// Rows append a few frames at a time, not all at once — avoids a confirmed Yoga bug
+// Rows append a batch per ~16ms, not all at once — avoids a confirmed Yoga bug
 // where a burst of brand-new text glyphs corrupts an unrelated element's layout
 // elsewhere in the doc (see the lesson "A burst of brand-new text on one element can
 // corrupt an unrelated element's layout elsewhere in the same document").
 const ROW_BATCH_SIZE = 12;
+
+// Pointer travel (world units, m) past which a press counts as a scroll drag, not a tap.
+const DRAG_CLICK_THRESHOLD = 0.015;
 
 function truncate(s: string, max: number): string {
     return s.length > max ? s.slice(0, max - 3) + '...' : s;
 }
 
 type UIKitContainer = InstanceType<typeof UIKit.Container>;
+
+// uikit's scroll() tags the event's nativeEvent "already scrolled" once the position is >5 from
+// both ends, and XR reuses that object, so every later drag reads delta 0. Clear it each step.
+function clearWasScrolled(e?: { nativeEvent?: object }): void {
+    const ne = e?.nativeEvent;
+    if (!ne) return;
+    for (const s of Object.getOwnPropertySymbols(ne)) {
+        if (s.description === 'was-scrolled') delete (ne as Record<symbol, unknown>)[s];
+    }
+}
 
 export class XRSongLibrary {
     private entries: SourcedEntry[];
@@ -45,6 +60,9 @@ export class XRSongLibrary {
     private searchQuery = '';
 
     private _doc: UIKitDocument | null = null;
+    private _layoutWatch: ReturnType<typeof setInterval> | null = null;
+    private _presses = new Map<number, { row: string; moves: number; start: Vector3 | null; dragged: boolean }>();
+    private _swallowClick = false;
     private _rowNodes: UIKitContainer[] = [];
     private _rebuildToken = 0;
 
@@ -119,9 +137,35 @@ export class XRSongLibrary {
             if (!searchTextEl.classList.contains(addClass)) searchTextEl.classList.add(addClass);
         }
 
+        doc.getElementById('lib-version')?.setProperties({ text: `v${__APP_VERSION__}` });
+
         // ── Song list ────────────────────────────────────────────────────────
         const list = doc.getElementById('lib-song-list') as UIKitContainer | null;
+        list?.setProperties({ onScroll: (_x: number, _y: number, _pos: unknown, e?: { nativeEvent?: object }) => clearWasScrolled(e) });
         if (list) this._rebuildRows(list, this._getFiltered(), onSelect);
+        if (list && debugOn('library')) this._watchListLayout(list);
+    }
+
+    // Logs the list's size, scroll range/position and stuck pointers whenever any change.
+    // downPointerMap stuck above 0 after a release points at the pointer-capture wedge,
+    // a max that stops short of the rows points at layout corruption.
+    private _watchListLayout(list: UIKitContainer): void {
+        if (this._layoutWatch) return;
+        const l = list as unknown as {
+            size: { value?: number[] }; maxScrollPosition: { value?: number[] };
+            scrollPosition: { value?: number[] }; downPointerMap: Map<number, unknown>;
+            clippingRect: { value?: unknown };
+        };
+        const r = (a?: number[]) => a?.map(n => Math.round(n * 10) / 10);
+        let last = '';
+        this._layoutWatch = setInterval(() => {
+            const snap = {
+                rows: this._rowNodes.length, size: r(l.size.value), max: r(l.maxScrollPosition.value),
+                pos: r(l.scrollPosition.value), down: l.downPointerMap.size, clip: l.clippingRect.value != null,
+            };
+            const key = JSON.stringify(snap);
+            if (key !== last) { last = key; debugLog('library', 'list-layout', snap); }
+        }, 500);
     }
 
     // classList.remove() warns if the class isn't currently present — guard
@@ -164,13 +208,49 @@ export class XRSongLibrary {
                 list.add(row);
                 this._rowNodes.push(row);
             }
-            if (i < entries.length) requestAnimationFrame(appendBatch);
+            // Not requestAnimationFrame: window rAF stalls while an XR session is presenting.
+            if (i < entries.length) setTimeout(appendBatch, 16);
         };
         appendBatch();
     }
 
+    // A press stays captured on the card it started on, so releasing after a scroll drag still
+    // synthesizes a click. Track pointer travel and swallow that click. Rows fire before the
+    // list's own scroll handlers, which stop propagation. Logs press/move/end under debug 'library'.
+    private _rowHandlers(sourced: SourcedEntry, onSelect: (sourced: SourcedEntry) => void): Record<string, unknown> {
+        const row = sourced.entry.songName;
+        type Ev = { pointerId?: number; point?: Vector3 };
+        // 'pl' (leaving a row mid-drag) keeps the press open so later moves still count.
+        const end = (ev: string) => (e: Ev) => {
+            const p = this._presses.get(e.pointerId ?? -1);
+            if (!p) return;
+            if (ev !== 'pl') { this._presses.delete(e.pointerId ?? -1); this._swallowClick = p.dragged; }
+            debugLog('library', ev, { id: e.pointerId, row, startRow: p.row, moves: p.moves, dragged: p.dragged });
+        };
+        return {
+            onClick: () => {
+                if (this._swallowClick) { this._swallowClick = false; return; }
+                onSelect(sourced);
+            },
+            onPointerDown: (e: Ev) => {
+                this._swallowClick = false;
+                this._presses.set(e.pointerId ?? -1, { row, moves: 0, start: e.point?.clone() ?? null, dragged: false });
+                debugLog('library', 'pd', { id: e.pointerId, row });
+            },
+            onPointerMove: (e: Ev) => {
+                const p = this._presses.get(e.pointerId ?? -1);
+                if (!p) return;
+                p.moves++;
+                if (p.start && e.point && e.point.distanceTo(p.start) > DRAG_CLICK_THRESHOLD) p.dragged = true;
+            },
+            onPointerUp: end('pu'),
+            onPointerLeave: end('pl'),
+            onPointerCancel: end('pc'),
+        };
+    }
+
     private _buildRow(sourced: SourcedEntry, onSelect: (sourced: SourcedEntry) => void): UIKitContainer {
-        const row = new UIKit.Container({ onClick: () => onSelect(sourced) }, ['song-entry']);
+        const row = new UIKit.Container(this._rowHandlers(sourced, onSelect), ['song-entry']);
 
         const artThumb = new UIKit.Container({}, ['song-art-thumb']);
         const artUrl = sourced.source.getAlbumArtUrl(sourced.entry);

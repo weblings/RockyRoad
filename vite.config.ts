@@ -1,13 +1,17 @@
 import { iwsdkDev }     from "@iwsdk/vite-plugin-dev";
 import { compileUIKit } from "@iwsdk/vite-plugin-uikitml";
 import { defineConfig } from "vite";
+import { readFileSync } from "node:fs";
 import mkcert           from "vite-plugin-mkcert";
 import { debugLogPlugin } from "./tools/debugLogPlugin";
+
+const { version } = JSON.parse(readFileSync("./package.json", "utf-8"));
 
 export default defineConfig(({ mode }) => {
   const deviceMode = mode === "device";
 
   return {
+    define: { __APP_VERSION__: JSON.stringify(version) },
     plugins: [
       mkcert(),
       debugLogPlugin("./.debug"),

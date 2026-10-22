@@ -217,3 +217,18 @@ Applies-when: a card wants a button that jumps the user to a Settings screen
 **Root cause:** Meta documents `systemux://` for installed native apps only. A web page may not navigate to `chrome://`. Tried on Quest: `location.href`, a clicked `<a>`, `window.open` and an `intent://` URL, all with no effect.
 
 **Fix:** Show the written path instead. The Browser's own settings open as a separate browser tab and reach the same Allowed and Not Allowed list at Settings > Privacy and Security > Website Permissions > Microphone (or Settings > Site Settings > Microphone through `chrome://settings` typed by hand). Do not add a jump button.
+
+---
+
+## window.requestAnimationFrame stalls while an XR session is presenting
+Tags: webxr, requestAnimationFrame, setTimeout, xr-session
+Applies-when: work scheduled with rAF stops or lags only while in XR
+
+**Symptom:** Returning to Library mid-session built only the first 12 song rows and the rest appeared
+about 7 seconds later. Rows were appended one batch per `requestAnimationFrame`.
+
+**Root cause:** the page's rAF is paused while an immersive session presents. The first build ran before
+entering XR, so it looked fine.
+
+**Fix:** schedule with `setTimeout` (batches use 16 ms in `XRSongLibrary.ts`), or the session's own loop,
+for anything that must run in XR.

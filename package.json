@@ -1,12 +1,14 @@
 {
   "name": "Rocky Road",
-  "version": "0.2.5",
+  "version": "0.3.0",
   "private": true,
   "license": "GPL-3.0-or-later",
   "type": "module",
   "scripts": {
     "dev": "npm run bake && concurrently -n vite,songs -c blue,green \"vite\" \"npm:serve-songs\"",
     "dev:device": "npm run bake && concurrently -n vite,songs -c blue,green \"vite --mode device\" \"npm:serve-songs\"",
+    "dev:fake": "cross-env VITE_FAKE_SONGS=30 npm run dev",
+    "dev:device:fake": "cross-env VITE_FAKE_SONGS=30 npm run dev:device",
     "dev:demo": "cross-env VITE_DEMO_MODE=true npm run dev",
     "build": "npm run bake && tsc && vite build",
     "build:demo": "cross-env VITE_DEMO_MODE=true npm run build",

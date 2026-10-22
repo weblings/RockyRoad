@@ -198,3 +198,15 @@ Applies-when: a headset-only problem needs more data than a person can read off 
 **Symptom:** Reading values off the in-headset console and retyping them does not scale to per-frame detector output or raw audio.
 
 **Fix:** `tools/debugLogPlugin.ts` adds `POST /__debug/log` (JSON lines to `.debug/<session>.jsonl`) and `POST /__debug/audio` (Int16 PCM saved as a playable `.wav`). `shared/DebugLog.ts` batches lines once a second and is a no-op outside `import.meta.env.DEV` and for any feature not listed in its `DEBUG_FEATURES` constant (empty by default, so add e.g. `'tuner'` or `'tuner-frames'` while investigating). The tuner logs every frame and records up to 90 s of raw mic per visit. Give each capture a unique name, or a later upload overwrites it. Replay `.wav` files offline against detector variants instead of going back into the headset.
+
+---
+
+## Dev-only toggles go in env vars and a git-ignored .env.local, not consts edited and reverted
+Tags: vite, env, debug, dev-toggle, headset
+Applies-when: adding a temporary debug flag or test fixture that has to reach a headset
+
+A const flag needs editing and reverting around every commit, and a URL param is awkward to type in a
+headset browser. `VITE_DEBUG` (comma list of features in `DebugLog.ts`) and `VITE_FAKE_SONGS=N` read from
+`import.meta.env`, so a git-ignored `.env.local` (restart the dev server) reaches every client, and
+`?debug=` / `?fakeSongs=` override per page. Keep each behind `import.meta.env.DEV` and grep `dist/` after a
+build to confirm none of it ships. See `Setup.md`.
