@@ -42,7 +42,13 @@ const DEFAULTS: Settings = {
 export function loadSettings(): Settings {
     try {
         const raw = localStorage.getItem(SETTINGS_KEY);
-        if (raw) return { ...DEFAULTS, ...JSON.parse(raw) };
+        if (raw) {
+            const s: Settings = { ...DEFAULTS, ...JSON.parse(raw) };
+            // Pure black is an unpopulated color input, not a user choice.
+            if (!s.keysRightHandColor || s.keysRightHandColor.toLowerCase() === '#000000') s.keysRightHandColor = DEFAULTS.keysRightHandColor;
+            if (!s.keysLeftHandColor  || s.keysLeftHandColor.toLowerCase()  === '#000000') s.keysLeftHandColor  = DEFAULTS.keysLeftHandColor;
+            return s;
+        }
     } catch { /* corrupt data — fall through to defaults */ }
     return { ...DEFAULTS };
 }

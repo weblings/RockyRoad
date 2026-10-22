@@ -11,12 +11,16 @@ const FONT_SIZE_PX  = 48;   // px — fits within CANVAS_HEIGHT with a few px pa
 export const TEXT_WORLD_UNITS_PER_SCALE = 25;
 
 export class TextBatch {
-    private readonly pool: THREE.Sprite[];
+    private readonly pool: (THREE.Sprite | THREE.Mesh)[];
     private used = 0;
 
     // Cache keyed by "text:r,g,b,a" — bakes colour and alpha into the canvas texture.
     // Fret numbers (0-24) and common chord names are reused every frame at zero cost.
-    private readonly matCache = new Map<string, THREE.SpriteMaterial>();
+    private readonly matCache = new Map<string, THREE.SpriteMaterial | THREE.MeshBasicMaterial>();
+
+    // false: flat quads facing +z of the parent, so labels keep a fixed orientation
+    // instead of following the headset like a Sprite.
+    private readonly billboard: boolean;
 
     private readonly sizeMultiplier: number;
     private readonly canvasHeight: number;
@@ -26,17 +30,21 @@ export class TextBatch {
     // into IWSDK's own scene graph) — Scene extends Object3D, so either works.
     // sizeMultiplier scales both world size and the source canvas resolution
     // together, so text stays crisp instead of just stretching a small texture.
-    constructor(parent: THREE.Object3D, sizeMultiplier = 1) {
+    constructor(parent: THREE.Object3D, sizeMultiplier = 1, billboard = true) {
         this.sizeMultiplier = sizeMultiplier;
         this.canvasHeight   = CANVAS_HEIGHT * sizeMultiplier;
         this.fontSizePx     = FONT_SIZE_PX * sizeMultiplier;
+        this.billboard      = billboard;
 
         this.pool = [];
         for (let i = 0; i < POOL_SIZE; i++) {
-            const spr = new THREE.Sprite(
-                // Placeholder material — overwritten before each sprite is shown
-                new THREE.SpriteMaterial({ transparent: true, depthWrite: false, depthTest: false }),
-            );
+            // Placeholder material — overwritten before each label is shown
+            const spr = billboard
+                ? new THREE.Sprite(new THREE.SpriteMaterial({ transparent: true, depthWrite: false, depthTest: false }))
+                : new THREE.Mesh(
+                    new THREE.PlaneGeometry(1, 1),
+                    new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false, depthTest: false }),
+                );
             spr.visible = false;
             spr.frustumCulled = false;
             // No-op raycast: IWSDK's pointer-ray walks the whole scene graph regardless of
@@ -73,7 +81,6 @@ export class TextBatch {
         const spr = this.pool[this.used++];
         spr.material = mat;
         spr.position.copy(position);
-
         // scaleOverride lets a call site pick its own world-space size independent
         // of the instance's raster resolution (fontSizePx/canvasHeight stay fixed
         // to this.sizeMultiplier — only the on-screen scale changes, so nothing blurs).
@@ -83,11 +90,12 @@ export class TextBatch {
         spr.scale.set(worldHeight * aspect, worldHeight, 1);
 
         // center is in [0,1] UV space: (0.5,0.5)=centred, (1.0,0.5)=right-edge at position
-        spr.center.set(rightAlign ? 1.0 : 0.5, 0.5);
+        if (spr instanceof THREE.Sprite) spr.center.set(rightAlign ? 1.0 : 0.5, 0.5);
+        else if (rightAlign) spr.position.x -= worldHeight * aspect / 2;
         spr.visible = true;
     }
 
-    private buildMaterial(text: string, color: UIColor): THREE.SpriteMaterial {
+    private buildMaterial(text: string, color: UIColor): THREE.SpriteMaterial | THREE.MeshBasicMaterial {
         // canvas.width must be set before drawing; setting it resets the context state.
         // So: create canvas → measure text width → resize → re-set font → draw.
         const canvas = document.createElement("canvas");
@@ -116,12 +124,10 @@ export class TextBatch {
         ctx.fillText(text, padding, this.canvasHeight / 2);
 
         const texture = new THREE.CanvasTexture(canvas);
-        return new THREE.SpriteMaterial({
-            map: texture,
-            transparent: true,
-            depthWrite: false,
-            depthTest: false,
-        });
+        const params = { map: texture, transparent: true, depthWrite: false, depthTest: false };
+        return this.billboard
+            ? new THREE.SpriteMaterial(params)
+            : new THREE.MeshBasicMaterial({ ...params, side: THREE.DoubleSide });
     }
 
     destroy(): void {

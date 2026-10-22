@@ -41,6 +41,7 @@ import { KeysPlayerScene3D } from "../shared/KeysPlayerScene3D";
 import { FretPlayerScene3D } from "../shared/FretPlayerScene3D";
 import { resolveNotesForDifficulty } from "../shared/DifficultyResolve";
 import { SongPlayer } from "../shared/SongPlayer";
+import { CountdownTimer } from "../shared/CountdownTimer";
 import { CalibrationSystem } from "./CalibrationSystem";
 import { XRSongLibrary } from "./XRSongLibrary";
 import { loadAllSources, type SourcedEntry } from "../shared/SongSource";
@@ -165,9 +166,20 @@ class HighwaySystem extends createSystem({}) {
             if (e.pointerId !== this.guitarGrabPointerId) return;
             this.guitarIsGrabbed     = false;
             this.guitarGrabPointerId = null;
+            // Persist the grabbed pose (snapping yaw to its target) so the next song reuses it.
+            guitarGrabBarHit.rotation.y = this.guitarYawCurrent = this.guitarYawTarget;
+            (this.world.globals.saveGuitarCalibration as (() => void) | undefined)?.();
             (this.input.multiPointers.left  as unknown as { ray: { visual: { enabled: boolean } } }).ray.visual.enabled = true;
             (this.input.multiPointers.right as unknown as { ray: { visual: { enabled: boolean } } }).ray.visual.enabled = true;
         });
+
+        // Placement/load sets the bar's yaw directly; without this the damping in update()
+        // would rotate it back to the stale target from the last grab (or 0).
+        this.world.globals.syncGuitarBarYaw = (): void => {
+            const yaw = guitarGrabBarHit?.rotation.y ?? 0;
+            this.guitarYawCurrent = yaw;
+            this.guitarYawTarget  = yaw;
+        };
     }
 
     update(delta: number, _time: number): void {
@@ -846,9 +858,9 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     // back into Play HUD once the timer elapses. Also hides the in-scene
     // countdown overlay immediately, since HighwaySystem.update() otherwise
     // keeps it visible/updating regardless of which screen is showing.
-    let countdownGen = 0;
+    const countdown = new CountdownTimer();
     function cancelCountdown(): void {
-        countdownGen++;
+        countdown.cancel();
         world.globals.countdownN = undefined;
     }
     // Exposed so CalibrationSystem.ts (a separately-registered ECS system,
@@ -1055,7 +1067,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
             scene.leftHandColor  = fromHex(saved.keysLeftHandColor);
 
             const firstNoteTime = rawNotes.Notes[0]?.TimeOffset ?? 0;
-            if (firstNoteTime > 0) songPlayer.seekTo(firstNoteTime);
+            if (saved.skipIntro && firstNoteTime > 0) songPlayer.seekTo(firstNoteTime);
             scene.currentSecond = songPlayer.currentSecond;
 
             highwayEntity = world.createTransformEntity(scene.mesh, {
@@ -1082,7 +1094,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         await audioLoad;
         if (!result) return null;
 
-        if (result.firstNoteTime > 0) songPlayer.seekTo(result.firstNoteTime);
+        if (saved.skipIntro && result.firstNoteTime > 0) songPlayer.seekTo(result.firstNoteTime);
 
         const totalDuration = songPlayer.duration > 0
             ? songPlayer.duration
@@ -1098,6 +1110,8 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
         const result = await loadSong(entry, partName, difficulty);
         if (!result) { showLibrary(); return; }
         const { songPlayer, sections, totalDuration, noteMin, noteMax, availableDifficulties } = result;
+        // Saved position was already loaded by the Song page, reveal it now that we're playing.
+        if (world.globals.currentPartType !== 'Keys') guitarGrabBarHit.visible = true;
         showActiveScene(entry, songPlayer, sections, totalDuration, noteMin, noteMax, availableDifficulties, difficulty, partName);
     }
 
@@ -1301,16 +1315,14 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
 
         world.globals.rollbackState = { from: pausedAt, to: resumeAt, startMs: performance.now() };
 
-        const myGen = ++countdownGen;
-        world.globals.countdownN = 3;
-        setTimeout(() => { if (countdownGen === myGen) world.globals.countdownN = 2; }, 1000);
-        setTimeout(() => { if (countdownGen === myGen) world.globals.countdownN = 1; }, 2000);
-        setTimeout(() => {
-            if (countdownGen !== myGen) return;
-            world.globals.countdownN = undefined;
-            songPlayer.play();
-            showActiveScene(entry, songPlayer, sections, totalDuration, noteMin, noteMax, availableDifficulties, initialDifficulty, partName);
-        }, 3000);
+        countdown.start(
+            n => { world.globals.countdownN = n; },
+            () => {
+                world.globals.countdownN = undefined;
+                songPlayer.play();
+                showActiveScene(entry, songPlayer, sections, totalDuration, noteMin, noteMax, availableDifficulties, initialDifficulty, partName);
+            },
+        );
     }
 
     // ── Screens ───────────────────────────────────────────────────────────────
