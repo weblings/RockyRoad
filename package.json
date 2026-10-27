@@ -38,6 +38,9 @@
     "vite": "^7.1.4",
     "vite-plugin-mkcert": "^1.17.0"
   },
+  "overrides": {
+    "@modelcontextprotocol/sdk": "^1.32.2"
+  },
   "engines": {
     "node": ">=20.19.0"
   }
