@@ -1,3 +1,6 @@
+v0.3.1:
+- Dev - Dependency security updates (MCP SDK 1.32, sharp 0.35.5 and npm audit fixes), a fresh npm install now reports 0 vulnerabilities
+
 v0.3.0:
 - Guitar Tuning - Desktop - Tuning logic from v0 updated to the new design system
 - Guitar Tuning - XR - Compact tuning UI added. For Quest (target platform) this feature requires a USB mic and Bluetooth audio. Microphone permission must also be enabled for Browser and the website.
