@@ -18,6 +18,7 @@ every run. Human lookup for `[[id]]` citations elsewhere in `docs/`.
 | `combined-project-plan` | [archive/CombinedProjectPlan.md](archive/CombinedProjectPlan.md) | Combined Project Plan — v1 + XRProto → Single Build |
 | `files-out-of-scope` | [archive/FilesOutOfScope.md](archive/FilesOutOfScope.md) | Files Out of Scope — Conversion Notes |
 | `implementation-plan` | [planning/ImplementationPlan.md](planning/ImplementationPlan.md) | ChartPlayer → Three.js Implementation Plan |
+| `keyboard-midi-input` | [planning/KeyboardMidiInput.md](planning/KeyboardMidiInput.md) | Keyboard MIDI input |
 | `lesson-desktop-dom` | [lessons/desktop-dom.md](lessons/desktop-dom.md) | Desktop DOM/CSS |
 | `lesson-engine-dev-environment` | [lessons/engine/dev-environment.md](lessons/engine/dev-environment.md) | Engine — dev environment and debugging setup |
 | `lesson-engine-runtime-apis` | [lessons/engine/runtime-apis.md](lessons/engine/runtime-apis.md) | Engine — IWSDK / Three.js / Web Audio API facts |
