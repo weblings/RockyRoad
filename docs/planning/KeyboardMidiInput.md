@@ -1,7 +1,8 @@
 # Keyboard MIDI input
 
 Id: keyboard-midi-input
-Status: exploratory, researched 2026-10-30. No library or approach chosen. Tracked by RockyRoad-b74.
+Status: exploratory. Researched 2026-10-30. Quest Browser test passed 2026-11-06. No approach
+chosen, native Web MIDI needed no library in the test. Tracked by RockyRoad-b74.
 
 Research into open-source TypeScript or WASM options for detecting which key is pressed on an
 88-key keyboard connected over USB. Feeds the keys-score exploration in RockyRoad-b74. The drum
@@ -38,20 +39,45 @@ No WASM option reaches USB directly. In a browser everything goes through Web MI
 | Firefox (desktop, 108+) | Yes | Confirmed by several sources |
 | Firefox (Android) | No | One source |
 | Safari | Conflicting | Low. One 2026 blog says 18+, the WebKit bug is still open |
-| Meta Quest Browser | Unknown | Nothing found |
+| Meta Quest Browser | Yes, tested 2026-11-06 | Confirmed on hardware (flat page, not an XR session) |
 
-No source says a USB keyboard plugged into a Quest headset works through Web MIDI. Existing Quest
-piano projects ([quest-piano](https://github.com/geniusbugra/quest-piano),
-[VRtuos](https://vrtuos.eu/)) route MIDI through a PC companion.
+Existing Quest piano projects ([quest-piano](https://github.com/geniusbugra/quest-piano),
+[VRtuos](https://vrtuos.eu/)) route MIDI through a PC companion. The test below shows that isn't
+required for a keyboard plugged into the headset.
+
+## Quest test, 2026-11-06
+
+Page: `midi-test.html` + `src/midiTest.ts`, served by `npm run dev:device`. `?debug=midi` streams
+events to `.debug/<session>.jsonl`. Quest 3, OculusBrowser 156 (Chrome 156), secure context.
+
+- Web MIDI is present and prompts for permission. The keyboard (FOLDING PIANO) showed as one
+  input and one output. Hot-plug `statechange` events fire.
+- This keyboard sends Note On `0x90` and a real Note Off `0x80`. Others may send Note On with
+  velocity 0, so treat both as release.
+- A0 (note 21) gave key index 0 and C8 (note 108) gave key index 87, so `note - 21` holds.
+- The first `?debug=midi` runs logged no `message` events for an unknown reason. After the keyboard
+  was unplugged and the page refreshed, keys logged correctly. Not reproduced or explained.
+- Unplugging the keyboard once hard-crashed the headset. The keyboard was drawing power from the
+  headset. Cause unknown, not reproduced, and outside the app's control. Setup docs should
+  consider a powered hub or self-powered keyboard.
+
+## Design implications
+
+- Native Web MIDI is enough. A wrapper (WEBMIDI.js v3, JZZ) would only add convenience.
+- A shared module in `src/shared/` can serve desktop and XR. `decode()` in `src/midiTest.ts` is a
+  starting point.
+- Scoring is event matching rather than audio analysis, like the drum sketch in [[implementation-plan]].
+- Disconnects need visible UI state.
 
 ## Open questions
 
-- Does Quest Browser expose a USB keyboard plugged into the headset? Needs a hardware test with a
-  minimal Web MIDI page.
-- Which surfaces need MIDI input: desktop, XR, or both? This decides whether the Quest test blocks.
-- If Quest doesn't expose it, is a PC bridge acceptable (e.g. `@julusian/midi` relayed over WebSocket)?
-- Native Web MIDI or a wrapper (WEBMIDI.js v3, JZZ)?
+- Does MIDI keep working inside an immersive XR session, and where does the permission prompt
+  appear? The test ran on a flat page.
+- Which surfaces need MIDI input: desktop, XR, or both?
+- Not yet tested: sustain pedal, permission persistence across sessions, latency, multiple
+  keyboards, reconnect after unplug, other keyboards.
 - Does Safari matter, given the conflicting sources?
+- Guiding a user to re-grant a denied permission: RockyRoad-lha.
 
 ## Sources
 
