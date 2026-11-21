@@ -51,6 +51,9 @@ export class KeysPlayerScene3D extends ChartScene3D {
     private readonly noteScoredTime: Float64Array;  // performance.now() at score, -1 = unscored
     private readonly noteScoredHit: Uint8Array;
     private static readonly FLASH_DURATION_MS = 500;
+    private static readonly JUDGMENT_ROW_HEIGHT = 2;
+    private static readonly OVERLAY_LEAD_S = 0.75;
+    private static readonly BLACK_KEY_FRAC = 0.65;
 
     constructor(
         renderer: THREE.WebGLRenderer,
@@ -241,8 +244,10 @@ export class KeysPlayerScene3D extends ChartScene3D {
             );
         }
 
-        // Hit (white) / miss (red) flash on the key at the now-line.
         const pixel = getImage("SingleWhitePixel");
+        this.drawKeyOverlays(pixel, allNotes);
+
+        // Per-column judgment row just above the now-line: white hit, red miss.
         for (let i = Math.max(0, this.startNotePosition - 5); i < allNotes.length; i++) {
             const scored = this.noteScoredTime[i];
             if (scored < 0) continue;
@@ -253,10 +258,58 @@ export class KeysPlayerScene3D extends ChartScene3D {
             if (note.Note < this.minKey || note.Note > this.maxKey) continue;
             const alpha = 1 - elapsed / KeysPlayerScene3D.FLASH_DURATION_MS;
             const flash = this.noteScoredHit[i] ? makeColor(1, 1, 1, alpha) : makeColor(1, 0.15, 0.15, alpha);
-            this.drawFlatImage(pixel, note.Note + 0.5, this.currentTime - 0.25, this.currentTime, 0.05, flash, 3 / pixel.width);
+            const half = SCALE_WHITE_BLACK[note.Note % 12] === 0 ? 3 : 1.8;
+            this.drawJudgmentSegment(pixel, note.Note, half, flash);
         }
 
         this.syncPianoMesh();
+    }
+
+    // Segment flush against the piano's top edge (the now-line), fixed height in world units.
+    private drawJudgmentSegment(pixel: UIImage, key: number, half: number, color: UIColor): void {
+        const x  = this.getKeyPosition(key + 0.5);
+        const z1 = this.toZ(this.currentTime) + this.pianoOffsetZ;
+        const z0 = z1 - KeysPlayerScene3D.JUDGMENT_ROW_HEIGHT;
+        this.drawQuad(
+            pixel,
+            new THREE.Vector3(x - half, 0.05, z0), color,
+            new THREE.Vector3(x - half, 0.05, z1), color,
+            new THREE.Vector3(x + half, 0.05, z1), color,
+            new THREE.Vector3(x + half, 0.05, z0), color,
+        );
+    }
+
+    // Fading hand-colored overlay on the piano-image key of each upcoming note.
+    // Geometry mirrors syncPianoMesh: keys run from nowZ + pianoOffsetZ toward the past.
+    private drawKeyOverlays(pixel: UIImage, notes: SongKeyboardNote[]): void {
+        if (!this.topDown || !this.threeScene || !this.pianoTexture) return;
+        const img = this.pianoTexture.image as HTMLImageElement;
+        const width = (this.highwayEndX - this.highwayStartX) * this.pianoScale;
+        const depth = width * (img.naturalHeight / img.naturalWidth);
+        const midX = (this.highwayStartX + this.highwayEndX) / 2;
+        const z0 = this.toZ(this.currentTime) + this.pianoOffsetZ;
+        for (let pos = this.startNotePosition; pos < notes.length; pos++) {
+            const note = notes[pos];
+            const lead = note.TimeOffset - this.currentTime;
+            if (lead > KeysPlayerScene3D.OVERLAY_LEAD_S) break;
+            if (lead < 0 && this.currentTime >= note.TimeOffset + note.TimeLength) continue;
+            if (note.Note < this.minKey || note.Note > this.maxKey) continue;
+            const isWhite = SCALE_WHITE_BLACK[note.Note % 12] === 0;
+            const base = note.Hand === 'left' ? this.leftHandColor : this.rightHandColor;
+            const color = { ...base, a: base.a * 0.55 };
+            const cx = midX + (this.getKeyPosition(note.Note + 0.5) - midX) * this.pianoScale + this.pianoOffsetX;
+            const half = (isWhite ? 3.6 : 2.2) * this.pianoScale;
+            const len = isWhite ? depth : depth * KeysPlayerScene3D.BLACK_KEY_FRAC;
+            // Black keys sit above white ones, so lift them slightly.
+            const y = isWhite ? 0.02 : 0.03;
+            this.drawQuad(
+                pixel,
+                new THREE.Vector3(cx - half, y, z0), color,
+                new THREE.Vector3(cx - half, y, z0 + len), color,
+                new THREE.Vector3(cx + half, y, z0 + len), color,
+                new THREE.Vector3(cx + half, y, z0), color,
+            );
+        }
     }
 
     // Loads and positions a flat piano-image mesh in the scene.
@@ -306,6 +359,8 @@ export class KeysPlayerScene3D extends ChartScene3D {
             const geo = new THREE.PlaneGeometry(keyboardWidth, depth);
             this.pianoMesh = new THREE.Mesh(geo, this.pianoMaterial);
             this.pianoMesh.rotation.x = -Math.PI / 2;
+            // Quads have depthTest off, so draw the piano first or it hides the key overlays.
+            this.pianoMesh.renderOrder = -1;
             scene.add(this.pianoMesh);
         }
 
