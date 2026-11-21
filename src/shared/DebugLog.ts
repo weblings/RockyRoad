@@ -1,7 +1,7 @@
 // Dev-only channel to the PC (see tools/debugLogPlugin.ts). No-ops in production builds.
 // Files land in .debug/<session>.jsonl and <session>-<name>.wav.
 
-export type DebugFeature = 'tuner' | 'tuner-frames' | 'library' | 'console' | 'midi';
+export type DebugFeature = 'tuner' | 'tuner-frames' | 'library' | 'console' | 'midi' | 'polyphon' | 'polypeach';
 
 // Comma list from ?debug=a,b or VITE_DEBUG (put it in .env.local, no source edit to revert).
 // 'tuner-frames' is the per-frame detector stream, kept apart from the lower-volume 'tuner' events.
