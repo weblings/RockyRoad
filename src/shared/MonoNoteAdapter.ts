@@ -6,7 +6,7 @@ import { STANDARD_BASE_NOTES } from './SongIndex';
 import { hzToMidi, type NoteObservation, type NoteTarget } from './NoteInput';
 import type { NoteScorerOptions } from './NoteScorer';
 
-// +-50 cents, one octave of fold either way. Matches the retired NoteDetector.
+// +-50 cents, one octave of fold either way. Matches the retired NoteDetector (tests/legacy).
 export const MONO_SCORER_OPTIONS: Partial<NoteScorerOptions> = {
     tolerance: 0.5, octaveFold: true, maxOctaves: 1,
 };

@@ -5,7 +5,7 @@ Status: paused 2026-11-21 on `feat/MIDI_IO`. Both libraries were run on Quest Br
 
 Bead: RockyRoad-8w1 (open). Resume by adding an expected-notes filter and `on`/`off` URL parameters to the Polyphon test page, then testing `fast` and a known chart.
 
-Follow-up 2026-11-21: Polyphon was built into desktop Keys scoring behind `?input=polyphon` (epic RockyRoad-kvg). The expected-notes filter is now the onset gate, and `on`/`off` are the `pp.on` and `pp.off` URL parameters. Design is in [[keyboard-midi-xr-flow]] and desktop results are in [[2026-11-21-polyphon-desktop-validation]]. Poly Peach is still unscored and can be replayed on recorded frames (RockyRoad-jvm).
+Follow-up 2026-11-21: The Poly Peach test page, its `poly-peach` and `fft.js` dependencies and the `polypeach` debug feature were removed from the branch (recoverable from git history). Polyphon was built into desktop Keys scoring behind `?input=polyphon` (epic RockyRoad-kvg). The expected-notes filter is now the onset gate, and `on`/`off` are the `pp.on` and `pp.off` URL parameters. Design is in [[keyboard-midi-xr-flow]] and desktop results are in [[2026-11-21-polyphon-desktop-validation]]. Poly Peach is still unscored and can be replayed on recorded frames (RockyRoad-jvm).
 
 ## What landed
 

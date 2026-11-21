@@ -1,4 +1,4 @@
-// NoteScorer — instrument-agnostic hit/miss scoring. Same rules as NoteDetector:
+// NoteScorer — instrument-agnostic hit/miss scoring. Same rules as the retired NoteDetector (tests/legacy):
 // ±150 ms window, grace period, reset, miss sweep, results in notesDetected.
 // notesDetected values: 0 pending, 1 hit, -1 miss.
 

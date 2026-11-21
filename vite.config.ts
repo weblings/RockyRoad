@@ -80,7 +80,7 @@ export default defineConfig(({ mode }) => {
     },
     esbuild: { target: "esnext" },
     optimizeDeps: {
-      include: ["poly-peach/dist/chromagram", "@markusstrasser/pitchplease"],
+      include: ["@markusstrasser/pitchplease"],
       exclude: ["@babylonjs/havok"],
       esbuildOptions: { target: "esnext" },
     },

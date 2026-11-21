@@ -1,5 +1,5 @@
 // Recorded mono-guitar run: one tick per frame, as JSONL lines through debugLog.
-// Lets a parity test replay the same ticks through NoteDetector and NoteScorer.
+// Lets a parity test replay the same ticks through the legacy NoteDetector (tests/legacy) and NoteScorer.
 
 import type { SongNote } from './SongFormat';
 
