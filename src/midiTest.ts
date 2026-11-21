@@ -250,6 +250,20 @@ async function enterXR(): Promise<void> {
     }
 }
 
+// Tests whether a page can open Chromium's settings, for the blocked-state toast steps.
+document.querySelectorAll<HTMLAnchorElement>('#links a').forEach(a => {
+    a.addEventListener('click', () => {
+        log(`link click: ${a.dataset.link}`);
+        debugLog('midi', 'link-click', { link: a.dataset.link, href: a.href });
+        window.setTimeout(() => debugLog('midi', 'link-after', { link: a.dataset.link, page: document.visibilityState }), 1500);
+    });
+});
+$('open-settings').addEventListener('click', () => {
+    let result = 'null';
+    try { result = window.open('chrome://settings', '_blank') ? 'window' : 'null'; } catch (err) { result = String(err); }
+    log(`window.open: ${result}`);
+    debugLog('midi', 'link-click', { link: 'window.open', result });
+});
 $('request').addEventListener('click', () => { void requestAccess(); });
 xrButton.addEventListener('click', () => { void enterXR(); });
 $('clear').addEventListener('click', () => { logEl.textContent = ''; lastEl.textContent = ''; });
@@ -259,6 +273,17 @@ debugLog('midi', 'page-load', { secure: window.isSecureContext, userAgent: navig
 logPermission('page-load');
 watchPermission();
 renderPerm();
+// Catches changes that raise no event, such as a native dialog answered outside the page.
+window.setInterval(() => {
+    navigator.permissions.query({ name: 'midi' as PermissionName }).then(p => {
+        if (p.state === queriedState) return;
+        debugLog('midi', 'permission-poll-change', { from: queriedState, to: p.state, inXR: xrSession !== null });
+        queriedState = p.state;
+        renderPerm();
+    }).catch(() => { /* unavailable is logged at load */ });
+}, 2000);
+window.addEventListener('focus', () => debugLog('midi', 'window-focus', { inXR: xrSession !== null }));
+window.addEventListener('blur', () => debugLog('midi', 'window-blur', { inXR: xrSession !== null }));
 document.addEventListener('visibilitychange', () => {
     debugLog('midi', 'page-visibility', { state: document.visibilityState, inXR: xrSession !== null });
 });

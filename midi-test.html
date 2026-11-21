@@ -16,6 +16,8 @@
       #devices { font-size: 18px; margin-bottom: 12px; white-space: pre-wrap; }
       button { font-size: 20px; padding: 10px 18px; margin-right: 8px; border: 0; border-radius: 6px; background: #444; color: #fff; }
       button:disabled { opacity: 0.4; }
+      #links { font-size: 18px; margin-top: 12px; line-height: 2; }
+      #links a { color: #8ab4ff; margin-right: 16px; }
       #xr-help { font-size: 16px; color: #bbb; margin-top: 12px; }
       #log { font: 16px/1.4 ui-monospace, Consolas, monospace; margin-top: 12px; max-height: 50vh; overflow-y: auto; white-space: pre-wrap; }
     </style>
@@ -28,6 +30,13 @@
     <button id="xr" disabled>Enter XR</button>
     <button id="clear">Clear log</button>
     <p id="xr-help">Request MIDI access first. In XR, the view tints green while a key is down, and a pinch or trigger requests access.</p>
+    <div id="links">
+      Link test:
+      <a data-link="plain" href="chrome://settings">chrome://settings</a>
+      <a data-link="blank" href="chrome://settings" target="_blank" rel="noopener">same, new tab</a>
+      <a data-link="midi" href="chrome://settings/content/midiDevices">midiDevices</a>
+      <button id="open-settings">window.open</button>
+    </div>
     <div id="last"></div>
     <div id="devices"></div>
     <div id="log"></div>

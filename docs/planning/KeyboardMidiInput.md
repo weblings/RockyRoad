@@ -1,8 +1,10 @@
 # Keyboard MIDI input
 
 Id: keyboard-midi-input
-Status: exploratory. Researched 2026-10-30. Quest Browser test passed 2026-11-06 and immersive
-test passed 2026-11-07. Native Web MIDI needed no library in either test. Tracked by RockyRoad-b74.
+Status: feasibility done 2026-11-21 (RockyRoad-b74, closed). Researched 2026-10-30. Quest tests
+passed for notes, permission states, the permission prompt in XR and hot-plug, in a flat page and in
+immersive-ar. Native Web MIDI needed no library. Flow design is in [[keyboard-midi-xr-flow]].
+Integration and load testing is RockyRoad-dgu.
 
 Research into open-source TypeScript or WASM options for detecting which key is pressed on an
 88-key keyboard connected over USB. Feeds the keys-score exploration in RockyRoad-b74. The drum
@@ -112,6 +114,28 @@ flat page.
 - The pending request still resolved on the flat page after the user accepted, with the port list
   following. Re-entering XR is then needed.
 
+## Device connection test, 2026-11-20
+
+Flat page, permission `prompt` at load. Log `2026-11-20T23-38-31`. The 2026-11-06 unplug in `23-40-12`
+was the only earlier hot-plug evidence.
+
+- Access granted with no keyboard attached is a distinct state: the first listing was `inputs: []`.
+- Plugging the keyboard in afterwards fired `statechange` `connected` for the input, then the output.
+  The input port opened itself within 2 ms once the page attached its handler. No reload or
+  re-request was needed.
+- Notes arrived after the plug-in (Note On and Note Off).
+- Unplug fired `disconnected` for input and output together and the list went empty. Replug repeated
+  the plug-in sequence and notes arrived again. No headset crash this time.
+- Plugging a keyboard in while permission was not granted produced no system prompt, no automatic
+  exit (confirmed on headset, flat page and XR). The page can't see devices before access is granted,
+  so the logs have no events in that state.
+- A request with permission already `granted` resolved in 2 ms inside an XR session and the session
+  stayed open, so re-requesting on entry is safe.
+- Hot-plug works inside XR too (log `2026-11-21T00-02-22`, access granted before entering). Notes
+  arrived in the session, unplug fired `disconnected` for input and output and the input count went to
+  0, and replug 5.4 s later fired the connect sequence with notes arriving again. The session stayed
+  open throughout and no re-request was needed. The XR heartbeat's `inputs` count tracked it (1, 0, 1).
+
 ## Design implications
 
 - Native Web MIDI is enough. A wrapper (WEBMIDI.js v3, JZZ) would only add convenience.
@@ -126,21 +150,23 @@ flat page.
   and the prompt behavior map directly: a `prompt` card with an honest "Exit VR" button that makes the
   request, a blocked card with a page toast after the exit, and 1 s polling since `permission-change`
   was never seen. Open: the MIDI unblock steps and whether any OS-level toggle exists.
+- Unblocking MIDI is awkward and differs from the mic. It isn't in the Horizon OS browser settings. It
+  piggybacks on Chromium: open a new tab, go to `chrome://settings`, then Site Settings > All Sites,
+  find the site, and set "MIDI device control & reprogram". That Chrome page renders on top of the
+  Horizon OS browser tabs, so the only way back is the back button at the top left. A page can't
+  open it. Plain, `target=_blank` and deep (`chrome://settings/content/midiDevices`) links did
+  nothing and `window.open` returned `null` (log `2026-11-20T23-59-53`). The toast gives the steps as
+  text.
 - Entry point idea: on keys songs a keyboard icon and MIDI button replaces the Tune button on the
   pre-scene screen. Screen design comes later.
 
 ## Open questions
 
 - Why did some sessions log no notes? Port state is now logged to help the next time it happens.
-- Device connection is thin. One unplug was logged (`23-40-12`): input and output `disconnected`
-  statechange events fired together and the input list went empty, then the headset crashed. Not
-  tested: access granted with no keyboard, plugging one in afterwards, reconnect after unplug, and any
-  hot-plug while in XR. The no-input status text exists in the test page but never ran.
+- Not tested: a second keyboard and whether held notes clear on unplug.
 - What does a dismissed prompt report, and does `permission-change` fire on Quest?
 - Is there an OS-level app toggle for MIDI like the mic's Browser toggle, and what does a request do
   then (the mic request hangs)?
-- What are the exact Quest browser steps to unblock MIDI? They were used to set up the denied test
-  but the path wasn't recorded.
 - Which surfaces need MIDI input: desktop, XR, or both?
 - Not yet tested: sustain pedal, permission persistence across browser restarts, latency in the real
   app under load, multiple keyboards, reconnect in XR, other keyboards.
