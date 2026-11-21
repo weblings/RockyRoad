@@ -12,6 +12,8 @@ export interface NoteScorerOptions {
     tolerance: number;
     /** Compare pitch classes so any octave of the target counts. */
     octaveFold: boolean;
+    /** Called for every hit, e.g. to log (observed - target). */
+    onHit?: (obs: NoteObservation, target: NoteTarget, index: number) => void;
 }
 
 const DEFAULTS: NoteScorerOptions = { tolerance: 0.5, octaveFold: false };
@@ -89,7 +91,10 @@ export class NoteScorer {
             }
         }
 
-        if (bestIdx >= 0) this.notesDetected[bestIdx] = 1;
+        if (bestIdx >= 0) {
+            this.notesDetected[bestIdx] = 1;
+            this.opts.onHit?.(obs, this.targets[bestIdx], bestIdx);
+        }
     }
 
     private pitchDistance(observed: number, target: number): number {
