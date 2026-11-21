@@ -13,6 +13,7 @@ class MicSource {
     private gain: number | null = null;
 
     get current(): PitchDetector | null { return this.detector; }
+    get currentStream(): MediaStream | null { return this.stream; }
     get selectedDeviceId(): string | undefined { return this.deviceId; }
 
     // Reuses the open detector. Concurrent callers share one prompt. Null if denied or released.
