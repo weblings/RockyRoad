@@ -1,7 +1,7 @@
 # Keyboard MIDI XR flow
 
 Id: keyboard-midi-xr-flow
-Status: screens and flow agreed 2026-11-21, copy still a draft. Desktop is out of scope for now. Desktop test results are in [[keyboard-midi-input]].
+Status: XR screens and flow agreed 2026-11-21, copy still a draft. A desktop flow is proposed below, not agreed. Desktop test results are in [[keyboard-midi-input]].
 
 User flow and screens for connecting a MIDI keyboard in XR, built on the Quest results in
 [[keyboard-midi-input]] and the mic flow in [[tuner-compact-layout]] (RockyRoad-0q4.5, .9, .12, .15).
@@ -211,9 +211,115 @@ checklist leaving room for a third row if one is ever wanted.
 - `MIC_CARD_TEXT`, the mic-named toast and `MicPermission.ts` need the permission type as a
   parameter, or a MIDI twin.
 
+## Desktop flow (proposed 2026-11-21)
+
+Desktop differs from XR in three ways. The prompt is inline and nothing ends, so there are no Exit VR
+cards. Keys parts have no Tune button, so the MIDI button takes that slot beside Play and desktop has no
+Reposition, so two buttons fit with no slot conflict. Chrome or Edge is the tested browser (see
+[[keyboard-midi-input]]). The shared permission helper is RockyRoad-7wy.
+
+### Desktop mic today, for comparison
+
+```
+Song page: [Tune] (stringed only)      [> Play]
+              |                           |  shouldAutoTune? yes -> TunerScreen, no -> ActiveSceneScreen
+              v                           v
+         TunerScreen mount()        ActiveSceneScreen.setupNoteDetection()
+         PitchDetector.create()     (stringed with tuningOffsets only, micRequested guard)
+              |                           |
+         "Waiting for mic access"    inline browser prompt
+              |                           |
+      granted        any failure    granted      any failure
+         |               |             |              |
+   overlay hides,   "Mic access     scored play   silent, unscored play
+   device list,     denied, use
+   tuning runs      Skip" (one string, no Skip button exists, the exit is Play)
+```
+
+### Desktop MIDI
+
+```
+Song page, Keys part:  [MIDI keyboard]   [> Play]  (Play goes to the keys scene with no MIDI)
+        |
+        v
+MidiSetupScreen (one screen with states, like the tuner's overlays)
+  HAS_MIDI? no  -> unsupported: use Chrome or Edge
+            yes -> read permissions.query('midi')
+
+   prompt              denied                 granted
+     |                   |                       |
+  [Request MIDI]     denied card              requestMIDIAccess (no prompt)
+     |               lock-icon steps                |
+  inline prompt      poll 1 s, moves on       inputs.size == 0 ?
+  (nothing ends)     when granted               yes: Connect keyboard
+     |                                              (Firefox: reload if lost)
+  granted / denied                              no:  Press any key
+                                                        |
+                                                  first Note On
+                                                        |
+                                                  Done, [> Play]
+
+[< Song] always leaves. Play is dark until done, then light, as in XR screen 3.
+```
+
+| Step | Desktop mic today | Desktop MIDI | XR mic |
+| --- | --- | --- | --- |
+| Entry | Tune, or auto on Play | MIDI button in Keys' Tune slot | Tune on the Song page |
+| Request timing | On mount | On a button press | On the Exit VR press |
+| Prompt | Inline | Inline | Ends the session |
+| State read | None | `permissions.query` | `permissions.query` |
+| Failure copy | One string | Per state | Per state card |
+| Recovery | None | Lock icon steps | Toast with Browser settings steps |
+| Poll | None | 1 s | 1 s |
+| Escape | Play | Play | Play |
+
+- The desktop mic message says "use Skip" but no Skip button exists. The exit is labelled Play
+  (RockyRoad-63n).
+- ActiveSceneScreen requests the mic on its own for stringed parts. MIDI should not copy that, so it
+  stays an explicit button.
+
+## Proposed options: Reposition and the input choice (2026-11-21)
+
+Not decided. Two open questions share one answer. Keys needs a MIDI button where Reposition sits
+today, and a microphone option for piano may later need a way to pick MIDI or mic. Piano and guitar
+should stay close to 1:1 here, and Keys will likely gain difficulties later.
+
+Why not a third dropdown: XR option triggers are 16.5 cm wide, so two fit in the 40 cm panel and three
+do not. Narrower triggers (about 12 cm, an estimate) or a second row would change the XR design
+language. Desktop's `.dropdown-row` shares width evenly and would cope.
+
+| Option | Idea | For | Against |
+| --- | --- | --- | --- |
+| A. Secondary slot | Keys gets an Input setup button where guitar has Tune. Reposition moves to the Play HUD, as tuned parts already do (`as-reposition`). The mic or MIDI choice sits inside the setup screen | Closest to guitar's `[Tune] [Play]`. No new Song-page control. Bar stays at two buttons. Desktop already works this way | Keys loses Reposition on the Song page. The choice is one step deeper |
+| B. Settings screen | Input type is a saved default in the XR and desktop settings | Input belongs to the player's setup, not the song, unlike Instrument and Difficulty | Hard to find. Permission requests would start from Settings |
+| C. Status chip | An icon on the Song page shows the current input and its state and opens setup | Gives disconnect feedback a visible home | New control in the XR design language |
+| D. Play HUD | Pick the input in the HUD | None | A permission request ends the XR session, so the choice must not happen mid-song |
+
+- Leaning A, with B added only if a saved default is wanted and C only if disconnect feedback needs a
+  home. An Input dropdown in the Difficulty slot was considered and dropped, since Keys will gain
+  difficulties and XR has no room for a third trigger.
+- A microphone option for piano depends on finding a polyphonic detector. The existing
+  `PitchDetector` is monophonic. Until one is proven, the single MIDI button is enough, and the setup
+  screen should choose its steps by input type so a mic branch can be added later.
+
+## Mic option for piano: detector candidates (2026-11-20)
+
+Bead RockyRoad-8w1 tracks the spike. No maintained TS or WASM library was found that does
+real-time polyphonic piano detection out of the box.
+
+- **Polyphon** (`@markusstrasser/pitchplease` 3.1.0, MIT, TS types): AudioWorklet plus WASM SIMD,
+  models `fast` and `piano` (~0.5 MB each). Self-reported piano F1 0.68 to 0.73, 40 to 50 ms onset
+  latency, 12 to 20% audio-thread load on an M3 Pro. Young project and not tested on Quest.
+- **Poly Peach** (`poly-peach` 0.5.1, LGPL): reports which of a given set of target notes are
+  present, which suits a known chart. Last published 2023 and no accuracy data.
+- **Basic Pitch** is likely too heavy for live XR. Its CQT needs chunks over 1 s and ONNX Runtime
+  adds ~12 MB. This is an inference, not a measurement.
+- Next step is running Polyphon `fast` and `piano` on Quest Browser and reading `stats.cpuLoad`.
+
 ## Open
 
-- Where Reposition goes for Keys, and whether the XR design language gains a three-button bar.
+- Where Reposition goes for Keys, and whether the XR design language gains a three-button bar. See
+  the proposed options above, leaning A.
 - The cable bullet's width on the requirements page.
 - A dedicated keyboard or MIDI icon for the Song page button.
 - What a dismissed prompt reports.
