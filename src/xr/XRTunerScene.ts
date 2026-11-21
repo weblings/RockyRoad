@@ -353,8 +353,8 @@ export class XRTunerScene {
     }
 
     private _startDetector(gen: number): void {
-        // Quest shows the mic prompt outside the session, so asking in here would hang unseen.
-        // A known 'prompt' state skips the request and offers Exit VR instead.
+        // A request at 'prompt' makes the browser end the session, so the Exit VR button makes it.
+        // A known 'prompt' state skips the automatic request and shows that card.
         this._enterIntro();
         void micPermissionState().then(async state => {
             if (gen !== this._showGen) return;
@@ -372,7 +372,6 @@ export class XRTunerScene {
         });
     }
 
-    // Ask from the button's own gesture so the Quest prompt may show without leaving VR.
     // The user can change the site permission outside VR while this card is up, so follow it.
     private _recheckPermission(now: number): void {
         if (this._micState !== 'siteBlocked' && this._micState !== 'prompt') return;

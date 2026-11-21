@@ -150,15 +150,15 @@ The IWER emulator is not affected because it doesn't enable multiview (no `OCULU
 
 ---
 
-## Quest Browser can't show a permission prompt inside an immersive session
-Tags: quest, webxr, getusermedia, microphone, permissions
-Applies-when: a feature needs a browser permission (mic, camera) that may not be granted yet
+## A permission request inside an immersive session ends the session
+Tags: quest, webxr, getusermedia, microphone, webmidi, permissions
+Applies-when: a feature needs a browser permission (mic, MIDI, camera) that may not be granted yet
 
-**Symptom:** With site and browser mic permission already granted, `getUserMedia` starts on entering XR. Without it, the request fires but the prompt only appears after the user leaves immersive mode.
+**Symptom:** With the permission already granted, the request resolves on entering XR (mic about 75 ms, MIDI 2 to 18 ms) and the session stays open. With the state at `prompt`, the request appears to stall and the user ends up on the flat page with the prompt showing.
 
-**Root cause:** Browser permission UI isn't rendered in the headset during a session, so a first-time request made there stalls unseen.
+**Root cause:** The browser ends the immersive session to show its prompt. `xr-end` was logged 99 ms after a mic request and 16 ms after a MIDI request, in the test page and in the real app, with no `session.end()` call in page code. The pending promise then resolves on the flat page once the user answers. The earlier reading that the prompt was invisible inside the session or the request hung unseen was wrong.
 
-**Fix:** Read `navigator.permissions.query({ name: 'microphone' })` on entry. If it is `prompt`, show a card with an Allow Mic button whose click calls `getUserMedia` directly. That call from a button gesture raises the real Quest prompt, so no custom page prompt is needed. The prompt is still outside immersive mode, so the card tells the user to exit, allow and re-enter. Permission is per origin. The permission state tells the cases apart: `prompt` (not asked), `denied` (site's Not Allowed list) and `granted`. With the OS Browser mic toggle off, `getUserMedia` never settles and the state reads `granted`, so detect it with a short hang timer (500ms, a real grant takes about 75ms), not a catch. The pending call resolves by itself when the toggle is turned on. Page code can't see Browser's own dialogs (no focus or visibility events). Unblocking a denied site returns the state to `prompt`, not `granted`, so a flat-page toast must offer an Allow button (click-initiated `getUserMedia`) before confirming. The in-VR card should re-read the state periodically, since the user changes it outside VR. Verified on Quest 2026-10-20.
+**Fix:** Read the permission state on entry (`navigator.permissions.query` with `microphone` or `midi`). If it is `prompt`, show a card whose button says "Exit VR" and whose click makes the request, since leaving is what happens. The card text says the prompt shows in the 2D browser and the user re-enters after answering. A request made while the state is `granted` is safe to repeat on every entry. Permission is per origin. The state tells the cases apart: `prompt` (not asked), `denied` (site's Not Allowed list) and `granted`. With the OS Browser mic toggle off, `getUserMedia` never settles and the state reads `granted`, so detect it with a short hang timer (500 ms, a real grant takes about 75 ms), not a catch. The pending call resolves by itself when the toggle is turned on. Page code can't see Browser's own dialogs (no focus or visibility events). Unblocking a denied site returns the state to `prompt`, not `granted`, so a flat-page toast must offer an Allow button (click-initiated request) before confirming. The in-VR card should re-read the state periodically, since the user changes it outside VR. Verified on Quest 2026-10-20 (mic) and 2026-11-20 (MIDI).
 
 ---
 
@@ -218,6 +218,8 @@ Applies-when: a card wants a button that jumps the user to a Settings screen
 
 **Fix:** Show the written path instead. The Browser's own settings open as a separate browser tab and reach the same Allowed and Not Allowed list at Settings > Privacy and Security > Website Permissions > Microphone (or Settings > Site Settings > Microphone through `chrome://settings` typed by hand). Do not add a jump button.
 
+**MIDI (2026-11-20):** Plain, `target=_blank` and `chrome://settings/content/midiDevices` links did nothing and `window.open` returned `null`. The MIDI setting is not in the Horizon OS Browser menus. It is reached in a new tab through `chrome://settings` > Site Settings > All Sites > the site > "MIDI device control & reprogram". That Chrome page renders over the browser tabs and its top-left back button is the only way out, so the written steps need to say so.
+
 ---
 
 ## window.requestAnimationFrame stalls while an XR session is presenting
@@ -232,3 +234,28 @@ entering XR, so it looked fine.
 
 **Fix:** schedule with `setTimeout` (batches use 16 ms in `XRSongLibrary.ts`), or the session's own loop,
 for anything that must run in XR.
+
+---
+
+## Web MIDI permission is readable and a denied request fails near-instantly
+Tags: quest, webmidi, permissions, requestMIDIAccess
+Applies-when: building MIDI input setup, or telling a stored denial from an unanswered prompt
+
+**Symptom:** A MIDI setup screen can't tell why `requestMIDIAccess()` did not give it a keyboard.
+
+**Root cause:** The cases look the same from the outside until the permission state and timing are read. On Quest Browser 157, `permissions.query({ name: 'midi' })` works and reports `prompt`, `denied` and `granted`. A request at `denied` rejects in about 9 ms with `NotAllowedError`. At `prompt` it stays pending until the user answers (about 2 to 5 s). At `granted` it resolves in 2 to 18 ms. A `permission-change` event was never observed firing. Before access is granted the page sees no devices at all, and plugging a keyboard in raises no system UI and no page event.
+
+**Fix:** Read the state on entry and poll it (the mic card uses 1 s) instead of waiting for a change event. Use elapsed time to tell a stored denial from a slow human. Don't build UI that expects to react to a plug-in before permission is granted. Verified on Quest 2026-11-20.
+
+---
+
+## A Web MIDI `connected` statechange also fires when the handler attaches
+Tags: quest, webmidi, statechange, hot-plug
+Applies-when: using `statechange` or port events to detect a keyboard being plugged in
+
+**Symptom:** Logs showed `statechange` with `state: connected` for an input that was never plugged in. In one XR run it fired five times in 7 seconds with the keyboard attached the whole time.
+
+**Root cause:** Assigning `onmidimessage` opens the port implicitly, so its connection moves from `closed` to `open` and fires `statechange` within about 2 ms. Calling `requestMIDIAccess()` again re-attaches the handler and fires it again. A real plug-in also fires it (input first, then the output), so the event alone can't tell the two apart.
+
+**Fix:** Treat a change in the port list (input count, or `state` moving between `disconnected` and `connected`) as the signal, not any `connected` event. A real unplug fired `disconnected` for the input and the output together and the input count went 1, 0, 1 across an unplug and replug in a flat page and in XR, with notes resuming and no re-request. Verified on Quest 2026-11-20 and 2026-11-21.
+
