@@ -11,7 +11,7 @@ import type { SongIndexEntry, SongIndexPart } from "../shared/SongIndex";
 import type { ISongSource } from "../shared/SongSource";
 import { loadSettings } from "../shared/Settings";
 import { NoteDetector } from "../shared/NoteDetector";
-import type { PitchDetector } from "../shared/PitchDetector";
+import { micSource } from "../shared/MicSource";
 import { Dropdown, type DropdownOption } from "./Dropdown";
 import { difficultyOptionLabel, difficultyPercentLabel } from "../shared/DifficultyDisplay";
 
@@ -54,15 +54,8 @@ export class ActiveSceneScreen implements IScreen {
     private selectedDifficulty: number | null;
     private mockKeyHandler: ((e: KeyboardEvent) => void) | null = null;
 
-    // Pitch detection — optional; null if mic was denied or not a stringed instrument.
-    // May be passed in from TunerScreen (reusing the already-open mic stream) or
-    // created lazily here if the user skipped the tuner.
-    private pitchDetector: PitchDetector | null;
+    // Pitch detection borrows the shared mic. Null if denied or not a stringed instrument.
     private noteDetector: NoteDetector | null = null;
-    private ownsPitchDetector = false; // true = we created it, we must destroy it
-    // Guards setupNoteDetection() (called again on every difficulty rebuild) from firing a
-    // second concurrent getUserMedia request while the first is still resolving.
-    private micRequested = false;
 
     constructor(
         app: App,
@@ -71,7 +64,6 @@ export class ActiveSceneScreen implements IScreen {
         entry: SongIndexEntry,
         part: SongIndexPart,
         selectedDifficulty: number | null = null,
-        pitchDetector: PitchDetector | null = null,
     ) {
         this.app = app;
         this.texture = texture;
@@ -79,7 +71,6 @@ export class ActiveSceneScreen implements IScreen {
         this.entry = entry;
         this.part = part;
         this.selectedDifficulty = selectedDifficulty;
-        this.pitchDetector = pitchDetector;
     }
 
     async mount(container: HTMLElement): Promise<void> {
@@ -233,8 +224,7 @@ export class ActiveSceneScreen implements IScreen {
         this.scene.noteNumbersXR      = settings.noteNumbersXR;
     }
 
-    // Stringed instruments only. Called at mount and again after a difficulty rebuild — the mic
-    // open is guarded by micRequested so a rebuild never fires a second concurrent request.
+    // Stringed instruments only. Called at mount and again after a difficulty rebuild.
     private setupNoteDetection(): void {
         if (!TUNER_ENABLED || !this.part.tuningOffsets || !this.scene) return;
         const { notes, notesDetected } = this.scene.detectionState();
@@ -244,15 +234,7 @@ export class ActiveSceneScreen implements IScreen {
             notesDetected,
             () => this.scene?.gracePeriodEndTime ?? null,
         );
-        if (!this.pitchDetector && !this.micRequested) {
-            this.micRequested = true;
-            this.ownsPitchDetector = true;
-            import('../shared/PitchDetector').then(({ PitchDetector }) => {
-                PitchDetector.create().then(det => {
-                    this.pitchDetector = det;
-                }).catch(() => { /* mic denied — stay in unscored mode */ });
-            });
-        }
+        void micSource.acquire(); // shared, so a rebuild or skipped tuner never re-prompts
     }
 
     // Difficulty change mid-play — rebuilds the highway from the chart data already cached at
@@ -471,7 +453,7 @@ export class ActiveSceneScreen implements IScreen {
 
             // Drive note detection every frame
             if (this.noteDetector) {
-                const result = this.pitchDetector?.detect() ?? null;
+                const result = micSource.current?.detect() ?? null;
                 this.noteDetector.tick(result);
             }
 
@@ -519,8 +501,6 @@ export class ActiveSceneScreen implements IScreen {
         this.difficultyDropdown?.destroy();
         this.speedDropdown = null;
         this.difficultyDropdown = null;
-        if (this.ownsPitchDetector) this.pitchDetector?.destroy();
-        this.pitchDetector = null;
         this.noteDetector  = null;
         this.rollbackFromTime = null;
         this.rollbackToTime   = null;

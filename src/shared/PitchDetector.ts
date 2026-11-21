@@ -33,6 +33,7 @@ export class PitchDetector {
 
     private minRms: number;
     private minHz: number;
+    private ownsStream = true;
 
     private constructor(
         ctx: AudioContext, analyser: AnalyserNode, gainNode: GainNode, stream: MediaStream, minRms: number,
@@ -53,16 +54,17 @@ export class PitchDetector {
     // high-pass just below it, so room and table rumble can't be mistaken for a note.
     static async create(
         deviceId?: string, gain = 1, minRms = DEFAULT_MIN_RMS, minHz = DEFAULT_MIN_HZ,
+        suppliedStream?: MediaStream,
     ): Promise<PitchDetector> {
-        const constraints: MediaStreamConstraints = {
+        const ownsStream = !suppliedStream;
+        const stream = suppliedStream ?? await navigator.mediaDevices.getUserMedia({
             audio: {
                 deviceId:           deviceId ? { exact: deviceId } : undefined,
                 echoCancellation:   false,
                 noiseSuppression:   false,
                 autoGainControl:    false,
             },
-        };
-        const stream   = await navigator.mediaDevices.getUserMedia(constraints);
+        });
         const ctx      = new AudioContext();
         const source   = ctx.createMediaStreamSource(stream);
         const gainNode = ctx.createGain();
@@ -76,7 +78,9 @@ export class PitchDetector {
         source.connect(highpass);
         highpass.connect(gainNode);
         gainNode.connect(analyser);
-        return new PitchDetector(ctx, analyser, gainNode, stream, minRms, source, minHz);
+        const det = new PitchDetector(ctx, analyser, gainNode, stream, minRms, source, minHz);
+        det.ownsStream = ownsStream;
+        return det;
     }
 
     setGain(value: number): void {
@@ -129,8 +133,9 @@ export class PitchDetector {
         return pcm;
     }
 
+    // A supplied stream belongs to its owner (MicSource), so only the AudioContext closes here.
     destroy(): void {
-        this.stream.getTracks().forEach(t => t.stop());
+        if (this.ownsStream) this.stream.getTracks().forEach(t => t.stop());
         this.ctx.close();
     }
 }
