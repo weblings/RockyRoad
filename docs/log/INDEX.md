@@ -17,3 +17,4 @@ history. This log starts on migration day (2026-10-08).
 | 2026-10-27 | 0.3.1 release prep ([[2026-10-27-v0-3-1-release-prep]]) | RockyRoad-vu4 |
 | 2026-11-21 | Keyboard MIDI spike and XR flow design ([[2026-11-21-keyboard-midi-spike]]) | RockyRoad-b74, RockyRoad-lha (open), RockyRoad-dgu (open) |
 | 2026-11-21 | Mic note detection spike: Polyphon vs Poly Peach, paused ([[2026-11-21-mic-note-detection-spike]]) | RockyRoad-8w1 (open) |
+| 2026-11-21 | Polyphon desktop validation: Mary, Fur Elise and chords ([[2026-11-21-polyphon-desktop-validation]]) | RockyRoad-kvg.8, RockyRoad-kvg.11 (open), RockyRoad-kvg.12 (open) |

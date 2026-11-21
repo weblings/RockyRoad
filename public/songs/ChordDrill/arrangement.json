@@ -1,0 +1,190 @@
+{
+  "Beats": [
+    {
+      "TimeOffset": 0.0,
+      "IsMeasure": true
+    },
+    {
+      "TimeOffset": 0.5
+    },
+    {
+      "TimeOffset": 1.0
+    },
+    {
+      "TimeOffset": 1.5
+    },
+    {
+      "TimeOffset": 2.0,
+      "IsMeasure": true
+    },
+    {
+      "TimeOffset": 2.5
+    },
+    {
+      "TimeOffset": 3.0
+    },
+    {
+      "TimeOffset": 3.5
+    },
+    {
+      "TimeOffset": 4.0,
+      "IsMeasure": true
+    },
+    {
+      "TimeOffset": 4.5
+    },
+    {
+      "TimeOffset": 5.0
+    },
+    {
+      "TimeOffset": 5.5
+    },
+    {
+      "TimeOffset": 6.0,
+      "IsMeasure": true
+    },
+    {
+      "TimeOffset": 6.5
+    },
+    {
+      "TimeOffset": 7.0
+    },
+    {
+      "TimeOffset": 7.5
+    },
+    {
+      "TimeOffset": 8.0,
+      "IsMeasure": true
+    },
+    {
+      "TimeOffset": 8.5
+    },
+    {
+      "TimeOffset": 9.0
+    },
+    {
+      "TimeOffset": 9.5
+    },
+    {
+      "TimeOffset": 10.0,
+      "IsMeasure": true
+    },
+    {
+      "TimeOffset": 10.5
+    },
+    {
+      "TimeOffset": 11.0
+    },
+    {
+      "TimeOffset": 11.5
+    },
+    {
+      "TimeOffset": 12.0,
+      "IsMeasure": true
+    },
+    {
+      "TimeOffset": 12.5
+    },
+    {
+      "TimeOffset": 13.0
+    },
+    {
+      "TimeOffset": 13.5
+    },
+    {
+      "TimeOffset": 14.0,
+      "IsMeasure": true
+    },
+    {
+      "TimeOffset": 14.5
+    },
+    {
+      "TimeOffset": 15.0
+    },
+    {
+      "TimeOffset": 15.5
+    },
+    {
+      "TimeOffset": 16.0,
+      "IsMeasure": true
+    },
+    {
+      "TimeOffset": 16.5
+    },
+    {
+      "TimeOffset": 17.0
+    },
+    {
+      "TimeOffset": 17.5
+    },
+    {
+      "TimeOffset": 18.0,
+      "IsMeasure": true
+    },
+    {
+      "TimeOffset": 18.5
+    },
+    {
+      "TimeOffset": 19.0
+    },
+    {
+      "TimeOffset": 19.5
+    },
+    {
+      "TimeOffset": 20.0,
+      "IsMeasure": true
+    },
+    {
+      "TimeOffset": 20.5
+    },
+    {
+      "TimeOffset": 21.0
+    },
+    {
+      "TimeOffset": 21.5
+    },
+    {
+      "TimeOffset": 22.0,
+      "IsMeasure": true
+    },
+    {
+      "TimeOffset": 22.5
+    },
+    {
+      "TimeOffset": 23.0
+    },
+    {
+      "TimeOffset": 23.5
+    },
+    {
+      "TimeOffset": 24.0,
+      "IsMeasure": true
+    },
+    {
+      "TimeOffset": 24.5
+    },
+    {
+      "TimeOffset": 25.0
+    },
+    {
+      "TimeOffset": 25.5
+    },
+    {
+      "TimeOffset": 26.0,
+      "IsMeasure": true
+    },
+    {
+      "TimeOffset": 26.5
+    },
+    {
+      "TimeOffset": 27.0
+    },
+    {
+      "TimeOffset": 27.5
+    },
+    {
+      "TimeOffset": 28.0,
+      "IsMeasure": true
+    }
+  ]
+}

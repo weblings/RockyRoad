@@ -1,0 +1,260 @@
+{
+  "Notes": [
+    {
+      "TimeOffset": 2,
+      "TimeLength": 1.5,
+      "Note": 60,
+      "Velocity": 80,
+      "Hand": "right",
+      "EndTime": 3.5
+    },
+    {
+      "TimeOffset": 2,
+      "TimeLength": 1.5,
+      "Note": 64,
+      "Velocity": 80,
+      "Hand": "right",
+      "EndTime": 3.5
+    },
+    {
+      "TimeOffset": 4,
+      "TimeLength": 1.5,
+      "Note": 62,
+      "Velocity": 80,
+      "Hand": "right",
+      "EndTime": 5.5
+    },
+    {
+      "TimeOffset": 4,
+      "TimeLength": 1.5,
+      "Note": 65,
+      "Velocity": 80,
+      "Hand": "right",
+      "EndTime": 5.5
+    },
+    {
+      "TimeOffset": 6,
+      "TimeLength": 1.5,
+      "Note": 64,
+      "Velocity": 80,
+      "Hand": "right",
+      "EndTime": 7.5
+    },
+    {
+      "TimeOffset": 6,
+      "TimeLength": 1.5,
+      "Note": 67,
+      "Velocity": 80,
+      "Hand": "right",
+      "EndTime": 7.5
+    },
+    {
+      "TimeOffset": 8,
+      "TimeLength": 1.5,
+      "Note": 65,
+      "Velocity": 80,
+      "Hand": "right",
+      "EndTime": 9.5
+    },
+    {
+      "TimeOffset": 8,
+      "TimeLength": 1.5,
+      "Note": 69,
+      "Velocity": 80,
+      "Hand": "right",
+      "EndTime": 9.5
+    },
+    {
+      "TimeOffset": 10,
+      "TimeLength": 1.5,
+      "Note": 60,
+      "Velocity": 80,
+      "Hand": "right",
+      "EndTime": 11.5
+    },
+    {
+      "TimeOffset": 10,
+      "TimeLength": 1.5,
+      "Note": 64,
+      "Velocity": 80,
+      "Hand": "right",
+      "EndTime": 11.5
+    },
+    {
+      "TimeOffset": 10,
+      "TimeLength": 1.5,
+      "Note": 67,
+      "Velocity": 80,
+      "Hand": "right",
+      "EndTime": 11.5
+    },
+    {
+      "TimeOffset": 12,
+      "TimeLength": 1.5,
+      "Note": 60,
+      "Velocity": 80,
+      "Hand": "right",
+      "EndTime": 13.5
+    },
+    {
+      "TimeOffset": 12,
+      "TimeLength": 1.5,
+      "Note": 65,
+      "Velocity": 80,
+      "Hand": "right",
+      "EndTime": 13.5
+    },
+    {
+      "TimeOffset": 12,
+      "TimeLength": 1.5,
+      "Note": 69,
+      "Velocity": 80,
+      "Hand": "right",
+      "EndTime": 13.5
+    },
+    {
+      "TimeOffset": 14,
+      "TimeLength": 1.5,
+      "Note": 62,
+      "Velocity": 80,
+      "Hand": "right",
+      "EndTime": 15.5
+    },
+    {
+      "TimeOffset": 14,
+      "TimeLength": 1.5,
+      "Note": 67,
+      "Velocity": 80,
+      "Hand": "right",
+      "EndTime": 15.5
+    },
+    {
+      "TimeOffset": 14,
+      "TimeLength": 1.5,
+      "Note": 71,
+      "Velocity": 80,
+      "Hand": "right",
+      "EndTime": 15.5
+    },
+    {
+      "TimeOffset": 16,
+      "TimeLength": 1.5,
+      "Note": 60,
+      "Velocity": 80,
+      "Hand": "right",
+      "EndTime": 17.5
+    },
+    {
+      "TimeOffset": 16,
+      "TimeLength": 1.5,
+      "Note": 64,
+      "Velocity": 80,
+      "Hand": "right",
+      "EndTime": 17.5
+    },
+    {
+      "TimeOffset": 16,
+      "TimeLength": 1.5,
+      "Note": 69,
+      "Velocity": 80,
+      "Hand": "right",
+      "EndTime": 17.5
+    },
+    {
+      "TimeOffset": 18,
+      "TimeLength": 1.5,
+      "Note": 60,
+      "Velocity": 80,
+      "Hand": "right",
+      "EndTime": 19.5
+    },
+    {
+      "TimeOffset": 18,
+      "TimeLength": 1.5,
+      "Note": 64,
+      "Velocity": 80,
+      "Hand": "right",
+      "EndTime": 19.5
+    },
+    {
+      "TimeOffset": 18,
+      "TimeLength": 1.5,
+      "Note": 67,
+      "Velocity": 80,
+      "Hand": "right",
+      "EndTime": 19.5
+    },
+    {
+      "TimeOffset": 20,
+      "TimeLength": 1.5,
+      "Note": 60,
+      "Velocity": 80,
+      "Hand": "right",
+      "EndTime": 21.5
+    },
+    {
+      "TimeOffset": 20,
+      "TimeLength": 1.5,
+      "Note": 65,
+      "Velocity": 80,
+      "Hand": "right",
+      "EndTime": 21.5
+    },
+    {
+      "TimeOffset": 20,
+      "TimeLength": 1.5,
+      "Note": 69,
+      "Velocity": 80,
+      "Hand": "right",
+      "EndTime": 21.5
+    },
+    {
+      "TimeOffset": 22,
+      "TimeLength": 1.5,
+      "Note": 62,
+      "Velocity": 80,
+      "Hand": "right",
+      "EndTime": 23.5
+    },
+    {
+      "TimeOffset": 22,
+      "TimeLength": 1.5,
+      "Note": 67,
+      "Velocity": 80,
+      "Hand": "right",
+      "EndTime": 23.5
+    },
+    {
+      "TimeOffset": 22,
+      "TimeLength": 1.5,
+      "Note": 71,
+      "Velocity": 80,
+      "Hand": "right",
+      "EndTime": 23.5
+    },
+    {
+      "TimeOffset": 24,
+      "TimeLength": 1.5,
+      "Note": 60,
+      "Velocity": 80,
+      "Hand": "right",
+      "EndTime": 25.5
+    },
+    {
+      "TimeOffset": 24,
+      "TimeLength": 1.5,
+      "Note": 64,
+      "Velocity": 80,
+      "Hand": "right",
+      "EndTime": 25.5
+    },
+    {
+      "TimeOffset": 24,
+      "TimeLength": 1.5,
+      "Note": 67,
+      "Velocity": 80,
+      "Hand": "right",
+      "EndTime": 25.5
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "SongName": "Chord drill (close chords)",
+  "ArtistName": "RockyRoad test",
+  "SongLengthSeconds": 28.0,
+  "InstrumentParts": [
+    {
+      "InstrumentName": "keys",
+      "InstrumentType": "Keys"
+    }
+  ]
+}
