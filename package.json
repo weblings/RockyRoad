@@ -15,7 +15,8 @@
     "preview": "vite preview",
     "bake": "tsx tools/bake-songs.ts",
     "serve-songs": "tsx tools/song-server.ts",
-    "deploy": "npm run build:demo && gh-pages -d dist"
+    "deploy": "npm run build:demo && gh-pages -d dist",
+    "test": "tsx --test tests/*.test.ts"
   },
   "dependencies": {
     "@iwsdk/core": "0.3.1",
