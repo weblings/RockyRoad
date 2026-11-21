@@ -18,7 +18,7 @@ Closes RockyRoad-kvg.8. Follow-ups filed from this work: RockyRoad-kvg.11 (store
 - `pp.offset`: extra latency in real seconds. Recorded in the run header so replay uses it.
 - `POLYPHON_LATENCY` in `PolyphonConfig.ts` replaces the inline literal.
 - Default `gateWindow` changed from 0.25 to 0.15.
-- Test songs: `FurEliseChords` (the 22 chords of Fur Elise on the original track), `ChordDrill` (12 close chords every 2 s, silent) and `ChordDrillUp` (the same drill one octave higher).
+- Test songs: `ChordDrill` (12 close chords every 2 s, silent) and `ChordDrillUp` (the same drill one octave higher).
 
 ## Results
 
@@ -92,7 +92,7 @@ Closes RockyRoad-kvg.8. Follow-ups filed from this work: RockyRoad-kvg.11 (store
 ## Decisions
 
 - Chord detection from the mic is an accepted gap. Close low voicings are weakest. Wired MIDI is the chord path. Guitar mic chord detection has a similar weakness.
-- A full Fur Elise pass was skipped. Chords were tested with the Fur Elise chord song and the two drills instead.
+- A full Fur Elise pass was skipped. Chords were tested with the two drills instead, plus the chord notes in the partial Fur Elise take.
 - Keep `pp.gain` and `pp.on` as opt-ins.
 
 ## Open
