@@ -38,6 +38,11 @@ export class NoteTimeMapper {
         this.latency = latency;
     }
 
+    /** Song time that a detection arriving now would be stamped with. */
+    latencyAdjustedSecond(): number {
+        return this.player.currentSecond - totalLatency(this.latency(), this.devOffset) * this.player.playbackRate;
+    }
+
     /** Call at detector callback time. Returns null while paused. */
     map(raw: readonly RawDetection[]): NoteObservation[] {
         if (!this.player.isPlaying) return [];

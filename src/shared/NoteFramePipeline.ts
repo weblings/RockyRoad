@@ -40,7 +40,8 @@ export class NoteFramePipeline {
         this.mapper = new NoteTimeMapper(opts.time, opts.latency);
         this.mapper.devOffset = opts.devOffset ?? 0;
         this.scorer = new NoteScorer(
-            opts.targets, opts.notesDetected, () => opts.time.currentSecond,
+            // Sweep in the same latency-shifted time as the stamps, or late notes get swept before they match.
+            opts.targets, opts.notesDetected, () => this.mapper.latencyAdjustedSecond(),
             () => null, // Keys has no grace period yet
             { ...opts.scorer, onHit: opts.onHit },
         );
