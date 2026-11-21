@@ -3,7 +3,7 @@
 Id: 2026-11-21-polyphon-desktop-validation
 Status: closed 2026-11-21 on `feat/MIDI_IO`. Mary is validated and the latency constant and gain decision are recorded. A full Fur Elise pass was skipped and chords were tested instead. Chord detection from the mic is an accepted gap, because wired MIDI is the chord path. Not yet merged to `dev` or `main`.
 
-Closes RockyRoad-kvg.8. Follow-ups filed from this work: RockyRoad-kvg.11 (stored per-user latency calibration), RockyRoad-kvg.12 (piano key overlay and judgment row).
+Design summary and these numbers in short are in [[keyboard-midi-xr-flow]]. Closes RockyRoad-kvg.8. Follow-ups filed from this work: RockyRoad-kvg.11 (stored per-user latency calibration), RockyRoad-kvg.12 (piano key overlay and judgment row).
 
 ## Setup
 

@@ -304,7 +304,8 @@ language. Desktop's `.dropdown-row` shares width evenly and would cope.
 
 ## Mic option for piano: detector candidates (2026-11-20)
 
-Bead RockyRoad-8w1 tracks the spike. No maintained TS or WASM library was found that does
+Bead RockyRoad-8w1 tracks the spike ([[2026-11-21-mic-note-detection-spike]]). Polyphon was chosen and
+is now built for desktop, see the generic note input section below. No maintained TS or WASM library was found that does
 real-time polyphonic piano detection out of the box.
 
 - **Polyphon** (`@markusstrasser/pitchplease` 3.1.0, MIT, TS types): AudioWorklet plus WASM SIMD,
@@ -315,6 +316,54 @@ real-time polyphonic piano detection out of the box.
 - **Basic Pitch** is likely too heavy for live XR. Its CQT needs chunks over 1 s and ONNX Runtime
   adds ~12 MB. This is an inference, not a measurement.
 - Next step is running Polyphon `fast` and `piano` on Quest Browser and reading `stats.cpuLoad`.
+
+## Generic note input and scoring (shipped on `feat/MIDI_IO`, RockyRoad-kvg)
+
+Desktop Keys scores mic notes through a source-agnostic path, behind `?input=polyphon`. There are no new
+screens. XR scoring, a MIDI adapter and sustain scoring are follow-ups. A MIDI keyboard would plug in as
+another adapter with no change to the scorer. Results are in [[2026-11-21-polyphon-desktop-validation]].
+
+### Design
+
+- Types in `NoteInput.ts`: `NoteObservation` (`time` in song seconds, `midi` possibly fractional,
+  `confidence`) and `NoteTarget` (`time`, integer `midi`).
+- `NoteScorer` matches an observation to a target when pitch is within `tolerance` semitones and time is
+  within +-150 ms. Closest in time wins, then closest pitch. Results go in `notesDetected` (0 pending,
+  1 hit, -1 miss). Options are `tolerance`, `octaveFold` and `maxOctaves`.
+- Guitar uses `MonoNoteAdapter` (tolerance 0.5, octave fold of one either way), the same rules as the
+  retired `NoteDetector`. Polyphon and a future MIDI source use tolerance 0 with no fold.
+- `NoteFramePipeline` runs frames through onsets, time mapping and the scorer. Live play and the offline
+  replay (`npm run replay`) share it, so a recorded run scores the same as the live one.
+- `PolyphonOnsets` emits rising edges only, gated to pitches that have a target within `gateWindow`.
+  A held note re-fires when its probability rises `retriggerRise` above its lowest since onset.
+  Unexpected notes cost nothing.
+- `MicSource` owns the mic stream. Polyphon borrows it and the tuner is untouched.
+
+### Time mapping
+
+- `NoteTimeMapper` stamps each detection with `currentSecond - totalLatency * playbackRate`. Latency terms
+  are real seconds, so slow playback shrinks the shift in song time. Detections are dropped while paused.
+- The miss sweep runs in the same shifted time as the stamps, or late notes are swept before they match.
+- Latency is a sum of detector, input, delivery and output terms in `PolyphonConfig.ts`.
+  Current values are 0.11, 0.02, 0.02 and 0.03, for 0.18 s total. `pp.offset` adds real seconds for tuning.
+
+### Validation numbers
+
+Desktop, Polyphon `piano`, headphones, gain 1. Detail is in the validation log.
+
+| Measure | Result |
+| --- | --- |
+| Mary, four takes | 94 of 104 (90.4%), bar was 90% |
+| Hit window | +-150 ms, per-take median delta -96 to -5 ms |
+| Latency total | 0.18 s, optional trim to 0.16 is inside the noise |
+| Gate window | 0.15 s (halves extra onsets against 0.25 with the same hits) |
+| Gain | No default, `pp.gain` is opt-in and was tested on Mary only |
+| Chords, close low voicing | Lowest triad note about 40% (C4 to D4), 100% of played notes an octave up |
+
+- Chord detection from the mic is an accepted gap. Wired MIDI is the chord path, which fits the MIDI flow
+  above.
+- Not tested: XR, a full Fur Elise pass, single C4 and D4 notes, and loopback tone calibration.
+- Mic model and distance were not recorded.
 
 ## Open
 

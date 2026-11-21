@@ -1,9 +1,11 @@
 # Mic note detection spike: Polyphon vs Poly Peach (paused)
 
 Id: 2026-11-21-mic-note-detection-spike
-Status: paused 2026-11-21 on `feat/MIDI_IO`. Both libraries were run on Quest Browser. No recommendation doc yet and nothing is built in the app.
+Status: paused 2026-11-21 on `feat/MIDI_IO`. Both libraries were run on Quest Browser. No recommendation doc yet. Polyphon was later built into desktop Keys scoring (see the follow-up below).
 
 Bead: RockyRoad-8w1 (open). Resume by adding an expected-notes filter and `on`/`off` URL parameters to the Polyphon test page, then testing `fast` and a known chart.
+
+Follow-up 2026-11-21: Polyphon was built into desktop Keys scoring behind `?input=polyphon` (epic RockyRoad-kvg). The expected-notes filter is now the onset gate, and `on`/`off` are the `pp.on` and `pp.off` URL parameters. Design is in [[keyboard-midi-xr-flow]] and desktop results are in [[2026-11-21-polyphon-desktop-validation]]. Poly Peach is still unscored and can be replayed on recorded frames (RockyRoad-jvm).
 
 ## What landed
 
