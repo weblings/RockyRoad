@@ -12,6 +12,12 @@ import type { ISongSource } from "../shared/SongSource";
 import { loadSettings } from "../shared/Settings";
 import { NoteDetector } from "../shared/NoteDetector";
 import { micSource } from "../shared/MicSource";
+import { NoteScorer } from "../shared/NoteScorer";
+import { NoteTimeMapper, HitDeltaLog } from "../shared/NoteTimeMapper";
+import type { NoteTarget } from "../shared/NoteInput";
+import { PolyphonAdapter } from "../shared/PolyphonAdapter";
+import { polyphonConfigFromParams } from "../shared/PolyphonConfig";
+import { debugLog } from "../shared/DebugLog";
 import { Dropdown, type DropdownOption } from "./Dropdown";
 import { difficultyOptionLabel, difficultyPercentLabel } from "../shared/DifficultyDisplay";
 
@@ -56,6 +62,13 @@ export class ActiveSceneScreen implements IScreen {
 
     // Pitch detection borrows the shared mic. Null if denied or not a stringed instrument.
     private noteDetector: NoteDetector | null = null;
+
+    // ?input=polyphon only. Keys parts are scored from the mic via Polyphon.
+    private polyAdapter: PolyphonAdapter | null = null;
+    private polyScorer: NoteScorer | null = null;
+    private polyDeltas: HitDeltaLog | null = null;
+    private polyTargets: NoteTarget[] = [];
+    private polyDetected: Int8Array | null = null;
 
     constructor(
         app: App,
@@ -144,6 +157,7 @@ export class ActiveSceneScreen implements IScreen {
         this.app.activeInstrumentType = this.part.type;
 
         this.setupNoteDetection();
+        void this.setupPolyphon();
 
         this.app.onSongPause = () => {
             if (!this.songPlayer?.isPlaying) return null;
@@ -161,6 +175,7 @@ export class ActiveSceneScreen implements IScreen {
             if (this.scene) this.scene.gracePeriodEndTime = this.rollbackFromTime;
             this.songPlayer.seekTo(seconds);
             this.noteDetector?.reset();
+            this.resetPolyphon();
         };
         // onSongResume: fires after the countdown completes — audio only.
         // Scene position was already set by onSongRollback / animation.
@@ -235,6 +250,55 @@ export class ActiveSceneScreen implements IScreen {
             () => this.scene?.gracePeriodEndTime ?? null,
         );
         void micSource.acquire(); // shared, so a rebuild or skipped tuner never re-prompts
+    }
+
+    // Keys only, behind ?input=polyphon. Flag off leaves everything untouched.
+    private async setupPolyphon(): Promise<void> {
+        const params = new URLSearchParams(location.search);
+        if (params.get('input') !== 'polyphon' || !this.keysScene || !this.songPlayer) return;
+        const { notes, notesDetected } = this.keysScene.detectionState();
+        const player = this.songPlayer;
+        const targets = notes.map(n => ({ time: n.TimeOffset, midi: n.Note }));
+        const deltas = new HitDeltaLog();
+        // Latency values are rough defaults until measured on desktop (kvg.8).
+        const mapper = new NoteTimeMapper(player, () => ({ detector: 0.05, input: 0.02, delivery: 0.02, output: 0.03 }));
+        this.polyTargets = targets;
+        this.polyDetected = notesDetected;
+        this.polyDeltas = deltas;
+        this.polyScorer = new NoteScorer(
+            targets, notesDetected, () => player.currentSecond,
+            () => null, // Keys has no grace period yet
+            { tolerance: 0, octaveFold: false, onHit: deltas.record },
+        );
+        const adapter = new PolyphonAdapter({
+            config: polyphonConfigFromParams(params),
+            currentSecond: () => player.currentSecond,
+            targets: () => this.polyTargets,
+            onOnsets: raw => this.polyScorer?.tick(mapper.map(raw)),
+            onError: err => debugLog('polyphon', 'error', { message: String(err) }),
+        });
+        this.polyAdapter = adapter;
+        const ok = await adapter.start();
+        if (this.polyAdapter !== adapter) { adapter.stop(); return; } // unmounted while starting
+        debugLog('polyphon', 'play-start', { ok, notes: targets.length });
+    }
+
+    private resetPolyphon(): void {
+        if (!this.polyScorer) return;
+        this.polyScorer.reset();
+        this.polyDeltas?.clear();
+        this.keysScene?.resetDetection();
+    }
+
+    private logPolyphonSummary(): void {
+        const d = this.polyDetected;
+        if (!d || !this.polyAdapter) return;
+        let hits = 0, misses = 0;
+        for (let i = 0; i < d.length; i++) { if (d[i] === 1) hits++; else if (d[i] === -1) misses++; }
+        debugLog('polyphon', 'play-summary', {
+            hits, misses, pending: d.length - hits - misses,
+            meanDeltaMs: Math.round(this.polyDeltas?.meanMs() ?? 0),
+        });
     }
 
     // Difficulty change mid-play — rebuilds the highway from the chart data already cached at
@@ -372,6 +436,7 @@ export class ActiveSceneScreen implements IScreen {
             if (!isScrubbing) return;
             const t = setScrubPos(getPct(e));
             this.songPlayer?.seekTo(t);
+            this.resetPolyphon();
             if (wasPlayingBeforeScrub) {
                 this.app.resumeWithCountdown(t);
                 scheduleHide();
@@ -451,6 +516,9 @@ export class ActiveSceneScreen implements IScreen {
             const activeScene = this.scene ?? this.keysScene;
             if (!activeScene || !this.songPlayer) return;
 
+            // Scorer sweeps misses every frame, onsets arrive via the adapter callback.
+            this.polyScorer?.tick([]);
+
             // Drive note detection every frame
             if (this.noteDetector) {
                 const result = micSource.current?.detect() ?? null;
@@ -493,6 +561,12 @@ export class ActiveSceneScreen implements IScreen {
     }
 
     unmount(): void {
+        this.logPolyphonSummary();
+        this.polyAdapter?.stop();
+        this.polyAdapter = null;
+        this.polyScorer = null;
+        this.polyDeltas = null;
+        this.polyDetected = null;
         if (this.mockKeyHandler) { window.removeEventListener('keydown', this.mockKeyHandler); this.mockKeyHandler = null; }
         this.songPlayer?.pause();
         this.scene?.destroy();
