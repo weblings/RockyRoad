@@ -1,5 +1,7 @@
 // All Polyphon adapter tuning in one place. Override per run with URL params, e.g.
-// ?input=polyphon&pp.model=fast&pp.on=0.5&pp.off=0.3&pp.minProb=0.6&pp.retrigger=0.15
+// ?input=polyphon&pp.model=fast&pp.on=0.5&pp.off=0.3&pp.minProb=0.6&pp.retrigger=0.15&pp.gain=2&pp.offset=0.03
+
+import type { LatencyBreakdown } from './NoteTimeMapper';
 
 export type PolyphonModel = 'fast' | 'piano' | 'voice' | 'fft';
 
@@ -13,6 +15,8 @@ export interface PolyphonConfig {
     retriggerRise: number;
     /** Onsets are kept only for pitches with a target within this many song seconds. */
     gateWindow: number;
+    /** Linear input gain applied to the mic stream before detection. 1 leaves the stream untouched. */
+    gain: number;
     /** Folder holding the package's engine/ and models/. */
     assetBaseUrl: string;
 }
@@ -22,7 +26,8 @@ export const DEFAULT_POLYPHON_CONFIG: PolyphonConfig = {
     threshold: null,
     minProb: 0,
     retriggerRise: 0.2,
-    gateWindow: 0.25,
+    gateWindow: 0.15,
+    gain: 1,
     assetBaseUrl: '/node_modules/@markusstrasser/pitchplease/',
 };
 
@@ -43,6 +48,16 @@ export function polyphonConfigFromParams(
         minProb: num('minProb') ?? base.minProb,
         retriggerRise: num('retrigger') ?? base.retriggerRise,
         gateWindow: num('gate') ?? base.gateWindow,
+        gain: num('gain') ?? base.gain,
         assetBaseUrl: params.get('pp.assets') ?? base.assetBaseUrl,
     };
+}
+
+/** Fixed latency in real seconds. Detector includes 0.06 s measured from Mary replays (kvg.8). */
+export const POLYPHON_LATENCY: LatencyBreakdown = { detector: 0.11, input: 0.02, delivery: 0.02, output: 0.03 };
+
+/** Extra offset in real seconds from `pp.offset`, for tuning latency without a rebuild. */
+export function polyphonOffsetFromParams(params: URLSearchParams): number {
+    const v = params.get('pp.offset');
+    return v === null || v === '' || Number.isNaN(Number(v)) ? 0 : Number(v);
 }

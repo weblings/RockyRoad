@@ -16,7 +16,7 @@ import { NoteFramePipeline } from "../shared/NoteFramePipeline";
 import { RunRecorder } from "../shared/FrameRecording";
 import { HitDeltaLog } from "../shared/NoteTimeMapper";
 import { PolyphonAdapter } from "../shared/PolyphonAdapter";
-import { polyphonConfigFromParams } from "../shared/PolyphonConfig";
+import { POLYPHON_LATENCY, polyphonConfigFromParams, polyphonOffsetFromParams } from "../shared/PolyphonConfig";
 import { debugLog } from "../shared/DebugLog";
 import { Dropdown, type DropdownOption } from "./Dropdown";
 import { difficultyOptionLabel, difficultyPercentLabel } from "../shared/DifficultyDisplay";
@@ -261,16 +261,16 @@ export class ActiveSceneScreen implements IScreen {
         const targets = notes.map(n => ({ time: n.TimeOffset, midi: n.Note }));
         const deltas = new HitDeltaLog();
         const config = polyphonConfigFromParams(params);
-        // Latency values are rough defaults until measured on desktop (kvg.8).
-        const latency = { detector: 0.05, input: 0.02, delivery: 0.02, output: 0.03 };
+        const latency = POLYPHON_LATENCY;
+        const devOffset = polyphonOffsetFromParams(params);
         const scorer = { tolerance: 0, octaveFold: false };
         const recorder = new RunRecorder((event, data) => debugLog('polyphon-frames', event, data));
-        recorder.start({ source: 'polyphon', config, latency, devOffset: 0, scorer, targets });
+        recorder.start({ source: 'polyphon', config, latency, devOffset, scorer, targets });
         this.polyDetected = notesDetected;
         this.polyDeltas = deltas;
         this.polyRecorder = recorder;
         const pipeline = new NoteFramePipeline({
-            targets, notesDetected, time: player, latency: () => latency, config, scorer,
+            targets, notesDetected, time: player, latency: () => latency, config, scorer, devOffset,
             onHit: deltas.record,
         });
         this.polyPipeline = pipeline;
