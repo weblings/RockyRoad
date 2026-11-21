@@ -1,11 +1,29 @@
 import { iwsdkDev }     from "@iwsdk/vite-plugin-dev";
 import { compileUIKit } from "@iwsdk/vite-plugin-uikitml";
-import { defineConfig } from "vite";
-import { readFileSync } from "node:fs";
+import { defineConfig, type Plugin } from "vite";
+import { readdirSync, readFileSync, rmSync } from "node:fs";
 import mkcert           from "vite-plugin-mkcert";
 import { debugLogPlugin } from "./tools/debugLogPlugin";
 
 const { version } = JSON.parse(readFileSync("./package.json", "utf-8"));
+
+// Drops song folders marked DevOnly in song.json from dist (public/ is copied wholesale).
+function stripDevOnlySongs(): Plugin {
+  return {
+    name: "rockyroad-strip-dev-songs",
+    apply: "build",
+    closeBundle() {
+      const root = "./dist/songs";
+      for (const name of readdirSync(root, { withFileTypes: true })) {
+        if (!name.isDirectory()) continue;
+        try {
+          const raw = JSON.parse(readFileSync(`${root}/${name.name}/song.json`, "utf-8"));
+          if (raw.DevOnly === true) rmSync(`${root}/${name.name}`, { recursive: true, force: true });
+        } catch { /* no song.json */ }
+      }
+    },
+  };
+}
 
 export default defineConfig(({ mode }) => {
   const deviceMode = mode === "device";
@@ -14,6 +32,7 @@ export default defineConfig(({ mode }) => {
     define: { __APP_VERSION__: JSON.stringify(version) },
     plugins: [
       mkcert(),
+      stripDevOnlySongs(),
       debugLogPlugin("./.debug"),
       // IWSDK emulator: skip in device mode; harmless on desktop.html because
       // it only activates when World.create() is called, which desktop never does.

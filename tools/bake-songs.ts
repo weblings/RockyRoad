@@ -25,6 +25,7 @@ interface SongManifestEntry {
 }
 
 const entries: SongManifestEntry[] = [];
+const release = process.argv.includes("--release");
 
 for (const name of readdirSync(songsDir)) {
     const dir = join(songsDir, name);
@@ -33,6 +34,10 @@ for (const name of readdirSync(songsDir)) {
     const jsonPath = join(dir, "song.json");
     try {
         const raw = JSON.parse(readFileSync(jsonPath, "utf-8")) as Record<string, unknown>;
+        if (release && raw.DevOnly === true) {
+            console.log(`[bake-songs] Skipping dev-only ${name}`);
+            continue;
+        }
         entries.push({
             folder: name,
             title:  String(raw.SongName   ?? name),
