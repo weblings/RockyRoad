@@ -49,7 +49,7 @@ export class NoteFramePipeline {
 
     /** Call at detector callback time, with the time source reading that moment. */
     feed(notes: readonly FrameNote[]): void {
-        const expected = expectedPitches(this.opts.targets, this.opts.time.currentSecond, this.opts.config.gateWindow);
+        const expected = expectedPitches(this.opts.targets, this.mapper.latencyAdjustedSecond(), this.opts.config.gateWindow);
         const raw = this.onsets.process(notes, expected);
         const obs = raw.length ? this.mapper.map(raw) : [];
         this.observed += obs.length;
