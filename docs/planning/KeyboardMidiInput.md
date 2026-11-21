@@ -3,8 +3,9 @@
 Id: keyboard-midi-input
 Status: feasibility done 2026-11-21 (RockyRoad-b74, closed). Researched 2026-10-30. Quest tests
 passed for notes, permission states, the permission prompt in XR and hot-plug, in a flat page and in
-immersive-ar. Native Web MIDI needed no library. Flow design is in [[keyboard-midi-xr-flow]].
-Integration and load testing is RockyRoad-dgu.
+immersive-ar. Desktop tests ran 2026-11-21 on Chrome and Firefox. Native Web MIDI needed no library.
+Flow design is in [[keyboard-midi-xr-flow]]. Integration and load testing is RockyRoad-dgu. The shared
+permission helper and the desktop path are RockyRoad-7wy.
 
 Research into open-source TypeScript or WASM options for detecting which key is pressed on an
 88-key keyboard connected over USB. Feeds the keys-score exploration in RockyRoad-b74. The drum
@@ -136,6 +137,30 @@ was the only earlier hot-plug evidence.
   0, and replug 5.4 s later fired the connect sequence with notes arriving again. The session stayed
   open throughout and no re-request was needed. The XR heartbeat's `inputs` count tracked it (1, 0, 1).
 
+## Desktop test, 2026-11-21
+
+`midi-test.html` on `npm run dev` at `https://localhost:8081`, Windows, same keyboard (FOLDING PIANO).
+Logs: `2026-11-21T00-32-45` and `00-33-54` (Firefox 160), `00-36-03` to `00-37-11` (Chrome 158).
+
+| Check | Chrome 158 | Firefox 160 |
+| --- | --- | --- |
+| `permissions.query({ name: 'midi' })` | `prompt`, `granted`, `denied` | `prompt`, `granted` |
+| Prompt | Inline, resolved in 2.3 to 2.9 s, nothing ends | Inline, resolved in 2.3 s |
+| Request while `granted` | 42 ms | 0 ms |
+| Request while `denied` | `NotAllowedError` in 1 ms | Not tested |
+| Unplug and replug | `disconnected` then `connected` for input and output, notes resume | No `statechange` of any kind, user saw no redetect or notes |
+| Revoke through the address bar lock icon | `granted` to `prompt` to `denied` in about 2 s, seen only by the poll | Not tested |
+| `permission-change` event | Not seen | Seen once, 1 ms before `access-granted` |
+| Note Off | Real `0x80` | Real `0x80` |
+
+- The Firefox logs end on note events with no `disconnected`, so the page was never told about the
+  unplug. An unplug after the last flush can't be ruled out from the logs alone.
+- Not tested on desktop: a dismissed prompt, the Firefox denial and revoke paths, whether polling
+  `access.inputs` would rescue Firefox hot-plug, Safari, a second keyboard, the sustain pedal.
+- Firefox's settings showed no MIDI or per-site permission entry, so no Firefox recovery path is known.
+  The Quest `chrome://settings` path doesn't apply on desktop. Chrome's recovery is the lock icon.
+- The XR emulator did not enable the Enter XR button on Chrome desktop (`xr-supported` false).
+
 ## Design implications
 
 - Native Web MIDI is enough. A wrapper (WEBMIDI.js v3, JZZ) would only add convenience.
@@ -157,6 +182,11 @@ was the only earlier hot-plug evidence.
   open it. Plain, `target=_blank` and deep (`chrome://settings/content/midiDevices`) links did
   nothing and `window.open` returned `null` (log `2026-11-20T23-59-53`). The toast gives the steps as
   text.
+- Desktop is lighter than XR. The prompt is inline and nothing ends, so the permission cards aren't
+  needed, only a short denied and an unsupported message. Chrome or Edge is the tested browser, since
+  Firefox didn't redetect a replugged keyboard. README and Setup say so. The permission state read and
+  the 1 s poll are shared between desktop and XR (RockyRoad-7wy). The XR mic moving onto it is
+  RockyRoad-3i2 and a clearer desktop mic failure message is RockyRoad-63n.
 - Entry point idea: on keys songs a keyboard icon and MIDI button replaces the Tune button on the
   pre-scene screen. Screen design comes later.
 
@@ -167,7 +197,8 @@ was the only earlier hot-plug evidence.
 - What does a dismissed prompt report, and does `permission-change` fire on Quest?
 - Is there an OS-level app toggle for MIDI like the mic's Browser toggle, and what does a request do
   then (the mic request hangs)?
-- Which surfaces need MIDI input: desktop, XR, or both?
+- Which surfaces need MIDI input: desktop, XR, or both? Desktop works on Chrome, so the cost is
+  the screens, not feasibility.
 - Not yet tested: sustain pedal, permission persistence across browser restarts, latency in the real
   app under load, multiple keyboards, reconnect in XR, other keyboards.
 - Does Safari matter, given the conflicting sources?

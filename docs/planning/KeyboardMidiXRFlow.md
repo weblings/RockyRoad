@@ -1,7 +1,7 @@
 # Keyboard MIDI XR flow
 
 Id: keyboard-midi-xr-flow
-Status: screens and flow agreed 2026-11-21, copy still a draft. Desktop is out of scope for now.
+Status: screens and flow agreed 2026-11-21, copy still a draft. Desktop is out of scope for now. Desktop test results are in [[keyboard-midi-input]].
 
 User flow and screens for connecting a MIDI keyboard in XR, built on the Quest results in
 [[keyboard-midi-input]] and the mic flow in [[tuner-compact-layout]] (RockyRoad-0q4.5, .9, .12, .15).
