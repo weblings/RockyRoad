@@ -1,10 +1,11 @@
 // Dev-only channel to the PC (see tools/debugLogPlugin.ts). No-ops in production builds.
 // Files land in .debug/<session>.jsonl and <session>-<name>.wav.
 
-export type DebugFeature = 'tuner' | 'tuner-frames' | 'library' | 'console' | 'midi' | 'polyphon' | 'polypeach';
+export type DebugFeature = 'tuner' | 'tuner-frames' | 'library' | 'console' | 'midi' | 'polyphon' | 'polyphon-frames' | 'polypeach';
 
 // Comma list from ?debug=a,b or VITE_DEBUG (put it in .env.local, no source edit to revert).
 // 'tuner-frames' is the per-frame detector stream, kept apart from the lower-volume 'tuner' events.
+// 'polyphon-frames' is the replayable run recording (npm run replay).
 // 'console' mirrors console output onto an in-scene plane (xr/index.ts), not the PC channel.
 const DEBUG_FEATURES = (new URLSearchParams(location.search).get('debug') ?? import.meta.env.VITE_DEBUG ?? '')
     .split(',').map((s: string) => s.trim()).filter(Boolean);

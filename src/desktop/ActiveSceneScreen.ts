@@ -12,9 +12,9 @@ import type { ISongSource } from "../shared/SongSource";
 import { loadSettings } from "../shared/Settings";
 import { NoteDetector } from "../shared/NoteDetector";
 import { micSource } from "../shared/MicSource";
-import { NoteScorer } from "../shared/NoteScorer";
-import { NoteTimeMapper, HitDeltaLog } from "../shared/NoteTimeMapper";
-import type { NoteTarget } from "../shared/NoteInput";
+import { NoteFramePipeline } from "../shared/NoteFramePipeline";
+import { RunRecorder } from "../shared/FrameRecording";
+import { HitDeltaLog } from "../shared/NoteTimeMapper";
 import { PolyphonAdapter } from "../shared/PolyphonAdapter";
 import { polyphonConfigFromParams } from "../shared/PolyphonConfig";
 import { debugLog } from "../shared/DebugLog";
@@ -65,9 +65,9 @@ export class ActiveSceneScreen implements IScreen {
 
     // ?input=polyphon only. Keys parts are scored from the mic via Polyphon.
     private polyAdapter: PolyphonAdapter | null = null;
-    private polyScorer: NoteScorer | null = null;
+    private polyPipeline: NoteFramePipeline | null = null;
+    private polyRecorder: RunRecorder | null = null;
     private polyDeltas: HitDeltaLog | null = null;
-    private polyTargets: NoteTarget[] = [];
     private polyDetected: Int8Array | null = null;
 
     constructor(
@@ -260,21 +260,26 @@ export class ActiveSceneScreen implements IScreen {
         const player = this.songPlayer;
         const targets = notes.map(n => ({ time: n.TimeOffset, midi: n.Note }));
         const deltas = new HitDeltaLog();
+        const config = polyphonConfigFromParams(params);
         // Latency values are rough defaults until measured on desktop (kvg.8).
-        const mapper = new NoteTimeMapper(player, () => ({ detector: 0.05, input: 0.02, delivery: 0.02, output: 0.03 }));
-        this.polyTargets = targets;
+        const latency = { detector: 0.05, input: 0.02, delivery: 0.02, output: 0.03 };
+        const scorer = { tolerance: 0, octaveFold: false };
+        const recorder = new RunRecorder((event, data) => debugLog('polyphon-frames', event, data));
+        recorder.start({ source: 'polyphon', config, latency, devOffset: 0, scorer, targets });
         this.polyDetected = notesDetected;
         this.polyDeltas = deltas;
-        this.polyScorer = new NoteScorer(
-            targets, notesDetected, () => player.currentSecond,
-            () => null, // Keys has no grace period yet
-            { tolerance: 0, octaveFold: false, onHit: deltas.record },
-        );
+        this.polyRecorder = recorder;
+        const pipeline = new NoteFramePipeline({
+            targets, notesDetected, time: player, latency: () => latency, config, scorer,
+            onHit: deltas.record,
+        });
+        this.polyPipeline = pipeline;
         const adapter = new PolyphonAdapter({
-            config: polyphonConfigFromParams(params),
-            currentSecond: () => player.currentSecond,
-            targets: () => this.polyTargets,
-            onOnsets: raw => this.polyScorer?.tick(mapper.map(raw)),
+            config,
+            onFrame: frame => {
+                recorder.frame({ sec: player.currentSecond, playing: player.isPlaying, rate: player.playbackRate }, frame);
+                pipeline.feed(frame);
+            },
             onError: err => debugLog('polyphon', 'error', { message: String(err) }),
         });
         this.polyAdapter = adapter;
@@ -284,8 +289,9 @@ export class ActiveSceneScreen implements IScreen {
     }
 
     private resetPolyphon(): void {
-        if (!this.polyScorer) return;
-        this.polyScorer.reset();
+        if (!this.polyPipeline) return;
+        this.polyPipeline.reset();
+        this.polyRecorder?.reset();
         this.polyDeltas?.clear();
         this.keysScene?.resetDetection();
     }
@@ -517,7 +523,7 @@ export class ActiveSceneScreen implements IScreen {
             if (!activeScene || !this.songPlayer) return;
 
             // Scorer sweeps misses every frame, onsets arrive via the adapter callback.
-            this.polyScorer?.tick([]);
+            this.polyPipeline?.sweep();
 
             // Drive note detection every frame
             if (this.noteDetector) {
@@ -562,9 +568,11 @@ export class ActiveSceneScreen implements IScreen {
 
     unmount(): void {
         this.logPolyphonSummary();
+        if (this.polyDetected) this.polyRecorder?.end(this.polyDetected);
         this.polyAdapter?.stop();
         this.polyAdapter = null;
-        this.polyScorer = null;
+        this.polyPipeline = null;
+        this.polyRecorder = null;
         this.polyDeltas = null;
         this.polyDetected = null;
         if (this.mockKeyHandler) { window.removeEventListener('keydown', this.mockKeyHandler); this.mockKeyHandler = null; }
