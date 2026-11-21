@@ -288,10 +288,18 @@ export class KeysPlayerScene3D extends ChartScene3D {
         const depth = width * (img.naturalHeight / img.naturalWidth);
         const midX = (this.highwayStartX + this.highwayEndX) / 2;
         const z0 = this.toZ(this.currentTime) + this.pianoOffsetZ;
+        // Upcoming overlays wait until every note already sounding has finished.
+        let held = false;
+        for (let pos = this.startNotePosition; pos < notes.length; pos++) {
+            const n = notes[pos];
+            if (n.TimeOffset > this.currentTime) break;
+            if (this.currentTime < n.TimeOffset + n.TimeLength) { held = true; break; }
+        }
         for (let pos = this.startNotePosition; pos < notes.length; pos++) {
             const note = notes[pos];
             const lead = note.TimeOffset - this.currentTime;
             if (lead > KeysPlayerScene3D.OVERLAY_LEAD_S) break;
+            if (lead > 0 && held) continue;
             if (lead < 0 && this.currentTime >= note.TimeOffset + note.TimeLength) continue;
             if (note.Note < this.minKey || note.Note > this.maxKey) continue;
             const isWhite = SCALE_WHITE_BLACK[note.Note % 12] === 0;
