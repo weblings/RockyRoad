@@ -6,7 +6,7 @@ import { TunerMachine, midiToNoteName, centsLabel } from "../shared/TunerMachine
 import { loadSettings, saveSettings } from "../shared/Settings";
 import { stringColorCss } from "../shared/StringColors";
 import { shortMicLabel } from "../shared/MicLabel";
-import type { PitchDetector } from "../shared/PitchDetector";
+import { micSource } from "../shared/MicSource";
 
 const BACK_SVG = `<svg width="14" height="14" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M13.0908 14.3334C12.972 14.3334 12.9125 14.1898 12.9965 14.1058L17.7021 9.40022C17.9625 9.13987 17.9625 8.71776 17.7021 8.45741L16.2879 7.04319C16.0275 6.78284 15.6054 6.78284 15.3451 7.04319L6.8598 15.5285C6.59945 15.7888 6.59945 16.2109 6.8598 16.4713L8.27401 17.8855L8.27536 17.8868L15.3453 24.9568C15.6057 25.2172 16.0278 25.2172 16.2881 24.9568L17.7024 23.5426C17.9627 23.2822 17.9627 22.8601 17.7024 22.5998L12.9969 17.8944C12.9129 17.8104 12.9724 17.6668 13.0912 17.6668L26 17.6668C26.3682 17.6668 26.6667 17.3683 26.6667 17.0001V15.0001C26.6667 14.6319 26.3682 14.3334 26 14.3334L13.0908 14.3334Z" fill="currentColor"/></svg>`;
 
@@ -62,7 +62,6 @@ export class TunerScreen implements IScreen {
         cols: HTMLElement[];
     } | null = null;
 
-    private detector: PitchDetector | null = null;
     private invertStrings = false;
     private inputGain = 1;
 
@@ -82,7 +81,7 @@ export class TunerScreen implements IScreen {
         this.selectedDifficulty = selectedDifficulty;
 
         this.machine = new TunerMachine(
-            part.tuningOffsets ?? [], loadSettings().inputGain ?? 1, g => this.detector?.setGain(g),
+            part.tuningOffsets ?? [], loadSettings().inputGain ?? 1, g => micSource.setGain(g),
         );
     }
 
@@ -172,7 +171,7 @@ export class TunerScreen implements IScreen {
 
         container.querySelector('#tuner-input-select')?.addEventListener('change', async e => {
             const deviceId = (e.target as HTMLSelectElement).value || undefined;
-            await this.recreateDetector(deviceId);
+            await micSource.setDevice(deviceId);
         });
 
         const gainSlider = container.querySelector<HTMLInputElement>('#tuner-gain');
@@ -189,7 +188,7 @@ export class TunerScreen implements IScreen {
             this.machine.setInputGain(val);
             const label = container.querySelector('#tuner-gain-val');
             if (label) label.textContent = `${val}×`;
-            this.detector?.setGain(val);
+            micSource.setGain(val);
             const s = loadSettings();
             s.inputGain = val;
             saveSettings(s);
@@ -201,7 +200,8 @@ export class TunerScreen implements IScreen {
         this.applyLayout(body);
 
         this.rafId = requestAnimationFrame(t => this.tick(t));
-        this.startDetector(container, this.inputGain);
+        micSource.setGain(this.inputGain);
+        this.startDetector(container);
     }
 
     unmount(): void {
@@ -210,8 +210,6 @@ export class TunerScreen implements IScreen {
         this.layoutObserver = null;
         this.app.activeInstrumentType = null;
         this.app.onSettingsChange = null;
-        this.detector?.destroy();
-        this.detector = null;
         if (this.container) this.container.innerHTML = '';
         this.container = null;
         this.canvas = null;
@@ -220,26 +218,17 @@ export class TunerScreen implements IScreen {
         this.ctx2d = null;
     }
 
-    private async startDetector(container: HTMLElement, gain: number): Promise<void> {
+    private async startDetector(container: HTMLElement): Promise<void> {
         const micWait = container.querySelector<HTMLElement>('#tuner-mic-wait');
         if (micWait) micWait.classList.remove('hidden');
-        try {
-            const { PitchDetector } = await import('../shared/PitchDetector');
-            this.detector = await PitchDetector.create(undefined, gain);
-            if (micWait) micWait.classList.add('hidden');
-            await this.populateDeviceList(container);
-        } catch {
+        const det = await micSource.acquire();
+        if (!this.container) return;
+        if (!det) {
             if (micWait) micWait.textContent = 'Mic access denied — use Skip.';
+            return;
         }
-    }
-
-    private async recreateDetector(deviceId?: string): Promise<void> {
-        this.detector?.destroy();
-        this.detector = null;
-        try {
-            const { PitchDetector } = await import('../shared/PitchDetector');
-            this.detector = await PitchDetector.create(deviceId, this.inputGain);
-        } catch { /* stay null */ }
+        if (micWait) micWait.classList.add('hidden');
+        await this.populateDeviceList(container);
     }
 
     private async populateDeviceList(container: HTMLElement): Promise<void> {
@@ -256,8 +245,8 @@ export class TunerScreen implements IScreen {
     private tick(timestamp: number): void {
         if (!this.canvas || !this.ctx2d) return;
 
-        const result = this.detector?.detect() ?? null;
-        this.machine.update(timestamp, result, this.detector?.lastRms ?? 0);
+        const result = micSource.current?.detect() ?? null;
+        this.machine.update(timestamp, result, micSource.current?.lastRms ?? 0);
         if (this.machine.phase.tag === 'complete') {
             this.container?.querySelector('#tuner-complete')?.classList.remove('hidden');
         }
@@ -288,12 +277,10 @@ export class TunerScreen implements IScreen {
         }
         cancelAnimationFrame(this.rafId);
 
-        const det = this.detector;
-        this.detector = null;
         import('./ActiveSceneScreen').then(({ ActiveSceneScreen }) => {
             this.app.navigate(new ActiveSceneScreen(
                 this.app, this.texture, this.source, this.entry, this.part,
-                this.selectedDifficulty, det,
+                this.selectedDifficulty,
             ));
         });
     }
@@ -392,7 +379,7 @@ export class TunerScreen implements IScreen {
         }
 
         if (this.meterFill) {
-            const rms = this.detector?.lastRms ?? 0;
+            const rms = micSource.current?.lastRms ?? 0;
             this.meterFill.style.height = `${Math.min(rms * 6, 1) * 100}%`;
             this.meterFill.style.background = rms > 0.05 ? '#44CC44' : '#CC8800';
         }
@@ -480,7 +467,7 @@ export class TunerScreen implements IScreen {
         }
 
         if (this.meterFill) {
-            const rms = this.detector?.lastRms ?? 0;
+            const rms = micSource.current?.lastRms ?? 0;
             this.meterFill.style.height = `${Math.min(rms * 6, 1) * 100}%`;
             this.meterFill.style.background = rms > 0.05 ? '#44CC44' : '#CC8800';
         }

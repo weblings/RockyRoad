@@ -10,8 +10,16 @@ import type { SongStructure, SongInstrumentNotes, SongInstrumentPart, SongKeyboa
 import type { SongIndexEntry, SongIndexPart } from "../shared/SongIndex";
 import type { ISongSource } from "../shared/SongSource";
 import { loadSettings } from "../shared/Settings";
-import { NoteDetector } from "../shared/NoteDetector";
-import type { PitchDetector } from "../shared/PitchDetector";
+import { NoteScorer } from "../shared/NoteScorer";
+import { MONO_SCORER_OPTIONS, monoObservations, stringedTargets } from "../shared/MonoNoteAdapter";
+import { micSource } from "../shared/MicSource";
+import { NoteFramePipeline } from "../shared/NoteFramePipeline";
+import { RunRecorder } from "../shared/FrameRecording";
+import { MonoRunRecorder } from "../shared/MonoRunRecording";
+import { HitDeltaLog } from "../shared/NoteTimeMapper";
+import { PolyphonAdapter } from "../shared/PolyphonAdapter";
+import { POLYPHON_LATENCY, polyphonConfigFromParams, polyphonOffsetFromParams } from "../shared/PolyphonConfig";
+import { debugLog, debugOn } from "../shared/DebugLog";
 import { Dropdown, type DropdownOption } from "./Dropdown";
 import { difficultyOptionLabel, difficultyPercentLabel } from "../shared/DifficultyDisplay";
 
@@ -54,15 +62,17 @@ export class ActiveSceneScreen implements IScreen {
     private selectedDifficulty: number | null;
     private mockKeyHandler: ((e: KeyboardEvent) => void) | null = null;
 
-    // Pitch detection — optional; null if mic was denied or not a stringed instrument.
-    // May be passed in from TunerScreen (reusing the already-open mic stream) or
-    // created lazily here if the user skipped the tuner.
-    private pitchDetector: PitchDetector | null;
-    private noteDetector: NoteDetector | null = null;
-    private ownsPitchDetector = false; // true = we created it, we must destroy it
-    // Guards setupNoteDetection() (called again on every difficulty rebuild) from firing a
-    // second concurrent getUserMedia request while the first is still resolving.
-    private micRequested = false;
+    // Pitch detection borrows the shared mic. Null if denied or not a stringed instrument.
+    private noteScorer: NoteScorer | null = null;
+    private monoRecorder: MonoRunRecorder | null = null;
+    private monoDetected: Int8Array | null = null;
+
+    // ?input=polyphon only. Keys parts are scored from the mic via Polyphon.
+    private polyAdapter: PolyphonAdapter | null = null;
+    private polyPipeline: NoteFramePipeline | null = null;
+    private polyRecorder: RunRecorder | null = null;
+    private polyDeltas: HitDeltaLog | null = null;
+    private polyDetected: Int8Array | null = null;
 
     constructor(
         app: App,
@@ -71,7 +81,6 @@ export class ActiveSceneScreen implements IScreen {
         entry: SongIndexEntry,
         part: SongIndexPart,
         selectedDifficulty: number | null = null,
-        pitchDetector: PitchDetector | null = null,
     ) {
         this.app = app;
         this.texture = texture;
@@ -79,7 +88,6 @@ export class ActiveSceneScreen implements IScreen {
         this.entry = entry;
         this.part = part;
         this.selectedDifficulty = selectedDifficulty;
-        this.pitchDetector = pitchDetector;
     }
 
     async mount(container: HTMLElement): Promise<void> {
@@ -153,6 +161,7 @@ export class ActiveSceneScreen implements IScreen {
         this.app.activeInstrumentType = this.part.type;
 
         this.setupNoteDetection();
+        void this.setupPolyphon();
 
         this.app.onSongPause = () => {
             if (!this.songPlayer?.isPlaying) return null;
@@ -169,7 +178,9 @@ export class ActiveSceneScreen implements IScreen {
             this.rollbackStartMs  = performance.now();
             if (this.scene) this.scene.gracePeriodEndTime = this.rollbackFromTime;
             this.songPlayer.seekTo(seconds);
-            this.noteDetector?.reset();
+            this.noteScorer?.reset();
+            this.monoRecorder?.reset();
+            this.resetPolyphon();
         };
         // onSongResume: fires after the countdown completes — audio only.
         // Scene position was already set by onSongRollback / animation.
@@ -233,26 +244,82 @@ export class ActiveSceneScreen implements IScreen {
         this.scene.noteNumbersXR      = settings.noteNumbersXR;
     }
 
-    // Stringed instruments only. Called at mount and again after a difficulty rebuild — the mic
-    // open is guarded by micRequested so a rebuild never fires a second concurrent request.
+    // Stringed instruments only. Called at mount and again after a difficulty rebuild.
     private setupNoteDetection(): void {
         if (!TUNER_ENABLED || !this.part.tuningOffsets || !this.scene) return;
         const { notes, notesDetected } = this.scene.detectionState();
-        this.noteDetector = new NoteDetector(
-            notes, this.part,
-            () => this.songPlayer?.currentSecond ?? 0,
+        this.noteScorer = new NoteScorer(
+            stringedTargets(notes, this.part.tuningOffsets),
             notesDetected,
+            () => this.songPlayer?.currentSecond ?? 0,
             () => this.scene?.gracePeriodEndTime ?? null,
+            MONO_SCORER_OPTIONS,
         );
-        if (!this.pitchDetector && !this.micRequested) {
-            this.micRequested = true;
-            this.ownsPitchDetector = true;
-            import('../shared/PitchDetector').then(({ PitchDetector }) => {
-                PitchDetector.create().then(det => {
-                    this.pitchDetector = det;
-                }).catch(() => { /* mic denied — stay in unscored mode */ });
-            });
+        // A difficulty rebuild starts a fresh run, so close the previous one first.
+        if (this.monoRecorder && this.monoDetected) this.monoRecorder.end(this.monoDetected);
+        this.monoRecorder = null;
+        this.monoDetected = null;
+        if (debugOn('mono-frames')) {
+            this.monoRecorder = new MonoRunRecorder((event, data) => debugLog('mono-frames', event, data));
+            this.monoRecorder.start(notes, this.part.tuningOffsets);
+            this.monoDetected = notesDetected;
         }
+        void micSource.acquire(); // shared, so a rebuild or skipped tuner never re-prompts
+    }
+
+    // Keys only, behind ?input=polyphon. Flag off leaves everything untouched.
+    private async setupPolyphon(): Promise<void> {
+        const params = new URLSearchParams(location.search);
+        if (params.get('input') !== 'polyphon' || !this.keysScene || !this.songPlayer) return;
+        const { notes, notesDetected } = this.keysScene.detectionState();
+        const player = this.songPlayer;
+        const targets = notes.map(n => ({ time: n.TimeOffset, midi: n.Note }));
+        const deltas = new HitDeltaLog();
+        const config = polyphonConfigFromParams(params);
+        const latency = POLYPHON_LATENCY;
+        const devOffset = polyphonOffsetFromParams(params);
+        const scorer = { tolerance: 0, octaveFold: false };
+        const recorder = new RunRecorder((event, data) => debugLog('polyphon-frames', event, data));
+        recorder.start({ source: 'polyphon', config, latency, devOffset, scorer, targets });
+        this.polyDetected = notesDetected;
+        this.polyDeltas = deltas;
+        this.polyRecorder = recorder;
+        const pipeline = new NoteFramePipeline({
+            targets, notesDetected, time: player, latency: () => latency, config, scorer, devOffset,
+            onHit: deltas.record,
+        });
+        this.polyPipeline = pipeline;
+        const adapter = new PolyphonAdapter({
+            config,
+            onFrame: frame => {
+                recorder.frame({ sec: player.currentSecond, playing: player.isPlaying, rate: player.playbackRate }, frame);
+                pipeline.feed(frame);
+            },
+            onError: err => debugLog('polyphon', 'error', { message: String(err) }),
+        });
+        this.polyAdapter = adapter;
+        const ok = await adapter.start();
+        if (this.polyAdapter !== adapter) { adapter.stop(); return; } // unmounted while starting
+        debugLog('polyphon', 'play-start', { ok, notes: targets.length });
+    }
+
+    private resetPolyphon(): void {
+        if (!this.polyPipeline) return;
+        this.polyPipeline.reset();
+        this.polyRecorder?.reset();
+        this.polyDeltas?.clear();
+        this.keysScene?.resetDetection();
+    }
+
+    private logPolyphonSummary(): void {
+        const d = this.polyDetected;
+        if (!d || !this.polyAdapter) return;
+        let hits = 0, misses = 0;
+        for (let i = 0; i < d.length; i++) { if (d[i] === 1) hits++; else if (d[i] === -1) misses++; }
+        debugLog('polyphon', 'play-summary', {
+            hits, misses, pending: d.length - hits - misses,
+            meanDeltaMs: Math.round(this.polyDeltas?.meanMs() ?? 0),
+        });
     }
 
     // Difficulty change mid-play — rebuilds the highway from the chart data already cached at
@@ -390,6 +457,7 @@ export class ActiveSceneScreen implements IScreen {
             if (!isScrubbing) return;
             const t = setScrubPos(getPct(e));
             this.songPlayer?.seekTo(t);
+            this.resetPolyphon();
             if (wasPlayingBeforeScrub) {
                 this.app.resumeWithCountdown(t);
                 scheduleHide();
@@ -469,10 +537,18 @@ export class ActiveSceneScreen implements IScreen {
             const activeScene = this.scene ?? this.keysScene;
             if (!activeScene || !this.songPlayer) return;
 
+            // Scorer sweeps misses every frame, onsets arrive via the adapter callback.
+            this.polyPipeline?.sweep();
+
             // Drive note detection every frame
-            if (this.noteDetector) {
-                const result = this.pitchDetector?.detect() ?? null;
-                this.noteDetector.tick(result);
+            if (this.noteScorer) {
+                const result = micSource.current?.detect() ?? null;
+                this.monoRecorder?.tick({
+                    sec: this.songPlayer.currentSecond,
+                    hz: result?.frequency ?? null,
+                    grace: this.scene?.gracePeriodEndTime ?? null,
+                });
+                this.noteScorer.tick(monoObservations(result, this.songPlayer.currentSecond));
             }
 
             let displayTime: number;
@@ -511,6 +587,17 @@ export class ActiveSceneScreen implements IScreen {
     }
 
     unmount(): void {
+        this.logPolyphonSummary();
+        if (this.polyDetected) this.polyRecorder?.end(this.polyDetected);
+        if (this.monoDetected) this.monoRecorder?.end(this.monoDetected);
+        this.monoRecorder = null;
+        this.monoDetected = null;
+        this.polyAdapter?.stop();
+        this.polyAdapter = null;
+        this.polyPipeline = null;
+        this.polyRecorder = null;
+        this.polyDeltas = null;
+        this.polyDetected = null;
         if (this.mockKeyHandler) { window.removeEventListener('keydown', this.mockKeyHandler); this.mockKeyHandler = null; }
         this.songPlayer?.pause();
         this.scene?.destroy();
@@ -519,9 +606,7 @@ export class ActiveSceneScreen implements IScreen {
         this.difficultyDropdown?.destroy();
         this.speedDropdown = null;
         this.difficultyDropdown = null;
-        if (this.ownsPitchDetector) this.pitchDetector?.destroy();
-        this.pitchDetector = null;
-        this.noteDetector  = null;
+        this.noteScorer    = null;
         this.rollbackFromTime = null;
         this.rollbackToTime   = null;
         this.app.activeScene          = null;

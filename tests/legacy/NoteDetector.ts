@@ -1,3 +1,4 @@
+// Retired from src/ (RockyRoad-kvg.9). Kept only as the oracle for the NoteScorer parity tests.
 // NoteDetector — single-note hit/miss scoring against a song chart.
 //
 // Design mirrors C# NoteDetector.cs: poll-based (no onset detection), binary hit/miss,
@@ -11,10 +12,10 @@
 //   // after seek/rollback:
 //   det.reset();
 
-import type { SongNote } from './SongFormat';
-import type { SongIndexPart } from './SongIndex';
-import { STANDARD_BASE_NOTES } from './SongIndex';
-import type { PitchResult } from './PitchDetector';
+import type { SongNote } from '../../src/shared/SongFormat';
+import type { SongIndexPart } from '../../src/shared/SongIndex';
+import { STANDARD_BASE_NOTES } from '../../src/shared/SongIndex';
+import type { PitchResult } from '../../src/shared/PitchDetector';
 
 // ±150ms window around note TimeOffset for both hit detection and miss marking.
 const HIT_WINDOW_SECS = 0.15;

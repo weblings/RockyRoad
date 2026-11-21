@@ -2,6 +2,7 @@ import * as THREE from "three";
 import type { App, IScreen } from "./App";
 import { loadAllSources, type SourcedEntry } from "../shared/SongSource";
 import { loadSettings } from "../shared/Settings";
+import { micSource } from "../shared/MicSource";
 import { BADGE_LABELS, BADGE_ICONS, BADGE_STYLE } from "../shared/InstrumentSelect";
 import { PreSceneScreen } from "./PreSceneScreen";
 import { Dropdown, type DropdownOption } from "./Dropdown";
@@ -64,6 +65,7 @@ export class SongLibraryScreen implements IScreen {
     }
 
     async mount(container: HTMLElement): Promise<void> {
+        micSource.release(); // song flow is over, drop the mic indicator
         this.container = container;
         this.renderLoading();
         const { remoteServerUrl } = loadSettings();

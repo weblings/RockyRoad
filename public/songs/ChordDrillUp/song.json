@@ -1,0 +1,12 @@
+{
+  "DevOnly": true,
+  "SongName": "Chord drill (octave up)",
+  "ArtistName": "RockyRoad test",
+  "SongLengthSeconds": 28.0,
+  "InstrumentParts": [
+    {
+      "InstrumentName": "keys",
+      "InstrumentType": "Keys"
+    }
+  ]
+}

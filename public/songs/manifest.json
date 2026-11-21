@@ -1,5 +1,29 @@
 [
   {
+    "folder": "ChordDrill",
+    "title": "Chord drill (close chords)",
+    "artist": "RockyRoad test",
+    "parts": [
+      {
+        "name": "keys",
+        "type": "Keys"
+      }
+    ],
+    "hasArt": true
+  },
+  {
+    "folder": "ChordDrillUp",
+    "title": "Chord drill (octave up)",
+    "artist": "RockyRoad test",
+    "parts": [
+      {
+        "name": "keys",
+        "type": "Keys"
+      }
+    ],
+    "hasArt": true
+  },
+  {
     "folder": "FurElise",
     "title": "Fur Elise",
     "artist": "Beethoven",

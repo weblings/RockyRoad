@@ -10,12 +10,14 @@
     "dev:fake": "cross-env VITE_FAKE_SONGS=30 npm run dev",
     "dev:device:fake": "cross-env VITE_FAKE_SONGS=30 npm run dev:device",
     "dev:demo": "cross-env VITE_DEMO_MODE=true npm run dev",
-    "build": "npm run bake && tsc && vite build",
+    "build": "npm run bake -- --release && tsc && vite build",
     "build:demo": "cross-env VITE_DEMO_MODE=true npm run build",
     "preview": "vite preview",
     "bake": "tsx tools/bake-songs.ts",
     "serve-songs": "tsx tools/song-server.ts",
-    "deploy": "npm run build:demo && gh-pages -d dist"
+    "deploy": "npm run build:demo && gh-pages -d dist",
+    "replay": "tsx tools/replay-frames.ts",
+    "test": "tsx --test tests/*.test.ts"
   },
   "dependencies": {
     "@iwsdk/core": "0.3.1",
@@ -27,6 +29,7 @@
     "@felixtz/iwsdk-rag-mcp": "^0.3.1",
     "@iwsdk/vite-plugin-dev": "0.3.1",
     "@iwsdk/vite-plugin-uikitml": "0.3.1",
+    "@markusstrasser/pitchplease": "^3.1.0",
     "@meta-quest/hzdb": "^1.0.0",
     "@types/three": "*",
     "@types/wicg-file-system-access": "^2023.10.7",

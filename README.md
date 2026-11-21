@@ -89,6 +89,11 @@ No — Quick Start above is copy-paste, with each step explained.
 **Do I need a VR/XR headset?**
 No, desktop is the default experience.
 
+**Which browser should I use?**
+Chrome or Edge on desktop. They are the tested choice for self-hosting (see [Setup](Setup.md)) and for
+MIDI keyboards, which Firefox did not reliably redetect after an unplug in testing. MIDI keyboard
+input is still in development.
+
 **Why do I need to run a local server when self-hosting?**
 Two separate technical reasons, not just one: WebXR requires a secure context (HTTPS or
 `localhost`), which a plain downloaded folder doesn't have on its own; and separately, the app's

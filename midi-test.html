@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RockyRoad MIDI test</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { background: #111; color: #eee; font-family: system-ui, sans-serif; padding: 16px; }
+      h1 { font-size: 22px; margin-bottom: 12px; }
+      #status { font-size: 28px; font-weight: 700; padding: 12px 16px; border-radius: 8px; background: #333; margin-bottom: 12px; }
+      #status.ok { background: #1f6f3a; }
+      #status.bad { background: #8a2a2a; }
+      #perm { font: 18px/1.4 ui-monospace, Consolas, monospace; padding: 8px 12px; border-radius: 6px; background: #222; margin-bottom: 12px; white-space: pre-wrap; }
+      #last { font-size: 40px; font-weight: 700; margin: 12px 0; min-height: 48px; }
+      #devices { font-size: 18px; margin-bottom: 12px; white-space: pre-wrap; }
+      button { font-size: 20px; padding: 10px 18px; margin-right: 8px; border: 0; border-radius: 6px; background: #444; color: #fff; }
+      button:disabled { opacity: 0.4; }
+      #links { font-size: 18px; margin-top: 12px; line-height: 2; }
+      #links a { color: #8ab4ff; margin-right: 16px; }
+      #xr-help { font-size: 16px; color: #bbb; margin-top: 12px; }
+      #log { font: 16px/1.4 ui-monospace, Consolas, monospace; margin-top: 12px; max-height: 50vh; overflow-y: auto; white-space: pre-wrap; }
+    </style>
+  </head>
+  <body>
+    <h1>MIDI input test</h1>
+    <div id="status">Starting...</div>
+    <div id="perm"></div>
+    <button id="request">Request MIDI access</button>
+    <button id="xr" disabled>Enter XR</button>
+    <button id="clear">Clear log</button>
+    <p id="xr-help">Request MIDI access first. In XR, the view tints green while a key is down, and a pinch or trigger requests access.</p>
+    <div id="links">
+      Link test:
+      <a data-link="plain" href="chrome://settings">chrome://settings</a>
+      <a data-link="blank" href="chrome://settings" target="_blank" rel="noopener">same, new tab</a>
+      <a data-link="midi" href="chrome://settings/content/midiDevices">midiDevices</a>
+      <button id="open-settings">window.open</button>
+    </div>
+    <div id="last"></div>
+    <div id="devices"></div>
+    <div id="log"></div>
+    <script type="module" src="/src/midiTest.ts"></script>
+  </body>
+</html>

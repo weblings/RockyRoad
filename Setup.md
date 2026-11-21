@@ -45,7 +45,7 @@ mkcert -install
 
 > **Use Chrome or Edge.** Firefox uses its own NSS certificate store and won't trust
 > the mkcert CA without extra steps. Firefox also has unreliable WebXR support with
-> Quest Link.
+> Quest Link and MIDI keyboard support.
 
 ---
 
