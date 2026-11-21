@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { NoteScorer } from '../src/shared/NoteScorer';
-import { NoteDetector } from '../src/shared/NoteDetector';
+import { NoteDetector } from './legacy/NoteDetector';
 import { hzToMidi, type NoteObservation, type NoteTarget } from '../src/shared/NoteInput';
 import type { SongNote } from '../src/shared/SongFormat';
 import type { SongIndexPart } from '../src/shared/SongIndex';

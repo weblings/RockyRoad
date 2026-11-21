@@ -217,7 +217,7 @@ export class FretPlayerScene3D extends ChartScene3D {
         this.noteScoredHit     = new Uint8Array(instrumentNotes.Notes.length);
     }
 
-    // Exposes detection arrays so NoteDetector can write results the scene reads.
+    // Exposes detection arrays so NoteScorer can write results the scene reads.
     // The Int8Array is shared — writes are immediately visible to draw code.
     detectionState(): { notes: SongNote[], notesDetected: Int8Array } {
         return { notes: this.instrumentNotes.Notes, notesDetected: this.notesDetected };

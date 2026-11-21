@@ -12,11 +12,13 @@ export interface NoteScorerOptions {
     tolerance: number;
     /** Compare pitch classes so any octave of the target counts. */
     octaveFold: boolean;
+    /** With octaveFold, the most octaves away from the target that still counts. */
+    maxOctaves: number;
     /** Called for every hit, e.g. to log (observed - target). */
     onHit?: (obs: NoteObservation, target: NoteTarget, index: number) => void;
 }
 
-const DEFAULTS: NoteScorerOptions = { tolerance: 0.5, octaveFold: false };
+const DEFAULTS: NoteScorerOptions = { tolerance: 0.5, octaveFold: false, maxOctaves: Infinity };
 
 export class NoteScorer {
     private readonly opts: NoteScorerOptions;
@@ -100,7 +102,7 @@ export class NoteScorer {
     private pitchDistance(observed: number, target: number): number {
         const d = observed - target;
         if (!this.opts.octaveFold) return Math.abs(d);
-        const folded = ((d % 12) + 12) % 12;
-        return Math.min(folded, 12 - folded);
+        const octaves = Math.max(-this.opts.maxOctaves, Math.min(this.opts.maxOctaves, Math.round(d / 12)));
+        return Math.abs(d - 12 * octaves);
     }
 }
