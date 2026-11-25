@@ -12,6 +12,11 @@ every run. Human lookup for `[[id]]` citations elsewhere in `docs/`.
 | `2026-10-22-v0-3-0-release-prep` | [log/2026-10-22-v0-3-0-release-prep.md](log/2026-10-22-v0-3-0-release-prep.md) | 0.3.0 release prep and XR Library fixes |
 | `2026-10-27-v0-3-1-release-prep` | [log/2026-10-27-v0-3-1-release-prep.md](log/2026-10-27-v0-3-1-release-prep.md) | 0.3.1 release prep |
 | `2026-11-21-keyboard-midi-spike` | [log/2026-11-21-keyboard-midi-spike.md](log/2026-11-21-keyboard-midi-spike.md) | Keyboard MIDI spike and XR flow design |
+| `2026-11-21-mic-note-detection-spike` | [log/2026-11-21-mic-note-detection-spike.md](log/2026-11-21-mic-note-detection-spike.md) | Mic note detection spike: Polyphon vs Poly Peach (paused) |
+| `2026-11-21-polyphon-desktop-validation` | [log/2026-11-21-polyphon-desktop-validation.md](log/2026-11-21-polyphon-desktop-validation.md) | Polyphon desktop validation: Mary, Fur Elise and chords |
+| `2026-11-24-icon-origin-audit` | [log/2026-11-24-icon-origin-audit.md](log/2026-11-24-icon-origin-audit.md) | Icon origin audit: Vidstack and OpenMoji |
+| `2026-11-24-setup-hub-mock` | [log/2026-11-24-setup-hub-mock.md](log/2026-11-24-setup-hub-mock.md) | Setup hub mock: layout, owner decisions and flow doc rewrite |
+| `2026-11-24-setup-wrench-icon` | [log/2026-11-24-setup-wrench-icon.md](log/2026-11-24-setup-wrench-icon.md) | Setup wrench icon: crop and OpenMoji attribution |
 | `aurora-docs-migration` | [archive/AuroraDocsMigrationPlan.md](archive/AuroraDocsMigrationPlan.md) | Migrate docs infra to Aurora's system (+ beads, AGENTS.md) |
 | `camera3d-conversion` | [archive/Camera3D.md](archive/Camera3D.md) | Camera3D.cs — Conversion Analysis |
 | `chart-player-game-conversion` | [archive/ChartPlayerGame.md](archive/ChartPlayerGame.md) | ChartPlayerGame.cs — Conversion Analysis |
