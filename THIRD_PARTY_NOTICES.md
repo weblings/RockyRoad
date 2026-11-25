@@ -4,7 +4,7 @@ RockyRoad ships the icon artwork below in `public/`. Each such icon file carries
 
 ## Vidstack media-icons 0.10.0 (MIT)
 
-Source: <https://github.com/vidstack/media-icons> (npm `media-icons`). Used for: `back-arrow.svg` (arrow-left), `chevron-down.svg`, `chevron-up.svg`, `pause-icon.svg` (pause), `play-icon.svg` and `play-icon-white.svg` (play), `recal-icon.svg` (repeat-on), `replay.svg` and `tuner-restart.svg` (replay), `settings-gear-icon.svg` (settings), `tune-icon.svg` and `tune-icon-dark.svg` (odometer).
+Source: <https://github.com/vidstack/media-icons> (npm `media-icons`). Used for: `back-arrow.svg` (arrow-left), `chevron-down.svg`, `chevron-up.svg`, `pause-icon.svg` (pause), `play-icon.svg` and `play-icon-white.svg` (play), `recal-icon.svg` (repeat-on), `replay.svg` and `tuner-restart.svg` (replay), `settings-gear-icon.svg` (settings), `tune-icon.svg` and `tune-icon-dark.svg` (odometer), and `check.svg` and `tuner-check.svg` (check, taken from the GitHub repo at commit 9c1fafb because the npm 0.10.0 package does not include it). The check path is also inlined in `src/desktop/TunerScreen.ts`.
 
 Changes: path data is unchanged. Size and fill colour were set per use.
 
@@ -34,6 +34,11 @@ SOFTWARE.
 
 ## OpenMoji (CC BY-SA 4.0)
 
-Source: <https://openmoji.org/library/emoji-1F527/> (wrench, U+1F527). Used for: `setup-icon.svg`. Copyright HfG Schwaebisch Gmuend and the OpenMoji contributors. Licensed under CC BY-SA 4.0: <https://creativecommons.org/licenses/by-sa/4.0/>.
+Copyright HfG Schwaebisch Gmuend and the OpenMoji contributors. Licensed under CC BY-SA 4.0: <https://creativecommons.org/licenses/by-sa/4.0/>. Sources and uses:
 
-Changes: the owner redrew the wrench in Inkscape and cropped it from an A4 page to a square viewBox. The adapted wrench icon (`public/setup-icon.svg`) is shared under the same licence. The rest of RockyRoad keeps its own licence (see `LICENSE`).
+- <https://openmoji.org/library/emoji-1F527/> (wrench, U+1F527): `setup-icon.svg`.
+- <https://openmoji.org/library/emoji-1F3B8/> (guitar, U+1F3B8): `Guitar_White.svg` and `Bass_White.svg`.
+- <https://openmoji.org/library/emoji-1F3B9/> (musical keyboard, U+1F3B9): `Keys_White.svg`.
+- <https://openmoji.org/library/emoji-1FA78/> (drop of blood, U+1FA78), <https://openmoji.org/library/emoji-1F3B5/> (musical note, U+1F3B5) and <https://openmoji.org/library/emoji-1F36A/> (cookie, U+1F36A): merged into `RockyRoad_Temp.svg`, the app favicon.
+
+Changes: the owner altered each emoji in Inkscape, merged three of them for the favicon, and cropped the wrench from an A4 page to a square viewBox. The adapted icons listed above are shared under the same licence. The rest of RockyRoad keeps its own licence (see `LICENSE`).
