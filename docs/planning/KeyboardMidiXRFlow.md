@@ -1,7 +1,7 @@
 # Keyboard MIDI XR flow
 
 Id: keyboard-midi-xr-flow
-Status: Setup hub direction agreed 2026-11-24 and the XR screens below were rewritten to match. Layout is provisional until the mock (RockyRoad-kqg), and copy is a draft. A desktop flow is proposed below, not agreed. Desktop test results are in [[keyboard-midi-input]].
+Status: Setup hub direction agreed 2026-11-24 and the XR layout settled by the mock and owner review the same day (RockyRoad-kqg, `ui/Export/XR/SetupHub/index.html`). Copy is a draft and fit is a browser estimate. A desktop flow is proposed below, not agreed. Desktop test results are in [[keyboard-midi-input]].
 
 User flow and screens for choosing and connecting an input (None, Mic or MIDI) in XR, built on the Quest results in
 [[keyboard-midi-input]] and the mic flow in [[tuner-compact-layout]] (RockyRoad-0q4.5, .9, .12, .15).
@@ -24,79 +24,91 @@ Permission work is RockyRoad-lha.
 
 - The Song page secondary slot is Setup (wrench icon) for guitar and keys. Setup opens the Setup
   screen, which holds the Input dropdown. Play never opens it on its own.
-- Play uses the saved Input. If that input is Mic or MIDI and not ready, Play opens the not-ready modal
-  (screen 5). Input None plays unscored with no prompt.
-- There is no separate requirements page. Each input's requirements are the first line of its card.
+- Play on the Song page uses the saved Input and shows no modal. Input None, or Mic or MIDI not
+  ready, plays unscored in XR. Desktop may route through the tuner instead, which is open.
+- Play on Setup uses the saved Input too. If it is Mic or MIDI and not ready, Play opens the not-ready
+  modal (screen 6).
+- There is no separate requirements page. Each input's requirements are the first state of its card.
   The decisions behind all of this are in "Setup hub" below.
 
 ## Navigation rule
 
-The corner button always reads Song and leaves to the Song page. There is no step back inside Setup.
-The bottom bar holds Reposition at bottom left, only when a saved calibration exists, and Play at
-bottom right. There is no forward button, since the cards are the actions. Play is dark while the chosen
-input is not ready and light once it is. Re-entering after a session exit reopens Setup on the saved
-Input.
+The corner button always reads Song and leaves to the Song page. There is no step back inside Setup, and
+the guitar tuner is a modal on top of Setup, so the corner button stays Song behind it. The bottom bar holds
+Reposition at bottom left, only when a saved calibration exists, and Play at bottom right. Reposition
+shows on every sub-state. When it is absent a blank slot keeps Play on the right. Play is always the
+light button. There is no forward button, since the cards are the actions. Re-entering after a session
+exit reopens Setup on the saved Input.
 
 ## Screens
 
-One Setup screen with an Input dropdown near the top. Keys offers None, Mic and MIDI. Guitar offers
-None and Mic. The middle of the screen follows the choice. Copy is a draft and diagrams are not to scale.
-Layout is being mocked in RockyRoad-kqg, so treat positions as provisional.
+One Setup screen. The Input row is centered under the header and its middle card is centered in the space
+below it. Keys offers None, Mic and MIDI. Guitar offers None and Mic. Mic is one flow for both parts
+(screen 4), since the headset mic clipped non-voice audio in the guitar tests and Keys is expected to
+match, but this is not verified on piano. Copy is a draft and diagrams are not to scale. The built
+layout is the mock at `ui/Export/XR/SetupHub/index.html` (RockyRoad-kqg), and its fit numbers are in
+"Fit estimate" below.
 
 ### 1. Input None
 
 ```
  [< Song]
- Input [None v]
-   Playing without scoring.
- [Reposition]                          [> Play]
+       Input [None v]
+     +--------------------+
+     | Scoring is disabled |
+     +--------------------+
+ [Reposition]                 [> Play]
 ```
 
-- No cards and no permission. Play goes straight to the song.
+- No permission and no cards beyond the one line. Play goes straight to the song.
 
 ### 2. MIDI: requirements and keyboard checklist
 
 Shown when MIDI is selected and permission is `granted`, and after a re-entry that follows an accepted
-prompt. The requirements line replaces the old requirements page and fits easily (37 characters against
-a line limit of about 41).
+prompt. Markers are circles: a ring for a step in progress, a dim ring for a step not reached and a
+circled check for done. The requirements line replaces the old requirements page.
 
 ```
- connect                      press a key                  done
- [< Song]                     [< Song]                     [< Song]
- Input [MIDI v]               Input [MIDI v]               Input [MIDI v]
- Needs a MIDI keyboard and    v Connect keyboard           v Connect keyboard
- USB-C cable.                 * Press any key              v Press any key
- * Connect keyboard               Checking it sends notes.
-     Plug it in with the
-     cable.
- o Press any key
- [Reposition]   [> Play]      [Reposition]   [> Play]      [Reposition]   [> Play] (light)
+ connect                         press a key                    done
+ [< Song]                        [< Song]                       [< Song]
+     Input [MIDI v]                  Input [MIDI v]                 Input [MIDI v]
+ +--------------------------+    +--------------------------+   +--------------------------+
+ | Needs a MIDI keyboard    |    | (/) Connect keyboard     |   | (/) Connect keyboard     |
+ | and USB-C cable.         |    | ( ) Press any key        |   | (/) Press any key        |
+ | ( ) Connect keyboard     |    |     Checking it sends    |   +--------------------------+
+ |     Plug it in with the  |    |     notes.               |
+ |     cable.               |    +--------------------------+
+ | ( ) Press any key (dim)  |
+ +--------------------------+
+ [Reposition]    [> Play]        [Reposition]    [> Play]       [Reposition]    [> Play]
 ```
 
-- Row 2 stays dimmed until row 1 is done. Row 1 is done when a port connects, row 2 when the first
+- Row 2 stays dim until row 1 is done. Row 1 is done when a port connects, row 2 when the first
   Note On arrives. Both are driven by `statechange` and `onmidimessage` with no re-request.
 - The checklist opens at the first row that isn't done, so a user with a keyboard already attached lands
   on "Press any key". The requirements line shows only until a keyboard connects.
-- Play is dark while setup is incomplete and light once both rows are done. The checklist stays on the
-  done state until the user presses Play, so the success is visible.
+- The checklist stays on the done state until the user presses Play, so the success is visible.
 - A keyboard that disconnects during play pauses the song and reopens Setup at "Connect keyboard" with the
   second row reset. Pause and resume is not built in XR yet and has no bead, so until then the input just
   stops responding. The HUD input indicator in "Setup hub" is the planned home for this.
 
 ### 3. Permission cards (MIDI and mic)
 
-The mic's `warn-card` shape: a title, up to four short lines and one button. Each line fits on one line
-(about 41 characters at 1.2). The card replaces the card body under the Input dropdown.
+The mic's `warn-card` shape: a title, up to three short lines and one button. Each line fits on one line
+(about 41 characters at 1.2). The card replaces the card body under the Input row.
 
 ```
  prompt                           blocked
  [< Song]                         [< Song]
- Input [MIDI v]                   Input [MIDI v]
-   MIDI permission needed           MIDI blocked for this site
-   The prompt shows in the          Exit VR for the fix steps.
-   2D browser.                      Steps are in the browser, not Settings.
-   [Exit VR]                        [Exit VR]
- [Reposition]   [> Play]          [Reposition]   [> Play]
+     Input [MIDI v]                   Input [MIDI v]
+ +----------------------------+   +----------------------------------+
+ |  MIDI permission needed    |   |  MIDI blocked for this site      |
+ |  The prompt shows in the   |   |  Exit VR for the fix steps.      |
+ |  2D browser.               |   |  They are in the Browser app,    |
+ |  [Exit VR]                 |   |  not Settings.                   |
+ +----------------------------+   |  [Exit VR]                       |
+ [Reposition]   [> Play]          +----------------------------------+
+                                  [Reposition]   [> Play]
 ```
 
 - `prompt`: Exit VR makes the `requestMIDIAccess()` call. The browser ends the session and shows the
@@ -105,25 +117,69 @@ The mic's `warn-card` shape: a title, up to four short lines and one button. Eac
 - The card is hidden while the state is still unknown, so the wrong text never flashes.
 - The card polls the permission once a second, as `_recheckPermission` does, so a change made outside
   VR moves the screen on.
-- Mic uses the same shapes with the tuner's existing text (`MIC_CARD_TEXT`: `prompt`, `siteBlocked`,
-  `appBlocked`).
+- Mic uses the same shapes with the tuner's text (`MIC_CARD_TEXT`: `prompt`, `siteBlocked`,
+  `appBlocked`). The `siteBlocked` and MIDI blocked lines are the same wording.
 
-### 4. Mic card
+### 4. Mic (Keys and guitar)
+
+One flow, in this order of states.
 
 ```
- [< Song]
- Input [Mic v]                        (guitar: Restart icon at the right)
- +------------------------------------------------+
- | Mic [Default v]   Level ||||....   Gain ===o-- |
- +------------------------------------------------+
- (guitar: tuner boxes below)
- [Reposition]                          [> Play]
+ requirements                  headset mic                    ready (guitar shown)
+ [< Song]                      [< Song]                       [< Song]
+     Input [Mic v]                 Input [Mic v]                  Input [Mic v]
+ +----------------------+      +------------------------+     +--------------------------+
+ |     Needs both:      |      | Mic [Headset mic v] || |     | Mic [USB Audio Device v] ||
+ |  * External mic      |      |------------------------|     | Gain ===o------------ 6x |
+ |    Headset mic can't |      |  Headset mic can't     |     |         [Tune]           |
+ |    hear instruments  |      |  hear instruments      |     +--------------------------+
+ |  * Bluetooth audio   |      |  Plug in a USB mic,    |     [Reposition]       [> Play]
+ |    External mic      |      |  then pick it in Mic.(i)|
+ |    mutes the speakers|      +------------------------+
+ |  Don't have both?    |      [Reposition]  [> Play]
+ |  Just select Play.   |
+ +----------------------+
+ [Reposition]  [> Play]
 ```
 
-- The device dropdown, meter and Gain slider reuse the tuner's elements in a card background like the
-  Song page metadata. Guitar shows the tuner boxes below, and Play acts as Done.
+- Requirements (first state, shown once per page session): a bullet list, not a checklist, with dot
+  bullets. There is no Continue button. It clears when an external mic is detected, as the MIDI
+  requirements line clears when a keyboard connects. Play is the way out for a user with neither.
+  The title and bullet block are centered with the indent kept. A one-line version fits with 0.4 cm
+  spare, and a two-line External mic fit as the tuner had it does not.
+- Headset mic warning: a card under the device row, so the device dropdown stays and the USB mic can be
+  picked. It clears when a USB mic is picked. There is no Dismiss button. The Quest steps ("Settings >
+  Experimental > External Microphone, then restart headset.") sit behind an (i) on the plug-in line
+  that opens a small "Mic not listed?" modal with one OK button.
+- Permission states use screen 3's cards.
+- Ready: the card is two rows, device with level meter and then Gain, reusing the tuner's elements.
+  Guitar adds a Tune button, a normal 100 x 28 button centered at the bottom of the card. Tune opens the
+  tuner modal (screen 5). Keys has no Tune button.
+- Wording is "Input" for the dropdown label and "Mic" for the card. Shared copy says "instruments" instead
+  of "guitar".
 
-### 5. Not-ready modal
+### 5. Tuner modal (guitar)
+
+```
+ [< Song]  (dimmed Setup behind)
+   +----------------------------------------+
+   |  +----------------------------------+  |
+   |  |  E2         ---|---              |  |
+   |  +----------------------------------+  |
+   |  |  v E2   v A2   v D3  ... v E4    |  |
+   |  +----------------------------------+  |
+   |     [Retune]            [v Done]       |
+   +----------------------------------------+
+ [Reposition]                    [> Play]
+```
+
+- Opens from the Tune button. The modal is 37 wide, about 23 cm tall of the 30 cm panel, with full-size
+  boxes and a Retune and Done bar. Retune is labelled.
+- Done returns to Setup. Play stays on Setup, so the tuner has no Play of its own and the corner button
+  stays Song. Done uses the plain `tuner-check.svg` check inverted dark, so a dark variant asset is needed.
+- Tuning stays optional. A working mic with no tuned strings keeps Mic.
+
+### 6. Not-ready modal
 
 ```
  +---------------------------+
@@ -133,8 +189,16 @@ The mic's `warn-card` shape: a title, up to four short lines and one button. Eac
  +---------------------------+
 ```
 
-- Shown on Play when Input is Mic or MIDI and not ready. Fix stays on Setup. Skip plays unscored with
-  Input set to None for that play.
+- Shown when Play is pressed on Setup and Input is Mic or MIDI and not ready. It never shows on the Song
+  page Play. Fix stays on Setup. Skip plays that run unscored and keeps the saved Input, so the modal
+  returns on the next Play from Setup. That repeat is intended, since the player opened Setup each time.
+  Choosing None in the dropdown is the opt-out.
+
+### 7. Bluetooth reminder modal
+
+- One modal, shown once per page session on the first Play with an external mic, from Setup (the tuner
+  has no Play of its own). Its title is "Bluetooth Audio Reminder" with the tuner's two lines and one Play
+  button. It replaces the old reminder page.
 
 ## Flow
 
@@ -143,11 +207,13 @@ Song page -- Setup --> Setup screen, Input = saved choice (default None)
                           |
         None              Mic                          MIDI
           |                |                             |
-     no cards        read mic permission          read MIDI permission
+     one card        read mic permission          read MIDI permission
                   prompt  denied  granted        prompt  denied  granted
                     |       |        |             |       |        |
-              permission blocked  mic card   permission blocked  requirements
-              card       card     (ready)    card       card     + checklist
+              permission blocked  requirements   permission blocked  requirements
+              card       card     then headset   card       card     + checklist
+                                  warning or
+                                  mic card (ready)
           Exit VR = request  Exit VR = end   Exit VR = request  Exit VR = end
                     |       |                    |       |
               session ends, flat page       session ends, flat page
@@ -155,12 +221,19 @@ Song page -- Setup --> Setup screen, Input = saved choice (default None)
                     |       |                    |       |
               user re-enters, Setup reopens on the saved Input, permission read again
 
-Play from Setup or the Song page:
-  input ready, or Input None  -> play (scored when ready)
-  Mic or MIDI not ready       -> modal: Fix (stay on Setup) or Skip (play unscored, Input None)
+Play from the Song page:
+  Input None, or Mic or MIDI not ready  -> play unscored in XR
+  ready                                 -> play scored
+
+Play from Setup:
+  input ready, or Input None            -> play (scored when ready)
+  Mic or MIDI not ready                 -> modal: Fix (stay on Setup) or Skip (play unscored, saved Input kept)
+  first Play with an external mic       -> Bluetooth reminder modal, then play
+
+Guitar mic ready: Tune --> tuner modal over Setup --> Done --> Setup
 ```
 
-Corner button on every screen: Song, leaving to the Song page.
+Corner button on every Setup screen: Song, leaving to the Song page.
 
 ## How state reaches the user in XR
 
@@ -170,8 +243,9 @@ Corner button on every screen: Song, leaving to the Song page.
   cards and checklist are the equivalent and the one place state is shown. An in-session toast system
   is planned for transient events, see "Setup hub".
 - The mic's cards sit inside the tuner's `tn-boxes` region, so Setup needs a panel of its own: a header
-  with the Song button, the Input dropdown, the cards and the modal scrim. It hand-duplicates the card
-  classes from `ui/tuner.uikitml`, as the other panels do.
+  with the Song button, the Input row, the card, the bottom bar and a modal scrim for the not-ready,
+  Bluetooth, steps and tuner modals. It hand-duplicates the card classes from `ui/tuner.uikitml`, as the
+  other panels do.
 
 ## Unblock steps for the blocked toast
 
@@ -201,8 +275,8 @@ Built from the current code: `ui/song.uikitml`, `ui/tuner.uikitml`, `XRPreScene.
   and one line, and the full path moved to a flat-page toast after the exit.
 - **Buttons were dropped.** The permission card lost its Back button because the Song button in the
   header already leaves. It keeps one button, labeled Exit VR even when it makes the request.
-- **Setup moved to full-panel pages.** The requirements text didn't fit as a card, so page 1 replaces
-  the whole panel: title 2.4, bullets 1.5, grey sub-bullets 1.2, a footer line, and the Play and
+- **Setup moved to full-panel pages.** (Superseded by the hub, where requirements are the first card state
+  of screen 4.) The requirements text didn't fit as a card, so page 1 replaced the whole panel: title 2.4, bullets 1.5, grey sub-bullets 1.2, a footer line, and the Play and
   Continue buttons in the bottom bar. Its body padding was also reduced (`page-body-low`).
 - **Wrong text flashed.** The card is hidden while the permission state is unknown, and the waiting
   overlay holds until the mic and input list are ready.
@@ -210,18 +284,25 @@ Built from the current code: `ui/song.uikitml`, `ui/tuner.uikitml`, `XRPreScene.
 
 ### Fit estimate
 
-Not measured in a headset. Line height is assumed at 1.3 times the font size, with a 40 x 30 panel,
-about 4.6 cm for the header and 4.6 cm for the bar.
+Measured in the mock page at 1.3 line height with a 40 x 30 cm panel, so a browser estimate and not a
+uikit result. The body available under the header is 25.4 cm. Measure the built screens in the dev emulator
+or headset before treating any of these as final.
 
-| Screen | Estimated height | Available body |
-| --- | --- | --- |
-| Tuner page 1 (built, fits) | about 19.8 cm | about 20.8 cm |
-| Permission card, worst case (title, 4 lines, button) | about 15.5 cm | about 20.8 cm |
-| Keyboard checklist, two rows and one sub-line | about 11 to 12 cm | about 20.8 cm |
+| Screen | Spare height |
+| --- | --- |
+| Keys None, Mic ready (two rows) | 11.7 cm, 7.1 cm |
+| MIDI connect, press, done | 5.0, 6.8, 8.3 cm |
+| Permission cards, mic or MIDI (prompt, blocked) | 5.4, 3.5 cm |
+| Mic requirements (one line each) | 0.4 cm, the tightest screen |
+| Mic headset warning | 4.4 cm |
+| Guitar mic ready with Tune | 3.3 cm |
+| Tuner modal | 23.1 of 30 cm panel |
 
-Page 1 is the calibration point and leaves about 1 cm. These estimates predate the hub. The Input
-dropdown row now sits above every card, and the guitar screen adds the mic card and two tuner boxes,
-so the hub's fit is unmeasured and is a mock question (RockyRoad-kqg).
+- The first guitar layout stacked the Input row, mic card and tuner boxes on one screen and overflowed by
+  7.3 cm. Moving the tuner to its own modal fixed it. The old full-screen tuner would have fit with 3.1 cm.
+- Uikit does not wrap, so the requirements line "Headset mic can't hear instruments" must stay one span.
+  Its width was tight in the mock, so check it on the real panel.
+- Card and tuner boxes use 2 cm side padding in the mock where the tuner uses 3.5. Neutral, settle when built.
 
 ### Slot conflict on the Song page (resolved)
 
@@ -342,8 +423,8 @@ language. Desktop's `.dropdown-row` shares width evenly and would cope.
 ## Setup hub (agreed 2026-11-24)
 
 The agreed direction. The Entry point, Navigation rule, Screens and Flow sections above were rewritten to
-match on 2026-11-24 and layout is provisional until the mock (RockyRoad-kqg). The "Proposed options" section
-is kept as history. Where it disagrees with this section, this one wins.
+match on 2026-11-24 after the mock review (RockyRoad-kqg). The "Proposed options" section is kept as
+history. Where it disagrees with this section, this one wins.
 
 ### Decisions
 
@@ -353,9 +434,10 @@ is kept as history. Where it disagrees with this section, this one wins.
   the XR design language.
 - Reposition on Setup shows only when a saved calibration exists, as on the Song page today. Reposition
   also stays in the Play HUD (`as-reposition`), which pauses the song and starts calibration.
-- An Input dropdown sits near the top of Setup and the middle of the screen follows its choice.
+- An Input dropdown is centered at the top of Setup and the middle card follows its choice.
   - Keys: None, Mic, MIDI.
-  - Guitar: None, Mic. Choosing Mic is the tuning flow, and Tune is no longer a Song page button.
+  - Guitar: None, Mic. Tune is a button in the mic card that opens the tuner modal, and Tune is no longer
+    a Song page button.
 - The mic branch reuses the tuner's card states and copy (`MIC_CARD_TEXT`). The MIDI branch is the
   permission cards and keyboard checklist above. In the tuner the setup row already stays visible while
   the mic card shows, so the dropdown plus card layout matches existing UX.
@@ -363,32 +445,37 @@ is kept as history. Where it disagrees with this section, this one wins.
   "Needs a MIDI keyboard and USB-C cable" under the dropdown until a keyboard connects. This also removes
   the cable bullet width problem. Setup sub-states have no forward button, the card is the action.
 - Play runs the saved Input and never makes a permission request, since a request at `prompt` ends the
-  session.
+  session. Play is always the light button.
 
 ### Play with an input that is not ready
 
-- If Input is Mic or MIDI and its status is not ready, pressing Play opens a modal confirm card with two
-  one-word buttons, Fix and Skip. Fix stays on Setup and Skip plays unscored. This is a blocking card, not
-  a toast, so a user can't reach the end of a song unaware that scoring was off.
+- On Setup only: if Input is Mic or MIDI and its status is not ready, pressing Play opens a modal confirm
+  card with two one-word buttons, Fix and Skip. Fix stays on Setup and Skip plays unscored. This is a
+  blocking card, not a toast, so a user can't reach the end of a song unaware that scoring was off.
 - Draft copy is a title "MIDI isn't ready" and a line "Skip scoring?". The same text works for Mic by
   swapping the name. "Skip" matches the existing "Skip tuning" wording.
-- The modal appears on every Play press in that state, from Setup and from the Song page. It never appears
+- The Song page Play shows no modal and plays unscored in XR when the input is not ready. It never appears
   when Input is None.
-- Skip sets Input back to None for that play. Whether the saved choice is also cleared is open, with a
-  blocked permission the likelier case for clearing it.
+- Skip plays that run unscored and keeps the saved Input. The modal returns on the next Play from Setup,
+  which is intended because the player opened Setup each time. Choosing None is the opt-out. This also
+  keeps the dropdown the only writer of the saved Input.
 - Tuning not done is not "not ready". A working mic with no tuned strings keeps Mic, since tuning stays
   optional.
 
 ### Setup content
 
-- The Mic device dropdown, level meter and Gain slider sit in a card background like the Song page
+- The Mic device dropdown, level meter and Gain slider sit in a two-row card background like the Song page
   metadata, reusing the tuner's elements. Permission and blocked cards replace the card body. The MIDI
   checklist uses the same card shape.
-- Guitar with Mic selected shows the tuner's boxes below the card. Play acts as Done, so the Done button is
-  gone. Restart moves to the right of the Input dropdown and shows only while the mic is ready.
+- Guitar with Mic selected adds a Tune button to the card. Tune opens a large modal with the tuner boxes,
+  a labelled Retune button and a Done button that returns to Setup. Play stays on Setup, so Done replaces
+  Play as the tuner's exit and the corner button stays Song.
 - Setup uses a wrench icon based on OpenMoji 1F527 (CC BY-SA 4.0), not the settings gear. Cropping,
   variants and attribution are RockyRoad-9f2. Aurora and Grille keep a `THIRD_PARTY_NOTICES` file, and
   Grille's OpenMoji power entry is the pattern.
+- Step markers are circles: a ring for a step not done and a circled check for done, based on the Zest
+  circled-check icon with an owner-made ring variant. The mock draws placeholders. Requirements bullets
+  stay plain dots because that card is not a checklist.
 
 ### The tuner's `complete` flag
 
@@ -397,8 +484,9 @@ is kept as history. Where it disagrees with this section, this one wins.
 - On desktop it matters. `TunerScreen.exit()` stores `lastTuningKey` only when tuning completed, and
   `shouldAutoTune` uses it to route Play through the tuner when the part's tuning differs.
 - `_finish()` shows the Bluetooth audio reminder once per page session when an external mic is active.
-  Play as Done would trigger it, and that page has its own Play button and hides the setup row, so it needs
-  a home on the hub. Options are a line on the mic card or the modal shape.
+  On the hub it is a modal shown once per page session on the first Play from Setup with an external mic,
+  since the tuner modal has no Play. A line on the mic card was rejected because it overflowed the guitar
+  screen by 2.2 cm.
 
 ### Built second: HUD entry
 
@@ -428,19 +516,16 @@ is kept as history. Where it disagrees with this section, this one wins.
 
 ### Open for the hub
 
-- How the guitar tuner screen, with its Restart and Done bar, fits inside Setup's [Reposition] [Play]
-  bar.
 - Parts with neither input nor tuning, if any, and whether they keep Reposition on the Song page.
-- Whether Reposition hides on permission and checklist sub-states.
-- Whether the saved Input is cleared on "Play without".
-- Source and device dropdowns opening downward over the card region on a 30 cm panel.
-- Vertical fit of the guitar screen (Input row, mic card, two tuner boxes, bar). Not measured, to be
-  settled while mocking.
-- Mock axes: Restart as a labelled button versus Grille's compact icon button, and whether Reposition and
-  Setup should join that comparison. Also whether "Input" and the mic device label read clearly together.
-- Where the Bluetooth audio reminder shows once Play acts as Done.
-- Desktop: whether a Setup hub keeps auto-tune on Play (`shouldAutoTune`) or replaces it.
+- Desktop: Play from the Song page with an unready input. XR plays unscored, desktop may default to the
+  tuner. Also whether a Setup hub keeps auto-tune on Play (`shouldAutoTune`) or replaces it.
+- Whether the Quest mic needs an external mic for piano. The Mic flow is shared on that expectation and the
+  Keys copy ("External mic" or "USB mic") is unverified.
 - XR piano mic scoring is unproven on Quest, so the Mic option on piano depends on that spike.
+- Measuring fit in the dev emulator or headset. The mock's numbers are a browser estimate and the
+  requirements line is tight.
+- A dark variant of the plain check for the tuner modal's Done button, and the final circled-check and ring
+  assets.
 - The desktop equivalent, expected to reuse the hub minus Reposition and the Exit VR states.
 
 ## Mic option for piano: detector candidates (2026-11-20)
@@ -508,8 +593,8 @@ Desktop, Polyphon `piano`, headphones, gain 1. Detail is in the validation log.
 
 ## Open
 
-- Where Reposition goes for Keys is settled by the Setup hub. Remaining hub questions are listed in
-  that section.
+- Where Reposition goes for Keys is settled by the Setup hub, and its layout by the mock. Remaining hub
+  questions are listed in that section.
 - What a dismissed prompt reports.
 - The exact option names on the Chromium MIDI setting, for the toast copy.
 - Whether the MIDI requirements line should mention a powered hub or self-powered keyboard. The one
