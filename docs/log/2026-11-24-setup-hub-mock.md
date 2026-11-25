@@ -1,7 +1,7 @@
 # Setup hub mock: layout, owner decisions and flow doc rewrite
 
 Id: 2026-11-24-setup-hub-mock
-Status: mock built and reviewed 2026-11-24 on `feat/MIDI_IO`, bead RockyRoad-kqg left open for the owner to close. Not yet merged to `dev` or `main`.
+Status: done 2026-11-24 on `feat/MIDI_IO`, bead RockyRoad-kqg closed. Committed on the branch, not yet merged to `dev` or `main`.
 
 Static mock of the XR Setup hub panels from [[keyboard-midi-xr-flow]]. Open `ui/Export/XR/SetupHub/index.html` from the folder. Frames are anchors (`#guitar`, `#mic-req`, `#modal-midi`) and `#all` shows every frame. A strip of switches applies to every frame. Aurora's Grille mock was the method reference.
 
@@ -27,10 +27,16 @@ Static mock of the XR Setup hub panels from [[keyboard-midi-xr-flow]]. Open `ui/
 - Headless Chromium over every frame: zero console errors, screenshots inspected after the last visual change.
 - The mock's measured fit table is in [[keyboard-midi-xr-flow]] under "Fit estimate".
 
+## Follow-up beads
+
+- RockyRoad-u5q: test the Quest mic for piano, headset mic versus external mic. Blocks RockyRoad-n6k.2.
+- RockyRoad-mie: mock the desktop Setup hub screens in the same method. Blocks RockyRoad-n6k.
+- RockyRoad-9f2 and RockyRoad-cou still cover the wrench icon variants and the icon audit.
+
 ## Open
 
-- Measure the built screens in the dev emulator or headset.
-- Verify the Quest mic on piano and settle "External mic" versus "USB mic" for Keys.
-- Desktop Song page Play with an unready input.
+- Measure the built screens in the dev emulator or headset (RockyRoad-n6k work).
+- Settle "External mic" versus "USB mic" for Keys after RockyRoad-u5q.
+- Desktop Song page Play with an unready input (RockyRoad-mie).
 - Dark variant of the plain check for the tuner modal's Done button, and the final circled-check and ring assets.
-- `public/` icon SVGs show as modified in git and were not edited in this work. Check before committing.
+- `public/` icon SVGs carry uncommitted `Origin:` comment headers that were not part of this work. They belong with the icon attribution work (RockyRoad-9f2, RockyRoad-cou).
